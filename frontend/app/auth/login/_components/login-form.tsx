@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import type { LoginCredentials, LoginFieldErrors } from "../services/credentials";
 import { Button } from "@/components/ui/button";
 
@@ -29,6 +31,18 @@ export function LoginForm({
   onFieldChange,
   onSubmit,
 }: LoginFormProps) {
+  useEffect(() => {
+    if (!formError) return;
+
+    toast.error("Sign in failed", {
+      id: "login-status",
+      description:
+        formError === "Sign in failed"
+          ? "Please check your email and password and try again."
+          : formError,
+    });
+  }, [formError]);
+
   return (
     <main className="w-full max-w-sm space-y-6 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="space-y-1 text-center sm:text-left">
@@ -103,15 +117,6 @@ export function LoginForm({
             </p>
           ) : null}
         </div>
-
-        {formError ? (
-          <p
-            role="alert"
-            className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:bg-red-500/15 dark:text-red-300"
-          >
-            {formError}
-          </p>
-        ) : null}
 
         <Button
           type="submit"

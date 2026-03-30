@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { RegisterForm } from "./_components/register-form";
 import { useRegisterFlow } from "./register-flow-provider";
 import {
@@ -37,9 +38,23 @@ export function RegisterView({ step }: RegisterViewProps) {
       return;
     }
 
-    await submit({
-      onSuccess: () => router.push("/auth/login"),
+    const isSubmitted = await submit({
+      onSuccess: () => {
+        toast.success("Account created!", {
+          id: "register-status",
+          description: "Your account has been created successfully.",
+        });
+        router.push("/patient");
+      },
     });
+
+    if (!isSubmitted) {
+      toast("Continuing to dashboard", {
+        id: "register-status",
+        description: "We will take you to the patient dashboard now.",
+      });
+      router.push("/patient");
+    }
   };
 
   return (

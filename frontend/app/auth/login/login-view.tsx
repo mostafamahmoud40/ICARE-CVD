@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { LoginForm } from "./_components/login-form";
 import { useLoginForm } from "./_hooks/use-login-form";
 import { createHttpSignInService } from "./services/http-sign-in.service";
@@ -17,7 +18,13 @@ export function LoginView() {
   const { credentials, fieldErrors, formError, isPending, setField, submit } =
     useLoginForm({
       signIn,
-      onSuccess: () => router.push("/"),
+      onSuccess: () => {
+        toast.success("Welcome back!", {
+          id: "login-status",
+          description: "You have successfully logged in.",
+        });
+        router.push("/");
+      },
     });
 
   return (
