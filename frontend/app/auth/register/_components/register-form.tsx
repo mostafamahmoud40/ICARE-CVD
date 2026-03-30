@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { Check, FileText, HeartPulse, Upload, X } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type {
@@ -1367,6 +1369,15 @@ export function RegisterForm({
   const isFinalStep = step === registerStepOrder[registerStepOrder.length - 1];
   const StepIcon = step === "step4" ? Upload : step === "step5" ? Check : HeartPulse;
 
+  useEffect(() => {
+    if (!isFinalStep || !formError) return;
+
+    toast.error("Registration failed", {
+      id: "register-status",
+      description: formError,
+    });
+  }, [formError, isFinalStep]);
+
   return (
     <main
       className={cn(
@@ -1437,15 +1448,6 @@ export function RegisterForm({
                     onFieldChange,
                   )
                 : renderStepFiveFields(credentials)}
-
-        {isFinalStep && formError ? (
-          <p
-            role="alert"
-            className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:bg-red-500/15 dark:text-red-300"
-          >
-            {formError}
-          </p>
-        ) : null}
 
         <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">
           {onBack ? (
