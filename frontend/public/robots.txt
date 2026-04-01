@@ -1,13 +1,4 @@
-# ICARE CVD - Robots.txt
 User-agent: *
 Allow: /
 
-# Sitemap location
-Sitemap: https://your-domain.com/sitemap.xml
-
-# Disallow sensitive areas (adjust as needed)
-Disallow: /admin/
-Disallow: /api/
-Disallow: /patient/
-Disallow: /doctor/
-Disallow: /auth/
+Sitemap: https://example.com/sitemap.xml
