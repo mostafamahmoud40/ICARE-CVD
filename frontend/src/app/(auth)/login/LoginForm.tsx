@@ -1,6 +1,10 @@
 "use client";
 
 import { FormEvent } from "react";
+import { AuthFormCard } from "@/components/shared/AuthFormCard";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useLogin } from "./useLogin";
 
 export function LoginForm() {
@@ -12,24 +16,32 @@ export function LoginForm() {
   };
 
   return (
-    <form className="flex w-full max-w-sm flex-col gap-4" onSubmit={handleSubmit}>
-      <input
-        className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700"
-        type="email"
-        placeholder="Email"
-        value={values.email}
-        onChange={(event) => onChange("email", event.target.value)}
-      />
-      <input
-        className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700"
-        type="password"
-        placeholder="Password"
-        value={values.password}
-        onChange={(event) => onChange("password", event.target.value)}
-      />
-      <button className="rounded bg-zinc-900 px-4 py-2 text-white dark:bg-zinc-100 dark:text-black" type="submit">
-        Login
-      </button>
-    </form>
+    <AuthFormCard title="Login" description="Enter your credentials to continue.">
+      <form className="flex w-full flex-col gap-4" onSubmit={handleSubmit}>
+        <div className="grid gap-2">
+          <Label htmlFor="login-email">Email</Label>
+          <Input
+            id="login-email"
+            type="email"
+            placeholder="name@example.com"
+            value={values.email}
+            onChange={(event) => onChange("email", event.target.value)}
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="login-password">Password</Label>
+          <Input
+            id="login-password"
+            type="password"
+            placeholder="********"
+            value={values.password}
+            onChange={(event) => onChange("password", event.target.value)}
+          />
+        </div>
+        <Button className="w-full" type="submit">
+          Login
+        </Button>
+      </form>
+    </AuthFormCard>
   );
 }
