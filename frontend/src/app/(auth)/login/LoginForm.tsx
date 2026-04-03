@@ -1,111 +1,160 @@
 "use client";
 
-import { FormEvent } from "react";
 import Link from "next/link";
-import { KeyRound, LogIn, ShieldCheck, UserPlus } from "lucide-react";
+import { FormEvent, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { InfoIcon, Lock, Mail } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 import { useLogin } from "./useLogin";
 
 export function LoginForm() {
-  const { values, onChange, onSubmit } = useLogin();
+  const { submit, fieldErrors, isPending, serverErrorMessage } = useLogin();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    onSubmit();
-  };
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    submit({ email, password });
+  }
 
   return (
-    <section className="w-full max-w-sm space-y-6">
-      <div className="grid grid-cols-2 rounded-lg border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-900">
-        <span className="inline-flex items-center justify-center gap-2 rounded-md bg-zinc-100 py-2 text-sm font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
-          <LogIn className="h-4 w-4" />
-          Login
-        </span>
-        <Link
-          href="/register"
-          className="inline-flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-        >
-          <UserPlus className="h-4 w-4" />
-          Sign Up
-        </Link>
-      </div>
-
-      <div className="flex justify-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-zinc-300 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
-          <ShieldCheck className="h-6 w-6 text-zinc-700 dark:text-zinc-200" />
-        </div>
-      </div>
-
-      <div className="space-y-2 text-center">
-        <h1 className="text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-          Welcome!
-        </h1>
-        <p className="text-lg text-zinc-600 dark:text-zinc-400">
-          Please enter your details to login.
+    <Card className="w-full max-w-md border border-zinc-200/90 bg-white shadow-none dark:border-zinc-700/80 dark:bg-zinc-900">
+      <CardHeader className="space-y-2 px-8 pb-4 pt-8 text-left">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+          Account access
         </p>
-      </div>
-
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="grid gap-2">
-          <Label htmlFor="login-email">Email address</Label>
-          <Input
-            id="login-email"
-            type="email"
-            placeholder="Enter your email address"
-            className="h-11"
-            value={values.email}
-            onChange={(event) => onChange("email", event.target.value)}
-          />
-        </div>
-        <div className="grid gap-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="login-password">Password</Label>
+        <CardTitle className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          Welcome back!
+        </CardTitle>
+        <CardDescription className="text-[15px] text-zinc-500 dark:text-zinc-400">
+          Simplify your workflow and boost your productivity with ICARE-CVD. Get
+          started for free.
+        </CardDescription>
+      </CardHeader>
+      <form onSubmit={handleSubmit} noValidate>
+        <CardContent className="flex flex-col gap-5 px-8 pb-2 pt-2">
+          <div className="flex flex-col gap-2">
+            <Label
+              htmlFor="login-email"
+              className="text-left text-sm font-medium text-zinc-800 dark:text-zinc-200"
+            >
+              Email
+            </Label>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+              <Input
+                id="login-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                aria-invalid={Boolean(fieldErrors.email)}
+                disabled={isPending}
+                className="h-10 rounded-lg border-zinc-300 bg-white pl-9 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50"
+              />
+            </div>
+            {fieldErrors.email ? (
+              <p className="text-sm text-destructive" role="alert">
+                {fieldErrors.email}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label
+              htmlFor="login-password"
+              className="text-left text-sm font-medium text-zinc-800 dark:text-zinc-200"
+            >
+              Password
+            </Label>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+              <Input
+                id="login-password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                aria-invalid={Boolean(fieldErrors.password)}
+                disabled={isPending}
+                className="h-10 rounded-lg border-zinc-300 bg-white pl-9 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50"
+              />
+            </div>
+            {fieldErrors.password ? (
+              <p className="text-sm text-destructive" role="alert">
+                {fieldErrors.password}
+              </p>
+            ) : null}
+          </div>
+          {serverErrorMessage ? (
+            <Alert
+              variant="destructive"
+              className="mt-1 border-red-200 bg-red-50 text-red-700 dark:border-red-400/60 dark:bg-red-950/40 dark:text-red-200"
+            >
+              <InfoIcon className="mt-0.5 size-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{serverErrorMessage}</AlertDescription>
+            </Alert>
+          ) : null}
+          <div className="mt-1 flex items-center justify-between gap-2 text-sm">
+            <label className="inline-flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-zinc-300 text-zinc-900 outline-none ring-offset-0 focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-0 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50"
+              />
+              <span>Remember me</span>
+            </label>
             <Link
               href="/forgot-password"
-              className="text-sm font-medium text-zinc-700 hover:underline dark:text-zinc-300"
+              className="text-sm font-medium text-zinc-800 underline-offset-4 hover:text-zinc-950 hover:underline dark:text-zinc-200 dark:hover:text-white"
             >
               Forgot password?
             </Link>
           </div>
-          <Input
-            id="login-password"
-            type="password"
-            placeholder="Enter your password"
-            className="h-11"
-            value={values.password}
-            onChange={(event) => onChange("password", event.target.value)}
-          />
-        </div>
-        <Button className="h-11 w-full text-base" type="submit">
-          Log In
-        </Button>
-
-        <div className="relative py-1">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-zinc-200 dark:border-zinc-800" />
+        </CardContent>
+        <CardFooter className="flex flex-col gap-4 border-t border-zinc-100 bg-transparent px-8 pb-8 pt-6 dark:border-zinc-800">
+          <Button
+            type="submit"
+            disabled={isPending}
+            className="h-10 w-full rounded-lg border-0 bg-zinc-950 text-sm font-medium text-white shadow-none hover:bg-zinc-900 focus-visible:ring-zinc-400/40 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+          >
+            {isPending ? "Signing in…" : "Sign in"}
+          </Button>
+          <div className="space-y-1 text-center text-sm text-zinc-600 dark:text-zinc-400">
+            <p>
+              New here?{" "}
+              <Link
+                href="/register"
+                className="font-medium text-zinc-900 underline-offset-4 hover:text-zinc-950 hover:underline dark:text-zinc-50"
+              >
+                Create an account
+              </Link>
+            </p>
+            <p>
+              Need context first?{" "}
+              <Link
+                href="/about"
+                className="font-medium text-zinc-900 underline-offset-4 hover:text-zinc-950 hover:underline dark:text-zinc-50"
+              >
+                Read about this app.
+              </Link>
+            </p>
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-zinc-100 px-2 text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
-              Or
-            </span>
-          </div>
-        </div>
-
-        <Button className="h-11 w-full" variant="outline" type="button">
-          <KeyRound className="h-4 w-4" />
-          Continue with Google
-        </Button>
+        </CardFooter>
       </form>
-
-      <p className="pt-10 text-center text-base text-zinc-600 dark:text-zinc-400">
-        Don&apos;t have an account yet?{" "}
-        <Link href="/register" className="font-semibold text-zinc-900 underline dark:text-zinc-100">
-          Sign up
-        </Link>
-      </p>
-    </section>
+    </Card>
   );
 }
