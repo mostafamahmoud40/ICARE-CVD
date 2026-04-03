@@ -12,7 +12,7 @@ export default function AuthLayout({
 }>) {
   return (
     <div
-      className={`${authSerif.className} flex min-h-screen flex-col items-center justify-center bg-[#f4f4f5] px-4 py-10 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50`}
+      className={`${authSerif.className} flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary via-background to-secondary/60 p-4 text-zinc-900 dark:text-zinc-50`}
     >
       {children}
     </div>
