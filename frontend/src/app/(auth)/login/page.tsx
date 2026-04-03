@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
+
 import { LoginForm } from "./LoginForm";
 
+export const metadata: Metadata = {
+  title: "Sign in | ICARE-CVD",
+  description: "Sign in to your ICARE-CVD account",
+};
+
 export default function LoginPage() {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-100 px-6 py-10 dark:bg-zinc-950">
-      <LoginForm />
-    </main>
-  );
+  return <LoginForm />;
 }

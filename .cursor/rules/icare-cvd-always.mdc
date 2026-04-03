@@ -1,0 +1,20 @@
+---
+description: Mandatory ICARE-CVD conventions for every task in this repository
+alwaysApply: true
+---
+
+# ICARE-CVD — mandatory rules
+
+Before writing or changing anything in this repo:
+
+1. **Read the right guide first**
+   - **Frontend (`frontend/`):** Read and follow `frontend/AGENTS.md` in full (Next.js App Router, Tailwind, shadcn/ui, Zod, TanStack Query + `api-client`, route co-location, assets).
+   - **Backend (`backend/`):** NestJS; follow existing module layout and TypeScript patterns in the codebase.
+
+2. **Scope:** Touch only what the task needs. No drive-by refactors, unrelated files, or extra docs unless the user asked.
+
+3. **Frontend stack locks:** UI = Tailwind + shadcn/ui only. No `src/services/` for HTTP—use `src/lib/api-client.ts` with TanStack Query in hooks.
+
+4. **Next.js:** When APIs differ from general knowledge, check `node_modules/next/dist/docs/` for this project’s version.
+
+If you will change UI, routes, or API client code under `frontend/`, open `frontend/AGENTS.md` before coding.
