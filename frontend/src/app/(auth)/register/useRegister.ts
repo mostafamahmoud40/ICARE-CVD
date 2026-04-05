@@ -6,7 +6,7 @@ import { useCallback, useState } from "react";
 
 import { apiClient } from "@/lib/api-client";
 
-import { registerSchema } from "./register.schema";
+import { REGISTER_VALIDATION_ENABLED, registerSchema } from "./register.schema";
 import type { RegisterPayload, RegisterResponse, RegisterValues } from "./register.types";
 
 export function useRegister() {
@@ -21,6 +21,17 @@ export function useRegister() {
 
   const submit = useCallback(
     (values: RegisterValues) => {
+      if (!REGISTER_VALIDATION_ENABLED) {
+        setFieldErrors({});
+        mutation.mutate({
+          fullName: values.fullName,
+          email: values.email,
+          phoneNumber: values.phoneNumber,
+          password: values.password,
+        });
+        return;
+      }
+
       const result = registerSchema.safeParse(values);
       if (!result.success) {
         const next: Partial<Record<keyof RegisterValues, string>> = {};

@@ -24,6 +24,7 @@ function Avatar({ className, size = "default", ...props }: AvatarProps) {
 
 function AvatarImage({
   className,
+  alt = "",
   ...props
 }: React.ComponentPropsWithoutRef<"img">) {
   return (
@@ -33,6 +34,7 @@ function AvatarImage({
         "aspect-square size-full rounded-full object-cover",
         className
       )}
+      alt={alt}
       {...props}
     />
   )
