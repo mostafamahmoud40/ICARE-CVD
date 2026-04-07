@@ -31,6 +31,19 @@
 $ npm install
 ```
 
+## Environment variables
+
+Set these variables before running auth endpoints:
+
+```bash
+DATABASE_URL=postgres://...
+JWT_ACCESS_SECRET=replace-with-strong-secret
+JWT_REFRESH_SECRET=replace-with-strong-secret
+JWT_ACCESS_TTL=15m
+JWT_REFRESH_TTL=7d
+PORT=3000
+```
+
 ## Compile and run the project
 
 ```bash

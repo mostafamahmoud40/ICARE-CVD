@@ -1,4 +1,11 @@
-import { boolean, pgEnum, pgTable, serial, text } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  pgEnum,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 
 /** Allowed user roles in the system. */
 export const userRoleEnum = pgEnum('user_role', [
@@ -17,4 +24,8 @@ export const user = pgTable('user', {
   phone: text('phone'),
   role: userRoleEnum('role').notNull().default('patient'),
   password: text('password').notNull(),
+  refreshTokenHash: text('refresh_token_hash'),
+  refreshTokenExpiresAt: timestamp('refresh_token_expires_at', {
+    withTimezone: true,
+  }),
 });

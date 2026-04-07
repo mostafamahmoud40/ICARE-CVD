@@ -1,0 +1,825 @@
+{
+  "id": "522e79de-1b71-49ff-b883-3a74ee96247d",
+  "prevId": "3f2a3aa0-bacb-4425-8686-2b11e5801a36",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.user": {
+      "name": "user",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "user_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'patient'"
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refresh_token_hash": {
+          "name": "refresh_token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token_expires_at": {
+          "name": "refresh_token_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_email_unique": {
+          "name": "user_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.patient": {
+      "name": "patient",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_of_birth": {
+          "name": "date_of_birth",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "national_id": {
+          "name": "national_id",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gender": {
+          "name": "gender",
+          "type": "patient_gender",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "blood_type": {
+          "name": "blood_type",
+          "type": "patient_blood_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "height_cm": {
+          "name": "height_cm",
+          "type": "numeric(5, 1)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "weight_kg": {
+          "name": "weight_kg",
+          "type": "numeric(5, 1)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bmi": {
+          "name": "bmi",
+          "type": "numeric(4, 1)",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "CASE\n        WHEN \"height_cm\" IS NOT NULL\n         AND \"weight_kg\" IS NOT NULL\n         AND \"height_cm\" > 0::numeric\n        THEN ROUND(\n          (\"weight_kg\"::numeric\n            / POWER(\"height_cm\"::numeric / 100.0, 2))::numeric,\n          1\n        )\n        ELSE NULL\n      END",
+            "type": "stored"
+          }
+        },
+        "marital_status": {
+          "name": "marital_status",
+          "type": "patient_marital_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "occupation": {
+          "name": "occupation",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "smoking_status": {
+          "name": "smoking_status",
+          "type": "patient_smoking_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alcohol_consumption": {
+          "name": "alcohol_consumption",
+          "type": "patient_alcohol_consumption",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "caffeine_intake": {
+          "name": "caffeine_intake",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "recreational_drug_use": {
+          "name": "recreational_drug_use",
+          "type": "patient_recreational_drug_use",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "exercise_frequency": {
+          "name": "exercise_frequency",
+          "type": "patient_exercise_frequency",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "exercise_duration": {
+          "name": "exercise_duration",
+          "type": "patient_exercise_duration",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "exercise_type": {
+          "name": "exercise_type",
+          "type": "patient_exercise_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "physical_activity_level": {
+          "name": "physical_activity_level",
+          "type": "patient_physical_activity_level",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dietary_habits": {
+          "name": "dietary_habits",
+          "type": "patient_dietary_habits",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "high_salt_diet": {
+          "name": "high_salt_diet",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "generated": {
+            "as": "(\"dietary_habits\" IS NOT NULL AND \"dietary_habits\" IN ('high_salt'::patient_dietary_habits, 'high_both'::patient_dietary_habits))",
+            "type": "stored"
+          }
+        },
+        "high_fat_diet": {
+          "name": "high_fat_diet",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "generated": {
+            "as": "(\"dietary_habits\" IS NOT NULL AND \"dietary_habits\" IN ('high_fat'::patient_dietary_habits, 'high_both'::patient_dietary_habits))",
+            "type": "stored"
+          }
+        },
+        "stress_level": {
+          "name": "stress_level",
+          "type": "patient_stress_level",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "patient_user_id_user_id_fk": {
+          "name": "patient_user_id_user_id_fk",
+          "tableFrom": "patient",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "patient_user_id_unique": {
+          "name": "patient_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.patient_history": {
+      "name": "patient_history",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chief_complaint": {
+          "name": "chief_complaint",
+          "type": "chief_complaint",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chief_complaint_other_text": {
+          "name": "chief_complaint_other_text",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hpi_data": {
+          "name": "hpi_data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "no_cardiac_history": {
+          "name": "no_cardiac_history",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "past_cardiac_history": {
+          "name": "past_cardiac_history",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "no_non_cardiac_history": {
+          "name": "no_non_cardiac_history",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "past_non_cardiac_history": {
+          "name": "past_non_cardiac_history",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cardiovascular_risk_factors": {
+          "name": "cardiovascular_risk_factors",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "patient_history_user_id_user_id_fk": {
+          "name": "patient_history_user_id_user_id_fk",
+          "tableFrom": "patient_history",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "patient_history_user_id_unique": {
+          "name": "patient_history_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.family_history": {
+      "name": "family_history",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "has_family_history": {
+          "name": "has_family_history",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "relationship": {
+          "name": "relationship",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "condition": {
+          "name": "condition",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "details": {
+          "name": "details",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "family_history_user_id_user_id_fk": {
+          "name": "family_history_user_id_user_id_fk",
+          "tableFrom": "family_history",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.allergy": {
+      "name": "allergy",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "allergy_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "allergen": {
+          "name": "allergen",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reaction": {
+          "name": "reaction",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "allergy_user_id_user_id_fk": {
+          "name": "allergy_user_id_user_id_fk",
+          "tableFrom": "allergy",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.medication": {
+      "name": "medication",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dose": {
+          "name": "dose",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "frequency": {
+          "name": "frequency",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "medication_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "compliance": {
+          "name": "compliance",
+          "type": "medication_compliance",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "side_effects": {
+          "name": "side_effects",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "medication_user_id_user_id_fk": {
+          "name": "medication_user_id_user_id_fk",
+          "tableFrom": "medication",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.user_role": {
+      "name": "user_role",
+      "schema": "public",
+      "values": [
+        "admin",
+        "patient",
+        "assistant",
+        "doctor"
+      ]
+    },
+    "public.patient_alcohol_consumption": {
+      "name": "patient_alcohol_consumption",
+      "schema": "public",
+      "values": [
+        "none",
+        "rarely",
+        "weekly",
+        "daily"
+      ]
+    },
+    "public.patient_blood_type": {
+      "name": "patient_blood_type",
+      "schema": "public",
+      "values": [
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "AB+",
+        "AB-",
+        "O+",
+        "O-"
+      ]
+    },
+    "public.patient_dietary_habits": {
+      "name": "patient_dietary_habits",
+      "schema": "public",
+      "values": [
+        "balanced",
+        "high_salt",
+        "high_fat",
+        "high_both",
+        "other"
+      ]
+    },
+    "public.patient_exercise_duration": {
+      "name": "patient_exercise_duration",
+      "schema": "public",
+      "values": [
+        "under-30",
+        "30-60",
+        "over-60"
+      ]
+    },
+    "public.patient_exercise_frequency": {
+      "name": "patient_exercise_frequency",
+      "schema": "public",
+      "values": [
+        "none",
+        "1-2",
+        "3-4",
+        "5+"
+      ]
+    },
+    "public.patient_exercise_type": {
+      "name": "patient_exercise_type",
+      "schema": "public",
+      "values": [
+        "walking",
+        "gym",
+        "swimming",
+        "cycling",
+        "other"
+      ]
+    },
+    "public.patient_gender": {
+      "name": "patient_gender",
+      "schema": "public",
+      "values": [
+        "male",
+        "female",
+        "other"
+      ]
+    },
+    "public.patient_marital_status": {
+      "name": "patient_marital_status",
+      "schema": "public",
+      "values": [
+        "single",
+        "married",
+        "divorced",
+        "widowed"
+      ]
+    },
+    "public.patient_physical_activity_level": {
+      "name": "patient_physical_activity_level",
+      "schema": "public",
+      "values": [
+        "low",
+        "moderate",
+        "high"
+      ]
+    },
+    "public.patient_recreational_drug_use": {
+      "name": "patient_recreational_drug_use",
+      "schema": "public",
+      "values": [
+        "no",
+        "sometimes",
+        "yes"
+      ]
+    },
+    "public.patient_smoking_status": {
+      "name": "patient_smoking_status",
+      "schema": "public",
+      "values": [
+        "never",
+        "former-5",
+        "former-10",
+        "former-15",
+        "former-20",
+        "current-5",
+        "current-10",
+        "current-15",
+        "current-20"
+      ]
+    },
+    "public.patient_stress_level": {
+      "name": "patient_stress_level",
+      "schema": "public",
+      "values": [
+        "low",
+        "moderate",
+        "high"
+      ]
+    },
+    "public.chief_complaint": {
+      "name": "chief_complaint",
+      "schema": "public",
+      "values": [
+        "chest-pain",
+        "dyspnea",
+        "palpitations",
+        "syncope",
+        "leg-swelling",
+        "fatigue",
+        "constitutional-infective",
+        "peripheral-vascular",
+        "hepatic-congestion",
+        "jaundice",
+        "cyanosis",
+        "systemic-embolization",
+        "neurological",
+        "other"
+      ]
+    },
+    "public.allergy_category": {
+      "name": "allergy_category",
+      "schema": "public",
+      "values": [
+        "drug",
+        "food",
+        "other"
+      ]
+    },
+    "public.medication_compliance": {
+      "name": "medication_compliance",
+      "schema": "public",
+      "values": [
+        "good",
+        "poor"
+      ]
+    },
+    "public.medication_type": {
+      "name": "medication_type",
+      "schema": "public",
+      "values": [
+        "antihypertensives",
+        "antiplatelets",
+        "anticoagulants",
+        "statins",
+        "antiarrhythmics",
+        "diuretics",
+        "diabetes_medications"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

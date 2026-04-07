@@ -96,5 +96,15 @@ export type RegisterPayload = {
 };
 
 export type RegisterResponse = {
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string | null;
+    role: string;
+  };
+  /** Optional UI message if backend adds one later */
   message?: string;
 };
