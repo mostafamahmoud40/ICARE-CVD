@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Droplet,
   HeartPulse,
-  Package,
   Pill,
   Plus,
   ShieldCheck,
@@ -17,7 +16,6 @@ import {
   Syringe,
   User,
   Users,
-  Wind,
   X,
 } from "lucide-react";
 
@@ -25,15 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-import { cn } from "@/lib/utils";
+// (unused Select + cn imports removed)
 
 import {
   ConstitutionalHpi,
@@ -49,7 +39,7 @@ import {
   SyncopeHpi,
 } from "./MedicalHpiBlocks";
 import { PastInterventionsSection } from "./PastInterventionsSection";
-import { useRegisterContext } from "./register.context";
+import type { RegisterMedicalValues } from "./register.types";
 import {
   ChipMultiField,
   MedicalNativeSelect as NativeSelect,
@@ -59,23 +49,19 @@ import {
   YesNoToggle,
 } from "./registerMedicalUi";
 
-const FAMILY_RELATIONSHIP_OPTIONS = [
-  { value: "Mother", label: "Mother" },
-  { value: "Father", label: "Father" },
-  { value: "Parent", label: "Parent" },
-  { value: "Sister", label: "Sister" },
-  { value: "Brother", label: "Brother" },
-  { value: "Son", label: "Son" },
-  { value: "Daughter", label: "Daughter" },
-  { value: "Grandmother", label: "Grandmother" },
-  { value: "Grandfather", label: "Grandfather" },
-  { value: "Aunt", label: "Aunt" },
-  { value: "Uncle", label: "Uncle" },
-  { value: "Cousin", label: "Cousin" },
-  { value: "Spouse", label: "Spouse" },
-  { value: "Partner", label: "Partner" },
-  { value: "Other", label: "Other" },
-] as const;
+/* ────── Props (DIP: no store/context dependency) ────── */
+
+type Step4MedicalHistoryProps = {
+  medicalValues: RegisterMedicalValues;
+  medicalStepErrors: { chiefComplaint?: string };
+  onFieldChange: (field: string, value: unknown) => void;
+  onPrevious: () => void;
+  onNext: () => void;
+};
+
+/* ────── Constants ────── */
+
+// (unused FAMILY_RELATIONSHIP_OPTIONS removed)
 
 const CHEST_PAIN_PROVOKING = [
   { id: "exertion", label: "Exertion" },
@@ -143,6 +129,107 @@ const DYSPNEA_COUGH_PRODUCTIVE_AMOUNT = [
   { value: "large", label: "Large" },
 ] as const;
 
+/* ────── HPI reset mapping (module-level for stability) ────── */
+
+const COMPLAINT_HPI_FIELDS = {
+  "chest-pain": [
+    "chestPainOnsetDate",
+    "chestPainOnsetType",
+    "chestPainProvoking",
+    "chestPainQuality",
+    "chestPainRadiation",
+    "chestPainSeverity",
+    "chestPainTimingPattern",
+    "chestPainTimingDuration",
+    "chestPainRelieving",
+    "chestPainAssociated",
+  ],
+  dyspnea: [
+    "dyspneaOnsetProgression",
+    "dyspneaNYHA",
+    "dyspneaOrthopnea",
+    "dyspneaOrthopneaPillows",
+    "dyspneaPND",
+    "dyspneaWheezing",
+    "dyspneaCough",
+    "dyspneaProductiveColor",
+    "dyspneaProductiveAmount",
+    "dyspneaHemoptysis",
+    "dyspneaRelationTo",
+  ],
+  palpitations: [
+    "palpitationsOnsetType",
+    "palpitationsDuration",
+    "palpitationsRhythm",
+    "palpitationsRate",
+    "palpitationsTriggers",
+    "palpitationsTermination",
+    "palpitationsAssociated",
+  ],
+  syncope: [
+    "syncopeCircumstances",
+    "syncopeProdrome",
+    "syncopeLocDuration",
+    "syncopeRecovery",
+    "syncopeInjury",
+    "syncopePreviousSimilar",
+    "syncopePreviousCount",
+    "syncopeFamilySuddenDeath",
+  ],
+  "leg-swelling": [
+    "edemaLocation",
+    "edemaSymmetry",
+    "edemaSide",
+    "edemaDiurnal",
+    "edemaWeightGain",
+    "edemaWeightGainKg",
+    "edemaDiureticResponse",
+  ],
+  fatigue: ["fatigueNYHA", "fatigueOnset", "fatigueAssociated"],
+  "constitutional-infective": [
+    "constitFever",
+    "constitFeverOnsetDate",
+    "constitFeverPattern",
+    "constitChills",
+    "constitNightSweats",
+    "constitWeightLoss",
+    "constitWeightLossAmount",
+    "constitWeightLossTimeframe",
+    "constitFatigue",
+  ],
+  "peripheral-vascular": [
+    "pvClaudication",
+    "pvSite",
+    "pvDistanceMeters",
+    "pvReliefRest",
+    "pvProgression",
+    "pvRestPain",
+    "pvUlcers",
+    "pvColdExtremities",
+  ],
+  "hepatic-congestion": ["hepaticDistension", "hepaticEpigastric", "hepaticNausea", "hepaticAppetite"],
+  jaundice: ["jaundiceOnsetDate", "jaundiceCourse", "jaundiceDarkUrine", "jaundicePaleStools", "jaundicePruritus"],
+  cyanosis: ["cyanosisType", "cyanosisTiming", "cyanosisOnset"],
+  "systemic-embolization": ["embLimbPain", "embVisualLoss", "embFlankPain", "embAbdominalPain", "embTIA", "embStroke"],
+  neurological: ["neuroDizziness", "neuroSyncope", "neuroWeakness", "neuroSpeech", "neuroVisual", "neuroConfusion"],
+} as const satisfies Record<string, readonly string[]>;
+
+const HPI_ARRAY_FIELDS = new Set<string>([
+  "chestPainProvoking",
+  "chestPainQuality",
+  "chestPainRelieving",
+  "chestPainAssociated",
+  "dyspneaRelationTo",
+  "palpitationsTriggers",
+  "palpitationsAssociated",
+  "syncopeCircumstances",
+  "syncopeProdrome",
+  "edemaLocation",
+  "fatigueAssociated",
+  "pvSite",
+  "cyanosisType",
+]);
+
 function ChoiceButtons({
   options,
   value,
@@ -176,12 +263,538 @@ function ChoiceButtons({
   );
 }
 
-export function Step4MedicalHistory() {
-  const { medicalValues, onFieldChange, previousStep, nextStep, medicalStepErrors } = useRegisterContext();
+type MedicationItem = {
+  id: string;
+  name: string;
+  dose: string;
+  frequency: string;
+  type: string;
+  compliance: "good" | "poor" | "";
+  sideEffects: string;
+  category?: string;
+};
+
+type MedicationSectionProps = {
+  items: MedicationItem[];
+  onAdd: (item: Omit<MedicationItem, "id">) => void;
+  onRemove: (id: string) => void;
+};
+
+function MedicationSection({ items, onAdd, onRemove }: MedicationSectionProps) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [newMed, setNewMed] = useState({
+    name: "",
+    dose: "",
+    frequency: "",
+    type: "",
+    compliance: "" as MedicationItem["compliance"],
+    sideEffects: "",
+    category: "",
+  });
+
+  const drugTypes = [
+    { value: "antihypertensives", label: "Antihypertensives", icon: <HeartPulse className="h-4 w-4 text-rose-600" /> },
+    { value: "antiplatelets", label: "Antiplatelets", icon: <ShieldCheck className="h-4 w-4 text-amber-600" /> },
+    { value: "anticoagulants", label: "Anticoagulants", icon: <ShieldCheck className="h-4 w-4 text-orange-600" /> },
+    { value: "statins", label: "Statins", icon: <Activity className="h-4 w-4 text-indigo-600" /> },
+    { value: "antiarrhythmics", label: "Antiarrhythmics", icon: <HeartPulse className="h-4 w-4 text-purple-600" /> },
+    { value: "diuretics", label: "Diuretics", icon: <Droplet className="h-4 w-4 text-cyan-600" /> },
+    { value: "diabetes_medications", label: "Diabetes medications", icon: <Pill className="h-4 w-4 text-emerald-600" /> },
+  ];
+
+  const handleAdd = () => {
+    if (!newMed.name.trim() || !newMed.dose.trim() || !newMed.frequency.trim() || !newMed.type) return;
+    onAdd({ ...newMed });
+    setNewMed({
+      name: "",
+      dose: "",
+      frequency: "",
+      type: "",
+      compliance: "",
+      sideEffects: "",
+      category: "",
+    });
+    setShowAdd(false);
+  };
+
+  const getDrugIcon = (type: string) => {
+    const dt = drugTypes.find((d) => d.value === type);
+    return dt?.icon || <Pill className="h-4 w-4 text-gray-500" />;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-medium text-[#1A1A2E]">Current Medications</Label>
+        <Button
+          type="button"
+          onClick={() => setShowAdd(true)}
+          variant="outline"
+          size="sm"
+          className="h-8 px-3 text-xs"
+        >
+          <Plus className="mr-1 h-3 w-3" /> Add Medication
+        </Button>
+      </div>
+
+      {items.length === 0 && !showAdd ? (
+        <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 text-gray-500">
+          <CheckCircle2 className="h-4 w-4" />
+          <span className="text-sm">No medications recorded</span>
+        </div>
+      ) : null}
+
+      {items.length > 0 && (
+        <div className="space-y-3">
+          {items.map((med) => (
+            <div
+              key={med.id}
+              className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-50">
+                    {getDrugIcon(med.type)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-[#1A1A2E]">{med.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {drugTypes.find((d) => d.value === med.type)?.label} • {med.dose}
+                    </p>
+                    <p className="mt-1 text-xs font-medium text-[#2D8B84]">{med.frequency}</p>
+                    {med.compliance ? (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Compliance:{" "}
+                        <span className="font-medium text-[#1A1A2E]">
+                          {med.compliance === "good" ? "Good" : "Poor"}
+                        </span>
+                      </p>
+                    ) : null}
+                    {med.sideEffects?.trim() ? (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Side effects: <span className="text-gray-600">{med.sideEffects}</span>
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onRemove(med.id)}
+                  className="shrink-0 rounded p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showAdd && (
+        <div className="rounded-xl border-2 border-[#2D8B84]/20 bg-gradient-to-br from-[#2D8B84]/5 to-transparent p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-[#1A1A2E]">Add New Medication</h4>
+            <button
+              type="button"
+              onClick={() => {
+                setShowAdd(false);
+                setNewMed({
+                  name: "",
+                  dose: "",
+                  frequency: "",
+                  type: "",
+                  compliance: "",
+                  sideEffects: "",
+                  category: "",
+                });
+              }}
+              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                placeholder="Medication name"
+                value={newMed.name}
+                onChange={(e) => setNewMed((p) => ({ ...p, name: e.target.value }))}
+                className="h-10 bg-white"
+              />
+              <NativeSelect
+                value={newMed.type}
+                onChange={(value) => setNewMed((p) => ({ ...p, type: value }))}
+                placeholder="Drug type"
+                className="h-10 bg-white"
+                options={[
+                  { value: "antihypertensives", label: "Antihypertensives" },
+                  { value: "antiplatelets", label: "Antiplatelets" },
+                  { value: "anticoagulants", label: "Anticoagulants" },
+                  { value: "statins", label: "Statins" },
+                  { value: "antiarrhythmics", label: "Antiarrhythmics" },
+                  { value: "diuretics", label: "Diuretics" },
+                  { value: "diabetes_medications", label: "Diabetes medications" },
+                ]}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                placeholder="Dose (e.g. 10mg)"
+                value={newMed.dose}
+                onChange={(e) => setNewMed((p) => ({ ...p, dose: e.target.value }))}
+                className="h-10 bg-white"
+              />
+              <NativeSelect
+                value={newMed.frequency}
+                onChange={(value) => setNewMed((p) => ({ ...p, frequency: value }))}
+                placeholder="Frequency"
+                className="h-10 bg-white"
+                options={[
+                  { value: "once-daily", label: "Once daily" },
+                  { value: "twice-daily", label: "Twice daily" },
+                  { value: "three-times-daily", label: "Three times daily" },
+                  { value: "four-times-daily", label: "Four times daily" },
+                  { value: "every-4-hours", label: "Every 4 hours" },
+                  { value: "every-6-hours", label: "Every 6 hours" },
+                  { value: "every-8-hours", label: "Every 8 hours" },
+                  { value: "every-12-hours", label: "Every 12 hours" },
+                  { value: "weekly", label: "Weekly" },
+                  { value: "monthly", label: "Monthly" },
+                  { value: "as-needed", label: "As needed (PRN)" },
+                  { value: "other", label: "Other" },
+                ]}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <NativeSelect
+                value={newMed.compliance}
+                onChange={(value) =>
+                  setNewMed((p) => ({
+                    ...p,
+                    compliance: value === "good" || value === "poor" ? value : "",
+                  }))
+                }
+                placeholder="Compliance (optional)"
+                className="h-10 bg-white"
+                options={[
+                  { value: "good", label: "Compliance — good" },
+                  { value: "poor", label: "Compliance — poor" },
+                ]}
+              />
+              <Input
+                placeholder="Side effects experienced (optional)"
+                value={newMed.sideEffects}
+                onChange={(e) => setNewMed((p) => ({ ...p, sideEffects: e.target.value }))}
+                className="h-10 bg-white"
+              />
+            </div>
+
+            <Button
+              type="button"
+              onClick={handleAdd}
+              disabled={!newMed.name.trim() || !newMed.dose.trim() || !newMed.frequency.trim() || !newMed.type}
+              className="h-10 w-full bg-[#2D8B84] text-sm font-medium text-white hover:bg-[#1F5F5A]"
+            >
+              <Plus className="mr-1.5 h-4 w-4" />
+              Add Medication
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type FamilyMember = {
+  id: string;
+  relationship: string;
+  condition: string;
+  details?: string;
+};
+
+type FamilyHistorySectionProps = {
+  items: FamilyMember[];
+  onAdd: (item: Omit<FamilyMember, "id">) => void;
+  onRemove: (id: string) => void;
+};
+
+function FamilyHistorySection({ items, onAdd, onRemove }: FamilyHistorySectionProps) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [newMember, setNewMember] = useState({ relationship: "", condition: "", details: "" });
+
+  const relationships = [
+    { value: "Mother", label: "Mother" },
+    { value: "Father", label: "Father" },
+    { value: "Sibling", label: "Sibling" },
+    { value: "Sister", label: "Sister" },
+    { value: "Brother", label: "Brother" },
+    { value: "Grandmother", label: "Grandmother" },
+    { value: "Grandfather", label: "Grandfather" },
+    { value: "Aunt", label: "Aunt" },
+    { value: "Uncle", label: "Uncle" },
+    { value: "Daughter", label: "Daughter" },
+    { value: "Son", label: "Son" },
+    { value: "Cousin", label: "Cousin" },
+    { value: "Other", label: "Other" },
+  ];
+
+  const handleAdd = () => {
+    if (!newMember.relationship.trim() || !newMember.condition.trim()) return;
+    onAdd({ ...newMember });
+    setNewMember({ relationship: "", condition: "", details: "" });
+    setShowAdd(false);
+  };
+
+  const getRelationshipIcon = (rel: string) => {
+    const isFemale = ["Mother", "Sister", "Grandmother", "Aunt", "Daughter"].includes(rel);
+    const isMale = ["Father", "Brother", "Grandfather", "Uncle", "Son"].includes(rel);
+    if (isFemale) return <User className="h-4 w-4 text-pink-500" />;
+    if (isMale) return <User className="h-4 w-4 text-blue-500" />;
+    return <Users className="h-4 w-4 text-purple-500" />;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-medium text-[#1A1A2E]">Family Members</Label>
+        <Button
+          type="button"
+          onClick={() => setShowAdd(true)}
+          variant="outline"
+          size="sm"
+          className="h-8 px-3 text-xs"
+        >
+          <Plus className="mr-1 h-3 w-3" /> Add Family Member
+        </Button>
+      </div>
+
+      {items.length === 0 && !showAdd ? (
+        <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 text-gray-500">
+          <CheckCircle2 className="h-4 w-4" />
+          <span className="text-sm">No family history recorded</span>
+        </div>
+      ) : null}
+
+      {items.length > 0 && (
+        <div className="space-y-3">
+          {items.map((member) => (
+            <div
+              key={member.id}
+              className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-50">
+                    {getRelationshipIcon(member.relationship)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-[#1A1A2E]">{member.relationship}</p>
+                    <p className="text-xs text-gray-500">{member.condition}</p>
+                    {member.details && (
+                      <p className="mt-1 text-xs text-gray-400">{member.details}</p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onRemove(member.id)}
+                  className="shrink-0 rounded p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showAdd && (
+        <div className="rounded-xl border-2 border-purple-200 bg-gradient-to-br from-purple-50/50 to-transparent p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-[#1A1A2E]">Add Family Member</h4>
+            <button
+              type="button"
+              onClick={() => {
+                setShowAdd(false);
+                setNewMember({ relationship: "", condition: "", details: "" });
+              }}
+              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <NativeSelect
+                value={newMember.relationship}
+                onChange={(value) => setNewMember((p) => ({ ...p, relationship: value }))}
+                placeholder="Relationship"
+                className="h-10 bg-white"
+                options={relationships}
+              />
+              <Input
+                placeholder="Condition (e.g. Diabetes)"
+                value={newMember.condition}
+                onChange={(e) => setNewMember((p) => ({ ...p, condition: e.target.value }))}
+                className="h-10 bg-white"
+              />
+            </div>
+            <Input
+              placeholder="Additional details (optional)"
+              value={newMember.details}
+              onChange={(e) => setNewMember((p) => ({ ...p, details: e.target.value }))}
+              className="h-10 bg-white"
+            />
+            <Button
+              type="button"
+              onClick={handleAdd}
+              disabled={!newMember.relationship.trim() || !newMember.condition.trim()}
+              className="h-10 w-full bg-[#2D8B84] text-sm font-medium text-white hover:bg-[#1F5F5A]"
+            >
+              <Plus className="mr-1.5 h-4 w-4" />
+              Add Family Member
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type AllergyItem = {
+  id: string;
+  allergen: string;
+  reaction: string;
+};
+
+type AllergySectionProps = {
+  title: string;
+  icon: React.ReactNode;
+  items: AllergyItem[];
+  onAdd: (item: Omit<AllergyItem, "id">) => void;
+  onRemove: (id: string) => void;
+  placeholder: string;
+};
+
+function AllergySection({ title, icon, items, onAdd, onRemove, placeholder }: AllergySectionProps) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [newAllergen, setNewAllergen] = useState("");
+  const [newReaction, setNewReaction] = useState("");
+
+  const handleAdd = () => {
+    if (!newAllergen.trim()) return;
+    onAdd({ allergen: newAllergen.trim(), reaction: newReaction.trim() });
+    setNewAllergen("");
+    setNewReaction("");
+    setShowAdd(false);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {icon}
+          <span className="text-sm font-medium text-[#1A1A2E]">{title}</span>
+        </div>
+        <Button
+          type="button"
+          onClick={() => setShowAdd(true)}
+          variant="outline"
+          size="sm"
+          className="h-7 px-2 text-xs"
+        >
+          <Plus className="mr-1 h-3 w-3" />
+          Add
+        </Button>
+      </div>
+
+      {items.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="group flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm transition-colors hover:border-gray-300"
+            >
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-[#1A1A2E]">{item.allergen}</span>
+                {item.reaction && (
+                  <span className="text-xs text-gray-500">Reaction: {item.reaction}</span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => onRemove(item.id)}
+                className="ml-1 rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-red-500"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showAdd && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-3">
+          <div className="space-y-2">
+            <Input
+              placeholder={placeholder}
+              value={newAllergen}
+              onChange={(e) => setNewAllergen(e.target.value)}
+              className="h-9 bg-white"
+            />
+            <Input
+              placeholder="Reaction type (optional)"
+              value={newReaction}
+              onChange={(e) => setNewReaction(e.target.value)}
+              className="h-9 bg-white"
+            />
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                onClick={handleAdd}
+                disabled={!newAllergen.trim()}
+                size="sm"
+                className="h-8 bg-[#2D8B84] text-white hover:bg-[#1F5F5A]"
+              >
+                Add
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setShowAdd(false);
+                  setNewAllergen("");
+                  setNewReaction("");
+                }}
+                variant="ghost"
+                size="sm"
+                className="h-8"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {items.length === 0 && !showAdd && (
+        <p className="text-sm italic text-gray-400">No {title.toLowerCase()} recorded</p>
+      )}
+    </div>
+  );
+}
+
+export function Step4MedicalHistory({
+  medicalValues,
+  medicalStepErrors,
+  onFieldChange,
+  onPrevious,
+  onNext,
+}: Step4MedicalHistoryProps) {
   const familySaveResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [familyProfileSaveStatus, setFamilyProfileSaveStatus] = useState<"idle" | "success" | "error">("idle");
-  const [familyProfileSaveError, setFamilyProfileSaveError] = useState<string | null>(null);
-  const [showAddMedication, setShowAddMedication] = useState(false);
   const [newMedication, setNewMedication] = useState({
     name: "",
     dose: "",
@@ -196,14 +809,39 @@ export function Step4MedicalHistory() {
     };
   }, []);
 
-  const healthData = (medicalValues ?? {}) as Record<string, any>;
-  const v = (key: string, fallback: any = "") => (healthData[key] ?? fallback) as any;
-  const arr = (key: string) => (Array.isArray(healthData[key]) ? healthData[key] : []);
-  const complaintIs = (value: string) => v("chiefComplaint") === value;
+  const healthData = (medicalValues ?? {}) as Record<string, unknown>;
+  function v<T>(key: string, fallback: T): T;
+  function v(key: string): unknown;
+  function v<T>(key: string, fallback?: T) {
+    return (healthData[key] ?? fallback) as unknown as T;
+  }
+  const arr = <T,>(key: string): T[] =>
+    Array.isArray(healthData[key]) ? (healthData[key] as T[]) : [];
+  const complaintIs = (value: string) => String(v("chiefComplaint") ?? "") === value;
   const setField = (field: string, value: unknown) => onFieldChange(field, value);
+
+  function handleComplaintChange(nextComplaint: string) {
+    const prevComplaint = v("chiefComplaint") as string;
+
+    // Reset all HPI fields for the previous complaint
+    if (prevComplaint && prevComplaint !== nextComplaint) {
+      const fieldsToReset =
+        (COMPLAINT_HPI_FIELDS as Record<string, readonly string[]>)[prevComplaint] ?? [];
+      for (const field of fieldsToReset) {
+        onFieldChange(field, HPI_ARRAY_FIELDS.has(field) ? [] : "");
+      }
+      // Also reset "otherComplaint" if switching away from "other"
+      if (prevComplaint === "other") {
+        onFieldChange("otherComplaint", "");
+      }
+    }
+
+    setField("chiefComplaint", nextComplaint);
+  }
+
   const toggleArray = (field: string, value: string) => {
-    const current = arr(field);
-    const next = current.includes(value) ? current.filter((item: string) => item !== value) : [...current, value];
+    const current = arr<string>(field);
+    const next = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
     setField(field, next);
   };
   const toggleDyspneaRelation = (_field: string, id: string) => {
@@ -221,7 +859,7 @@ export function Step4MedicalHistory() {
 
   const hpiB = { v, arr, setField, toggleArray };
   const addFamilyMember = () => {
-    const family = arr("familyHistory");
+    const family = arr<FamilyMember>("familyHistory");
     setField("familyHistory", [
       ...family,
       { id: crypto.randomUUID(), relationship: "", condition: "", details: "", hasCondition: true, ageAtDiagnosis: "" },
@@ -230,101 +868,30 @@ export function Step4MedicalHistory() {
   const removeFamilyMember = (id: string) => {
     setField(
       "familyHistory",
-      arr("familyHistory").filter((member: any) => member.id !== id)
+      arr<FamilyMember>("familyHistory").filter((member) => member.id !== id)
     );
   };
   const updateFamily = (id: string, field: string, value: string | boolean) => {
     setField(
       "familyHistory",
-      arr("familyHistory").map((member: any) => (member.id === id ? { ...member, [field]: value } : member))
+      arr<FamilyMember>("familyHistory").map((member) =>
+        member.id === id ? { ...member, [field]: value } : member
+      )
     );
   };
 
-  function saveFamilyMemberProfiles() {
-    if (familySaveResetRef.current) {
-      clearTimeout(familySaveResetRef.current);
-      familySaveResetRef.current = null;
-    }
-    setFamilyProfileSaveError(null);
+  // remove unused familySaveResetRef usage
+  void familySaveResetRef;
 
-    const members = arr("familyHistory") as Array<{
-      id: string;
-      relationship?: string;
-      condition?: string;
-    }>;
-
-    if (members.length === 0) {
-      setFamilyProfileSaveStatus("error");
-      setFamilyProfileSaveError('Add a family member first using “Add Family Member”.');
-      return;
-    }
-
-    const incomplete = members.some(
-      (m) => !String(m.relationship ?? "").trim() || !String(m.condition ?? "").trim()
-    );
-    if (incomplete) {
-      setFamilyProfileSaveStatus("error");
-      setFamilyProfileSaveError("Select a relationship and enter a condition for each family member.");
-      return;
-    }
-
-    setFamilyProfileSaveStatus("success");
-    familySaveResetRef.current = setTimeout(() => {
-      setFamilyProfileSaveStatus("idle");
-      familySaveResetRef.current = null;
-    }, 3200);
-  }
-  const getDrugIcon = (type: string) => {
-    switch (type) {
-      case "tablet":
-      case "sublingual":
-        return <Pill className="h-4 w-4 text-blue-500" />;
-      case "capsule":
-      case "transdermal":
-        return <Package className="h-4 w-4 text-purple-500" />;
-      case "injection":
-      case "intravenous":
-        return <Syringe className="h-4 w-4 text-red-500" />;
-      case "inhaler":
-        return <Wind className="h-4 w-4 text-green-500" />;
-      case "syrup":
-        return <Droplet className="h-4 w-4 text-orange-500" />;
-      default:
-        return <Pill className="h-4 w-4 text-gray-500" />;
-    }
-  };
-  const getDrugTypeName = (type: string) => {
-    switch (type) {
-      case "tablet":
-        return "Tablet";
-      case "capsule":
-        return "Capsule";
-      case "sublingual":
-        return "Sublingual tablet";
-      case "injection":
-        return "Injection";
-      case "intravenous":
-        return "Intravenous (IV)";
-      case "transdermal":
-        return "Transdermal patch";
-      case "inhaler":
-        return "Inhaler";
-      case "syrup":
-        return "Syrup";
-      default:
-        return type;
-    }
-  };
-  const addMedication = () => {
-    if (!newMedication.name || !newMedication.dose || !newMedication.frequency || !newMedication.type) return;
-    setField("medications", [...arr("medications"), { ...newMedication, id: crypto.randomUUID() }]);
-    setNewMedication({ name: "", dose: "", frequency: "", type: "", category: "" });
-    setShowAddMedication(false);
+  // Medication helpers (typed; used by MedicationSection callbacks below)
+  const addMedication = (item: Omit<MedicationItem, "id">) => {
+    const current = arr<MedicationItem>("medications");
+    setField("medications", [...current, { ...item, id: crypto.randomUUID() }]);
   };
   const removeMedication = (id: string) => {
     setField(
       "medications",
-      arr("medications").filter((med: any) => med.id !== id)
+      arr<MedicationItem>("medications").filter((med) => med.id !== id)
     );
   };
 
@@ -342,8 +909,8 @@ export function Step4MedicalHistory() {
 
           <div className="space-y-2">
             <NativeSelect
-              value={v("chiefComplaint")}
-              onChange={(value) => setField("chiefComplaint", value)}
+              value={String(v("chiefComplaint") ?? "")}
+              onChange={(value) => handleComplaintChange(value)}
               placeholder="Select primary complaint"
               aria-invalid={Boolean(medicalStepErrors.chiefComplaint)}
               className={medicalStepErrors.chiefComplaint ? "border-destructive" : ""}
@@ -378,7 +945,7 @@ export function Step4MedicalHistory() {
               </Label>
               <Input
                 placeholder="Specify your complaint"
-                value={v("otherComplaint")}
+                value={String(v("otherComplaint") ?? "")}
                 onChange={(e) => setField("otherComplaint", e.target.value)}
                 className="h-9"
                 aria-invalid={Boolean(medicalStepErrors.chiefComplaint && !String(v("otherComplaint")).trim())}
@@ -401,7 +968,7 @@ export function Step4MedicalHistory() {
                     <Label className="text-sm font-medium text-[#1A1A2E]">Onset — date</Label>
                     <Input
                       type="date"
-                      value={v("chestPainOnsetDate")}
+                      value={String(v("chestPainOnsetDate") ?? "")}
                       onChange={(e) => setField("chestPainOnsetDate", e.target.value)}
                       className="h-10 bg-white"
                     />
@@ -409,7 +976,7 @@ export function Step4MedicalHistory() {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-[#1A1A2E]">Onset</Label>
                     <NativeSelect
-                      value={v("chestPainOnsetType")}
+                      value={String(v("chestPainOnsetType") ?? "")}
                       onChange={(val) => setField("chestPainOnsetType", val)}
                       placeholder="Sudden / Gradual"
                       className="h-10 bg-white"
@@ -425,7 +992,7 @@ export function Step4MedicalHistory() {
                   label="Provoking factors"
                   field="chestPainProvoking"
                   options={CHEST_PAIN_PROVOKING}
-                  selectedIds={arr("chestPainProvoking")}
+                  selectedIds={arr<string>("chestPainProvoking")}
                   onToggle={toggleArray}
                 />
 
@@ -433,14 +1000,14 @@ export function Step4MedicalHistory() {
                   label="Quality"
                   field="chestPainQuality"
                   options={CHEST_PAIN_QUALITY}
-                  selectedIds={arr("chestPainQuality")}
+                  selectedIds={arr<string>("chestPainQuality")}
                   onToggle={toggleArray}
                 />
 
                 <div className="space-y-2 sm:max-w-md">
                   <Label className="text-sm font-medium text-[#1A1A2E]">Radiation</Label>
                   <NativeSelect
-                    value={v("chestPainRadiation")}
+                    value={String(v("chestPainRadiation") ?? "")}
                     onChange={(val) => setField("chestPainRadiation", val)}
                     placeholder="Select radiation"
                     className="h-10 bg-white"
@@ -450,7 +1017,7 @@ export function Step4MedicalHistory() {
 
                 <SeverityDotScale
                   idPrefix="chest-pain"
-                  value={v("chestPainSeverity")}
+                  value={String(v("chestPainSeverity") ?? "")}
                   onChange={(next) => setField("chestPainSeverity", next)}
                 />
 
@@ -458,7 +1025,7 @@ export function Step4MedicalHistory() {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-[#1A1A2E]">Timing</Label>
                     <NativeSelect
-                      value={v("chestPainTimingPattern")}
+                      value={String(v("chestPainTimingPattern") ?? "")}
                       onChange={(val) => setField("chestPainTimingPattern", val)}
                       placeholder="Continuous / Intermittent"
                       className="h-10 bg-white"
@@ -472,7 +1039,7 @@ export function Step4MedicalHistory() {
                     <Label className="text-sm font-medium text-[#1A1A2E]">Duration</Label>
                     <Input
                       placeholder="e.g. 20 minutes, 2 hours"
-                      value={v("chestPainTimingDuration")}
+                      value={String(v("chestPainTimingDuration") ?? "")}
                       onChange={(e) => setField("chestPainTimingDuration", e.target.value)}
                       className="h-10 bg-white"
                     />
@@ -483,7 +1050,7 @@ export function Step4MedicalHistory() {
                   label="Relieving factors"
                   field="chestPainRelieving"
                   options={CHEST_PAIN_RELIEVING}
-                  selectedIds={arr("chestPainRelieving")}
+                  selectedIds={arr<string>("chestPainRelieving")}
                   onToggle={toggleArray}
                 />
 
@@ -491,7 +1058,7 @@ export function Step4MedicalHistory() {
                   label="Associated symptoms"
                   field="chestPainAssociated"
                   options={CHEST_PAIN_ASSOCIATED}
-                  selectedIds={arr("chestPainAssociated")}
+                  selectedIds={arr<string>("chestPainAssociated")}
                   onToggle={toggleArray}
                 />
               </div>
@@ -510,26 +1077,29 @@ export function Step4MedicalHistory() {
                   <Label className="text-sm font-medium text-[#1A1A2E]">Onset & progression</Label>
                   <Textarea
                     placeholder="Describe onset and how symptoms changed over time"
-                    value={v("dyspneaOnsetProgression")}
+                    value={String(v("dyspneaOnsetProgression") ?? "")}
                     onChange={(e) => setField("dyspneaOnsetProgression", e.target.value)}
                     className="min-h-[88px] resize-y bg-white"
                   />
                 </div>
 
-                <NyhaSegmented value={v("dyspneaNYHA")} onChange={(val) => setField("dyspneaNYHA", val)} />
+                <NyhaSegmented
+                  value={String(v("dyspneaNYHA") ?? "")}
+                  onChange={(val) => setField("dyspneaNYHA", val)}
+                />
 
                 <YesNoToggle
                   label="Orthopnea"
                   name="dyspnea-orthopnea"
-                  value={v("dyspneaOrthopnea")}
+                  value={String(v("dyspneaOrthopnea") ?? "")}
                   onChange={(next) => {
                     setField("dyspneaOrthopnea", next);
                     if (next !== "yes") setField("dyspneaOrthopneaPillows", "");
                   }}
                 />
-                {v("dyspneaOrthopnea") === "yes" ? (
+                {String(v("dyspneaOrthopnea") ?? "") === "yes" ? (
                   <PillowStepper
-                    value={v("dyspneaOrthopneaPillows")}
+                    value={String(v("dyspneaOrthopneaPillows") ?? "")}
                     onChange={(val) => setField("dyspneaOrthopneaPillows", val)}
                   />
                 ) : null}
@@ -537,21 +1107,21 @@ export function Step4MedicalHistory() {
                 <YesNoToggle
                   label="Paroxysmal nocturnal dyspnea"
                   name="dyspnea-pnd"
-                  value={v("dyspneaPND")}
+                  value={String(v("dyspneaPND") ?? "")}
                   onChange={(val) => setField("dyspneaPND", val)}
                 />
 
                 <YesNoToggle
                   label="Wheezing"
                   name="dyspnea-wheeze"
-                  value={v("dyspneaWheezing")}
+                  value={String(v("dyspneaWheezing") ?? "")}
                   onChange={(val) => setField("dyspneaWheezing", val)}
                 />
 
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-[#1A1A2E]">Cough</Label>
                   <NativeSelect
-                    value={v("dyspneaCough")}
+                    value={String(v("dyspneaCough") ?? "")}
                     onChange={(val) => {
                       setField("dyspneaCough", val);
                       if (val !== "productive") {
@@ -569,12 +1139,12 @@ export function Step4MedicalHistory() {
                   />
                 </div>
 
-                {v("dyspneaCough") === "productive" ? (
+                {String(v("dyspneaCough") ?? "") === "productive" ? (
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-[#1A1A2E]">Sputum color</Label>
                       <NativeSelect
-                        value={v("dyspneaProductiveColor")}
+                        value={String(v("dyspneaProductiveColor") ?? "")}
                         onChange={(val) => setField("dyspneaProductiveColor", val)}
                         placeholder="Color"
                         className="h-10 bg-white"
@@ -584,7 +1154,7 @@ export function Step4MedicalHistory() {
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-[#1A1A2E]">Amount</Label>
                       <NativeSelect
-                        value={v("dyspneaProductiveAmount")}
+                        value={String(v("dyspneaProductiveAmount") ?? "")}
                         onChange={(val) => setField("dyspneaProductiveAmount", val)}
                         placeholder="Amount"
                         className="h-10 bg-white"
@@ -597,7 +1167,7 @@ export function Step4MedicalHistory() {
                 <YesNoToggle
                   label="Hemoptysis"
                   name="dyspnea-hemoptysis"
-                  value={v("dyspneaHemoptysis")}
+                  value={String(v("dyspneaHemoptysis") ?? "")}
                   onChange={(val) => setField("dyspneaHemoptysis", val)}
                 />
 
@@ -605,7 +1175,7 @@ export function Step4MedicalHistory() {
                   label="Relation to"
                   field="dyspneaRelationTo"
                   options={DYSPNEA_RELATION}
-                  selectedIds={arr("dyspneaRelationTo")}
+                  selectedIds={arr<string>("dyspneaRelationTo")}
                   onToggle={toggleDyspneaRelation}
                   tone="blue"
                 />
@@ -762,6 +1332,7 @@ export function Step4MedicalHistory() {
             <h3 className="font-semibold text-[#1A1A2E]">Cardiovascular Risk Factors</h3>
           </div>
           {[
+            ["riskHypertension", "Hypertension"],
             ["riskDiabetes", "Diabetes Mellitus"],
             ["riskDyslipidemia", "Dyslipidemia"],
             ["riskObesity", "Obesity"],
@@ -803,92 +1374,27 @@ export function Step4MedicalHistory() {
           </div>
 
           {v("hasFamilyHistory", false) ? (
-            <div className="space-y-4 border-t border-gray-100 pt-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm italic text-gray-600">Add family members with medical conditions</p>
-                <Button type="button" onClick={addFamilyMember} variant="outline" size="sm" className="h-8 px-3 text-xs">
-                  <Plus className="mr-1 h-3 w-3" /> Add Family Member
-                </Button>
-              </div>
-              {arr("familyHistory").map((member: any) => {
-                const rel = String(member.relationship ?? "");
-                const relationshipOptions =
-                  rel && !FAMILY_RELATIONSHIP_OPTIONS.some((o) => o.value === rel)
-                    ? [...FAMILY_RELATIONSHIP_OPTIONS, { value: rel, label: rel }]
-                    : FAMILY_RELATIONSHIP_OPTIONS;
-
-                return (
-                <div key={member.id} className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-purple-600" />
-                      <span className="text-sm font-semibold text-[#1A1A2E]">Family Member Profile</span>
-                    </div>
-                    <Button type="button" onClick={() => removeFamilyMember(member.id)} variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500">
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Select
-                      value={rel || undefined}
-                      onValueChange={(next) => updateFamily(member.id, "relationship", next)}
-                    >
-                      <SelectTrigger className="h-10 w-full rounded-lg border-input bg-transparent shadow-sm">
-                        <SelectValue placeholder="Relationship" />
-                      </SelectTrigger>
-                      <SelectContent position="popper" sideOffset={4} className="rounded-lg">
-                        {relationshipOptions.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value} className="cursor-pointer">
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      placeholder="Condition"
-                      value={member.condition ?? ""}
-                      onChange={(e) => updateFamily(member.id, "condition", e.target.value)}
-                      className="h-10"
-                    />
-                  </div>
-                  <Input
-                    placeholder="Additional details"
-                    value={member.details ?? ""}
-                    onChange={(e) => updateFamily(member.id, "details", e.target.value)}
-                    className="h-10"
-                  />
-                </div>
-                );
-              })}
-              <div className="flex flex-col gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                {familyProfileSaveStatus === "error" && familyProfileSaveError ? (
-                  <p className="text-sm text-red-600" role="alert">
-                    {familyProfileSaveError}
-                  </p>
-                ) : familyProfileSaveStatus === "success" ? (
-                  <p className="text-sm font-medium text-emerald-600" role="status">
-                    Member profiles saved — you can continue when ready.
-                  </p>
-                ) : (
-                  <p className="text-sm text-gray-500">
-                    Save when relationship and condition are filled for everyone listed.
-                  </p>
-                )}
-                <Button
-                  type="button"
-                  onClick={saveFamilyMemberProfiles}
-                  size="sm"
-                  className="h-9 w-full shrink-0 bg-[#2D8B84] text-white hover:bg-[#1F5F5A] sm:w-auto"
-                >
-                  <CheckCircle2 className="mr-1 h-3 w-3" />
-                  Save member profile
-                </Button>
-              </div>
+            <div className="space-y-4 border-t border-gray-100 pt-4">
+              <FamilyHistorySection
+                items={arr<FamilyMember>("familyHistory")}
+                onAdd={(item) =>
+                  setField("familyHistory", [
+                    ...arr<FamilyMember>("familyHistory"),
+                    { ...item, id: crypto.randomUUID() },
+                  ])
+                }
+                onRemove={(id) =>
+                  setField(
+                    "familyHistory",
+                    arr<FamilyMember>("familyHistory").filter((m) => m.id !== id)
+                  )
+                }
+              />
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 p-3 text-gray-500">
+            <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 text-gray-500">
               <CheckCircle2 className="h-4 w-4" />
-              <span className="text-sm italic">No significant family medical history reported</span>
+              <span className="text-sm">No significant family medical history reported</span>
             </div>
           )}
         </div>
@@ -901,138 +1407,85 @@ export function Step4MedicalHistory() {
             <h3 className="font-semibold text-[#1A1A2E]">Current Medications & Allergies</h3>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-[#1A1A2E]">Current Medications</Label>
-              <Button type="button" onClick={() => setShowAddMedication(true)} variant="outline" size="sm" className="h-8 px-3 text-xs">
-                <Plus className="mr-1 h-3 w-3" /> Add Medication
-              </Button>
-            </div>
+          <MedicationSection
+            items={arr<MedicationItem>("medications")}
+            onAdd={addMedication}
+            onRemove={removeMedication}
+          />
 
-            {arr("medications").length === 0 ? (
-              <div className="py-4 text-center text-sm text-gray-500">No medications added</div>
-            ) : (
-              <div className="space-y-2">
-                {arr("medications").map((med: any) => (
-                  <div key={med.id} className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
-                    <div className="flex flex-1 items-center gap-3">
-                      {getDrugIcon(med.type)}
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-[#1A1A2E]">{med.name}</div>
-                        <div className="text-xs text-gray-600">
-                          {med.dose} - {med.frequency} • {getDrugTypeName(med.type)}
-                        </div>
-                      </div>
-                    </div>
-                    <Button type="button" onClick={() => removeMedication(med.id)} variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500">
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {showAddMedication ? (
-            <div className="space-y-3 rounded-lg border border-[#2D8B84]/20 bg-[#2D8B84]/5 p-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-[#1A1A2E]">Add New Medication</h4>
-                <Button type="button" onClick={() => setShowAddMedication(false)} variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="grid gap-3">
-                <Input placeholder="Medication name" value={newMedication.name} onChange={(e) => setNewMedication((p) => ({ ...p, name: e.target.value }))} className="h-9" />
-                <div className="grid grid-cols-2 gap-3">
-                  <Input placeholder="Dose" value={newMedication.dose} onChange={(e) => setNewMedication((p) => ({ ...p, dose: e.target.value }))} className="h-9" />
-                  <Input placeholder="Frequency" value={newMedication.frequency} onChange={(e) => setNewMedication((p) => ({ ...p, frequency: e.target.value }))} className="h-9" />
-                </div>
-                <NativeSelect
-                  value={newMedication.type}
-                  onChange={(value) => setNewMedication((p) => ({ ...p, type: value }))}
-                  placeholder="Drug type"
-                  className="h-9"
-                  options={[
-                    { value: "tablet", label: "Tablet" },
-                    { value: "capsule", label: "Capsule" },
-                    { value: "sublingual", label: "Sublingual tablet" },
-                    { value: "injection", label: "Injection" },
-                    { value: "intravenous", label: "Intravenous (IV)" },
-                    { value: "transdermal", label: "Transdermal patch" },
-                    { value: "inhaler", label: "Inhaler" },
-                    { value: "syrup", label: "Syrup" },
-                  ]}
-                />
-                <Button type="button" onClick={addMedication} disabled={!newMedication.name || !newMedication.dose || !newMedication.frequency || !newMedication.type} className="h-9 w-full bg-[#2D8B84] text-sm text-white hover:bg-[#1F5F5A]">
-                  Add Medication
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
-          <div className="space-y-4">
-            <Label className="text-sm font-medium text-[#1A1A2E]">Allergies</Label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input placeholder="Drug allergies" value={v("allergyDrug")} onChange={(e) => setField("allergyDrug", e.target.value)} className="h-9" />
-              <Input placeholder="Reaction type" value={v("allergyDrugReaction")} onChange={(e) => setField("allergyDrugReaction", e.target.value)} className="h-9" />
-              <Input placeholder="Food allergies" value={v("allergyFood")} onChange={(e) => setField("allergyFood", e.target.value)} className="h-9" />
-              <Input placeholder="Other allergies" value={v("allergyOther")} onChange={(e) => setField("allergyOther", e.target.value)} className="h-9" />
-              <Input placeholder="Compliance" value={v("drugCompliance")} onChange={(e) => setField("drugCompliance", e.target.value)} className="h-9" />
-              <Input placeholder="Side effects experienced" value={v("drugSideEffects")} onChange={(e) => setField("drugSideEffects", e.target.value)} className="h-9" />
-            </div>
-          </div>
-        </div>
-
-        <div className="order-9 space-y-4 rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-              <Users className="h-4 w-4 text-blue-600" />
-            </div>
-            <h3 className="font-semibold text-[#1A1A2E]">Social History</h3>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <NativeSelect
-              value={v("socialRecreationalDrugs")}
-              onChange={(val) => setField("socialRecreationalDrugs", val)}
-              placeholder="Recreational drugs"
-              className="h-9"
-              options={[
-                { value: "never", label: "Never" },
-                { value: "past", label: "Past use" },
-                { value: "current", label: "Current use" },
-              ]}
+          <div className="space-y-6 border-t border-gray-100 pt-4">
+            <AllergySection
+              title="Drug Allergies"
+              icon={<Pill className="h-4 w-4 text-red-500" />}
+              items={arr<AllergyItem>("drugAllergies")}
+              onAdd={(item) =>
+                setField("drugAllergies", [
+                  ...arr<AllergyItem>("drugAllergies"),
+                  { ...item, id: crypto.randomUUID() },
+                ])
+              }
+              onRemove={(id) =>
+                setField(
+                  "drugAllergies",
+                  arr<AllergyItem>("drugAllergies").filter((a) => a.id !== id)
+                )
+              }
+              placeholder="e.g. Penicillin"
             />
-            <NativeSelect
-              value={v("socialDietSalt")}
-              onChange={(val) => setField("socialDietSalt", val)}
-              placeholder="Diet - salt"
-              className="h-9"
-              options={[
-                { value: "low", label: "Low salt" },
-                { value: "normal", label: "Normal" },
-                { value: "high", label: "High salt" },
-              ]}
+
+            <AllergySection
+              title="Food Allergies"
+              icon={<AlertCircle className="h-4 w-4 text-amber-500" />}
+              items={arr<AllergyItem>("foodAllergies")}
+              onAdd={(item) =>
+                setField("foodAllergies", [
+                  ...arr<AllergyItem>("foodAllergies"),
+                  { ...item, id: crypto.randomUUID() },
+                ])
+              }
+              onRemove={(id) =>
+                setField(
+                  "foodAllergies",
+                  arr<AllergyItem>("foodAllergies").filter((a) => a.id !== id)
+                )
+              }
+              placeholder="e.g. Peanuts, Shellfish"
             />
-            <NativeSelect
-              value={v("socialDietFat")}
-              onChange={(val) => setField("socialDietFat", val)}
-              placeholder="Diet - fat"
-              className="h-9"
-              options={[
-                { value: "low", label: "Low fat" },
-                { value: "normal", label: "Normal" },
-                { value: "high", label: "High fat" },
-              ]}
+
+            <AllergySection
+              title="Other Allergies"
+              icon={<ShieldCheck className="h-4 w-4 text-blue-500" />}
+              items={arr<AllergyItem>("otherAllergies")}
+              onAdd={(item) =>
+                setField("otherAllergies", [
+                  ...arr<AllergyItem>("otherAllergies"),
+                  { ...item, id: crypto.randomUUID() },
+                ])
+              }
+              onRemove={(id) =>
+                setField(
+                  "otherAllergies",
+                  arr<AllergyItem>("otherAllergies").filter((a) => a.id !== id)
+                )
+              }
+              placeholder="e.g. Latex, Dust mites"
             />
+
+            {arr("drugAllergies").length === 0 && arr("foodAllergies").length === 0 && arr("otherAllergies").length === 0 ? (
+              <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 text-gray-500">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="text-sm">No known allergies reported</span>
+              </div>
+            ) : null}
           </div>
         </div>
 
         <div className="order-10 flex w-full gap-4 pt-6">
-          <Button type="button" onClick={previousStep} variant="outline" className="h-12 flex-1 rounded-xl border-2 text-base">
+          <Button type="button" onClick={onPrevious} variant="outline" className="h-12 flex-1 rounded-xl border-2 text-base">
             <ChevronLeft className="mr-2 h-5 w-5" />
             Back
           </Button>
-          <Button type="button" onClick={nextStep} className="h-12 flex-1 rounded-xl bg-[#2D8B84] text-base font-medium text-white transition-all duration-300 hover:bg-[#1F5F5A]">
+          <Button type="button" onClick={onNext} className="h-12 flex-1 rounded-xl bg-[#2D8B84] text-base font-medium text-white transition-all duration-300 hover:bg-[#1F5F5A]">
             <span className="flex items-center gap-2">
               Continue
               <ChevronRight className="h-5 w-5" />

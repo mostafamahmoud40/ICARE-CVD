@@ -307,6 +307,7 @@ export function MedicalNativeSelect({
   placeholder,
   options,
   className,
+  id,
   "aria-invalid": ariaInvalid,
 }: {
   value: string;
@@ -314,10 +315,12 @@ export function MedicalNativeSelect({
   placeholder: string;
   options: Array<{ value: string; label: string }>;
   className?: string;
+  id?: string;
   "aria-invalid"?: boolean;
 }) {
   return (
     <select
+      id={id}
       value={value}
       aria-invalid={ariaInvalid}
       onChange={(e) => onChange(e.target.value)}
@@ -338,3 +341,4 @@ export function MedicalNativeSelect({
     </select>
   );
 }
+

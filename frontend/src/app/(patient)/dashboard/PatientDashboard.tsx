@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import type { PatientDashboardData, Vital } from "./dashboard.types"
-import { usePatientDashboard } from "./usePatientDashboard"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -186,9 +185,14 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
   )
 }
 
-export function PatientDashboard() {
-  const { data, isLoading, isError, error } = usePatientDashboard()
+export type PatientDashboardProps = {
+  data: PatientDashboardData | undefined
+  isLoading: boolean
+  isError: boolean
+  error: Error | null
+}
 
+export function PatientDashboard({ data, isLoading, isError, error }: PatientDashboardProps) {
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-4">
       {isLoading ? (
@@ -243,4 +247,3 @@ export function PatientDashboard() {
     </main>
   )
 }
-

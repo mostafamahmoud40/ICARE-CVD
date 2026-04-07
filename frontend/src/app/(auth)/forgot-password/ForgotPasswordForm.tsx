@@ -10,11 +10,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { useForgotPassword } from "./useForgotPassword";
+import type { ForgotPasswordValues } from "./forgot-password.types";
 
-export function ForgotPasswordForm() {
-  const { submit, fieldErrors, isPending, isSuccess, successMessage, serverErrorMessage } =
-    useForgotPassword();
+export type ForgotPasswordFormProps = {
+  submit: (values: ForgotPasswordValues) => void;
+  fieldErrors: Partial<Record<keyof ForgotPasswordValues, string>>;
+  isPending: boolean;
+  isSuccess: boolean;
+  successMessage: string;
+  serverErrorMessage: string | null;
+};
+
+export function ForgotPasswordForm({
+  submit,
+  fieldErrors,
+  isPending,
+  isSuccess,
+  successMessage,
+  serverErrorMessage,
+}: ForgotPasswordFormProps) {
   const [email, setEmail] = useState("");
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {

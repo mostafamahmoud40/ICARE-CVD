@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+import { MedicalNativeSelect as NativeSelect } from "./registerMedicalUi";
 import type {
   PastInterventionDetails,
   PastInterventionProcedureKey,
@@ -12,43 +13,6 @@ import type {
   PastInterventionsState,
 } from "./register.types";
 
-function NativeSelect({
-  value,
-  onChange,
-  placeholder,
-  options,
-  className,
-  id,
-}: {
-  value: string;
-  onChange: (next: string) => void;
-  placeholder: string;
-  options: Array<{ value: string; label: string }>;
-  className?: string;
-  id?: string;
-}) {
-  return (
-    <select
-      id={id}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={[
-        "h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        className ?? "",
-      ].join(" ")}
-    >
-      <option value="" disabled>
-        {placeholder}
-      </option>
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  );
-}
 
 const MONTH_OPTIONS = [
   { value: "01", label: "January" },
@@ -176,12 +140,13 @@ function defaultDetailsFor<K extends PastInterventionProcedureKey>(id: K): PastI
 
 function normalizeState(raw: unknown): PastInterventionsState {
   if (!raw || typeof raw !== "object") {
-    return { selected: [], details: {} };
+    return { selected: [], details: {}, otherText: "" };
   }
   const o = raw as Partial<PastInterventionsState>;
   const selected = Array.isArray(o.selected) ? o.selected : [];
   const details = o.details && typeof o.details === "object" ? o.details : {};
-  return { selected, details: { ...details } };
+  const otherText = typeof o.otherText === "string" ? o.otherText : "";
+  return { selected, details: { ...details }, otherText };
 }
 
 const PROCEDURE_ROWS: Array<{ id: PastInterventionProcedureKey; label: string }> = [
@@ -206,28 +171,30 @@ export function PastInterventionsSection({ value, onChange }: PastInterventionsS
     onChange(next);
   };
 
-  const toggle = (id: PastInterventionProcedureKey | "none", checked: boolean) => {
+  const toggle = (id: PastInterventionProcedureKey | "other", checked: boolean) => {
     if (!checked) {
-      if (id === "none") {
-        setState({ ...state, selected: state.selected.filter((x) => x !== "none") });
+      if (id === "other") {
+        setState({
+          ...state,
+          selected: state.selected.filter((x) => x !== "other"),
+          otherText: "",
+        });
         return;
       }
+
       const nextDetails = { ...state.details };
       delete nextDetails[id];
-      setState({
-        selected: state.selected.filter((x) => x !== id),
-        details: nextDetails,
-      });
+      setState({ ...state, selected: state.selected.filter((x) => x !== id), details: nextDetails });
       return;
     }
 
-    if (id === "none") {
-      setState({ selected: ["none"], details: {} });
+    if (id === "other") {
+      if (state.selected.includes("other")) return;
+      setState({ ...state, selected: [...state.selected, "other"], otherText: state.otherText ?? "" });
       return;
     }
 
-    const withoutNone = state.selected.filter((x) => x !== "none");
-    if (withoutNone.includes(id)) return;
+    if (state.selected.includes(id)) return;
 
     const nextDetails: PastInterventionsDetailsState = { ...state.details };
     if (!nextDetails[id]) {
@@ -235,8 +202,9 @@ export function PastInterventionsSection({ value, onChange }: PastInterventionsS
     }
 
     setState({
-      selected: [...withoutNone, id],
+      selected: [...state.selected, id],
       details: nextDetails,
+      otherText: state.otherText ?? "",
     });
   };
 
@@ -255,7 +223,7 @@ export function PastInterventionsSection({ value, onChange }: PastInterventionsS
     });
   };
 
-  const isSelected = (id: PastInterventionProcedureKey | "none") => state.selected.includes(id);
+  const isSelected = (id: PastInterventionProcedureKey | "other") => state.selected.includes(id);
 
   return (
     <div className="space-y-2">
@@ -514,16 +482,31 @@ export function PastInterventionsSection({ value, onChange }: PastInterventionsS
         <div className="overflow-hidden rounded-lg border border-input bg-card text-card-foreground shadow-sm">
           <div className="flex items-start gap-3 p-3">
             <Checkbox
-              id="pi-none"
-              checked={isSelected("none")}
-              onCheckedChange={(v) => toggle("none", v === true)}
+              id="pi-other"
+              checked={isSelected("other")}
+              onCheckedChange={(v) => toggle("other", v === true)}
               className="mt-0.5"
-              aria-labelledby="pi-label-none"
+              aria-labelledby="pi-label-other"
             />
-            <label htmlFor="pi-none" id="pi-label-none" className="flex-1 cursor-pointer text-sm font-medium text-[#1A1A2E]">
-              None of the above
+            <label htmlFor="pi-other" id="pi-label-other" className="flex-1 cursor-pointer text-sm font-medium text-[#1A1A2E]">
+              Other
             </label>
           </div>
+
+          {isSelected("other") ? (
+            <div className="space-y-2 border-t bg-muted/20 px-3 pb-4 pt-3">
+              <Label htmlFor="pi-other-text" className="text-sm font-medium text-[#1A1A2E]">
+                Please explain <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="pi-other-text"
+                value={state.otherText ?? ""}
+                onChange={(e) => setState({ ...state, otherText: e.target.value })}
+                placeholder="Describe the procedure/intervention"
+                className="min-h-[80px] resize-y"
+              />
+            </div>
+          ) : null}
         </div>
     </div>
   );

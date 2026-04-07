@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-import { useRegisterContext } from "./register.context";
 import type { RegisterDocumentFileMeta, RegisterDocumentsValues } from "./register.types";
 
 const DOCUMENT_CATEGORIES: Array<{ value: string; label: string; icon: React.ReactNode }> = [
@@ -31,16 +30,20 @@ function formatBytes(n: number) {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function StepDocumentsUpload() {
-  const { documentsValues, onDocumentsFieldChange, isPending } = useRegisterContext();
+type StepDocumentsUploadProps = {
+  documentsValues: RegisterDocumentsValues;
+  onFieldChange: <K extends keyof RegisterDocumentsValues>(field: K, value: RegisterDocumentsValues[K]) => void;
+  isPending: boolean;
+};
 
+export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending }: StepDocumentsUploadProps) {
   const doc = documentsValues as RegisterDocumentsValues;
   const category = doc.documentCategory ?? "";
   const files = doc.files ?? [];
   const notes = doc.notes ?? "";
 
   function setFiles(next: RegisterDocumentFileMeta[]) {
-    onDocumentsFieldChange("files", next);
+    onFieldChange("files", next);
   }
 
   function onFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -78,7 +81,7 @@ export function StepDocumentsUpload() {
             </Label>
             <Select
               value={category || undefined}
-              onValueChange={(v) => onDocumentsFieldChange("documentCategory", v)}
+              onValueChange={(v) => onFieldChange("documentCategory", v)}
               disabled={isPending}
             >
               <SelectTrigger
@@ -169,7 +172,7 @@ export function StepDocumentsUpload() {
           rows={4}
           placeholder="Add any extra information for your doctor (symptoms timeline, concerns, previous results, etc.)"
           value={notes}
-          onChange={(e) => onDocumentsFieldChange("notes", e.target.value)}
+          onChange={(e) => onFieldChange("notes", e.target.value)}
           disabled={isPending}
           className={cn(
             "w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm text-zinc-900 outline-none transition-colors",

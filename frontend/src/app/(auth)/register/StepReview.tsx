@@ -4,11 +4,18 @@ import { CheckCircle2 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CHIEF_COMPLAINT_LABELS } from "./MedicalHpiBlocks";
-import { useRegisterContext } from "./register.context";
-import type { RegisterDocumentsValues } from "./register.types";
+import type { RegisterDocumentsValues, RegisterMedicalValues, RegisterProfileValues, RegisterValues } from "./register.types";
+import type { StepValuesMap } from "./useRegisterSteps";
 
-export function Step3Something() {
-  const { accountValues, profileValues, medicalValues, documentsValues, allValues } = useRegisterContext();
+type StepReviewProps = {
+  accountValues: RegisterValues;
+  profileValues: RegisterProfileValues;
+  medicalValues: RegisterMedicalValues;
+  documentsValues: RegisterDocumentsValues;
+  allValues: StepValuesMap;
+};
+
+export function StepReview({ accountValues, profileValues, medicalValues, documentsValues, allValues }: StepReviewProps) {
   const med = (medicalValues ?? {}) as Record<string, unknown>;
   const docs = (documentsValues ?? { files: [], notes: "" }) as RegisterDocumentsValues;
   const fileCount = Array.isArray(docs.files) ? docs.files.length : 0;

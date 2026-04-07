@@ -9,10 +9,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 import { StepNavigation } from "./StepNavigation";
 import { StepRenderer } from "./StepRenderer";
-import { RegisterProvider, useRegisterContext } from "./register.context";
+import { useRegisterStore } from "./useRegisterStore";
 
-function RegisterFormContent() {
-  const { step, isSuccess, successMessage, serverErrorMessage, goToStep } = useRegisterContext();
+export function RegisterForm() {
+  /* ── individual scalar selectors (SSR-safe — each returns a stable ref) ── */
+  const step = useRegisterStore((s) => s.step);
+  const isSuccess = useRegisterStore((s) => s.isSuccess);
+  const successMessage = useRegisterStore((s) => s.successMessage);
+  const serverErrorMessage = useRegisterStore((s) => s.serverErrorMessage);
+  const goToStep = useRegisterStore((s) => s.goToStep);
+  const isPending = useRegisterStore((s) => s.isPending);
+  const onNext = useRegisterStore((s) => s.nextStep);
+  const onPrevious = useRegisterStore((s) => s.previousStep);
+  const onSubmit = useRegisterStore((s) => s.submitForm);
+
   const StepIcon =
     step === 1
       ? Heart
@@ -92,7 +102,7 @@ function RegisterFormContent() {
         noValidate
       >
         <CardContent className="space-y-5 px-8 pb-8 pt-5">
-          <StepRenderer />
+          <StepRenderer step={step} />
 
           {isSuccess ? (
             <Alert className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/60 dark:bg-emerald-950/40 dark:text-emerald-200">
@@ -113,7 +123,13 @@ function RegisterFormContent() {
             </Alert>
           ) : null}
 
-          <StepNavigation />
+          <StepNavigation
+            step={step}
+            isPending={isPending}
+            onNext={onNext}
+            onPrevious={onPrevious}
+            onSubmit={onSubmit}
+          />
 
           <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
             Already have an account?{" "}
@@ -127,13 +143,5 @@ function RegisterFormContent() {
         </CardContent>
       </form>
     </Card>
-  );
-}
-
-export function RegisterForm() {
-  return (
-    <RegisterProvider>
-      <RegisterFormContent />
-    </RegisterProvider>
   );
 }

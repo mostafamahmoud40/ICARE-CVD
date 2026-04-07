@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-import { PatientDashboard } from "./PatientDashboard"
+import { PatientDashboardPageContainer } from "./PatientDashboardPageContainer"
 
 export const metadata: Metadata = {
   title: "Patient Dashboard | ICARE-CVD",
@@ -8,6 +8,7 @@ export const metadata: Metadata = {
 }
 
 export default function PatientDashboardPage() {
-  return <PatientDashboard />
+  return <PatientDashboardPageContainer />
 }
+
 

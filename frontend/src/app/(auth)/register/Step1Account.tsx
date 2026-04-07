@@ -6,20 +6,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { useRegisterContext } from "./register.context";
+import type { RegisterValues } from "./register.types";
 
-export function Step1Account() {
-  const {
-    accountValues,
-    accountFieldErrors,
-    isPending,
-    showPassword,
-    showConfirmPassword,
-    onAccountFieldChange,
-    setShowPassword,
-    setShowConfirmPassword,
-  } = useRegisterContext();
+type Step1AccountProps = {
+  values: RegisterValues;
+  errors: Partial<Record<keyof RegisterValues, string>>;
+  isPending: boolean;
+  showPassword: boolean;
+  showConfirmPassword: boolean;
+  onFieldChange: <K extends keyof RegisterValues>(field: K, value: RegisterValues[K]) => void;
+  onTogglePassword: () => void;
+  onToggleConfirmPassword: () => void;
+};
 
+export function Step1Account({
+  values,
+  errors,
+  isPending,
+  showPassword,
+  showConfirmPassword,
+  onFieldChange,
+  onTogglePassword,
+  onToggleConfirmPassword,
+}: Step1AccountProps) {
   return (
     <div className="space-y-5">
       <div className="space-y-2">
@@ -34,17 +43,17 @@ export function Step1Account() {
             type="text"
             autoComplete="name"
             placeholder="Enter your full name"
-            value={accountValues.fullName}
-            onChange={(e) => onAccountFieldChange("fullName", e.target.value)}
-            aria-invalid={Boolean(accountFieldErrors.fullName)}
-            aria-describedby={accountFieldErrors.fullName ? "register-full-name-error" : undefined}
+            value={values.fullName}
+            onChange={(e) => onFieldChange("fullName", e.target.value)}
+            aria-invalid={Boolean(errors.fullName)}
+            aria-describedby={errors.fullName ? "register-full-name-error" : undefined}
             disabled={isPending}
             className="h-12 rounded-xl border-zinc-200 bg-white pl-9 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
           />
         </div>
-        {accountFieldErrors.fullName ? (
+        {errors.fullName ? (
           <p id="register-full-name-error" className="text-sm text-destructive" role="alert">
-            {accountFieldErrors.fullName}
+            {errors.fullName}
           </p>
         ) : null}
       </div>
@@ -61,17 +70,17 @@ export function Step1Account() {
             type="email"
             autoComplete="email"
             placeholder="your@email.com"
-            value={accountValues.email}
-            onChange={(e) => onAccountFieldChange("email", e.target.value)}
-            aria-invalid={Boolean(accountFieldErrors.email)}
-            aria-describedby={accountFieldErrors.email ? "register-email-error" : undefined}
+            value={values.email}
+            onChange={(e) => onFieldChange("email", e.target.value)}
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "register-email-error" : undefined}
             disabled={isPending}
             className="h-12 rounded-xl border-zinc-200 bg-white pl-9 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
           />
         </div>
-        {accountFieldErrors.email ? (
+        {errors.email ? (
           <p id="register-email-error" className="text-sm text-destructive" role="alert">
-            {accountFieldErrors.email}
+            {errors.email}
           </p>
         ) : null}
       </div>
@@ -88,17 +97,17 @@ export function Step1Account() {
             type="tel"
             autoComplete="tel"
             placeholder="+1 234 567 890"
-            value={accountValues.phoneNumber}
-            onChange={(e) => onAccountFieldChange("phoneNumber", e.target.value)}
-            aria-invalid={Boolean(accountFieldErrors.phoneNumber)}
-            aria-describedby={accountFieldErrors.phoneNumber ? "register-phone-number-error" : undefined}
+            value={values.phoneNumber}
+            onChange={(e) => onFieldChange("phoneNumber", e.target.value)}
+            aria-invalid={Boolean(errors.phoneNumber)}
+            aria-describedby={errors.phoneNumber ? "register-phone-number-error" : undefined}
             disabled={isPending}
             className="h-12 rounded-xl border-zinc-200 bg-white pl-9 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
           />
         </div>
-        {accountFieldErrors.phoneNumber ? (
+        {errors.phoneNumber ? (
           <p id="register-phone-number-error" className="text-sm text-destructive" role="alert">
-            {accountFieldErrors.phoneNumber}
+            {errors.phoneNumber}
           </p>
         ) : null}
       </div>
@@ -115,10 +124,10 @@ export function Step1Account() {
             type={showPassword ? "text" : "password"}
             autoComplete="new-password"
             placeholder="Create a strong password"
-            value={accountValues.password}
-            onChange={(e) => onAccountFieldChange("password", e.target.value)}
-            aria-invalid={Boolean(accountFieldErrors.password)}
-            aria-describedby={accountFieldErrors.password ? "register-password-error" : undefined}
+            value={values.password}
+            onChange={(e) => onFieldChange("password", e.target.value)}
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? "register-password-error" : undefined}
             disabled={isPending}
             className="h-12 rounded-xl border-zinc-200 bg-white pl-9 pr-10 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
           />
@@ -128,15 +137,15 @@ export function Step1Account() {
             size="icon-xs"
             className="absolute right-1 top-1/2 -translate-y-1/2"
             aria-label={showPassword ? "Hide password" : "Show password"}
-            onClick={() => setShowPassword((v) => !v)}
+            onClick={onTogglePassword}
             disabled={isPending}
           >
             {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </Button>
         </div>
-        {accountFieldErrors.password ? (
+        {errors.password ? (
           <p id="register-password-error" className="text-sm text-destructive" role="alert">
-            {accountFieldErrors.password}
+            {errors.password}
           </p>
         ) : (
           <p className="text-sm text-zinc-500 dark:text-zinc-400">Must be at least 8 characters</p>
@@ -155,11 +164,11 @@ export function Step1Account() {
             type={showConfirmPassword ? "text" : "password"}
             autoComplete="new-password"
             placeholder="Confirm your password"
-            value={accountValues.confirmPassword}
-            onChange={(e) => onAccountFieldChange("confirmPassword", e.target.value)}
-            aria-invalid={Boolean(accountFieldErrors.confirmPassword)}
+            value={values.confirmPassword}
+            onChange={(e) => onFieldChange("confirmPassword", e.target.value)}
+            aria-invalid={Boolean(errors.confirmPassword)}
             aria-describedby={
-              accountFieldErrors.confirmPassword ? "register-confirm-password-error" : undefined
+              errors.confirmPassword ? "register-confirm-password-error" : undefined
             }
             disabled={isPending}
             className="h-12 rounded-xl border-zinc-200 bg-white pl-9 pr-10 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
@@ -170,15 +179,15 @@ export function Step1Account() {
             size="icon-xs"
             className="absolute right-1 top-1/2 -translate-y-1/2"
             aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-            onClick={() => setShowConfirmPassword((v) => !v)}
+            onClick={onToggleConfirmPassword}
             disabled={isPending}
           >
             {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </Button>
         </div>
-        {accountFieldErrors.confirmPassword ? (
+        {errors.confirmPassword ? (
           <p id="register-confirm-password-error" className="text-sm text-destructive" role="alert">
-            {accountFieldErrors.confirmPassword}
+            {errors.confirmPassword}
           </p>
         ) : null}
       </div>

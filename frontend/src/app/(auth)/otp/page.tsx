@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { OtpCodeForm } from "./OtpCodeForm";
+import { OtpPageContainer } from "./OtpPageContainer";
 
 export const metadata: Metadata = {
   title: "OTP Verification | ICARE-CVD",
@@ -8,5 +8,6 @@ export const metadata: Metadata = {
 };
 
 export default function OtpPage() {
-  return <OtpCodeForm />;
+  return <OtpPageContainer />;
 }
+

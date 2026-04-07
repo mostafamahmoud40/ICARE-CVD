@@ -3,10 +3,16 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { useRegisterContext } from "./register.context";
 
-export function StepNavigation() {
-  const { step, isPending, nextStep, previousStep, submitForm } = useRegisterContext();
+type StepNavigationProps = {
+  step: number;
+  isPending: boolean;
+  onNext: () => void;
+  onPrevious: () => void;
+  onSubmit: () => void;
+};
+
+export function StepNavigation({ step, isPending, onNext, onPrevious, onSubmit }: StepNavigationProps) {
   if (step === 3) return null;
   const isLastStep = step === 5;
   const canGoBack = step > 1;
@@ -19,7 +25,7 @@ export function StepNavigation() {
           variant="outline"
           size="lg"
           disabled={isPending}
-          onClick={previousStep}
+          onClick={onPrevious}
           className="h-12 w-full rounded-xl border-teal-200 bg-transparent text-sm font-semibold text-teal-700 hover:bg-teal-50 hover:text-teal-800 dark:border-teal-800 dark:text-teal-300 dark:hover:bg-teal-950 dark:hover:text-teal-200 sm:w-auto sm:min-w-40"
         >
           <ChevronLeft className="size-4" aria-hidden="true" />
@@ -31,7 +37,7 @@ export function StepNavigation() {
 
       <Button
         type="button"
-        onClick={isLastStep ? submitForm : nextStep}
+        onClick={isLastStep ? onSubmit : onNext}
         disabled={isPending}
         size="lg"
         className="h-12 w-full rounded-xl bg-teal-700 text-sm font-semibold text-white shadow-none hover:bg-teal-600 focus-visible:ring-teal-400/40 dark:bg-teal-600 dark:hover:bg-teal-500 sm:w-auto sm:min-w-56"

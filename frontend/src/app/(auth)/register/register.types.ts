@@ -17,6 +17,7 @@ export type RegisterProfileValues = {
   maritalStatus: string;
   occupation: string;
   smokingStatus: string;
+  smokingPackYears: string;
   alcoholConsumption: string;
   caffeineIntake: string;
   exerciseFrequency: string;
@@ -41,7 +42,7 @@ export type PastInterventionProcedureKey =
   | "ablation"
   | "transplant";
 
-export type PastInterventionSelection = PastInterventionProcedureKey | "none";
+export type PastInterventionSelection = PastInterventionProcedureKey | "other";
 
 export type PastInterventionDetails = {
   catheterization: { dateMy: string; result: string };
@@ -66,6 +67,7 @@ export type PastInterventionsDetailsState = {
 export type PastInterventionsState = {
   selected: PastInterventionSelection[];
   details: PastInterventionsDetailsState;
+  otherText?: string;
 };
 
 export type RegisterMedicalValues = Record<string, unknown>;

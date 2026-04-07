@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-import { DoctorDashboard } from "./DoctorDashboard"
+import { DoctorDashboardPageContainer } from "./DoctorDashboardPageContainer"
 
 export const metadata: Metadata = {
   title: "Doctor Dashboard | ICARE-CVD",
@@ -8,6 +8,7 @@ export const metadata: Metadata = {
 }
 
 export default function DoctorDashboardPage() {
-  return <DoctorDashboard />
+  return <DoctorDashboardPageContainer />
 }
+
 
