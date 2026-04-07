@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { LoginForm } from "./LoginForm";
+import { LoginPageContainer } from "./LoginPageContainer";
 
 export const metadata: Metadata = {
   title: "Sign in | ICARE-CVD",
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
-  return <LoginForm />;
+  return <LoginPageContainer />;
 }

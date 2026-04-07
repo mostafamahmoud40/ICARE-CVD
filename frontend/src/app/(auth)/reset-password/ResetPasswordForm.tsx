@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { CheckCircle2, Eye, EyeOff, InfoIcon, Lock } from "lucide-react";
-import { useSearchParams } from "next/navigation";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -11,14 +10,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { useResetPassword } from "./useResetPassword";
+import type { ResetPasswordValues } from "./reset-password.types";
 
-export function ResetPasswordForm() {
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
-  const { submit, fieldErrors, isPending, isSuccess, successMessage, serverErrorMessage } =
-    useResetPassword(token);
+export type ResetPasswordFormProps = {
+  submit: (values: ResetPasswordValues) => void;
+  fieldErrors: Partial<Record<keyof ResetPasswordValues, string>>;
+  isPending: boolean;
+  isSuccess: boolean;
+  successMessage: string;
+  serverErrorMessage: string | null;
+};
 
+export function ResetPasswordForm({
+  submit,
+  fieldErrors,
+  isPending,
+  isSuccess,
+  successMessage,
+  serverErrorMessage,
+}: ResetPasswordFormProps) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

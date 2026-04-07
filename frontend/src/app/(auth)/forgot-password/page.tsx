@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { ForgotPasswordForm } from "./ForgotPasswordForm";
+import { ForgotPasswordPageContainer } from "./ForgotPasswordPageContainer";
 
 export const metadata: Metadata = {
   title: "Forgot Password | ICARE-CVD",
@@ -8,5 +8,6 @@ export const metadata: Metadata = {
 };
 
 export default function ForgotPasswordPage() {
-  return <ForgotPasswordForm />;
+  return <ForgotPasswordPageContainer />;
 }
+

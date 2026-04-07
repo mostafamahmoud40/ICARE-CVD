@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { ResetPasswordForm } from "./ResetPasswordForm";
+import { ResetPasswordPageContainer } from "./ResetPasswordPageContainer";
 
 export const metadata: Metadata = {
   title: "Create New Password | ICARE-CVD",
@@ -8,5 +8,6 @@ export const metadata: Metadata = {
 };
 
 export default function ResetPasswordPage() {
-  return <ResetPasswordForm />;
+  return <ResetPasswordPageContainer />;
 }
+

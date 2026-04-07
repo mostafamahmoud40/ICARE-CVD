@@ -18,10 +18,16 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 
-import { useLogin } from "./useLogin";
+import type { LoginValues } from "./login.types";
 
-export function LoginForm() {
-  const { submit, fieldErrors, isPending, serverErrorMessage } = useLogin();
+export type LoginFormProps = {
+  submit: (values: LoginValues) => void;
+  fieldErrors: Partial<Record<keyof LoginValues, string>>;
+  isPending: boolean;
+  serverErrorMessage: string | null;
+};
+
+export function LoginForm({ submit, fieldErrors, isPending, serverErrorMessage }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

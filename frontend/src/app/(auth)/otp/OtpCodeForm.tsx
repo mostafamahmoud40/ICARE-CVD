@@ -9,21 +9,31 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp";
-import { useOtpVerification } from "./useOtpVerification";
 
-export function OtpCodeForm() {
+export type OtpCodeFormProps = {
+  submit: (code: string) => void;
+  resend: () => void;
+  fieldError: string | null;
+  isPending: boolean;
+  isSuccess: boolean;
+  successMessage: string;
+  resendMessage: string | null;
+  isResending: boolean;
+  serverErrorMessage: string | null;
+};
+
+export function OtpCodeForm({
+  submit,
+  resend,
+  fieldError,
+  isPending,
+  isSuccess,
+  successMessage,
+  resendMessage,
+  isResending,
+  serverErrorMessage,
+}: OtpCodeFormProps) {
   const [otp, setOtp] = useState("");
-  const {
-    submit,
-    resend,
-    fieldError,
-    isPending,
-    isSuccess,
-    successMessage,
-    resendMessage,
-    isResending,
-    serverErrorMessage,
-  } = useOtpVerification();
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

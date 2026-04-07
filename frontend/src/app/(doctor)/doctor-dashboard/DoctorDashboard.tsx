@@ -8,7 +8,6 @@ import type {
   VitalAlert,
   VitalSeverity,
 } from "./doctorDashboard.types"
-import { useDoctorDashboard } from "./useDoctorDashboard"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -187,9 +186,14 @@ function DoctorDashboardContent({ data }: { data: DoctorDashboardData }) {
   )
 }
 
-export function DoctorDashboard() {
-  const { data, isLoading, isError, error } = useDoctorDashboard()
+export type DoctorDashboardProps = {
+  data: DoctorDashboardData | undefined
+  isLoading: boolean
+  isError: boolean
+  error: Error | null
+}
 
+export function DoctorDashboard({ data, isLoading, isError, error }: DoctorDashboardProps) {
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-4">
       {isLoading ? (
@@ -226,4 +230,3 @@ export function DoctorDashboard() {
     </main>
   )
 }
-

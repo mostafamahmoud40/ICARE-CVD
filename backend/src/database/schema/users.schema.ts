@@ -1,10 +1,20 @@
-import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { boolean, pgEnum, pgTable, serial, text } from 'drizzle-orm/pg-core';
 
-/** Starter table — rename or replace as you model your domain. */
-export const users = pgTable('users', {
+/** Allowed user roles in the system. */
+export const userRoleEnum = pgEnum('user_role', [
+  'admin',
+  'patient',
+  'assistant',
+  'doctor',
+]);
+
+/** `user` table — matches domain ER (PostgreSQL quotes this identifier). */
+export const user = pgTable('user', {
   id: serial('id').primaryKey(),
+  isActive: boolean('is_active').notNull().default(true),
+  name: text('name').notNull(),
   email: text('email').notNull().unique(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
+  phone: text('phone'),
+  role: userRoleEnum('role').notNull().default('patient'),
+  password: text('password').notNull(),
 });

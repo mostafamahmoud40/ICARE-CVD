@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query"
 
-import { mockPatientDashboard } from "./dashboard.types"
+import { mockPatientDashboard } from "./dashboard.mock"
 import type { PatientDashboardData } from "./dashboard.types"
 
 export function usePatientDashboard() {

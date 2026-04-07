@@ -107,12 +107,10 @@ function useRender<TTag extends React.ElementType>({
   })
 }
 
-namespace useRender {
-  export type ComponentProps<TTag extends React.ElementType> =
-    React.ComponentPropsWithoutRef<TTag> & {
-      render?: React.ReactNode
-    }
-}
+type UseRenderComponentProps<TTag extends React.ElementType> =
+  React.ComponentPropsWithoutRef<TTag> & {
+    render?: React.ReactNode
+  }
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -558,7 +556,7 @@ function SidebarGroupLabel({
   className,
   render,
   ...props
-}: useRender.ComponentProps<"div"> & React.ComponentProps<"div">) {
+}: UseRenderComponentProps<"div"> & React.ComponentProps<"div">) {
   return useRender({
     defaultTagName: "div",
     props: mergeProps<"div">(
@@ -582,7 +580,7 @@ function SidebarGroupAction({
   className,
   render,
   ...props
-}: useRender.ComponentProps<"button"> & React.ComponentProps<"button">) {
+}: UseRenderComponentProps<"button"> & React.ComponentProps<"button">) {
   return useRender({
     defaultTagName: "button",
     props: mergeProps<"button">(
@@ -668,7 +666,7 @@ function SidebarMenuButton({
   tooltip,
   className,
   ...props
-}: useRender.ComponentProps<"button"> &
+}: UseRenderComponentProps<"button"> &
   React.ComponentProps<"button"> & {
     isActive?: boolean
     tooltip?: string | React.ComponentProps<typeof TooltipContent>
@@ -719,7 +717,7 @@ function SidebarMenuAction({
   render,
   showOnHover = false,
   ...props
-}: useRender.ComponentProps<"button"> &
+}: UseRenderComponentProps<"button"> &
   React.ComponentProps<"button"> & {
     showOnHover?: boolean
   }) {
@@ -833,7 +831,7 @@ function SidebarMenuSubButton({
   isActive = false,
   className,
   ...props
-}: useRender.ComponentProps<"a"> &
+}: UseRenderComponentProps<"a"> &
   React.ComponentProps<"a"> & {
     size?: "sm" | "md"
     isActive?: boolean
