@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: icare-cvd-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: icare_cvd
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # First boot runs initdb + a stop/restart; failures here must not mark the DB unhealthy.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d icare_cvd"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: icare-cvd-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Reaches Postgres inside the Compose network (overrides host DATABASE_URL).
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/icare_cvd
+      PORT: "3000"
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in backend/.env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in backend/.env}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
