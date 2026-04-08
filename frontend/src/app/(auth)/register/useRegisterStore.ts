@@ -52,6 +52,10 @@ type RegisterStoreState = {
   isPending: boolean;
   /** True after `POST /auth/register` succeeds from step 1 */
   hasRegisteredAccount: boolean;
+  /** True after `POST /auth/register/step-2` succeeds from step 2 */
+  hasSavedProfileStep: boolean;
+  /** True after `POST /auth/register/step-3` succeeds from step 3 */
+  hasSavedMedicalStep: boolean;
   isSuccess: boolean;
   successMessage: string;
   serverErrorMessage: string | null;
@@ -206,6 +210,144 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
     return res.data;
   }
 
+  function toOptionalString(value: string): string | undefined {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  function toOptionalNumber(value: string): number | undefined {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  function buildProfileStepPayload(values: RegisterProfileValues) {
+    return {
+      dateOfBirth: values.dateOfBirth,
+      gender: values.gender,
+      nationalId: toOptionalString(values.nationalId),
+      bloodType: toOptionalString(values.bloodType)?.toUpperCase(),
+      address: toOptionalString(values.address),
+      heightCm: toOptionalNumber(values.heightCm),
+      weightKg: toOptionalNumber(values.weightKg),
+      maritalStatus: toOptionalString(values.maritalStatus),
+      occupation: toOptionalString(values.occupation),
+      smokingStatus: toOptionalString(values.smokingStatus),
+      alcoholConsumption: toOptionalString(values.alcoholConsumption),
+      caffeineIntake: toOptionalNumber(values.caffeineIntake),
+      recreationalDrugUse: toOptionalString(values.recreationalDrugUse),
+      exerciseFrequency: toOptionalString(values.exerciseFrequency),
+      exerciseDuration: toOptionalString(values.exerciseDuration),
+      exerciseType: toOptionalString(values.exerciseType),
+      physicalActivityLevel: toOptionalString(values.physicalActivityLevel),
+      dietaryHabits: toOptionalString(values.dietaryHabits),
+      stressLevel: toOptionalString(values.stressLevel),
+    };
+  }
+
+  async function postRegisterStep2(values: RegisterProfileValues): Promise<void> {
+    const { apiClient } = await import("@/lib/api-client");
+    await apiClient.post("/auth/register/step-2", buildProfileStepPayload(values));
+  }
+
+  function stringOf(input: unknown): string {
+    return typeof input === "string" ? input : "";
+  }
+
+  function boolOf(input: unknown): boolean {
+    return Boolean(input);
+  }
+
+  function arrOf<T>(input: unknown): T[] {
+    return Array.isArray(input) ? (input as T[]) : [];
+  }
+
+  function buildMedicalStepPayload(values: RegisterMedicalValues) {
+    const chiefComplaint = stringOf(values.chiefComplaint).trim();
+    const chiefComplaintOtherText = stringOf(values.otherComplaint).trim();
+
+    const knownKeys = new Set([
+      "chiefComplaint",
+      "otherComplaint",
+      "noCardiacHistory",
+      "noNonCardiacHistory",
+      "hasFamilyHistory",
+      "familyHistory",
+      "medications",
+      "drugAllergies",
+      "foodAllergies",
+      "otherAllergies",
+      "riskHypertension",
+      "riskDiabetes",
+      "riskDyslipidemia",
+      "riskObesity",
+      "riskSedentary",
+    ]);
+
+    const hpiData: Record<string, unknown> = {};
+    const inputObj = values as Record<string, unknown>;
+    for (const [key, value] of Object.entries(inputObj)) {
+      if (!knownKeys.has(key)) hpiData[key] = value;
+    }
+
+    const pastCardiacHistory = {
+      pastHypertension: values.pastHypertension,
+      pastMI: values.pastMI,
+      pastHeartFailure: values.pastHeartFailure,
+      pastCardiomyopathy: values.pastCardiomyopathy,
+      pastValvular: values.pastValvular,
+      pastArrhythmias: values.pastArrhythmias,
+      pastStroke: values.pastStroke,
+      pastEndocarditis: values.pastEndocarditis,
+      pastRheumatic: values.pastRheumatic,
+      pastPulmonaryHypertension: values.pastPulmonaryHypertension,
+      pastInterventions: values.pastInterventions,
+    };
+
+    const pastNonCardiacHistory = {
+      pastStroke: values.pastStroke,
+      pastCKD: values.pastCKD,
+      pastLungDisease: values.pastLungDisease,
+      pastThyroid: values.pastThyroid,
+      pastLiver: values.pastLiver,
+      pastAnemia: values.pastAnemia,
+      pastAutoimmune: values.pastAutoimmune,
+      pastMalignancy: values.pastMalignancy,
+      pastSleepApnea: values.pastSleepApnea,
+    };
+
+    const cardiovascularRiskFactors = {
+      riskHypertension: values.riskHypertension,
+      riskDiabetes: values.riskDiabetes,
+      riskDyslipidemia: values.riskDyslipidemia,
+      riskObesity: values.riskObesity,
+      riskSedentary: values.riskSedentary,
+    };
+
+    return {
+      chiefComplaint,
+      chiefComplaintOtherText: chiefComplaintOtherText || undefined,
+      hpiData,
+      noCardiacHistory: boolOf(values.noCardiacHistory),
+      pastCardiacHistory,
+      noNonCardiacHistory: boolOf(values.noNonCardiacHistory),
+      pastNonCardiacHistory,
+      cardiovascularRiskFactors,
+      hasFamilyHistory: boolOf(values.hasFamilyHistory),
+      familyHistory: arrOf<Record<string, unknown>>(values.familyHistory),
+      medications: arrOf<Record<string, unknown>>(values.medications),
+      drugAllergies: arrOf<Record<string, unknown>>(values.drugAllergies),
+      foodAllergies: arrOf<Record<string, unknown>>(values.foodAllergies),
+      otherAllergies: arrOf<Record<string, unknown>>(values.otherAllergies),
+    };
+  }
+
+  async function postRegisterStep3(values: RegisterMedicalValues): Promise<void> {
+    const { apiClient } = await import("@/lib/api-client");
+    await apiClient.post("/auth/register/step-3", buildMedicalStepPayload(values));
+  }
+
   /** Step 1 Continue: create user row, then go to step 2 */
   async function registerAccountAndGoToStep2(values: RegisterValues) {
     if (!applyAccountValidationErrors(values)) return;
@@ -278,6 +420,58 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
     }
   }
 
+  /** Step 2 Continue: save profile row, then go to step 3 */
+  async function saveProfileAndGoToStep3(values: RegisterProfileValues) {
+    set({ isPending: true, serverErrorMessage: null });
+    try {
+      await postRegisterStep2(values);
+      set({
+        isPending: false,
+        hasSavedProfileStep: true,
+        step: 3 as RegisterStep,
+        serverErrorMessage: null,
+      });
+    } catch (err: unknown) {
+      const { isAxiosError } = await import("axios");
+      let message = "Failed to save step 2. Try again.";
+      if (isAxiosError(err)) {
+        const data = err.response?.data as { message?: string | string[] } | undefined;
+        if (Array.isArray(data?.message)) {
+          message = data.message.join(", ");
+        } else {
+          message = data?.message ?? err.message;
+        }
+      }
+      set({ isPending: false, serverErrorMessage: message });
+    }
+  }
+
+  /** Step 3 Continue: save medical history, then go to step 4 */
+  async function saveMedicalAndGoToStep4(values: RegisterMedicalValues) {
+    set({ isPending: true, serverErrorMessage: null });
+    try {
+      await postRegisterStep3(values);
+      set({
+        isPending: false,
+        hasSavedMedicalStep: true,
+        step: 4 as RegisterStep,
+        serverErrorMessage: null,
+      });
+    } catch (err: unknown) {
+      const { isAxiosError } = await import("axios");
+      let message = "Failed to save step 3. Try again.";
+      if (isAxiosError(err)) {
+        const data = err.response?.data as { message?: string | string[] } | undefined;
+        if (Array.isArray(data?.message)) {
+          message = data.message.join(", ");
+        } else {
+          message = data?.message ?? err.message;
+        }
+      }
+      set({ isPending: false, serverErrorMessage: message });
+    }
+  }
+
   return {
     /* ── initial state ───────────────────────────────── */
     step: FIRST_STEP as RegisterStep,
@@ -290,13 +484,21 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
     showConfirmPassword: false,
     isPending: false,
     hasRegisteredAccount: false,
+    hasSavedProfileStep: false,
+    hasSavedMedicalStep: false,
     isSuccess: false,
     successMessage: "",
     serverErrorMessage: null,
 
     /* ── step navigation ─────────────────────────────── */
     nextStep() {
-      const { step, hasRegisteredAccount, formValues } = get();
+      const {
+        step,
+        hasRegisteredAccount,
+        hasSavedProfileStep,
+        hasSavedMedicalStep,
+        formValues,
+      } = get();
 
       if (step === 1) {
         if (!get().validateCurrentStep()) return;
@@ -307,6 +509,28 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
           return;
         }
         void registerAccountAndGoToStep2(formValues.account);
+        return;
+      }
+
+      if (step === 2) {
+        if (!get().validateCurrentStep()) return;
+        if (!hasRegisteredAccount) return;
+        if (hasSavedProfileStep) {
+          set({ step: 3 as RegisterStep });
+          return;
+        }
+        void saveProfileAndGoToStep3(formValues.profile);
+        return;
+      }
+
+      if (step === 3) {
+        if (!get().validateCurrentStep()) return;
+        if (!hasRegisteredAccount || !hasSavedProfileStep) return;
+        if (hasSavedMedicalStep) {
+          set({ step: 4 as RegisterStep });
+          return;
+        }
+        void saveMedicalAndGoToStep4(formValues.medical);
         return;
       }
 
@@ -413,8 +637,7 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
       if (hasRegisteredAccount) {
         set({
           isSuccess: true,
-          successMessage:
-            "Your account is saved. Health profile steps are stored in this session until backend profile APIs are connected.",
+          successMessage: "Registration submitted. Account and profile are saved.",
         });
         return;
       }
