@@ -1,4 +1,11 @@
-import { integer, pgEnum, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  integer,
+  pgEnum,
+  pgTable,
+  timestamp,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import { user } from './users.schema';
 
 export const allergyCategoryEnum = pgEnum('allergy_category', [
@@ -15,5 +22,7 @@ export const allergy = pgTable('allergy', {
   category: allergyCategoryEnum('category').notNull(),
   allergen: varchar('allergen', { length: 150 }).notNull(),
   reaction: varchar('reaction', { length: 255 }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });

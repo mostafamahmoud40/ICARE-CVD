@@ -57,6 +57,13 @@
       "when": 1775589071316,
       "tag": "0007_fancy_dazzler",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1775590607874,
+      "tag": "0008_safe_flatman",
+      "breakpoints": true
     }
   ]
 }

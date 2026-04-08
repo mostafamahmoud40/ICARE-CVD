@@ -12,6 +12,8 @@ import type {
   RegisterStep,
   RegisterValues,
 } from "./register.types";
+import { setAuthTokens } from "@/lib/auth-tokens";
+
 import {
   buildInitialAllValues,
   FIRST_STEP,
@@ -48,6 +50,8 @@ type RegisterStoreState = {
 
   /* ── submission ────────────────────────────────────── */
   isPending: boolean;
+  /** True after `POST /auth/register` succeeds from step 1 */
+  hasRegisteredAccount: boolean;
   isSuccess: boolean;
   successMessage: string;
   serverErrorMessage: string | null;
@@ -175,29 +179,36 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
 
   /* ── API submit (mirrors useRegister logic) ─────────── */
 
-  async function doSubmit(values: RegisterValues) {
-    const { apiClient } = await import("@/lib/api-client");
-
-    if (REGISTER_VALIDATION_ENABLED) {
-      const result = registerSchema.safeParse(values);
-      if (!result.success) {
-        const next: Partial<Record<keyof RegisterValues, string>> = {};
-        for (const issue of result.error.issues) {
-          const key = issue.path[0];
-          if (
-            key === "fullName" ||
-            key === "email" ||
-            key === "phoneNumber" ||
-            key === "password" ||
-            key === "confirmPassword"
-          ) {
-            next[key] = issue.message;
-          }
-        }
-        set({ accountFieldErrors: next });
-        return;
+  function applyAccountValidationErrors(values: RegisterValues): boolean {
+    if (!REGISTER_VALIDATION_ENABLED) return true;
+    const result = registerSchema.safeParse(values);
+    if (result.success) return true;
+    const next: Partial<Record<keyof RegisterValues, string>> = {};
+    for (const issue of result.error.issues) {
+      const key = issue.path[0];
+      if (
+        key === "fullName" ||
+        key === "email" ||
+        key === "phoneNumber" ||
+        key === "password" ||
+        key === "confirmPassword"
+      ) {
+        next[key] = issue.message;
       }
     }
+    set({ accountFieldErrors: next });
+    return false;
+  }
+
+  async function postRegister(payload: RegisterPayload): Promise<RegisterResponse> {
+    const { apiClient } = await import("@/lib/api-client");
+    const res = await apiClient.post<RegisterResponse>("/auth/register", payload);
+    return res.data;
+  }
+
+  /** Step 1 Continue: create user row, then go to step 2 */
+  async function registerAccountAndGoToStep2(values: RegisterValues) {
+    if (!applyAccountValidationErrors(values)) return;
 
     set({ accountFieldErrors: {}, isPending: true, serverErrorMessage: null });
 
@@ -209,12 +220,52 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
     };
 
     try {
-      const res = await apiClient.post<RegisterResponse>("/auth/register", payload);
+      const data = await postRegister(payload);
+      setAuthTokens({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+      });
+      set({
+        isPending: false,
+        hasRegisteredAccount: true,
+        step: 2 as RegisterStep,
+        serverErrorMessage: null,
+      });
+    } catch (err: unknown) {
+      const { isAxiosError } = await import("axios");
+      let message = "Something went wrong. Try again.";
+      if (isAxiosError(err)) {
+        message =
+          (err.response?.data as { message?: string } | undefined)?.message ?? err.message;
+      }
+      set({ isPending: false, serverErrorMessage: message });
+    }
+  }
+
+  async function doSubmit(values: RegisterValues) {
+    if (!applyAccountValidationErrors(values)) return;
+
+    set({ accountFieldErrors: {}, isPending: true, serverErrorMessage: null });
+
+    const payload: RegisterPayload = {
+      fullName: values.fullName,
+      email: values.email,
+      phoneNumber: values.phoneNumber,
+      password: values.password,
+    };
+
+    try {
+      const data = await postRegister(payload);
+      setAuthTokens({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+      });
       set({
         isPending: false,
         isSuccess: true,
+        hasRegisteredAccount: true,
         successMessage:
-          res.data?.message ?? "Your account has been created. You can now sign in.",
+          data.message ?? "Your account has been created. You can now sign in.",
       });
     } catch (err: unknown) {
       const { isAxiosError } = await import("axios");
@@ -238,12 +289,27 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
     showPassword: false,
     showConfirmPassword: false,
     isPending: false,
+    hasRegisteredAccount: false,
     isSuccess: false,
     successMessage: "",
     serverErrorMessage: null,
 
     /* ── step navigation ─────────────────────────────── */
     nextStep() {
+      const { step, hasRegisteredAccount, formValues } = get();
+
+      if (step === 1) {
+        if (!get().validateCurrentStep()) return;
+        if (hasRegisteredAccount) {
+          set((s) => ({
+            step: (s.step < LAST_STEP ? s.step + 1 : s.step) as RegisterStep,
+          }));
+          return;
+        }
+        void registerAccountAndGoToStep2(formValues.account);
+        return;
+      }
+
       if (!get().validateCurrentStep()) return;
       set((s) => ({ step: (s.step < LAST_STEP ? s.step + 1 : s.step) as RegisterStep }));
     },
@@ -343,8 +409,16 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
 
     /* ── submission ──────────────────────────────────── */
     submitForm() {
-      const { formValues } = get();
-      doSubmit(formValues.account);
+      const { formValues, hasRegisteredAccount } = get();
+      if (hasRegisteredAccount) {
+        set({
+          isSuccess: true,
+          successMessage:
+            "Your account is saved. Health profile steps are stored in this session until backend profile APIs are connected.",
+        });
+        return;
+      }
+      void doSubmit(formValues.account);
     },
   };
 });

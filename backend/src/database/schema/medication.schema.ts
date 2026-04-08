@@ -1,4 +1,11 @@
-import { integer, pgEnum, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  integer,
+  pgEnum,
+  pgTable,
+  timestamp,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import { user } from './users.schema';
 
 export const medicationTypeEnum = pgEnum('medication_type', [
@@ -27,5 +34,7 @@ export const medication = pgTable('medication', {
   type: medicationTypeEnum('type').notNull(),
   compliance: medicationComplianceEnum('compliance'),
   sideEffects: varchar('side_effects', { length: 255 }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
