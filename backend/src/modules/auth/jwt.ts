@@ -23,4 +23,8 @@ export class AuthJwtService {
       expiresIn: (process.env.JWT_REFRESH_TTL ?? '7d') as never,
     });
   }
+
+  async verifyAccessToken(token: string): Promise<TokenPayload> {
+    return this.jwtService.verifyAsync<TokenPayload>(token);
+  }
 }
