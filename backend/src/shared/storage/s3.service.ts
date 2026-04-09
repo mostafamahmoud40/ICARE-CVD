@@ -1,4 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import * as crypto from 'crypto';
 import {
   DeleteObjectCommand,
   PutObjectCommand,
@@ -110,4 +111,3 @@ export class S3Service {
     return map[contentType] ?? null;
   }
 }
-

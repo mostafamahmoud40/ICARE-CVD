@@ -12,9 +12,12 @@ import {
   patient,
   patientHistory,
   user,
+  patientDocument,
+  patientDocumentNotes,
 } from '../../database/schema';
 import { RegisterStep2Dto } from './dto/register-step-2.dto';
 import { RegisterStep3Dto } from './dto/register-step-3.dto';
+import { RegisterStep4Dto } from './dto/register-step-4.dto';
 import { MailService } from '../../shared/mail/mail.service';
 
 @Injectable()
@@ -266,5 +269,74 @@ export class AuthService {
             ? 60 * 60 * 1000
             : 24 * 60 * 60 * 1000;
     return amount * factor;
+  }
+
+  async registerStep4(userId: number, dto: RegisterStep4Dto) {
+    // Step 4: Save document metadata to database and documents notes
+    // Frontend uploads files to S3 first, then sends metadata here
+    // SOLID: Data persistence separated from business logic
+
+    const files = dto.files ?? [];
+
+    if (files.length === 0 && !dto.notes) {
+      return {
+        success: true,
+        message: 'No documents or notes provided',
+        documentsCount: 0,
+      };
+    }
+
+    // Save documents to database
+    const savedDocuments: Array<{
+      id: string;
+      fileName: string | null;
+      category: string | null;
+    }> = [];
+
+    if (files.length > 0) {
+      const documentRecords = files.map((file) => ({
+        userId,
+        s3Key: file.s3Key || '', // Ensure not undefined
+        fileName: file.name || file.fileName || 'Unnamed', // Use first available name
+        contentType: file.mimeType || 'application/octet-stream',
+        sizeBytes: file.size || file.fileSize || 0, // Use first available size
+        category: file.category || null, // Can be null
+      }));
+
+      const inserted = await this.db
+        .insert(patientDocument)
+        .values(documentRecords)
+        .returning({
+          id: patientDocument.id,
+          fileName: patientDocument.fileName,
+          category: patientDocument.category,
+        });
+
+      savedDocuments.push(...inserted);
+    }
+
+    // Save notes if provided
+    if (dto.notes?.trim()) {
+      await this.db
+        .insert(patientDocumentNotes)
+        .values({
+          userId,
+          notes: dto.notes.trim(),
+        })
+        .onConflictDoUpdate({
+          target: patientDocumentNotes.userId,
+          set: {
+            notes: dto.notes.trim(),
+            updatedAt: new Date(),
+          },
+        });
+    }
+
+    return {
+      success: true,
+      message: `${savedDocuments.length} document(s) uploaded successfully`,
+      documentsCount: savedDocuments.length,
+      documents: savedDocuments,
+    };
   }
 }
