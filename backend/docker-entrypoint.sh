@@ -5,5 +5,6 @@ if [ -z "${DATABASE_URL:-}" ]; then
   exit 1
 fi
 echo "Applying database migrations..."
-npm run db:migrate
+npm run db:push -- --force || { echo "Failed to apply migrations"; exit 1; }
+echo "Migrations applied successfully!"
 exec npm run start:prod

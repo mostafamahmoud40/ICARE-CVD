@@ -1,21 +1,25 @@
 "use client"
 
-import * as React from "react"
+import type { ReactNode } from "react"
 import Link from "next/link"
+import { Lora } from "next/font/google"
 import { usePathname } from "next/navigation"
 import {
-  CalendarDaysIcon,
+  ActivityIcon,
+  BadgePlusIcon,
   BellIcon,
+  ClipboardListIcon,
   CreditCardIcon,
-  HeartPulseIcon,
   LayoutDashboardIcon,
   LogOutIcon,
-  PillIcon,
+  ShieldIcon,
   SparklesIcon,
   User2Icon,
+  UsersIcon,
 } from "lucide-react"
 
 import {
+  Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
@@ -26,12 +30,10 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  Sidebar,
   SidebarRail,
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar"
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,53 +42,66 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export function PatientPortalShell({
+const adminSerif = Lora({
+  subsets: ["latin"],
+  display: "swap",
+})
+
+export default function AdminLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
+}: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname()
 
   return (
-    <SidebarProvider defaultOpen>
-      <PatientPortalShellInner pathname={pathname}>{children}</PatientPortalShellInner>
-    </SidebarProvider>
+    <div
+      className={`${adminSerif.className} min-h-screen bg-background text-foreground dark:bg-background`}
+    >
+      <SidebarProvider defaultOpen>
+        <AdminLayoutContent pathname={pathname}>{children}</AdminLayoutContent>
+      </SidebarProvider>
+    </div>
   )
 }
 
-function PatientPortalShellInner({
+function AdminLayoutContent({
   pathname,
   children,
 }: {
   pathname: string
-  children: React.ReactNode
+  children: ReactNode
 }) {
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
 
   const navItems = [
     {
-      href: "/dashboard",
+      href: "/admin/admin-dashboard",
       label: "Dashboard",
       icon: LayoutDashboardIcon,
-      isActive: pathname === "/dashboard",
+      isActive: pathname.startsWith("/admin/admin-dashboard"),
     },
     {
-      href: "/dashboard",
-      label: "Appointments",
-      icon: CalendarDaysIcon,
+      href: "/admin/admin-dashboard",
+      label: "Users",
+      icon: UsersIcon,
       isActive: false,
     },
     {
-      href: "/dashboard",
-      label: "Vitals",
-      icon: HeartPulseIcon,
+      href: "/admin/admin-dashboard",
+      label: "Providers",
+      icon: ActivityIcon,
       isActive: false,
     },
     {
-      href: "/dashboard",
-      label: "Medications",
-      icon: PillIcon,
+      href: "/admin/addstaff",
+      label: "Add staff",
+      icon: BadgePlusIcon,
+      isActive: pathname.startsWith("/admin/addstaff"),
+    },
+    {
+      href: "/admin/admin-dashboard",
+      label: "Audit log",
+      icon: ClipboardListIcon,
       isActive: false,
     },
   ] as const
@@ -97,20 +112,17 @@ function PatientPortalShellInner({
         <SidebarHeader className="group-data-[collapsible=icon]:p-1">
           <div
             className="flex items-center gap-2 px-1"
-            // Prevent unintended sidebar toggle/interaction when the user clicks the logo area.
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <HeartPulseIcon className="size-4" />
+              <ShieldIcon className="size-4" />
             </div>
 
             {isCollapsed ? null : (
               <div className="leading-tight">
                 <div className="text-sm font-semibold">ICARE-CVD</div>
-                <div className="text-xs text-muted-foreground">
-                  Patient Portal
-                </div>
+                <div className="text-xs text-muted-foreground">Admin Portal</div>
               </div>
             )}
           </div>
@@ -125,13 +137,13 @@ function PatientPortalShellInner({
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
+                      isActive={item.isActive}
                       render={
                         <Link href={item.href} aria-label={item.label}>
                           <Icon className="size-4" />
                           {isCollapsed ? null : <span>{item.label}</span>}
                         </Link>
                       }
-                      isActive={item.isActive}
                     />
                   </SidebarMenuItem>
                 )
@@ -140,20 +152,20 @@ function PatientPortalShellInner({
           </SidebarGroup>
 
           <SidebarGroup className="mt-4">
-            <SidebarGroupLabel>Care</SidebarGroupLabel>
+            <SidebarGroupLabel>Operations</SidebarGroupLabel>
             <SidebarMenu>
               {navItems.slice(1).map((item) => {
                 const Icon = item.icon
                 return (
                   <SidebarMenuItem key={item.label}>
                     <SidebarMenuButton
+                      isActive={item.isActive}
                       render={
                         <Link href={item.href} aria-label={item.label}>
                           <Icon className="size-4" />
                           {isCollapsed ? null : <span>{item.label}</span>}
                         </Link>
                       }
-                      isActive={item.isActive}
                     />
                   </SidebarMenuItem>
                 )
@@ -172,7 +184,7 @@ function PatientPortalShellInner({
                   <SidebarMenuButton
                     isActive={false}
                     render={
-                      <button type="button" aria-label="Patient profile">
+                      <button type="button" aria-label="Admin profile">
                         <div
                           className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary"
                           aria-hidden="true"
@@ -182,11 +194,9 @@ function PatientPortalShellInner({
 
                         {isCollapsed ? null : (
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-medium">
-                              Sara Ahmed
-                            </div>
+                            <div className="truncate text-sm font-medium">Admin</div>
                             <div className="truncate text-xs text-muted-foreground">
-                              Patient
+                              Platform admin
                             </div>
                           </div>
                         )}
@@ -205,9 +215,9 @@ function PatientPortalShellInner({
                     </div>
 
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">Sara Ahmed</div>
+                      <div className="truncate text-sm font-medium">Youssef Kamal</div>
                       <div className="truncate text-xs text-muted-foreground">
-                        m@example.com
+                        admin@icare-cvd.example
                       </div>
                     </div>
                   </div>
@@ -240,7 +250,6 @@ function PatientPortalShellInner({
 
                   <DropdownMenuItem
                     onSelect={(e) => {
-                      // Keep it as a placeholder for now.
                       e.preventDefault()
                     }}
                   >
@@ -258,9 +267,9 @@ function PatientPortalShellInner({
         <div className="flex h-16 items-center gap-3 border-b border-black/5 px-4 dark:border-white/10">
           <SidebarTrigger />
           <div className="flex flex-col">
-            <div className="text-base font-semibold">Patient Dashboard</div>
+            <div className="text-base font-semibold">Admin Dashboard</div>
             <div className="text-sm text-muted-foreground">
-              Overview & care summary
+              Platform oversight & operations
             </div>
           </div>
         </div>
@@ -270,4 +279,3 @@ function PatientPortalShellInner({
     </>
   )
 }
-

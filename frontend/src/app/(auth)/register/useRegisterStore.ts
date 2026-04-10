@@ -56,6 +56,8 @@ type RegisterStoreState = {
   hasSavedProfileStep: boolean;
   /** True after `POST /auth/register/step-3` succeeds from step 3 */
   hasSavedMedicalStep: boolean;
+  /** True after `POST /auth/register/step-4` succeeds from step 4 */
+  hasSavedDocumentsStep: boolean;
   isSuccess: boolean;
   successMessage: string;
   serverErrorMessage: string | null;
@@ -348,6 +350,15 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
     await apiClient.post("/auth/register/step-3", buildMedicalStepPayload(values));
   }
 
+  async function postRegisterStep4(values: RegisterDocumentsValues): Promise<void> {
+    const { apiClient } = await import("@/lib/api-client");
+    await apiClient.post("/auth/register/step-4", {
+      documentCategory: values.documentCategory,
+      notes: values.notes,
+      files: values.files,
+    });
+  }
+
   /** Step 1 Continue: create user row, then go to step 2 */
   async function registerAccountAndGoToStep2(values: RegisterValues) {
     if (!applyAccountValidationErrors(values)) return;
@@ -472,6 +483,32 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
     }
   }
 
+  /** Step 4 Continue: save documents, then go to step 5 */
+  async function saveDocumentsAndGoToStep5(values: RegisterDocumentsValues) {
+    set({ isPending: true, serverErrorMessage: null });
+    try {
+      await postRegisterStep4(values);
+      set({
+        isPending: false,
+        hasSavedDocumentsStep: true,
+        step: 5 as RegisterStep,
+        serverErrorMessage: null,
+      });
+    } catch (err: unknown) {
+      const { isAxiosError } = await import("axios");
+      let message = "Failed to save step 4. Try again.";
+      if (isAxiosError(err)) {
+        const data = err.response?.data as { message?: string | string[] } | undefined;
+        if (Array.isArray(data?.message)) {
+          message = data.message.join(", ");
+        } else {
+          message = data?.message ?? err.message;
+        }
+      }
+      set({ isPending: false, serverErrorMessage: message });
+    }
+  }
+
   return {
     /* ── initial state ───────────────────────────────── */
     step: FIRST_STEP as RegisterStep,
@@ -486,6 +523,7 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
     hasRegisteredAccount: false,
     hasSavedProfileStep: false,
     hasSavedMedicalStep: false,
+    hasSavedDocumentsStep: false,
     isSuccess: false,
     successMessage: "",
     serverErrorMessage: null,
@@ -497,6 +535,7 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
         hasRegisteredAccount,
         hasSavedProfileStep,
         hasSavedMedicalStep,
+        hasSavedDocumentsStep,
         formValues,
       } = get();
 
@@ -531,6 +570,16 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
           return;
         }
         void saveMedicalAndGoToStep4(formValues.medical);
+        return;
+      }
+
+      if (step === 4) {
+        if (!hasRegisteredAccount || !hasSavedProfileStep || !hasSavedMedicalStep) return;
+        if (hasSavedDocumentsStep) {
+          set({ step: 5 as RegisterStep });
+          return;
+        }
+        void saveDocumentsAndGoToStep5(formValues.documents);
         return;
       }
 

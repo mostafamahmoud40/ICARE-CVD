@@ -7,6 +7,8 @@ type TokenPayload = {
   email: string;
 };
 
+export type { TokenPayload };
+
 @Injectable()
 export class AuthJwtService {
   constructor(private readonly jwtService: JwtService) {}

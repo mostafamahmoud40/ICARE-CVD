@@ -24,6 +24,10 @@ export const user = pgTable('user', {
   phone: text('phone'),
   role: userRoleEnum('role').notNull().default('patient'),
   password: text('password').notNull(),
+  accessTokenHash: text('access_token_hash'),
+  accessTokenExpiresAt: timestamp('access_token_expires_at', {
+    withTimezone: true,
+  }),
   refreshTokenHash: text('refresh_token_hash'),
   refreshTokenExpiresAt: timestamp('refresh_token_expires_at', {
     withTimezone: true,

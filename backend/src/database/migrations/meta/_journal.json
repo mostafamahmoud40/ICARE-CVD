@@ -71,6 +71,20 @@
       "when": 1775683402557,
       "tag": "0009_patient_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1775829600000,
+      "tag": "0010_doctor_profile",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1775843216127,
+      "tag": "0011_wide_electro",
+      "breakpoints": true
     }
   ]
 }
