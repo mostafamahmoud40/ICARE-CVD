@@ -106,4 +106,3 @@ export class RegisterStep3Dto {
   @IsArray()
   otherAllergies?: AllergyItem[];
 }
-

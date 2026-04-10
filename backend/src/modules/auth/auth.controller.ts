@@ -1,68 +1,52 @@
-import { Body, Controller, Post, Headers, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
 import { AuthService } from './auth.service';
 import { RegisterStep2Dto } from './dto/register-step-2.dto';
-import { AuthJwtService } from './jwt';
+import type { TokenPayload } from './jwt';
 import { RegisterStep3Dto } from './dto/register-step-3.dto';
 import { RegisterStep4Dto } from './dto/register-step-4.dto';
+import { LoginDto } from './dto/login.dto';
+import { AccessTokenGuard } from './access-token.guard';
+import { CurrentUser } from './current-user.decorator';
 
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly authJwtService: AuthJwtService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
+  @Post('login')
+  login(@Body() dto: LoginDto) {
+    return this.authService.login(dto);
+  }
+
   @Post('register/step-2')
-  async registerStep2(
-    @Headers('authorization') authorization: string | undefined,
+  @UseGuards(AccessTokenGuard)
+  registerStep2(
+    @CurrentUser() currentUser: TokenPayload,
     @Body() dto: RegisterStep2Dto,
   ) {
-    const token = authorization?.startsWith('Bearer ')
-      ? authorization.slice('Bearer '.length).trim()
-      : undefined;
-    if (!token) {
-      throw new UnauthorizedException('Missing Bearer token');
-    }
-
-    const payload = await this.authJwtService.verifyAccessToken(token);
-    return this.authService.registerStep2(payload.sub, dto);
+    return this.authService.registerStep2(currentUser.sub, dto);
   }
 
   @Post('register/step-3')
-  async registerStep3(
-    @Headers('authorization') authorization: string | undefined,
+  @UseGuards(AccessTokenGuard)
+  registerStep3(
+    @CurrentUser() currentUser: TokenPayload,
     @Body() dto: RegisterStep3Dto,
   ) {
-    const token = authorization?.startsWith('Bearer ')
-      ? authorization.slice('Bearer '.length).trim()
-      : undefined;
-    if (!token) {
-      throw new UnauthorizedException('Missing Bearer token');
-    }
-
-    const payload = await this.authJwtService.verifyAccessToken(token);
-    return this.authService.registerStep3(payload.sub, dto);
+    return this.authService.registerStep3(currentUser.sub, dto);
   }
 
   @Post('register/step-4')
-  async registerStep4(
-    @Headers('authorization') authorization: string | undefined,
+  @UseGuards(AccessTokenGuard)
+  registerStep4(
+    @CurrentUser() currentUser: TokenPayload,
     @Body() dto: RegisterStep4Dto,
   ) {
-    const token = authorization?.startsWith('Bearer ')
-      ? authorization.slice('Bearer '.length).trim()
-      : undefined;
-    if (!token) {
-      throw new UnauthorizedException('Missing Bearer token');
-    }
-
-    const payload = await this.authJwtService.verifyAccessToken(token);
-    return this.authService.registerStep4(payload.sub, dto);
+    return this.authService.registerStep4(currentUser.sub, dto);
   }
 }

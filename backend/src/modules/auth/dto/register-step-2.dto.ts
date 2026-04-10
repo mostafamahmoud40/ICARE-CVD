@@ -105,4 +105,3 @@ export class RegisterStep2Dto {
   @MaxLength(20)
   stressLevel?: string;
 }
-

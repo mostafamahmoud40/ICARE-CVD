@@ -59,7 +59,8 @@ export class DocumentFileDto {
  * Expects: Files already uploaded to S3, this validates and saves metadata
  * SOLID: Interface Segregation - focused on document registration
  */
-export class RegisterStep4Dto {  @IsString()
+export class RegisterStep4Dto {
+  @IsString()
   @IsOptional()
   documentCategory?: string; // Document category from form (optional - category is per file)
   @IsArray()

@@ -1,6 +1,6 @@
-import { Controller, Post, Body, Headers, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { DocumentService } from './document.service';
-import { AuthJwtService } from './jwt';
+import { AccessTokenGuard } from './access-token.guard';
 
 /**
  * DocumentsController handles document-related API endpoints
@@ -8,10 +8,7 @@ import { AuthJwtService } from './jwt';
  */
 @Controller('documents')
 export class DocumentsController {
-  constructor(
-    private readonly documentService: DocumentService,
-    private readonly authJwtService: AuthJwtService,
-  ) {}
+  constructor(private readonly documentService: DocumentService) {}
 
   /**
    * Create upload intent (presigned URL) for file upload to S3
@@ -20,21 +17,10 @@ export class DocumentsController {
    * Response: { key, uploadUrl, publicUrl, expiresIn }
    */
   @Post('upload-intent')
+  @UseGuards(AccessTokenGuard)
   async createUploadIntent(
-    @Headers('authorization') authorization: string | undefined,
     @Body() body: { fileName: string; contentType: string; category: string },
   ) {
-    const token = authorization?.startsWith('Bearer ')
-      ? authorization.slice('Bearer '.length).trim()
-      : undefined;
-
-    if (!token) {
-      throw new UnauthorizedException('Missing Bearer token');
-    }
-
-    // Verify token (doesn't need to store userId for presigned URL)
-    await this.authJwtService.verifyAccessToken(token);
-
     return await this.documentService.createUploadIntent(
       body.category,
       body.fileName,

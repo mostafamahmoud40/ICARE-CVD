@@ -33,7 +33,13 @@ export class DocumentService {
     }
 
     // Validate category
-    const validCategories = ['lab_report', 'imaging', 'ecg', 'prescription', 'other'];
+    const validCategories = [
+      'lab_report',
+      'imaging',
+      'ecg',
+      'prescription',
+      'other',
+    ];
     if (!validCategories.includes(category)) {
       throw new BadRequestException(`Invalid category: ${category}`);
     }
@@ -97,7 +103,7 @@ export class DocumentService {
     const doc = await this.db.query.patientDocument.findFirst({
       where: and(
         eq(patientDocument.id, documentId),
-        eq(patientDocument.userId, userId)
+        eq(patientDocument.userId, userId),
       ),
     });
 
@@ -116,4 +122,3 @@ export class DocumentService {
     return { success: true };
   }
 }
-

@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Heart, HeartPulse, InfoIcon, Sparkles, Stethoscope, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +13,27 @@ import { StepNavigation } from "./StepNavigation";
 import { StepRenderer } from "./StepRenderer";
 import { useRegisterStore } from "./useRegisterStore";
 
+const STEP_BY_KEY = {
+  account: 1,
+  profile: 2,
+  medical: 3,
+  documents: 4,
+  review: 5,
+} as const;
+
+const KEY_BY_STEP: Record<number, keyof typeof STEP_BY_KEY> = {
+  1: "account",
+  2: "profile",
+  3: "medical",
+  4: "documents",
+  5: "review",
+};
+
 export function RegisterForm() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   /* ── individual scalar selectors (SSR-safe — each returns a stable ref) ── */
   const step = useRegisterStore((s) => s.step);
   const isSuccess = useRegisterStore((s) => s.isSuccess);
@@ -53,6 +75,25 @@ export function RegisterForm() {
           : step === 4
             ? "Add lab reports, imaging, ECG files, prescriptions, or any additional files"
             : "Review your information before creating your account";
+
+  useEffect(() => {
+    const stepFromQuery = searchParams.get("step");
+    if (!stepFromQuery) return;
+    if (!(stepFromQuery in STEP_BY_KEY)) return;
+
+    const targetStep = STEP_BY_KEY[stepFromQuery as keyof typeof STEP_BY_KEY];
+    if (targetStep !== step) {
+      goToStep(targetStep);
+    }
+  }, [goToStep, searchParams, step]);
+
+  useEffect(() => {
+    const stepKey = KEY_BY_STEP[step] ?? "account";
+    const expectedPath = `/auth/register/${stepKey}`;
+    if (pathname !== expectedPath) {
+      router.replace(expectedPath);
+    }
+  }, [pathname, router, step]);
 
   return (
     <Card className="w-full max-w-3xl overflow-hidden rounded-3xl border-border/70 bg-card/95 shadow-xl backdrop-blur-sm">
@@ -134,7 +175,7 @@ export function RegisterForm() {
           <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
             Already have an account?{" "}
             <Link
-              href="/login"
+              href="/auth/login"
               className="font-medium text-teal-700 underline underline-offset-4 transition-colors hover:text-teal-600 dark:text-teal-300 dark:hover:text-teal-200"
             >
               Log in

@@ -6,3 +6,5 @@ export * from './familyHistory.schema';
 export * from './allergy.schema';
 export * from './medication.schema';
 export * from './document.schema';
+export * from './doctor.schema';
+export * from './assistant.schema';

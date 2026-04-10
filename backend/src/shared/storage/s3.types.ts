@@ -16,4 +16,3 @@ export type S3UploadIntentResult = {
 export type S3DeleteInput = {
   key: string;
 };
-

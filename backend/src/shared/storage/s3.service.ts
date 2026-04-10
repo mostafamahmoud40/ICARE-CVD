@@ -61,7 +61,9 @@ export class S3Service {
     return {
       key,
       uploadUrl,
-      publicUrl: this.publicBaseUrl ? `${this.publicBaseUrl}/${key}` : undefined,
+      publicUrl: this.publicBaseUrl
+        ? `${this.publicBaseUrl}/${key}`
+        : undefined,
       expiresIn,
     };
   }
@@ -85,7 +87,10 @@ export class S3Service {
     return extension ? `${uuid}.${extension}` : uuid;
   }
 
-  private resolveExtension(fileName: string, contentType: string): string | null {
+  private resolveExtension(
+    fileName: string,
+    contentType: string,
+  ): string | null {
     const byName = this.getExtensionFromFileName(fileName);
     if (byName) return byName;
     return this.getExtensionFromContentType(contentType);

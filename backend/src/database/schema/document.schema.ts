@@ -49,4 +49,3 @@ export const patientDocumentNotes = pgTable('patient_document_notes', {
     .defaultNow()
     .notNull(),
 });
-

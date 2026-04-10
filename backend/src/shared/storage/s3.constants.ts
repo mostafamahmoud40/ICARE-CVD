@@ -10,4 +10,3 @@ export const S3_CATEGORY_PREFIX: Record<
   prescription: 'documents/prescriptions',
   other: 'documents/other',
 };
-

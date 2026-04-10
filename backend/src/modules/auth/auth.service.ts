@@ -1,8 +1,9 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { AuthJwtService } from './jwt';
-import { hashPassword } from './password';
+import { hashPassword, verifyPassword } from './password';
 import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import {
@@ -27,6 +28,58 @@ export class AuthService {
     private readonly authJwtService: AuthJwtService,
     private readonly mailService: MailService,
   ) {}
+
+  async login(dto: LoginDto) {
+    const normalizedEmail = dto.email.toLowerCase().trim();
+    const userRecord = await this.db.query.user.findFirst({
+      where: eq(user.email, normalizedEmail),
+    });
+
+    if (!userRecord || !userRecord.isActive) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const isPasswordValid = await verifyPassword(
+      userRecord.password,
+      dto.password,
+    );
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const payload = {
+      sub: userRecord.id,
+      role: userRecord.role,
+      email: userRecord.email,
+    };
+
+    const accessToken = await this.authJwtService.signAccessToken(payload);
+    const refreshToken = await this.authJwtService.signRefreshToken(payload);
+    const refreshTokenHash = await hashPassword(refreshToken);
+
+    await this.db
+      .update(user)
+      .set({
+        refreshTokenHash,
+        refreshTokenExpiresAt: new Date(
+          Date.now() +
+            this.parseDurationMs(process.env.JWT_REFRESH_TTL ?? '7d'),
+        ),
+      })
+      .where(eq(user.id, userRecord.id));
+
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: userRecord.id,
+        name: userRecord.name,
+        email: userRecord.email,
+        phone: userRecord.phone,
+        role: userRecord.role,
+      },
+    };
+  }
 
   async register(dto: RegisterDto) {
     const existing = await this.db.query.user.findFirst({
@@ -225,8 +278,14 @@ export class AuthService {
     }
 
     const allergyRows = [
-      ...(dto.drugAllergies ?? []).map((item) => ({ ...item, category: 'drug' })),
-      ...(dto.foodAllergies ?? []).map((item) => ({ ...item, category: 'food' })),
+      ...(dto.drugAllergies ?? []).map((item) => ({
+        ...item,
+        category: 'drug',
+      })),
+      ...(dto.foodAllergies ?? []).map((item) => ({
+        ...item,
+        category: 'food',
+      })),
       ...(dto.otherAllergies ?? []).map((item) => ({
         ...item,
         category: 'other',
@@ -240,7 +299,9 @@ export class AuthService {
         category: item.category as 'drug' | 'food' | 'other',
         allergen: item.allergen.trim(),
         reaction:
-          typeof item.reaction === 'string' ? item.reaction.trim() || null : null,
+          typeof item.reaction === 'string'
+            ? item.reaction.trim() || null
+            : null,
       }));
 
     if (allergyRows.length > 0) {
