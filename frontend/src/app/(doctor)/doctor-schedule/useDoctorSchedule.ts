@@ -8,6 +8,7 @@ import { apiClient } from "@/lib/api-client"
 import { doctorScheduleSchema } from "./doctorSchedule.schema"
 import { defaultDoctorSchedule } from "./doctorSchedule.mock"
 import type { DoctorSchedulePayload } from "./doctorSchedule.types"
+import { migrateLegacyDoctorSchedule } from "./doctorSchedule.utils"
 
 const QUERY_KEY = ["doctor-schedule"] as const
 const STORAGE_KEY = "icare-cvd-doctor-schedule"
@@ -18,7 +19,8 @@ function readStoredSchedule(): DoctorSchedulePayload | null {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as unknown
-    return doctorScheduleSchema.parse(parsed)
+    const migrated = migrateLegacyDoctorSchedule(parsed)
+    return doctorScheduleSchema.parse(migrated ?? parsed)
   } catch {
     return null
   }
