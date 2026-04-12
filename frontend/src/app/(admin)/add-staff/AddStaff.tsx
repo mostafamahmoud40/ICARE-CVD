@@ -37,13 +37,17 @@ interface RoleBadgeProps {
 }
 
 function RoleBadge({ role }: RoleBadgeProps) {
-  const variantStyles: Record<RoleBadgeVariant, string> = {
-    doctor: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-    assistant: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  const variantStyles: Record<RoleBadgeVariant, { bg: string; text: string }> = {
+    doctor: { bg: "#1A534518", text: "#1A5345" },
+    assistant: { bg: "#E8904218", text: "#E89042" },
   }
+  const style = variantStyles[role]
 
   return (
-    <span className={`rounded-md px-2 py-0.5 text-xs capitalize ${variantStyles[role]}`}>
+    <span
+      className="rounded-md px-2 py-0.5 text-xs capitalize"
+      style={{ backgroundColor: style.bg, color: style.text }}
+    >
       {role}
     </span>
   )
@@ -64,18 +68,18 @@ function StaffRow({ member, onEdit, onDelete }: StaffRowProps) {
     .join("")
 
   return (
-    <div className="rounded-lg border bg-muted/20 p-4">
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <Avatar size="lg">
-            <AvatarFallback>{initials || "NA"}</AvatarFallback>
+            <AvatarFallback className="bg-[#1A534518] text-[#1A5345]">{initials || "NA"}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="truncate font-medium">{member.fullName}</span>
+              <span className="truncate font-medium text-gray-900">{member.fullName}</span>
               <RoleBadge role={member.role} />
             </div>
-            <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+            <div className="mt-1 flex items-center gap-1 text-sm text-gray-500">
               <MailIcon className="size-3.5" />
               <span className="truncate">{member.email}</span>
             </div>
@@ -97,7 +101,7 @@ function StaffRow({ member, onEdit, onDelete }: StaffRowProps) {
             type="button"
             variant="ghost"
             size="icon"
-            className="size-8 text-destructive hover:text-destructive"
+            className="size-8 text-[#E15C5C] hover:text-[#E15C5C] hover:bg-[#E15C5C]/10"
             onClick={() => onDelete(member.id)}
             aria-label={`Delete ${member.fullName}`}
           >
@@ -106,7 +110,7 @@ function StaffRow({ member, onEdit, onDelete }: StaffRowProps) {
         </div>
       </div>
 
-      <div className="mt-3 text-xs text-muted-foreground">
+      <div className="mt-3 text-xs text-gray-400">
         {member.specialty ? `${member.specialty}` : "General"}
         {member.experienceYears > 0 ? ` · ${member.experienceYears} years exp` : " · New hire"}
         {` · ${formatDateTime(member.createdAt)}`}
@@ -153,10 +157,10 @@ export function AddStaff({
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-4">
-      <Card>
+      <Card className="border-0 shadow-[0_4px_30px_-4px_rgba(26,83,69,0.10)]">
         <CardHeader>
-          <CardTitle>Add Doctor or Assistant</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-[#152A24]">Add Doctor or Assistant</CardTitle>
+          <CardDescription className="text-gray-500">
             Create new doctor or assistant accounts. An entry will be added to the system database.
           </CardDescription>
         </CardHeader>
@@ -170,24 +174,25 @@ export function AddStaff({
           >
             {/* Common Fields - Always Visible */}
             <div>
-              <h3 className="mb-4 text-sm font-semibold">Basic Information</h3>
+              <h3 className="mb-4 text-sm font-semibold text-[#1A5345]">Basic Information</h3>
               <div className="grid gap-4 md:grid-cols-2">
                 <Field>
-                  <FieldLabel htmlFor="fullName">Full name</FieldLabel>
+                  <FieldLabel htmlFor="fullName" className="text-[#374151]">Full name</FieldLabel>
                   <Input
                     id="fullName"
                     value={values.fullName}
                     onChange={(e) => updateField("fullName", e.target.value)}
                     placeholder="Dr. Sarah Ahmed"
                     autoComplete="name"
+                    className="rounded-xl border-gray-200 bg-white text-[#152A24] placeholder:text-gray-400 focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
                   />
                   {fieldErrors.fullName ? (
-                    <p className="text-xs text-destructive">{fieldErrors.fullName}</p>
+                    <p className="text-xs text-[#E15C5C]">{fieldErrors.fullName}</p>
                   ) : null}
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="email">Email</FieldLabel>
+                  <FieldLabel htmlFor="email" className="text-[#374151]">Email</FieldLabel>
                   <Input
                     id="email"
                     type="email"
@@ -195,28 +200,30 @@ export function AddStaff({
                     onChange={(e) => updateField("email", e.target.value)}
                     placeholder="name@icare-cvd.com"
                     autoComplete="email"
+                    className="rounded-xl border-gray-200 bg-white text-[#152A24] placeholder:text-gray-400 focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
                   />
                   {fieldErrors.email ? (
-                    <p className="text-xs text-destructive">{fieldErrors.email}</p>
+                    <p className="text-xs text-[#E15C5C]">{fieldErrors.email}</p>
                   ) : null}
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="phoneNumber">Phone number</FieldLabel>
+                  <FieldLabel htmlFor="phoneNumber" className="text-[#374151]">Phone number</FieldLabel>
                   <Input
                     id="phoneNumber"
                     value={values.phoneNumber}
                     onChange={(e) => updateField("phoneNumber", e.target.value)}
                     placeholder="+20 100 000 0000"
                     autoComplete="tel"
+                    className="rounded-xl border-gray-200 bg-white text-[#152A24] placeholder:text-gray-400 focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
                   />
                   {fieldErrors.phoneNumber ? (
-                    <p className="text-xs text-destructive">{fieldErrors.phoneNumber}</p>
+                    <p className="text-xs text-[#E15C5C]">{fieldErrors.phoneNumber}</p>
                   ) : null}
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <FieldLabel htmlFor="password" className="text-[#374151]">Password</FieldLabel>
                   <Input
                     id="password"
                     type="password"
@@ -224,20 +231,21 @@ export function AddStaff({
                     onChange={(e) => updateField("password", e.target.value)}
                     placeholder="Min. 8 characters"
                     autoComplete="new-password"
+                    className="rounded-xl border-gray-200 bg-white text-[#152A24] placeholder:text-gray-400 focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
                   />
                   {fieldErrors.password ? (
-                    <p className="text-xs text-destructive">{fieldErrors.password}</p>
+                    <p className="text-xs text-[#E15C5C]">{fieldErrors.password}</p>
                   ) : null}
                 </Field>
               </div>
             </div>
 
-            <Separator />
+            <Separator className="bg-gray-200" />
 
             {/* Role Tabs */}
             <div>
-              <h3 className="mb-4 text-sm font-semibold">Role & Specialization</h3>
-              <div className="mb-4 flex gap-2 border-b">
+              <h3 className="mb-4 text-sm font-semibold text-[#1A5345]">Role & Specialization</h3>
+              <div className="mb-4 flex gap-2 border-b border-gray-200">
                 {(["doctor", "assistant"] as const).map((role) => (
                   <button
                     key={role}
@@ -245,8 +253,8 @@ export function AddStaff({
                     onClick={() => updateField("role", role)}
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
                       values.role === role
-                        ? "border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
-                        : "border-b-2 border-transparent text-muted-foreground hover:text-foreground"
+                        ? "border-b-2 border-[#1A5345] text-[#1A5345]"
+                        : "border-b-2 border-transparent text-gray-400 hover:text-gray-600"
                     }`}
                   >
                     {role === "doctor" ? "Doctor" : "Assistant"}
@@ -258,20 +266,21 @@ export function AddStaff({
               {isDoctorRole && (
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field>
-                    <FieldLabel htmlFor="specialty">Specialty (required)</FieldLabel>
+                    <FieldLabel htmlFor="specialty" className="text-[#374151]">Specialty (required)</FieldLabel>
                     <Input
                       id="specialty"
                       value={values.specialty}
                       onChange={(e) => updateField("specialty", e.target.value)}
                       placeholder="Interventional cardiology"
+                      className="rounded-xl border-gray-200 bg-white text-[#152A24] placeholder:text-gray-400 focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
                     />
                     {fieldErrors.specialty ? (
-                      <p className="text-xs text-destructive">{fieldErrors.specialty}</p>
+                      <p className="text-xs text-[#E15C5C]">{fieldErrors.specialty}</p>
                     ) : null}
                   </Field>
 
                   <Field>
-                    <FieldLabel htmlFor="experienceYears">Experience (years)</FieldLabel>
+                    <FieldLabel htmlFor="experienceYears" className="text-[#374151]">Experience (years)</FieldLabel>
                     <Input
                       id="experienceYears"
                       type="number"
@@ -283,9 +292,10 @@ export function AddStaff({
                         updateField("experienceYears", val === "" ? "" : parseInt(val, 10))
                       }}
                       placeholder="5"
+                      className="rounded-xl border-gray-200 bg-white text-[#152A24] placeholder:text-gray-400 focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
                     />
                     {fieldErrors.experienceYears ? (
-                      <p className="text-xs text-destructive">{fieldErrors.experienceYears}</p>
+                      <p className="text-xs text-[#E15C5C]">{fieldErrors.experienceYears}</p>
                     ) : null}
                   </Field>
                 </div>
@@ -295,20 +305,21 @@ export function AddStaff({
               {!isDoctorRole && (
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field>
-                    <FieldLabel htmlFor="specialty">Department (optional)</FieldLabel>
+                    <FieldLabel htmlFor="specialty" className="text-[#374151]">Department (optional)</FieldLabel>
                     <Input
                       id="specialty"
                       value={values.specialty}
                       onChange={(e) => updateField("specialty", e.target.value)}
                       placeholder="e.g., Cardiology Support"
+                      className="rounded-xl border-gray-200 bg-white text-[#152A24] placeholder:text-gray-400 focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
                     />
                     {fieldErrors.specialty ? (
-                      <p className="text-xs text-destructive">{fieldErrors.specialty}</p>
+                      <p className="text-xs text-[#E15C5C]">{fieldErrors.specialty}</p>
                     ) : null}
                   </Field>
 
                   <Field>
-                    <FieldLabel htmlFor="experienceYears">Experience (years, optional)</FieldLabel>
+                    <FieldLabel htmlFor="experienceYears" className="text-[#374151]">Experience (years, optional)</FieldLabel>
                     <Input
                       id="experienceYears"
                       type="number"
@@ -320,9 +331,10 @@ export function AddStaff({
                         updateField("experienceYears", val === "" ? "" : parseInt(val, 10))
                       }}
                       placeholder="0"
+                      className="rounded-xl border-gray-200 bg-white text-[#152A24] placeholder:text-gray-400 focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
                     />
                     {fieldErrors.experienceYears ? (
-                      <p className="text-xs text-destructive">{fieldErrors.experienceYears}</p>
+                      <p className="text-xs text-[#E15C5C]">{fieldErrors.experienceYears}</p>
                     ) : null}
                   </Field>
                 </div>
@@ -330,7 +342,11 @@ export function AddStaff({
             </div>
 
             <div>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="rounded-xl bg-[#1A5345] px-6 text-white shadow-[0_8px_20px_rgba(26,83,69,0.30)] hover:bg-[#1A5345]/90 focus-visible:ring-[#1A5345]/40"
+              >
                 {isSubmitting
                   ? editingMemberId
                     ? "Saving..."
@@ -344,20 +360,20 @@ export function AddStaff({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-0 shadow-[0_4px_30px_-4px_rgba(26,83,69,0.10)]">
         <CardHeader>
-          <CardTitle>Recently Created</CardTitle>
-          <CardDescription>Latest doctor and assistant accounts from this session.</CardDescription>
+          <CardTitle className="text-[#152A24]">Recently Created</CardTitle>
+          <CardDescription className="text-gray-500">Latest doctor and assistant accounts from this session.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {createdMembers.length === 0 ? (
-            <Empty className="border-border/60 bg-muted/10 py-8">
+            <Empty className="border-gray-200 bg-gray-50 py-8">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
-                  <UserIcon className="size-5" />
+                  <UserIcon className="size-5 text-gray-400" />
                 </EmptyMedia>
-                <EmptyTitle>No staff members yet</EmptyTitle>
-                <EmptyDescription>
+                <EmptyTitle className="text-gray-700">No staff members yet</EmptyTitle>
+                <EmptyDescription className="text-gray-500">
                   Doctor and assistant accounts will appear here after creation.
                 </EmptyDescription>
               </EmptyHeader>
@@ -365,7 +381,7 @@ export function AddStaff({
           ) : (
             createdMembers.map((member, index) => (
               <div key={member.id}>
-                {index !== 0 ? <Separator className="my-3" /> : null}
+                {index !== 0 ? <Separator className="my-3 bg-gray-200" /> : null}
                 <StaffRow member={member} onEdit={editMember} onDelete={deleteMember} />
               </div>
             ))
