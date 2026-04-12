@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { CheckCircle2, InfoIcon, Mail } from "lucide-react";
+import { Fingerprint } from "lucide-react";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,18 +15,12 @@ export type ForgotPasswordFormProps = {
   submit: (values: ForgotPasswordValues) => void;
   fieldErrors: Partial<Record<keyof ForgotPasswordValues, string>>;
   isPending: boolean;
-  isSuccess: boolean;
-  successMessage: string;
-  serverErrorMessage: string | null;
 };
 
 export function ForgotPasswordForm({
   submit,
   fieldErrors,
   isPending,
-  isSuccess,
-  successMessage,
-  serverErrorMessage,
 }: ForgotPasswordFormProps) {
   const [email, setEmail] = useState("");
 
@@ -37,85 +30,68 @@ export function ForgotPasswordForm({
   }
 
   return (
-    <Card className="w-full max-w-md overflow-hidden rounded-3xl border-border/70 bg-card/95 shadow-xl backdrop-blur-sm">
-      <CardHeader className="space-y-2 pb-0 pt-7 text-center">
-        <CardTitle className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Forgot Password
-        </CardTitle>
-        <CardDescription className="text-sm text-zinc-500 dark:text-zinc-400">
-          Enter your email and we&apos;ll send you reset instructions.
-        </CardDescription>
+    <Card className="w-full max-w-md border-0 shadow-[0_4px_30px_-4px_rgba(26,83,69,0.10)]">
+      <CardHeader className="space-y-5 pb-2 pt-10 text-center">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-full" style={{ background: "#1A534518" }}>
+          <Fingerprint className="size-7 text-[#1A5345]" strokeWidth={1.5} />
+        </div>
+
+        <div className="space-y-1">
+          <CardTitle className="text-2xl font-semibold tracking-tight text-[#152A24]">
+            Forgot password?
+          </CardTitle>
+          <CardDescription className="text-sm text-gray-500">
+            No worries, we&apos;ll send you reset instructions.
+          </CardDescription>
+        </div>
       </CardHeader>
 
       <form onSubmit={handleSubmit} noValidate>
-        <CardContent className="space-y-5 px-8 pb-8 pt-5">
+        <CardContent className="space-y-6 px-8 pb-8 pt-6">
           <div className="space-y-2">
             <Label
               htmlFor="forgot-password-email"
-              className="text-left text-sm font-medium text-zinc-800 dark:text-zinc-200"
+              className="text-sm font-medium text-[#374151]"
             >
-              Email Address
+              Email
             </Label>
 
-            <div className="relative">
-              <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
-              <Input
-                id="forgot-password-email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                aria-invalid={Boolean(fieldErrors.email)}
-                aria-describedby={fieldErrors.email ? "forgot-password-email-error" : undefined}
-                disabled={isPending}
-                className="h-12 rounded-xl border-zinc-200 bg-white pl-9 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
-              />
-            </div>
-
+            <Input
+              id="forgot-password-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              aria-invalid={Boolean(fieldErrors.email)}
+              aria-describedby={fieldErrors.email ? "forgot-password-email-error" : undefined}
+              disabled={isPending}
+              className="h-11 rounded-xl border-gray-200 bg-white text-[#152A24] placeholder:text-gray-400 focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+            />
             {fieldErrors.email ? (
-              <p id="forgot-password-email-error" className="text-sm text-destructive" role="alert">
+              <p id="forgot-password-email-error" className="text-sm text-[#E15C5C]" role="alert">
                 {fieldErrors.email}
               </p>
             ) : null}
           </div>
 
-          {isSuccess ? (
-            <Alert className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/60 dark:bg-emerald-950/40 dark:text-emerald-200">
-              <CheckCircle2 className="mt-0.5 size-4" />
-              <AlertTitle>Request sent</AlertTitle>
-              <AlertDescription>{successMessage}</AlertDescription>
-            </Alert>
-          ) : null}
-
-          {serverErrorMessage ? (
-            <Alert
-              variant="destructive"
-              className="border-red-200 bg-red-50 text-red-700 dark:border-red-400/60 dark:bg-red-950/40 dark:text-red-200"
-            >
-              <InfoIcon className="mt-0.5 size-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{serverErrorMessage}</AlertDescription>
-            </Alert>
-          ) : null}
-
           <Button
             type="submit"
             disabled={isPending}
-            size="lg"
-            className="h-12 w-full rounded-xl bg-teal-700 text-sm font-semibold text-white shadow-none hover:bg-teal-600 focus-visible:ring-teal-400/40 dark:bg-teal-600 dark:hover:bg-teal-500"
+            className="h-11 w-full rounded-xl bg-[#1A5345] text-sm font-semibold text-white shadow-[0_8px_20px_rgba(26,83,69,0.30)] hover:bg-[#1A5345]/90 focus-visible:ring-[#1A5345]/40"
           >
-            {isPending ? "Sending..." : "Send reset link"}
+            {isPending ? "Sending..." : "Reset password"}
           </Button>
 
-          <Button
-            asChild
-            variant="link"
-            className="h-auto w-full px-0 text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
-          >
-            <Link href="/login">Back to Sign In</Link>
-          </Button>
+          <div className="pt-2 text-center">
+            <Link
+              href="/login"
+              className="inline-flex items-center text-sm text-gray-500 hover:text-[#1A5345]"
+            >
+              ← Back to log in
+            </Link>
+          </div>
         </CardContent>
       </form>
     </Card>

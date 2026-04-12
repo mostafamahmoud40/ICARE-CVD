@@ -32,11 +32,11 @@ export function Step1Account({
   return (
     <div className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="register-full-name" className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+        <Label htmlFor="register-full-name" className="text-sm font-medium text-foreground">
           Full Name <span className="text-red-500">*</span>
         </Label>
         <div className="relative">
-          <UserRound className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+          <UserRound className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="register-full-name"
             name="fullName"
@@ -48,7 +48,7 @@ export function Step1Account({
             aria-invalid={Boolean(errors.fullName)}
             aria-describedby={errors.fullName ? "register-full-name-error" : undefined}
             disabled={isPending}
-            className="h-12 rounded-xl border-zinc-200 bg-white pl-9 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+            className="h-12 rounded-xl border-input bg-background pl-9 text-foreground placeholder:text-muted-foreground"
           />
         </div>
         {errors.fullName ? (
@@ -59,11 +59,11 @@ export function Step1Account({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="register-email" className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+        <Label htmlFor="register-email" className="text-sm font-medium text-foreground">
           Email Address <span className="text-red-500">*</span>
         </Label>
         <div className="relative">
-          <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+          <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="register-email"
             name="email"
@@ -75,7 +75,7 @@ export function Step1Account({
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? "register-email-error" : undefined}
             disabled={isPending}
-            className="h-12 rounded-xl border-zinc-200 bg-white pl-9 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+            className="h-12 rounded-xl border-input bg-background pl-9 text-foreground placeholder:text-muted-foreground"
           />
         </div>
         {errors.email ? (
@@ -86,11 +86,11 @@ export function Step1Account({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="register-phone-number" className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+        <Label htmlFor="register-phone-number" className="text-sm font-medium text-foreground">
           Phone Number <span className="text-red-500">*</span>
         </Label>
         <div className="relative">
-          <Phone className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+          <Phone className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="register-phone-number"
             name="phoneNumber"
@@ -102,7 +102,7 @@ export function Step1Account({
             aria-invalid={Boolean(errors.phoneNumber)}
             aria-describedby={errors.phoneNumber ? "register-phone-number-error" : undefined}
             disabled={isPending}
-            className="h-12 rounded-xl border-zinc-200 bg-white pl-9 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+            className="h-12 rounded-xl border-input bg-background pl-9 text-foreground placeholder:text-muted-foreground"
           />
         </div>
         {errors.phoneNumber ? (
@@ -113,11 +113,11 @@ export function Step1Account({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="register-password" className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+        <Label htmlFor="register-password" className="text-sm font-medium text-foreground">
           Password <span className="text-red-500">*</span>
         </Label>
         <div className="relative">
-          <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+          <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="register-password"
             name="password"
@@ -129,7 +129,7 @@ export function Step1Account({
             aria-invalid={Boolean(errors.password)}
             aria-describedby={errors.password ? "register-password-error" : undefined}
             disabled={isPending}
-            className="h-12 rounded-xl border-zinc-200 bg-white pl-9 pr-10 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+            className="h-12 rounded-xl border-input bg-background pl-9 pr-10 text-foreground placeholder:text-muted-foreground"
           />
           <Button
             type="button"
@@ -148,16 +148,16 @@ export function Step1Account({
             {errors.password}
           </p>
         ) : (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Must be at least 8 characters</p>
+          <p className="text-sm text-muted-foreground">Must be at least 8 characters</p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="register-confirm-password" className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+        <Label htmlFor="register-confirm-password" className="text-sm font-medium text-foreground">
           Confirm Password <span className="text-red-500">*</span>
         </Label>
         <div className="relative">
-          <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+          <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="register-confirm-password"
             name="confirmPassword"
@@ -171,7 +171,7 @@ export function Step1Account({
               errors.confirmPassword ? "register-confirm-password-error" : undefined
             }
             disabled={isPending}
-            className="h-12 rounded-xl border-zinc-200 bg-white pl-9 pr-10 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+            className="h-12 rounded-xl border-input bg-background pl-9 pr-10 text-foreground placeholder:text-muted-foreground"
           />
           <Button
             type="button"

@@ -14,7 +14,6 @@ apiClient.interceptors.request.use((config) => {
   if (!token) return config;
 
   config.headers = config.headers ?? {};
-  // Axios types vary across versions; set Authorization safely.
   (config.headers as Record<string, unknown>).Authorization = `Bearer ${token}`;
 
   return config;

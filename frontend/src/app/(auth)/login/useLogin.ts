@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
 import { setAuthTokens } from "@/lib/auth-tokens";
@@ -20,7 +21,30 @@ export function useLogin() {
       apiClient.post<LoginResponse>("/auth/login", values).then((res) => res.data),
     onSuccess: (data) => {
       setAuthTokens(data);
-      router.push("/");
+      const roleRoutes: Record<string, string> = {
+        admin: "/admin/admin-dashboard",
+        doctor: "/doctor/doctor-dashboard",
+        patient: "/dashboard",
+        assistant: "/assistant/assistant-dashboard",
+      };
+      const redirectPath = roleRoutes[data.user.role] ?? "/";
+      router.push(redirectPath);
+    },
+    onError: (error) => {
+      if (isAxiosError(error)) {
+        if (!error.response) {
+          toast.error("Unable to connect to server. Please make sure the backend is running.");
+          return;
+        }
+        const data = error.response.data as { message?: string; error?: string } | undefined;
+        const msg =
+          data?.message ??
+          data?.error ??
+          `Something went wrong (${error.response.status}). Try again.`;
+        toast.error(msg);
+        return;
+      }
+      toast.error("Something went wrong. Try again.");
     },
   });
 
@@ -44,18 +68,9 @@ export function useLogin() {
     [mutation]
   );
 
-  const serverErrorMessage =
-    mutation.isError && isAxiosError(mutation.error)
-      ? (mutation.error.response?.data as { message?: string } | undefined)?.message ??
-        mutation.error.message
-      : mutation.isError
-        ? "Something went wrong. Try again."
-        : null;
-
   return {
     submit,
     fieldErrors,
     isPending: mutation.isPending,
-    serverErrorMessage,
   };
 }

@@ -23,10 +23,10 @@ import type { RegisterProfileValues } from "./register.types";
 /* ----- style tokens ----- */
 
 export const triggerRowClass =
-  "h-10 w-full min-w-0 rounded-lg border-zinc-200 bg-white text-zinc-900 shadow-sm dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 sm:min-w-[11rem]";
+  "h-10 w-full min-w-0 rounded-lg border-input bg-background text-foreground shadow-sm sm:min-w-[11rem]";
 
 export const triggerLabeledClass =
-  "h-11 w-full rounded-xl border-zinc-200 bg-white text-zinc-900 shadow-sm dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50";
+  "h-11 w-full rounded-xl border-input bg-background text-foreground shadow-sm";
 
 /* ----- layout primitives ----- */
 
@@ -40,12 +40,12 @@ export function FormCardSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/40">
+    <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
       <div className="mb-4 flex items-center gap-2.5">
-        <span className="flex size-9 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 [&>svg]:size-[1.125rem]">
+        <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground [&>svg]:size-[1.125rem]">
           {icon}
         </span>
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600 dark:text-zinc-400">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           {title}
         </h2>
       </div>
@@ -56,11 +56,11 @@ export function FormCardSection({
 
 export function ProfileSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-zinc-200/90 bg-zinc-50/40 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/50">
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+    <div className="rounded-2xl border border-border/90 bg-muted/30 p-4 shadow-sm">
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         {title}
       </p>
-      <div className="divide-y divide-zinc-200/80 dark:divide-zinc-800/80">{children}</div>
+      <div className="divide-y divide-border/80">{children}</div>
     </div>
   );
 }
@@ -77,10 +77,10 @@ export function ProfileRow({
   return (
     <div className="flex flex-col gap-3 py-3.5 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:gap-4">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center text-zinc-500 dark:text-zinc-400 [&>svg]:size-[1.125rem]">
+        <div className="flex size-9 shrink-0 items-center justify-center text-muted-foreground [&>svg]:size-[1.125rem]">
           {icon}
         </div>
-        <span className="text-sm font-normal text-zinc-800 dark:text-zinc-200">{label}</span>
+        <span className="text-sm font-normal text-foreground">{label}</span>
       </div>
       <div className="w-full shrink-0 sm:w-auto sm:max-w-[min(100%,14rem)] sm:min-w-[11rem]">{children}</div>
     </div>
@@ -96,7 +96,7 @@ export function IconInputShell({
 }) {
   return (
     <div className="relative">
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 [&>svg]:size-4">
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground [&>svg]:size-4">
         {icon}
       </span>
       {children}
@@ -127,7 +127,7 @@ export function RowSelect({
       <SelectContent
         align="end"
         sideOffset={6}
-        className="min-w-[var(--radix-select-trigger-width)] rounded-xl border border-zinc-200/90 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
+        className="min-w-[var(--radix-select-trigger-width)] rounded-xl border border-border bg-popover shadow-lg"
       >
         {options.map((o) => (
           <SelectItem key={o.value} value={o.value} className="cursor-pointer rounded-lg py-2 pl-2">
@@ -182,7 +182,7 @@ export function CompactSelect({
   required?: boolean;
 }) {
   const richMenuItemClass =
-    "cursor-pointer rounded-lg border-2 border-transparent py-2.5 pl-2 text-zinc-900 data-[highlighted]:border-zinc-900 data-[highlighted]:bg-rose-50 data-[state=checked]:border-zinc-900 data-[state=checked]:bg-rose-50 dark:text-zinc-50 dark:data-[highlighted]:border-zinc-100 dark:data-[highlighted]:bg-rose-950/35 dark:data-[state=checked]:border-zinc-100 dark:data-[state=checked]:bg-rose-950/35";
+    "cursor-pointer rounded-lg border-2 border-transparent py-2.5 pl-2 text-foreground data-[highlighted]:border-foreground data-[highlighted]:bg-rose-50 data-[state=checked]:border-foreground data-[state=checked]:bg-rose-50 dark:data-[highlighted]:bg-rose-950/35 dark:data-[state=checked]:bg-rose-950/35";
 
   const useRichMenu = variant === "blood" || variant === "gender";
 
@@ -198,7 +198,7 @@ export function CompactSelect({
         </SelectTrigger>
         <SelectContent
           sideOffset={6}
-          className="max-h-72 min-w-[var(--radix-select-trigger-width)] rounded-xl border border-zinc-200/90 bg-white p-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
+          className="max-h-72 min-w-[var(--radix-select-trigger-width)] rounded-xl border border-border bg-popover p-1 shadow-lg"
         >
           {options.map((o) => (
             <SelectItem
@@ -253,7 +253,7 @@ export function CaffeineStepper({
   return (
     <div
       className={cn(
-        "flex h-10 w-full min-w-[9.5rem] items-stretch overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-950 sm:min-w-[11rem]"
+        "flex h-10 w-full min-w-[9.5rem] items-stretch overflow-hidden rounded-lg border border-input bg-background shadow-sm sm:min-w-[11rem]"
       )}
     >
       <Button
@@ -262,12 +262,12 @@ export function CaffeineStepper({
         size="icon"
         disabled={disabled || n <= 0}
         onClick={() => set(n - 1)}
-        className="h-10 w-10 shrink-0 rounded-none border-r border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+        className="h-10 w-10 shrink-0 rounded-none border-r border-input text-muted-foreground hover:bg-muted"
         aria-label="Decrease cups per day"
       >
         −
       </Button>
-      <span className="flex flex-1 items-center justify-center text-sm font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
+      <span className="flex flex-1 items-center justify-center text-sm font-medium tabular-nums text-foreground">
         {n}
       </span>
       <Button
@@ -276,7 +276,7 @@ export function CaffeineStepper({
         size="icon"
         disabled={disabled || n >= 20}
         onClick={() => set(n + 1)}
-        className="h-10 w-10 shrink-0 rounded-none border-l border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+        className="h-10 w-10 shrink-0 rounded-none border-l border-input text-muted-foreground hover:bg-muted"
         aria-label="Increase cups per day"
       >
         +
@@ -315,8 +315,8 @@ export function ExerciseTypeChips({
             className={cn(
               "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
               selected
-                ? "border-teal-600 bg-teal-50 text-teal-900 dark:border-teal-500/70 dark:bg-teal-950/40 dark:text-teal-100"
-                : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900/50"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-background text-muted-foreground hover:bg-muted"
             )}
           >
             {opt.label}

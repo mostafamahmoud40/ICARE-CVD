@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Heart, HeartPulse, InfoIcon, Sparkles, Stethoscope, Upload } from "lucide-react";
+import { CheckCircle2, Heart, HeartPulse, Sparkles, Stethoscope, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -98,15 +98,15 @@ export function RegisterForm() {
   return (
     <Card className="w-full max-w-3xl overflow-hidden rounded-3xl border-border/70 bg-card/95 shadow-xl backdrop-blur-sm">
       <CardHeader className="space-y-4 pb-0 pt-7 text-center">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-teal-600/10 text-teal-700 dark:text-teal-300">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
           <StepIcon className="size-8" aria-hidden="true" />
         </div>
 
         <div className="space-y-1">
-          <CardTitle className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{title}</CardTitle>
-          <CardDescription className="text-sm text-zinc-500 dark:text-zinc-400">{description}</CardDescription>
+          <CardTitle className="text-3xl font-semibold tracking-tight text-foreground">{title}</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">{description}</CardDescription>
         </div>
-        <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Step {step} of 5
         </p>
 
@@ -126,8 +126,8 @@ export function RegisterForm() {
               className={cn(
                 "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                 step === num
-                  ? "bg-teal-600 text-white"
-                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
               )}
             >
               {num}. {label}
@@ -158,7 +158,6 @@ export function RegisterForm() {
               variant="destructive"
               className="border-red-200 bg-red-50 text-red-700 dark:border-red-400/60 dark:bg-red-950/40 dark:text-red-200"
             >
-              <InfoIcon className="mt-0.5 size-4" />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{serverErrorMessage}</AlertDescription>
             </Alert>
@@ -172,11 +171,11 @@ export function RegisterForm() {
             onSubmit={onSubmit}
           />
 
-          <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link
               href="/auth/login"
-              className="font-medium text-teal-700 underline underline-offset-4 transition-colors hover:text-teal-600 dark:text-teal-300 dark:hover:text-teal-200"
+              className="font-medium text-primary underline underline-offset-4 transition-colors hover:text-primary/90"
             >
               Log in
             </Link>

@@ -79,17 +79,17 @@ export function Step2Profile({ profileValues, profileFieldErrors, onFieldChange,
           ? "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100"
           : bmiCategory === "Obese"
             ? "border-red-200 bg-red-50 text-red-900 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-100"
-            : "border-zinc-200 bg-zinc-50 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/30 dark:text-zinc-100";
+            : "border-border bg-muted/30 text-foreground";
 
   return (
     <div className="space-y-6">
-      <FormCardSection icon={<CalendarDays className="text-zinc-600" aria-hidden />} title="Basic information">
+      <FormCardSection icon={<CalendarDays className="text-muted-foreground" aria-hidden />} title="Basic information">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="profile-date-of-birth">
               Date of birth<span className="text-red-500"> *</span>
               {computedAge !== null ? (
-                <span className="ml-2 font-normal text-zinc-500 dark:text-zinc-400">(Age {computedAge} years)</span>
+                <span className="ml-2 font-normal text-muted-foreground">(Age {computedAge} years)</span>
               ) : null}
             </Label>
             <DateOfBirthPicker
@@ -112,7 +112,7 @@ export function Step2Profile({ profileValues, profileFieldErrors, onFieldChange,
               value={profileValues.nationalId}
               onChange={(e) => onFieldChange("nationalId", e.target.value)}
               disabled={isPending}
-              className="h-11 rounded-lg border-zinc-200 dark:border-zinc-700"
+              className="h-11 rounded-lg border-input"
             />
           </div>
         </div>
@@ -168,12 +168,12 @@ export function Step2Profile({ profileValues, profileFieldErrors, onFieldChange,
             value={profileValues.address}
             onChange={(e) => onFieldChange("address", e.target.value)}
             disabled={isPending}
-            className="h-11 rounded-lg border-zinc-200 dark:border-zinc-700"
+            className="h-11 rounded-lg border-input"
           />
         </div>
       </FormCardSection>
 
-      <FormCardSection icon={<Heart className="text-zinc-600" aria-hidden />} title="Body measurements">
+      <FormCardSection icon={<Heart className="text-muted-foreground" aria-hidden />} title="Body measurements">
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
             <div className="space-y-2">
@@ -187,7 +187,7 @@ export function Step2Profile({ profileValues, profileFieldErrors, onFieldChange,
                   value={profileValues.heightCm}
                   onChange={(e) => onFieldChange("heightCm", e.target.value)}
                   disabled={isPending}
-                  className="h-11 rounded-lg border-zinc-200 pl-9 dark:border-zinc-700"
+                  className="h-11 rounded-lg border-input pl-9"
                 />
               </IconInputShell>
             </div>
@@ -202,7 +202,7 @@ export function Step2Profile({ profileValues, profileFieldErrors, onFieldChange,
                   value={profileValues.weightKg}
                   onChange={(e) => onFieldChange("weightKg", e.target.value)}
                   disabled={isPending}
-                  className="h-11 rounded-lg border-zinc-200 pl-9 dark:border-zinc-700"
+                  className="h-11 rounded-lg border-input pl-9"
                 />
               </IconInputShell>
             </div>
@@ -236,7 +236,7 @@ export function Step2Profile({ profileValues, profileFieldErrors, onFieldChange,
         </div>
       </FormCardSection>
 
-      <FormCardSection icon={<IdCard className="text-zinc-600" aria-hidden />} title="Personal details">
+      <FormCardSection icon={<IdCard className="text-muted-foreground" aria-hidden />} title="Personal details">
         <div className="grid gap-4 md:grid-cols-2">
           <CompactSelect
             id="profile-marital-status"
@@ -260,7 +260,7 @@ export function Step2Profile({ profileValues, profileFieldErrors, onFieldChange,
               value={profileValues.occupation}
               onChange={(e) => onFieldChange("occupation", e.target.value)}
               disabled={isPending}
-              className="h-11 rounded-lg border-zinc-200 dark:border-zinc-700"
+              className="h-11 rounded-lg border-input"
             />
           </div>
         </div>
@@ -356,10 +356,10 @@ export function Step2Profile({ profileValues, profileFieldErrors, onFieldChange,
           <div className="py-3.5 first:pt-0 last:pb-0">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
               <div className="flex min-w-0 flex-1 items-center gap-3">
-                <div className="flex size-9 shrink-0 items-center justify-center text-zinc-500 dark:text-zinc-400 [&>svg]:size-[1.125rem]">
+                <div className="flex size-9 shrink-0 items-center justify-center text-muted-foreground [&>svg]:size-[1.125rem]">
                   <Flag aria-hidden="true" />
                 </div>
-                <span className="text-sm font-normal text-zinc-800 dark:text-zinc-200">Type of exercise</span>
+                <span className="text-sm font-normal text-foreground">Type of exercise</span>
               </div>
               <div className="w-full min-w-0 sm:flex-1">
                 <ExerciseTypeChips
@@ -454,7 +454,7 @@ function DateOfBirthPicker({ value, onChange, disabled, error }: DateOfBirthPick
             "w-full justify-start text-left font-normal h-11 px-3",
             !value && "text-muted-foreground",
             error && "border-destructive",
-            "border-zinc-200 dark:border-zinc-700"
+            "border-input"
           )}
         >
           <CalendarDays className="mr-2 h-4 w-4" />

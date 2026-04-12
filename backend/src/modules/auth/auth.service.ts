@@ -55,11 +55,17 @@ export class AuthService {
 
     const accessToken = await this.authJwtService.signAccessToken(payload);
     const refreshToken = await this.authJwtService.signRefreshToken(payload);
+    const accessTokenHash = await hashPassword(accessToken);
     const refreshTokenHash = await hashPassword(refreshToken);
 
     await this.db
       .update(user)
       .set({
+        accessTokenHash,
+        accessTokenExpiresAt: new Date(
+          Date.now() +
+            this.parseDurationMs(process.env.JWT_ACCESS_TTL ?? '15m'),
+        ),
         refreshTokenHash,
         refreshTokenExpiresAt: new Date(
           Date.now() +
@@ -78,6 +84,24 @@ export class AuthService {
         phone: userRecord.phone,
         role: userRecord.role,
       },
+    };
+  }
+
+  async getMe(userId: number) {
+    const userRecord = await this.db.query.user.findFirst({
+      where: eq(user.id, userId),
+    });
+
+    if (!userRecord || !userRecord.isActive) {
+      throw new UnauthorizedException('User not found or deactivated');
+    }
+
+    return {
+      id: userRecord.id,
+      name: userRecord.name,
+      email: userRecord.email,
+      phone: userRecord.phone,
+      role: userRecord.role,
     };
   }
 
@@ -121,11 +145,17 @@ export class AuthService {
 
     const accessToken = await this.authJwtService.signAccessToken(payload);
     const refreshToken = await this.authJwtService.signRefreshToken(payload);
+    const accessTokenHash = await hashPassword(accessToken);
     const refreshTokenHash = await hashPassword(refreshToken);
 
     await this.db
       .update(user)
       .set({
+        accessTokenHash,
+        accessTokenExpiresAt: new Date(
+          Date.now() +
+            this.parseDurationMs(process.env.JWT_ACCESS_TTL ?? '15m'),
+        ),
         refreshTokenHash,
         refreshTokenExpiresAt: new Date(
           Date.now() +
@@ -212,6 +242,7 @@ export class AuthService {
         noNonCardiacHistory: dto.noNonCardiacHistory ?? false,
         pastNonCardiacHistory: dto.pastNonCardiacHistory,
         cardiovascularRiskFactors: dto.cardiovascularRiskFactors,
+        medicalHistoryNotes: dto.medicalHistoryNotes?.trim() || null,
       })
       .returning({
         id: patientHistory.id,

@@ -4,6 +4,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  text,
   timestamp,
   uuid,
   varchar,
@@ -24,6 +25,11 @@ export const chiefComplaintEnum = pgEnum('chief_complaint', [
   'cyanosis',
   'systemic-embolization',
   'neurological',
+  'hypertension',
+  'post-procedure',
+  'post-discharge',
+  'murmur',
+  'abnormal-ecg',
   'other',
 ]);
 
@@ -45,6 +51,8 @@ export const patientHistory = pgTable('patient_history', {
     .default(false),
   pastNonCardiacHistory: jsonb('past_non_cardiac_history'),
   cardiovascularRiskFactors: jsonb('cardiovascular_risk_factors'),
+  /** Free-text past diagnoses, surgeries, chronic conditions (assistant intake / notes). */
+  medicalHistoryNotes: text('medical_history_notes'),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
 import { AuthService } from './auth.service';
 import { RegisterStep2Dto } from './dto/register-step-2.dto';
@@ -12,6 +12,12 @@ import { CurrentUser } from './current-user.decorator';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get('me')
+  @UseGuards(AccessTokenGuard)
+  me(@CurrentUser() currentUser: TokenPayload) {
+    return this.authService.getMe(currentUser.sub);
+  }
 
   @Post('register')
   register(@Body() dto: RegisterDto) {
