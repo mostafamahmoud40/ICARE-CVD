@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation"
 import type { AuthUser } from "@/lib/auth-tokens"
 import {
   BellIcon,
+  CalendarClockIcon,
   CalendarDaysIcon,
   CreditCardIcon,
   HeartPulseIcon,
@@ -90,6 +91,12 @@ function DoctorLayoutContent({
       isActive: pathname === "/doctor-dashboard",
     },
     {
+      href: "/doctor-schedule",
+      label: "Schedule",
+      icon: CalendarClockIcon,
+      isActive: pathname === "/doctor-schedule",
+    },
+    {
       href: "/doctor-dashboard",
       label: "Appointments",
       icon: CalendarDaysIcon,
@@ -135,7 +142,7 @@ function DoctorLayoutContent({
           <SidebarGroup>
             <SidebarGroupLabel>Overview</SidebarGroupLabel>
             <SidebarMenu>
-              {navItems.slice(0, 1).map((item) => {
+              {navItems.slice(0, 2).map((item) => {
                 const Icon = item.icon
                 return (
                   <SidebarMenuItem key={item.href}>
@@ -157,7 +164,7 @@ function DoctorLayoutContent({
           <SidebarGroup>
             <SidebarGroupLabel>Care</SidebarGroupLabel>
             <SidebarMenu>
-              {navItems.slice(1).map((item) => {
+              {navItems.slice(2).map((item) => {
                 const Icon = item.icon
                 return (
                   <SidebarMenuItem key={item.label}>
@@ -273,9 +280,13 @@ function DoctorLayoutContent({
         <div className="flex h-16 items-center gap-3 border-b border-black/5 px-4 dark:border-white/10">
           <SidebarTrigger />
           <div className="flex flex-col">
-            <div className="text-base font-semibold">Doctor Dashboard</div>
+            <div className="text-base font-semibold">
+              {pathname === "/doctor-schedule" ? "Schedule" : "Doctor Dashboard"}
+            </div>
             <div className="text-sm text-muted-foreground">
-              Overview & patient insights
+              {pathname === "/doctor-schedule"
+                ? "Weekly availability & clinic hours"
+                : "Overview & patient insights"}
             </div>
           </div>
         </div>

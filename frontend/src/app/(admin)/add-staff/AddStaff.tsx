@@ -156,7 +156,7 @@ export function AddStaff({
   const isDoctorRole = values.role === "doctor"
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 p-4">
+    <main className="w-full space-y-6 p-4">
       <Card className="border-0 shadow-[0_4px_30px_-4px_rgba(26,83,69,0.10)]">
         <CardHeader>
           <CardTitle className="text-[#152A24]">Add Doctor or Assistant</CardTitle>
