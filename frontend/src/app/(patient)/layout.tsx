@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import Link from "next/link"
 import { Lora } from "next/font/google"
 import { usePathname } from "next/navigation"
+import type { AuthUser } from "@/lib/auth-tokens"
 import {
   BellIcon,
   CalendarDaysIcon,
@@ -16,6 +17,8 @@ import {
   SparklesIcon,
   User2Icon,
 } from "lucide-react"
+
+import { useRequireRole } from "@/hooks/use-require-role"
 
 import {
   Sidebar,
@@ -50,13 +53,14 @@ export default function PatientLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname()
+  const { logout, user, mounted } = useRequireRole("patient")
 
   return (
     <div
       className={`${patientSerif.className} min-h-screen bg-background text-foreground dark:bg-background`}
     >
       <SidebarProvider defaultOpen>
-        <PatientLayoutContent pathname={pathname}>{children}</PatientLayoutContent>
+        <PatientLayoutContent pathname={pathname} logout={logout} user={user} mounted={mounted}>{children}</PatientLayoutContent>
       </SidebarProvider>
     </div>
   )
@@ -64,9 +68,15 @@ export default function PatientLayout({
 
 function PatientLayoutContent({
   pathname,
+  logout,
+  user,
+  mounted,
   children,
 }: {
   pathname: string
+  logout: () => void
+  user: AuthUser | null
+  mounted: boolean
   children: ReactNode
 }) {
   const { state } = useSidebar()
@@ -114,7 +124,7 @@ function PatientLayoutContent({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <div className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/25">
               <HeartPulseIcon className="size-4" />
             </div>
 
@@ -150,7 +160,7 @@ function PatientLayoutContent({
             </SidebarMenu>
           </SidebarGroup>
 
-          <SidebarGroup className="mt-4">
+          <SidebarGroup>
             <SidebarGroupLabel>Care</SidebarGroupLabel>
             <SidebarMenu>
               {navItems.slice(1).map((item) => {
@@ -185,7 +195,7 @@ function PatientLayoutContent({
                     render={
                       <button type="button" aria-label="Patient profile">
                         <div
-                          className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary"
+                          className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/25"
                           aria-hidden="true"
                         >
                           <User2Icon className="size-4" />
@@ -193,7 +203,7 @@ function PatientLayoutContent({
 
                         {isCollapsed ? null : (
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-medium">Sara Ahmed</div>
+                            <div className="truncate text-sm font-medium">{mounted && user ? user.name : "Patient"}</div>
                             <div className="truncate text-xs text-muted-foreground">
                               Patient
                             </div>
@@ -207,16 +217,16 @@ function PatientLayoutContent({
                 <DropdownMenuContent align="end" side="right" className="w-56">
                   <div className="flex items-start gap-3 px-2 py-2">
                     <div
-                      className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary"
+                      className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/25"
                       aria-hidden="true"
                     >
                       <User2Icon className="size-4" />
                     </div>
 
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">Sara Ahmed</div>
+                      <div className="truncate text-sm font-medium">{mounted && user ? user.name : "Patient"}</div>
                       <div className="truncate text-xs text-muted-foreground">
-                        m@example.com
+                        {mounted && user ? user.email : ""}
                       </div>
                     </div>
                   </div>
@@ -250,6 +260,7 @@ function PatientLayoutContent({
                   <DropdownMenuItem
                     onSelect={(e) => {
                       e.preventDefault()
+                      logout()
                     }}
                   >
                     <LogOutIcon className="size-4" />

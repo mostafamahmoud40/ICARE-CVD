@@ -20,11 +20,11 @@ import type { RegisterDocumentFileMeta, RegisterDocumentsValues } from "./regist
 import { useDocumentUpload, type UploadedDocumentFile } from "./useDocumentUpload";
 
 const DOCUMENT_CATEGORIES: Array<{ value: string; label: string; icon: React.ReactNode }> = [
-  { value: "lab_report", label: "Lab Report", icon: <Beaker className="size-4 text-teal-600" aria-hidden /> },
-  { value: "imaging", label: "Imaging", icon: <ImageIcon className="size-4 text-teal-600" aria-hidden /> },
-  { value: "ecg", label: "ECG", icon: <Waves className="size-4 text-teal-600" aria-hidden /> },
-  { value: "prescription", label: "Prescription", icon: <Pill className="size-4 text-teal-600" aria-hidden /> },
-  { value: "other", label: "Other", icon: <FileText className="size-4 text-teal-600" aria-hidden /> },
+  { value: "lab_report", label: "Lab Report", icon: <Beaker className="size-4 text-primary" aria-hidden /> },
+  { value: "imaging", label: "Imaging", icon: <ImageIcon className="size-4 text-primary" aria-hidden /> },
+  { value: "ecg", label: "ECG", icon: <Waves className="size-4 text-primary" aria-hidden /> },
+  { value: "prescription", label: "Prescription", icon: <Pill className="size-4 text-primary" aria-hidden /> },
+  { value: "other", label: "Other", icon: <FileText className="size-4 text-primary" aria-hidden /> },
 ];
 
 function formatBytes(n: number) {
@@ -142,10 +142,10 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
   return (
     <div className="flex flex-col gap-6">
       {/* Category and Upload Input */}
-      <div className="rounded-xl border border-zinc-200/90 bg-zinc-50/30 p-4 dark:border-zinc-800 dark:bg-zinc-950/30">
+      <div className="rounded-xl border border-border/90 bg-muted/20 p-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="doc-category" className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            <Label htmlFor="doc-category" className="text-sm font-medium text-foreground">
               Document Category
             </Label>
             <Select
@@ -155,7 +155,7 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
             >
               <SelectTrigger
                 id="doc-category"
-                className="h-10 w-full rounded-lg border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-950"
+                className="h-10 w-full rounded-lg border-input bg-background"
               >
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
@@ -172,7 +172,7 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="doc-files" className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            <Label htmlFor="doc-files" className="text-sm font-medium text-foreground">
               Upload Files
             </Label>
             <Input
@@ -182,11 +182,11 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
               accept=".pdf,.jpg,.jpeg,.png,.dcm,application/pdf,image/*"
               disabled={isPending || !category}
               onChange={onFileInputChange}
-              className="h-10 cursor-pointer rounded-lg border-zinc-200 bg-white file:mr-3 file:rounded-md file:border-0 file:bg-teal-600 file:px-3 file:py-1 file:text-sm file:font-medium file:text-white hover:file:bg-teal-700 dark:border-zinc-700 dark:bg-zinc-950"
+              className="h-10 cursor-pointer rounded-lg border-input bg-background file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
             />
           </div>
         </div>
-        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mt-3 text-xs text-muted-foreground">
           Accepted: PDF, JPG, PNG, DICOM. You can upload multiple files and repeat for different categories.
         </p>
       </div>
@@ -211,12 +211,12 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
               return (
                 <li
                   key={id}
-                  className="rounded-lg border border-amber-200 bg-white px-3 py-2 dark:border-amber-800 dark:bg-zinc-950"
+                  className="rounded-lg border border-amber-200 bg-card px-3 py-2 dark:border-amber-800"
                 >
                   <div className="flex items-center gap-3">
                     <Upload className="size-4 text-amber-600" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{file.name}</p>
+                      <p className="truncate text-sm font-medium text-foreground">{file.name}</p>
                       {isUploading && (
                         <div className="mt-1 flex gap-2">
                           <div className="h-1 flex-1 overflow-hidden rounded-full bg-amber-200 dark:bg-amber-900">
@@ -261,15 +261,15 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
       )}
 
       {/* Uploaded Files */}
-      <div className="rounded-xl border border-zinc-200/90 bg-zinc-50/30 p-4 dark:border-zinc-800 dark:bg-zinc-950/30">
+      <div className="rounded-xl border border-border/90 bg-muted/20 p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Uploaded Files</span>
-          <span className="rounded-full bg-teal-600/15 px-2.5 py-0.5 text-xs font-semibold text-teal-800 dark:bg-teal-500/20 dark:text-teal-200">
+          <span className="text-sm font-medium text-foreground">Uploaded Files</span>
+          <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary">
             {uploadedFiles.length} file(s)
           </span>
         </div>
         {uploadedFiles.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-zinc-200 bg-white py-10 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40 dark:text-zinc-400">
+          <div className="rounded-lg border border-dashed border-border bg-card py-10 text-center text-sm text-muted-foreground">
             No files uploaded yet
           </div>
         ) : (
@@ -277,11 +277,11 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
             {uploadedFiles.map((f) => (
               <li
                 key={f.id}
-                className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+                className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-zinc-900 dark:text-zinc-100">{f.name}</p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="truncate font-medium text-foreground">{f.name}</p>
+                  <p className="text-xs text-muted-foreground">
                     {f.category} · {formatBytes(f.size)}
                   </p>
                 </div>
@@ -304,7 +304,7 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
 
       {/* Additional Notes */}
       <div className="space-y-2">
-        <Label htmlFor="doc-notes" className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+        <Label htmlFor="doc-notes" className="text-sm font-medium text-foreground">
           Additional Notes (Optional)
         </Label>
         <textarea
@@ -315,9 +315,9 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
           onChange={(e) => onFieldChange("notes", e.target.value)}
           disabled={isPending}
           className={cn(
-            "w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm text-zinc-900 outline-none transition-colors",
+            "w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm text-foreground outline-none transition-colors",
             "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-            "disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 dark:text-zinc-50"
+            "disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
           )}
         />
       </div>

@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import Link from "next/link"
 import { Lora } from "next/font/google"
 import { usePathname } from "next/navigation"
+import type { AuthUser } from "@/lib/auth-tokens"
 import {
   ActivityIcon,
   BadgePlusIcon,
@@ -17,6 +18,8 @@ import {
   User2Icon,
   UsersIcon,
 } from "lucide-react"
+
+import { useRequireRole } from "@/hooks/use-require-role"
 
 import {
   Sidebar,
@@ -51,13 +54,14 @@ export default function AdminLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname()
+  const { logout, user, mounted } = useRequireRole("admin")
 
   return (
     <div
       className={`${adminSerif.className} min-h-screen bg-background text-foreground dark:bg-background`}
     >
       <SidebarProvider defaultOpen>
-        <AdminLayoutContent pathname={pathname}>{children}</AdminLayoutContent>
+        <AdminLayoutContent pathname={pathname} logout={logout} user={user} mounted={mounted}>{children}</AdminLayoutContent>
       </SidebarProvider>
     </div>
   )
@@ -65,9 +69,15 @@ export default function AdminLayout({
 
 function AdminLayoutContent({
   pathname,
+  logout,
+  user,
+  mounted,
   children,
 }: {
   pathname: string
+  logout: () => void
+  user: AuthUser | null
+  mounted: boolean
   children: ReactNode
 }) {
   const { state } = useSidebar()
@@ -115,7 +125,7 @@ function AdminLayoutContent({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <div className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/25">
               <ShieldIcon className="size-4" />
             </div>
 
@@ -151,7 +161,7 @@ function AdminLayoutContent({
             </SidebarMenu>
           </SidebarGroup>
 
-          <SidebarGroup className="mt-4">
+          <SidebarGroup>
             <SidebarGroupLabel>Operations</SidebarGroupLabel>
             <SidebarMenu>
               {navItems.slice(1).map((item) => {
@@ -186,7 +196,7 @@ function AdminLayoutContent({
                     render={
                       <button type="button" aria-label="Admin profile">
                         <div
-                          className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary"
+                          className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/25"
                           aria-hidden="true"
                         >
                           <User2Icon className="size-4" />
@@ -194,7 +204,7 @@ function AdminLayoutContent({
 
                         {isCollapsed ? null : (
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-medium">Admin</div>
+                            <div className="truncate text-sm font-medium">{mounted && user ? user.name : "Admin"}</div>
                             <div className="truncate text-xs text-muted-foreground">
                               Platform admin
                             </div>
@@ -208,16 +218,16 @@ function AdminLayoutContent({
                 <DropdownMenuContent align="end" side="right" className="w-56">
                   <div className="flex items-start gap-3 px-2 py-2">
                     <div
-                      className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary"
+                      className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/25"
                       aria-hidden="true"
                     >
                       <User2Icon className="size-4" />
                     </div>
 
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">Youssef Kamal</div>
+                      <div className="truncate text-sm font-medium">{mounted && user ? user.name : "Admin"}</div>
                       <div className="truncate text-xs text-muted-foreground">
-                        admin@icare-cvd.example
+                        {mounted && user ? user.email : ""}
                       </div>
                     </div>
                   </div>
@@ -251,6 +261,7 @@ function AdminLayoutContent({
                   <DropdownMenuItem
                     onSelect={(e) => {
                       e.preventDefault()
+                      logout()
                     }}
                   >
                     <LogOutIcon className="size-4" />

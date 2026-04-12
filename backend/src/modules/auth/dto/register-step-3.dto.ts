@@ -8,7 +8,7 @@ import {
   MaxLength,
 } from 'class-validator';
 
-const chiefComplaints = [
+export const chiefComplaints = [
   'chest-pain',
   'dyspnea',
   'palpitations',
@@ -22,6 +22,11 @@ const chiefComplaints = [
   'cyanosis',
   'systemic-embolization',
   'neurological',
+  'hypertension',
+  'post-procedure',
+  'post-discharge',
+  'murmur',
+  'abnormal-ecg',
   'other',
 ] as const;
 
@@ -81,6 +86,11 @@ export class RegisterStep3Dto {
   @IsOptional()
   @IsObject()
   cardiovascularRiskFactors?: JsonRecord;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20000)
+  medicalHistoryNotes?: string;
 
   @IsOptional()
   @IsBoolean()

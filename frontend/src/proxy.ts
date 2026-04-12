@@ -31,6 +31,7 @@ const LEGACY_TO_CANONICAL: Record<string, string> = {
   "/add-staff": "/admin/addstaff",
   "/admin-dashboard": "/admin/admin-dashboard",
   "/doctor-dashboard": "/doctor/doctor-dashboard",
+  "/assistant-dashboard": "/assistant/assistant-dashboard",
 };
 
 const PREFIX_ALLOWED_ROUTES: Record<string, string[]> = {
@@ -49,13 +50,14 @@ const PREFIX_ALLOWED_ROUTES: Record<string, string[]> = {
   patient: ["/dashboard"],
   doctor: ["/doctor-dashboard"],
   admin: ["/add-staff", "/addstaff", "/admin-dashboard"],
-  assistant: [],
+  assistant: ["/assistant-dashboard", "/assistant-patients"],
 };
 
 const DEFAULT_REDIRECT: Record<string, string> = {
   patient: "/patient/dashboard",
   doctor: "/doctor/doctor-dashboard",
   admin: "/admin/addstaff",
+  assistant: "/assistant/assistant-dashboard",
 };
 
 function normalizePathSegments(pathname: string): string {
@@ -147,7 +149,8 @@ function isAuthRoute(pathname: string): boolean {
   return AUTH_ROUTES.some((route) => pathname === route || pathname.startsWith(route + "/"));
 }
 
-export function middleware(request: NextRequest) {
+/** Next.js 16+ uses `src/proxy.ts` instead of deprecated `src/middleware.ts`. */
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const registerStepRewrite = mapRegisterStepRewrite(pathname);
   if (registerStepRewrite) {
@@ -206,6 +209,7 @@ export const config = {
     "/auth/:path*",
     "/dashboard/:path*",
     "/doctor-dashboard/:path*",
+    "/assistant-dashboard/:path*",
     "/add-staff/:path*",
     "/admin-dashboard/:path*",
     "/login",

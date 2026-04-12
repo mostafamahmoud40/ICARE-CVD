@@ -2,7 +2,8 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
 
@@ -33,29 +34,32 @@ export function useForgotPassword() {
         setFieldErrors(next);
         return;
       }
-
       setFieldErrors({});
       mutation.mutate(result.data);
     },
     [mutation]
   );
 
-  const serverErrorMessage =
-    mutation.isError && isAxiosError(mutation.error)
-      ? (mutation.error.response?.data as { message?: string } | undefined)?.message ??
-        mutation.error.message
-      : mutation.isError
-        ? "Something went wrong. Try again."
-        : null;
+  useEffect(() => {
+    if (mutation.isSuccess) {
+      toast.success("Reset link sent to your email");
+    }
+  }, [mutation.isSuccess]);
+
+  useEffect(() => {
+    if (mutation.isError) {
+      const msg =
+        isAxiosError(mutation.error) && mutation.error.response?.data
+          ? (mutation.error.response.data as { message?: string }).message ??
+          mutation.error.message
+          : "Something went wrong. Try again.";
+      toast.error(msg);
+    }
+  }, [mutation.isError, mutation.error]);
 
   return {
     submit,
     fieldErrors,
     isPending: mutation.isPending,
-    isSuccess: mutation.isSuccess,
-    successMessage:
-      mutation.data?.message ??
-      "If this email exists, we sent password reset instructions.",
-    serverErrorMessage,
   };
 }

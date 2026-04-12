@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { CheckCircle2, Eye, EyeOff, InfoIcon, Lock } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, Lock } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -40,12 +40,12 @@ export function ResetPasswordForm({
   }
 
   return (
-    <Card className="w-full max-w-md overflow-hidden rounded-3xl border-border/70 bg-card/95 shadow-xl backdrop-blur-sm">
+    <Card className="w-full max-w-md border-0 shadow-[0_4px_30px_-4px_rgba(26,83,69,0.10)]">
       <CardHeader className="space-y-2 pb-0 pt-7 text-center">
-        <CardTitle className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <CardTitle className="text-2xl font-semibold tracking-tight text-[#152A24]">
           Create New Password
         </CardTitle>
-        <CardDescription className="text-sm text-zinc-500 dark:text-zinc-400">
+        <CardDescription className="text-sm text-gray-500">
           Choose a new secure password for your account.
         </CardDescription>
       </CardHeader>
@@ -55,13 +55,13 @@ export function ResetPasswordForm({
           <div className="space-y-2">
             <Label
               htmlFor="reset-password"
-              className="text-left text-sm font-medium text-zinc-800 dark:text-zinc-200"
+              className="text-left text-sm font-medium text-[#374151]"
             >
               New Password
             </Label>
 
             <div className="relative">
-              <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+              <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
               <Input
                 id="reset-password"
                 name="password"
@@ -73,7 +73,7 @@ export function ResetPasswordForm({
                 aria-invalid={Boolean(fieldErrors.password)}
                 aria-describedby={fieldErrors.password ? "reset-password-error" : undefined}
                 disabled={isPending}
-                className="h-12 rounded-xl border-zinc-200 bg-white pl-9 pr-10 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+                className="h-11 rounded-xl border-gray-200 bg-white pl-9 pr-10 text-[#152A24] placeholder:text-gray-400 focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
               />
               <Button
                 type="button"
@@ -89,7 +89,7 @@ export function ResetPasswordForm({
             </div>
 
             {fieldErrors.password ? (
-              <p id="reset-password-error" className="text-sm text-destructive" role="alert">
+              <p id="reset-password-error" className="text-sm text-[#E15C5C]" role="alert">
                 {fieldErrors.password}
               </p>
             ) : null}
@@ -98,13 +98,13 @@ export function ResetPasswordForm({
           <div className="space-y-2">
             <Label
               htmlFor="reset-confirm-password"
-              className="text-left text-sm font-medium text-zinc-800 dark:text-zinc-200"
+              className="text-left text-sm font-medium text-[#374151]"
             >
               Confirm Password
             </Label>
 
             <div className="relative">
-              <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+              <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
               <Input
                 id="reset-confirm-password"
                 name="confirmPassword"
@@ -118,7 +118,7 @@ export function ResetPasswordForm({
                   fieldErrors.confirmPassword ? "reset-confirm-password-error" : undefined
                 }
                 disabled={isPending}
-                className="h-12 rounded-xl border-zinc-200 bg-white pl-9 pr-10 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+                className="h-11 rounded-xl border-gray-200 bg-white pl-9 pr-10 text-[#152A24] placeholder:text-gray-400 focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
               />
               <Button
                 type="button"
@@ -134,14 +134,14 @@ export function ResetPasswordForm({
             </div>
 
             {fieldErrors.confirmPassword ? (
-              <p id="reset-confirm-password-error" className="text-sm text-destructive" role="alert">
+              <p id="reset-confirm-password-error" className="text-sm text-[#E15C5C]" role="alert">
                 {fieldErrors.confirmPassword}
               </p>
             ) : null}
           </div>
 
           {isSuccess ? (
-            <Alert className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+            <Alert className="border-[#1A5345]/40 bg-[#1A5345]/10 text-[#1A5345]">
               <CheckCircle2 className="mt-0.5 size-4" />
               <AlertTitle>Password updated</AlertTitle>
               <AlertDescription>{successMessage}</AlertDescription>
@@ -149,11 +149,7 @@ export function ResetPasswordForm({
           ) : null}
 
           {serverErrorMessage ? (
-            <Alert
-              variant="destructive"
-              className="border-red-200 bg-red-50 text-red-700 dark:border-red-400/60 dark:bg-red-950/40 dark:text-red-200"
-            >
-              <InfoIcon className="mt-0.5 size-4" />
+            <Alert className="border-[#E15C5C]/40 bg-[#E15C5C]/10 text-[#E15C5C]">
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{serverErrorMessage}</AlertDescription>
             </Alert>
@@ -163,7 +159,7 @@ export function ResetPasswordForm({
             type="submit"
             disabled={isPending}
             size="lg"
-            className="h-12 w-full rounded-xl bg-teal-700 text-sm font-semibold text-white shadow-none hover:bg-teal-600 focus-visible:ring-teal-400/40 dark:bg-teal-600 dark:hover:bg-teal-500"
+            className="h-11 w-full rounded-xl bg-[#1A5345] text-sm font-semibold text-white shadow-[0_8px_20px_rgba(26,83,69,0.30)] hover:bg-[#1A5345]/90 focus-visible:ring-[#1A5345]/40"
           >
             {isPending ? "Updating..." : "Update Password"}
           </Button>
@@ -171,7 +167,7 @@ export function ResetPasswordForm({
           <Button
             asChild
             variant="link"
-            className="h-auto w-full px-0 text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+            className="h-auto w-full px-0 text-sm text-gray-500 hover:text-[#1A5345]"
           >
             <Link href="/login">Back to Sign In</Link>
           </Button>

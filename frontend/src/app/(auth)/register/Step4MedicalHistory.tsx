@@ -1313,8 +1313,8 @@ export function Step4MedicalHistory({
 
         <div className="order-5 space-y-4 rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
           <div className="mb-2 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-100">
-              <Syringe className="h-4 w-4 text-teal-600" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15">
+              <Syringe className="h-4 w-4 text-primary" />
             </div>
             <h3 className="font-semibold text-[#1A1A2E]">Past Interventions / Procedures</h3>
           </div>

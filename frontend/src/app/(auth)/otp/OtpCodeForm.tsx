@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { CheckCircle2, InfoIcon, KeyRound, RefreshCwIcon } from "lucide-react";
+import { CheckCircle2, KeyRound, RefreshCwIcon } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -138,7 +138,6 @@ export function OtpCodeForm({
               variant="destructive"
               className="border-red-200 bg-red-50 text-red-700 dark:border-red-400/60 dark:bg-red-950/40 dark:text-red-200"
             >
-              <InfoIcon className="mt-0.5 size-4" />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{serverErrorMessage}</AlertDescription>
             </Alert>
