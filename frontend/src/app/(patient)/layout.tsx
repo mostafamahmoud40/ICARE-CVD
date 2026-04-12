@@ -90,10 +90,10 @@ function PatientLayoutContent({
       isActive: pathname === "/dashboard",
     },
     {
-      href: "/dashboard",
+      href: "/appointments",
       label: "Appointments",
       icon: CalendarDaysIcon,
-      isActive: false,
+      isActive: pathname === "/appointments",
     },
     {
       href: "/dashboard",

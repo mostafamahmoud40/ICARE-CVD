@@ -194,7 +194,7 @@ export type PatientDashboardProps = {
 
 export function PatientDashboard({ data, isLoading, isError, error }: PatientDashboardProps) {
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 p-4">
+    <main className="w-full space-y-6 p-4">
       {isLoading ? (
         <div className="space-y-6">
           <div className="space-y-2">

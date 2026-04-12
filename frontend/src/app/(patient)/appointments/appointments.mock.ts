@@ -1,0 +1,90 @@
+import type { AppointmentsPageData } from "./appointments.types"
+
+export const mockAppointmentsPage: AppointmentsPageData = {
+  doctor: {
+    id: "doc-1",
+    name: "Dr. Robert Thorne",
+    title: "Chief Cardiologist",
+    experience: "20+ Years Exp.",
+    rating: 4.9,
+    specialties: [
+      { icon: "heart", label: "Interventional Cardiology", color: "primary" },
+      { icon: "activity", label: "Heart Failure", color: "secondary" },
+    ],
+  },
+  monthLabel: "October 2023",
+  days: [
+    { day: "Mon", date: 9, disabled: true },
+    { day: "Tue", date: 10 },
+    { day: "Wed", date: 11 },
+    { day: "Thu", date: 12 },
+    { day: "Fri", date: 13 },
+  ],
+  timeSlots: [
+    { time: "09:00 AM", available: true },
+    { time: "09:30 AM", available: true, recommended: true, label: "Low wait time" },
+    { time: "10:00 AM", available: true },
+    { time: "10:30 AM", available: true },
+    { time: "11:00 AM", available: false, label: "Booked" },
+    { time: "11:30 AM", available: true },
+  ],
+  upcoming: [
+    {
+      id: "appt-1",
+      scheduledAt: "2026-04-12T14:30:00Z",
+      department: "Cardiology",
+      clinician: "Dr. Hossam El-Sayed",
+      location: "Downtown Heart Center",
+      locationDetail: "Building B, Suite 402",
+      status: "confirmed",
+      notes: "Bring recent ECG results.",
+    },
+    {
+      id: "appt-2",
+      scheduledAt: "2026-04-25T09:00:00Z",
+      department: "Nutrition Clinic",
+      clinician: "Dr. Mai Ramadan",
+      location: "ICARE-CVD Main Center",
+      locationDetail: "Room 4C",
+      status: "scheduled",
+    },
+    {
+      id: "appt-3",
+      scheduledAt: "2026-05-02T11:15:00Z",
+      department: "General Follow-up",
+      clinician: "Dr. Youssef Ibrahim",
+      location: "ICARE-CVD Main Center",
+      locationDetail: "Room 1B",
+      status: "scheduled",
+    },
+  ],
+  past: [
+    {
+      id: "appt-5",
+      scheduledAt: "2026-03-15T10:00:00Z",
+      department: "Cardiology",
+      clinician: "Dr. Hossam El-Sayed",
+      location: "ICARE-CVD Main Center",
+      locationDetail: "Room 2A",
+      status: "completed",
+      notes: "ECG normal. Continue current medication.",
+    },
+    {
+      id: "appt-6",
+      scheduledAt: "2026-03-01T09:30:00Z",
+      department: "General Follow-up",
+      clinician: "Dr. Youssef Ibrahim",
+      location: "ICARE-CVD Main Center",
+      locationDetail: "Room 1B",
+      status: "completed",
+    },
+  ],
+  fees: [
+    { label: "Consultation Fee", amount: "$150.00" },
+    { label: "Platform Fee", amount: "$5.00" },
+    { label: "Insurance Cover", amount: "-$130.00", highlight: true, icon: "shield" },
+  ],
+  aiTipTitle: "Why this time slot?",
+  aiTipBody:
+    "Our system analyzed 5,000+ past visits. Tuesdays at 9:30 AM typically have 40% less foot traffic, ensuring you get seen by Dr. Thorne faster.",
+}

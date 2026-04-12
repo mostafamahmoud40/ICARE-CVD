@@ -136,7 +136,7 @@ export function PatientsList({ patients, addPatientState }: PatientsListProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 p-6">
+    <div className="w-full space-y-6 px-4 py-6 md:px-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
