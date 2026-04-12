@@ -11,12 +11,27 @@ export function generateTimeBlockId(): string {
 export function createTimeBlock(
   startTime: string,
   endTime: string,
-  id?: string
+  id?: string,
 ): TimeBlock {
   return {
     id: id ?? generateTimeBlockId(),
     startTime,
     endTime,
+  }
+}
+
+export function createEmptySchedule(): DoctorSchedulePayload {
+  return {
+    slotDurationMinutes: 30,
+    bufferBetweenSlotsMinutes: 10,
+    days: WEEKDAY_ORDER.map((weekday) => ({
+      weekday,
+      label: weekday.charAt(0).toUpperCase() + weekday.slice(1),
+      enabled: false,
+      periods: [],
+      unavailableBlocks: [],
+      maxAppointmentsPerDay: null,
+    })),
   }
 }
 
@@ -38,9 +53,6 @@ function isLegacyDay(day: unknown): day is LegacyDay {
   )
 }
 
-/**
- * Upgrades payloads saved before multi-period / blocks / max caps.
- */
 export function migrateLegacyDoctorSchedule(
   data: unknown
 ): DoctorSchedulePayload | null {

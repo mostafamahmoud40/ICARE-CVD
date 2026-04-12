@@ -1,9 +1,19 @@
 "use client"
 
 import * as React from "react"
-import { CalendarClockIcon, PlusIcon } from "lucide-react"
+import { CalendarClockIcon, PlusIcon, RotateCcwIcon } from "lucide-react"
 import { toast } from "sonner"
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -12,7 +22,7 @@ import { ScheduleTable } from "./ScheduleTable"
 import { WeeklyScheduleOverview } from "./WeeklyScheduleOverview"
 import { doctorScheduleSchema } from "./doctorSchedule.schema"
 import type { DayAvailability, DoctorSchedulePayload, WeekdayId } from "./doctorSchedule.types"
-import { createTimeBlock } from "./doctorSchedule.utils"
+import { createTimeBlock, createEmptySchedule } from "./doctorSchedule.utils"
 import { useDoctorSchedule } from "./useDoctorSchedule"
 
 function replaceDay(
@@ -23,9 +33,10 @@ function replaceDay(
 }
 
 export function DoctorSchedule() {
-  const { schedule, isLoading, saveScheduleAsync, isSaving } = useDoctorSchedule()
+  const { schedule, isLoading, saveScheduleAsync, isSaving, deleteScheduleAsync, isDeleting } = useDoctorSchedule()
   const [draft, setDraft] = React.useState<DoctorSchedulePayload | null>(null)
   const [addOpen, setAddOpen] = React.useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false)
 
   React.useEffect(() => {
     if (schedule) {
@@ -35,6 +46,17 @@ export function DoctorSchedule() {
 
   const handleSave = async () => {
     if (!draft) return
+
+    const hasAnyEnabledDay = draft.days.some((d) => d.enabled)
+    const hasAnyPeriod = draft.days.some((d) => d.periods.length > 0)
+
+    if (!hasAnyEnabledDay && !hasAnyPeriod) {
+      toast.error("Nothing to save", {
+        description: "Enable at least one day and add a working period first.",
+      })
+      return
+    }
+
     const result = doctorScheduleSchema.safeParse(draft)
     if (!result.success) {
       const msg = result.error.issues[0]?.message ?? "Invalid values."
@@ -42,6 +64,12 @@ export function DoctorSchedule() {
       return
     }
     await saveScheduleAsync(result.data)
+  }
+
+  const handleDelete = async () => {
+    await deleteScheduleAsync()
+    setDraft(createEmptySchedule())
+    setDeleteDialogOpen(false)
   }
 
   const handleQuickAdd = (input: {
@@ -129,7 +157,18 @@ export function DoctorSchedule() {
           setDraft((prev) => prev ? { ...prev, days: replaceDay(prev.days, next) } : prev)
         } />
 
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end gap-3 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="min-w-[140px] gap-2"
+            disabled={isDeleting}
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            <RotateCcwIcon className="size-4" />
+            {isDeleting ? "Deleting…" : "Reset schedule"}
+          </Button>
           <Button
             type="button"
             size="lg"
@@ -148,6 +187,23 @@ export function DoctorSchedule() {
         days={draft.days}
         onAdd={handleQuickAdd}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset schedule?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear all your working hours and settings. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void handleDelete()}>
+              Reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

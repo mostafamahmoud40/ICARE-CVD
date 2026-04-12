@@ -6,53 +6,28 @@ import { toast } from "sonner"
 import { apiClient } from "@/lib/api-client"
 
 import { doctorScheduleSchema } from "./doctorSchedule.schema"
-import { defaultDoctorSchedule } from "./doctorSchedule.mock"
 import type { DoctorSchedulePayload } from "./doctorSchedule.types"
-import { migrateLegacyDoctorSchedule } from "./doctorSchedule.utils"
+import { createEmptySchedule } from "./doctorSchedule.utils"
 
 const QUERY_KEY = ["doctor-schedule"] as const
-const STORAGE_KEY = "icare-cvd-doctor-schedule"
-
-function readStoredSchedule(): DoctorSchedulePayload | null {
-  if (typeof window === "undefined") return null
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as unknown
-    const migrated = migrateLegacyDoctorSchedule(parsed)
-    return doctorScheduleSchema.parse(migrated ?? parsed)
-  } catch {
-    return null
-  }
-}
 
 async function fetchDoctorSchedule(): Promise<DoctorSchedulePayload> {
-  await Promise.resolve()
-  if (typeof window === "undefined") {
-    return defaultDoctorSchedule
+  try {
+    const { data } = await apiClient.get<DoctorSchedulePayload>("/doctor/schedule")
+    return doctorScheduleSchema.parse(data)
+  } catch {
+    return createEmptySchedule()
   }
-  return readStoredSchedule() ?? defaultDoctorSchedule
 }
 
 async function persistSchedule(payload: DoctorSchedulePayload): Promise<DoctorSchedulePayload> {
   const validated = doctorScheduleSchema.parse(payload)
+  const { data } = await apiClient.put<DoctorSchedulePayload>("/doctor/schedule", validated)
+  return doctorScheduleSchema.parse(data)
+}
 
-  try {
-    const { data } = await apiClient.put<DoctorSchedulePayload>(
-      "/doctor/schedule",
-      validated
-    )
-    const next = doctorScheduleSchema.parse(data)
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-    }
-    return next
-  } catch {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(validated))
-    }
-    return validated
-  }
+async function deleteSchedule(): Promise<void> {
+  await apiClient.delete("/doctor/schedule")
 }
 
 export function useDoctorSchedule() {
@@ -79,6 +54,21 @@ export function useDoctorSchedule() {
     },
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteSchedule,
+    onSuccess: () => {
+      queryClient.setQueryData(QUERY_KEY, createEmptySchedule())
+      toast.success("Schedule deleted", {
+        description: "Your schedule has been cleared. You can start fresh.",
+      })
+    },
+    onError: () => {
+      toast.error("Could not delete schedule", {
+        description: "Try again in a moment.",
+      })
+    },
+  })
+
   return {
     schedule: query.data,
     isLoading: query.isLoading,
@@ -87,5 +77,7 @@ export function useDoctorSchedule() {
     saveSchedule: saveMutation.mutate,
     saveScheduleAsync: saveMutation.mutateAsync,
     isSaving: saveMutation.isPending,
+    deleteScheduleAsync: deleteMutation.mutateAsync,
+    isDeleting: deleteMutation.isPending,
   }
 }

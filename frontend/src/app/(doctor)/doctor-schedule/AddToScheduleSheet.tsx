@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { ClockIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -21,7 +22,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { cn } from "@/lib/utils"
 
 import { timeToMinutes } from "./doctorSchedule.schema"
 import type { DayAvailability, WeekdayId } from "./doctorSchedule.types"
@@ -40,36 +40,90 @@ type AddToScheduleSheetProps = {
   }) => void
 }
 
-function TimeField({
-  id,
+const HOURS_12 = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"))
+const MINUTES = ["00", "15", "30", "45"]
+const PERIODS = ["AM", "PM"] as const
+
+function parseTime24(time24: string) {
+  const [h, m] = time24.split(":").map(Number)
+  const period = h >= 12 ? "PM" : "AM"
+  const hour12 = h > 12 ? h - 12 : h === 0 ? 12 : h
+  return {
+    hour: String(hour12).padStart(2, "0"),
+    minute: String(m).padStart(2, "0"),
+    period,
+  }
+}
+
+function formatTime24(hour12: string, minute: string, period: "AM" | "PM") {
+  let h = Number(hour12)
+  if (period === "PM" && h !== 12) h += 12
+  if (period === "AM" && h === 12) h = 0
+  return `${String(h).padStart(2, "0")}:${minute}`
+}
+
+function TimePicker({
   label,
   value,
   onChange,
 }: {
-  id: string
   label: string
   value: string
   onChange: (v: string) => void
 }) {
+  const { hour, minute, period } = parseTime24(value)
+
+  const handleChange = (field: "hour" | "minute" | "period", newValue: string) => {
+    const newHour = field === "hour" ? newValue : hour
+    const newMinute = field === "minute" ? newValue : minute
+    const newPeriod = field === "period" ? newValue : period
+    onChange(formatTime24(newHour, newMinute, newPeriod as "AM" | "PM"))
+  }
+
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
-      <div className="relative">
-        <input
-          id={id}
-          type="time"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={cn(
-            "h-11 w-full rounded-lg border border-[#C5D0CC]/90 bg-background pr-10 pl-3 text-sm font-medium text-foreground shadow-xs outline-none transition-colors",
-            "focus-visible:border-[#00392D]/50 focus-visible:ring-2 focus-visible:ring-[#00392D]/20",
-            "dark:border-white/15"
-          )}
-        />
-        <ClockIcon
-          className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden
-        />
+      <Label className="text-sm font-medium">{label}</Label>
+      <div className="flex items-center gap-1.5">
+        <Select value={hour} onValueChange={(v) => handleChange("hour", v)}>
+          <SelectTrigger className="h-10 w-16 px-2 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="max-h-48">
+            {HOURS_12.map((h) => (
+              <SelectItem key={h} value={h} className="text-sm">
+                {h}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <span className="text-sm font-medium text-muted-foreground">:</span>
+
+        <Select value={minute} onValueChange={(v) => handleChange("minute", v)}>
+          <SelectTrigger className="h-10 w-16 px-2 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="max-h-48">
+            {MINUTES.map((m) => (
+              <SelectItem key={m} value={m} className="text-sm">
+                {m}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={period} onValueChange={(v) => handleChange("period", v)}>
+          <SelectTrigger className="h-10 w-18 px-2 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PERIODS.map((p) => (
+              <SelectItem key={p} value={p} className="text-sm">
+                {p}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   )
@@ -168,8 +222,8 @@ export function AddToScheduleSheet({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <TimeField id="add-start" label="From" value={startTime} onChange={setStartTime} />
-              <TimeField id="add-end" label="To" value={endTime} onChange={setEndTime} />
+              <TimePicker label="From" value={startTime} onChange={setStartTime} />
+              <TimePicker label="To" value={endTime} onChange={setEndTime} />
             </div>
           </div>
 
