@@ -66,7 +66,7 @@ export function BookingReason({ value, onChange }: BookingReasonProps) {
       {/* Custom Input */}
       <div>
         <label className="mb-1.5 block text-[13px] font-medium text-[#152a24]">
-          Describe your symptoms or reason (optional)
+          Describe your symptoms or reason
         </label>
         <textarea
           value={isOther ? value : value === commonReasons.find(r => r.id === selectedReason)?.label ? "" : value}

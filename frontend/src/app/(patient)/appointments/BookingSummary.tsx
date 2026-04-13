@@ -69,7 +69,7 @@ function FeeBreakdown({ fees }: FeeBreakdownProps) {
 
 type BookingSummaryProps = {
   doctorName: string
-  selectedDate: number
+  selectedDate: string
   selectedSlot: string
   fees: FeeRow[]
   onConfirm: () => void
@@ -84,10 +84,19 @@ export function BookingSummary({
   onConfirm,
   className,
 }: BookingSummaryProps) {
+  const selectedDateLabel = selectedDate
+    ? new Date(`${selectedDate}T00:00:00`).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "Select a date"
+
   return (
     <div
       className={cn(
-        "sticky top-6 overflow-hidden rounded-2xl border border-[#E8E6E0] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.09)]",
+        "w-full overflow-hidden rounded-2xl border border-[#E8E6E0] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.09)] xl:sticky xl:top-6",
         className,
       )}
     >
@@ -109,7 +118,7 @@ export function BookingSummary({
         <div className="mb-6 flex flex-col gap-4">
           <SummaryRow
             icon={<CalendarIcon className="size-5" />}
-            primary={`Tue, Oct ${selectedDate}, 2023`}
+            primary={selectedDateLabel}
           />
           <SummaryRow
             icon={<ClockIcon className="size-5" />}

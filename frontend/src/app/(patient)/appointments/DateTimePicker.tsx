@@ -97,12 +97,13 @@ function MonthNav({ label, selectedDate, onDateSelect, className }: MonthNavProp
 type DayButtonProps = {
   day: string
   date: number
+  label?: string
   disabled?: boolean
   active: boolean
   onSelect: () => void
 }
 
-function DayButton({ day, date, disabled, active, onSelect }: DayButtonProps) {
+function DayButton({ day, date, label, disabled, active, onSelect }: DayButtonProps) {
   return (
     <button
       type="button"
@@ -119,6 +120,7 @@ function DayButton({ day, date, disabled, active, onSelect }: DayButtonProps) {
     >
       <span className="text-[11px] font-medium">{day}</span>
       <span className="text-xl font-bold">{date}</span>
+      {label ? <span className="text-[10px] font-medium">{label}</span> : null}
       {active && <div className="absolute -bottom-1 size-1 rounded-full bg-white" />}
     </button>
   )
@@ -184,9 +186,9 @@ type DateTimePickerProps = {
   days: DayOption[]
   timeSlots: TimeSlot[]
   monthLabel: string
-  selectedDate: number
+  selectedDate: string
   selectedSlot: string
-  onDateChange: (d: number) => void
+  onDateChange: (d: string) => void
   onSlotChange: (s: string) => void
   aiTipTitle: string
   aiTipBody: string
@@ -206,12 +208,12 @@ export function DateTimePicker({
   className,
 }: DateTimePickerProps) {
   const [calendarDate, setCalendarDate] = useState<Date | undefined>(
-    selectedDate ? new Date(new Date().getFullYear(), new Date().getMonth(), selectedDate) : undefined
+    selectedDate ? new Date(`${selectedDate}T00:00:00`) : undefined
   )
 
   const handleCalendarSelect = (date: Date) => {
     setCalendarDate(date)
-    onDateChange(date.getDate())
+    onDateChange(date.toISOString().slice(0, 10))
   }
 
   return (
@@ -231,14 +233,15 @@ export function DateTimePicker({
       </div>
 
       <div className="mb-8 flex gap-2 overflow-x-auto pb-2">
-        {days.map(({ day, date, disabled }) => (
+        {days.map(({ day, date, fullDate, label, disabled }) => (
           <DayButton
-            key={date}
+            key={fullDate}
             day={day}
             date={date}
+            label={label}
             disabled={disabled}
-            active={selectedDate === date && !disabled}
-            onSelect={() => onDateChange(date)}
+            active={selectedDate === fullDate && !disabled}
+            onSelect={() => onDateChange(fullDate)}
           />
         ))}
       </div>
