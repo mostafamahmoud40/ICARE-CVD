@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { AddToScheduleSheet } from "./AddToScheduleSheet"
+import { BlockedDatesSection } from "./BlockedDatesSection"
 import { ScheduleTable } from "./ScheduleTable"
 import { WeeklyScheduleOverview } from "./WeeklyScheduleOverview"
 import { doctorScheduleSchema } from "./doctorSchedule.schema"
@@ -57,6 +58,14 @@ export function DoctorSchedule() {
       return
     }
 
+    // Check for duplicate blocked dates
+    const dates = draft.blockedDates.map((bd) => bd.date)
+    const uniqueDates = new Set(dates)
+    if (dates.length !== uniqueDates.size) {
+      toast.error("Duplicate blocked dates found")
+      return
+    }
+
     const result = doctorScheduleSchema.safeParse(draft)
     if (!result.success) {
       const msg = result.error.issues[0]?.message ?? "Invalid values."
@@ -70,6 +79,7 @@ export function DoctorSchedule() {
     await deleteScheduleAsync()
     setDraft(createEmptySchedule())
     setDeleteDialogOpen(false)
+    toast.success("Schedule reset successfully")
   }
 
   const handleQuickAdd = (input: {
@@ -156,6 +166,13 @@ export function DoctorSchedule() {
         <ScheduleTable days={draft.days} onDayChange={(next) =>
           setDraft((prev) => prev ? { ...prev, days: replaceDay(prev.days, next) } : prev)
         } />
+
+        <BlockedDatesSection
+          blockedDates={draft.blockedDates}
+          onChange={(blockedDates) =>
+            setDraft((prev) => prev ? { ...prev, blockedDates } : prev)
+          }
+        />
 
         <div className="flex justify-end gap-3 pt-4">
           <Button

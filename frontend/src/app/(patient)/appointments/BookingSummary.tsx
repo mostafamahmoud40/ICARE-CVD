@@ -91,11 +91,8 @@ export function BookingSummary({
         className,
       )}
     >
-      <div className="flex items-center justify-between bg-[#00392D] px-6 py-4 text-white">
+      <div className="bg-[#00392D] px-6 py-4 text-white">
         <h3 className="m-0 text-[15px] font-semibold">Booking Summary</h3>
-        <span className="rounded bg-[#002620] px-2 py-0.5 text-[11px] text-[#C5D9D4]">
-          Step 2 of 2
-        </span>
       </div>
 
       <div className="p-6">

@@ -1,7 +1,7 @@
 import type { DoctorInfo } from "./appointments.types"
 import { cn } from "@/lib/utils"
 import { LucideIcon } from "./shared"
-import { VerifiedIcon, StarIcon, PersonStandingIcon } from "lucide-react"
+import { VerifiedIcon, PersonStandingIcon } from "lucide-react"
 
 type SpecialtyProps = {
   icon: string
@@ -30,7 +30,6 @@ type DoctorCardProps = {
   name: string
   title: string
   experience: string
-  rating: number
   specialties: SpecialtyProps[]
   className?: string
 }
@@ -39,7 +38,6 @@ export function DoctorCard({
   name,
   title,
   experience,
-  rating,
   specialties,
   className,
 }: DoctorCardProps) {
@@ -65,12 +63,12 @@ export function DoctorCard({
             <div>
               <h2 className="text-xl font-bold text-[#1A1F1E]">{name}</h2>
               <p className="mt-0.5 text-[13px] font-medium text-[#6B7870]">
-                {title} &bull; {experience}
+                {title}
               </p>
             </div>
-            <div className="flex items-center gap-1 rounded-md border border-yellow-200 bg-yellow-50 px-2 py-1">
-              <StarIcon className="size-4 fill-yellow-400 text-yellow-400" />
-              <span className="text-[13px] font-bold text-yellow-700">{rating}</span>
+            <div className="flex items-center gap-1.5 rounded-md border border-[#A8C4BC] bg-[#E8F0EE] px-2.5 py-1">
+              <VerifiedIcon className="size-4 text-[#00392D]" />
+              <span className="text-[13px] font-bold text-[#00392D]">{experience}</span>
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
