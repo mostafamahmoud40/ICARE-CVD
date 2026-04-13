@@ -217,9 +217,13 @@ export function PatientsList({ patients, addPatientState }: PatientsListProps) {
                 ))}
               </div>
             </div>
-            <Button variant="outline" className="gap-2 rounded-xl border-gray-200">
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Sync data"
+              className="rounded-xl border-gray-200"
+            >
               <RefreshCwIcon className="size-4" />
-              Sync Data
             </Button>
           </div>
         </CardContent>

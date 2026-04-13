@@ -13,7 +13,7 @@ import {
   SparklesIcon,
   User2Icon,
   ClipboardListIcon,
-  ClipboardCheckIcon,
+  CalendarClockIcon,
   HeartHandshakeIcon,
 } from "lucide-react"
 
@@ -83,25 +83,25 @@ function AssistantLayoutContent({
 
   const navItems = [
     {
-      href: "/assistant/assistant-dashboard",
+      href: "/assistant-dashboard",
       label: "Dashboard",
       icon: LayoutDashboardIcon,
-      isActive: pathname === "/assistant/assistant-dashboard",
+      isActive: pathname === "/assistant-dashboard",
     },
     {
-      href: "/assistant/assistant-patients",
+      href: "/assistant-patients",
       label: "Patients",
       icon: ClipboardListIcon,
-      isActive: pathname === "/assistant/assistant-patients",
+      isActive: pathname === "/assistant-patients",
     },
     {
-      href: "/assistant/assistant-dashboard",
-      label: "Tasks",
-      icon: ClipboardCheckIcon,
-      isActive: false,
+      href: "/assistant-appointments",
+      label: "Appointments",
+      icon: CalendarClockIcon,
+      isActive: pathname === "/assistant-appointments",
     },
     {
-      href: "/assistant/assistant-dashboard",
+      href: "/assistant-dashboard",
       label: "Doctor Support",
       icon: HeartHandshakeIcon,
       isActive: false,

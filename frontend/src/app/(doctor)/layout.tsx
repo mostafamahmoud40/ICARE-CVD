@@ -13,6 +13,7 @@ import {
   HeartPulseIcon,
   LayoutDashboardIcon,
   LogOutIcon,
+  MessageCircleIcon,
   PillIcon,
   SparklesIcon,
   StethoscopeIcon,
@@ -113,6 +114,12 @@ function DoctorLayoutContent({
       label: "Prescriptions",
       icon: PillIcon,
       isActive: false,
+    },
+    {
+      href: "/doctor-chat",
+      label: "Messages",
+      icon: MessageCircleIcon,
+      isActive: pathname.startsWith("/doctor-chat"),
     },
   ] as const
 

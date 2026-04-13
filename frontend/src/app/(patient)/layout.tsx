@@ -108,10 +108,10 @@ function PatientLayoutContent({
       isActive: false,
     },
     {
-      href: "/dashboard",
+      href: "/chat",
       label: "Chats",
       icon: MessageCircleIcon,
-      isActive: false,
+      isActive: pathname.startsWith("/chat"),
     },
   ] as const
 
