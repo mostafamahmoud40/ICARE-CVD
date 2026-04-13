@@ -28,8 +28,16 @@ export type DoctorInfo = {
   experience: string
 }
 
+export type Attachment = {
+  id: string
+  name: string
+  url: string
+  type: string
+}
+
 export type Appointment = {
   id: string
+  confirmationCode: string
   scheduledAt: string
   department: string
   clinician: string
@@ -37,7 +45,12 @@ export type Appointment = {
   locationDetail?: string
   status: AppointmentStatus
   notes?: string
+  symptoms?: string
+  attachments?: Attachment[]
+  visitType: VisitType
 }
+
+export type FilterTab = "all" | "upcoming" | "past" | "cancelled"
 
 export type FeeRow = {
   label: string
@@ -47,9 +60,11 @@ export type FeeRow = {
 }
 
 export type AppointmentsPageData = {
-  doctor: DoctorInfo
+  doctors: DoctorInfo[]
+  selectedDoctor: DoctorInfo
   days: DayOption[]
   timeSlots: TimeSlot[]
+  appointments: Appointment[]
   upcoming: Appointment[]
   past: Appointment[]
   fees: FeeRow[]
