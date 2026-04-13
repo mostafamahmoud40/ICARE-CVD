@@ -1,3 +1,6 @@
+"use client"
+
+import { useState } from "react"
 import type { DayOption, TimeSlot } from "./appointments.types"
 import { cn } from "@/lib/utils"
 import { StepHeading } from "./shared"
@@ -6,24 +9,88 @@ import {
   ChevronRightIcon,
   CheckIcon,
   InfoIcon,
+  CalendarIcon,
 } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 type MonthNavProps = {
   label: string
+  selectedDate: Date | undefined
+  onDateSelect: (date: Date) => void
   className?: string
 }
 
-function MonthNav({ label, className }: MonthNavProps) {
+function MonthNav({ label, selectedDate, onDateSelect, className }: MonthNavProps) {
+  const [open, setOpen] = useState(false)
+
   return (
-    <div className={cn("flex items-center gap-1 rounded-lg border border-[#E8E6E0] bg-[#F9F8F5] px-1 py-1", className)}>
-      <button type="button" className="flex items-center justify-center rounded-md p-1 text-[#6B7870] hover:bg-white">
-        <ChevronLeftIcon className="size-[18px]" />
-      </button>
-      <span className="px-2 text-[13px] font-semibold">{label}</span>
-      <button type="button" className="flex items-center justify-center rounded-md p-1 text-[#6B7870] hover:bg-white">
-        <ChevronRightIcon className="size-[18px]" />
-      </button>
-    </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "flex items-center gap-2 rounded-lg border border-[#cfd9d5] bg-white px-3 py-2 text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0 transition-colors",
+            className
+          )}
+        >
+          <CalendarIcon className="size-4" />
+          <span className="text-[13px] font-semibold">{label}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="end">
+        <Calendar
+          mode="single"
+          selected={selectedDate}
+          onSelect={(date) => {
+            if (date) {
+              onDateSelect(date)
+              setOpen(false)
+            }
+          }}
+          className="rounded-lg border-[#cfd9d5]"
+          classNames={{
+            months: "flex flex-col",
+            month: "flex flex-col gap-4",
+            caption: "flex justify-center pt-1 relative items-center",
+            caption_label: "text-[13px] font-semibold text-[#152a24]",
+            nav: "flex items-center gap-1",
+            nav_button: cn(
+              "flex items-center justify-center rounded-md p-1 text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] transition-colors"
+            ),
+            nav_button_previous: "absolute left-1",
+            nav_button_next: "absolute right-1",
+            table: "w-full border-collapse space-y-1",
+            head_row: "flex",
+            head_cell: "text-[11px] font-medium text-[#6B7870] w-8",
+            row: "flex w-full",
+            cell: cn(
+              "relative p-0 text-center text-[13px] focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-[#00392D] [&:has([aria-selected])]:text-white [&:has([aria-selected].day-outside)]:bg-[#00392D]/50",
+              "hover:bg-[#d9e5e1] hover:text-[#1a5345]"
+            ),
+            day: cn(
+              "h-10 w-10 p-0 font-normal transition-colors",
+              "text-[#152a24]",
+              "hover:bg-[#d9e5e1] hover:text-[#1a5345]"
+            ),
+            day_range_end: "day-range-end",
+            day_selected:
+              "bg-[#00392D] text-white hover:bg-[#00392D] hover:text-white",
+            day_today: "bg-[#E8F0EE] text-[#00392D] font-bold",
+            day_outside:
+              "text-[#9CA3AF] opacity-50",
+            day_disabled: "text-[#9CA3AF] opacity-50 cursor-not-allowed",
+            day_range_middle:
+              "aria-selected:bg-[#E8F0EE] aria-selected:text-[#00392D]",
+            day_hidden: "invisible",
+          }}
+        />
+      </PopoverContent>
+    </Popover>
   )
 }
 
@@ -138,16 +205,29 @@ export function DateTimePicker({
   aiTipBody,
   className,
 }: DateTimePickerProps) {
+  const [calendarDate, setCalendarDate] = useState<Date | undefined>(
+    selectedDate ? new Date(new Date().getFullYear(), new Date().getMonth(), selectedDate) : undefined
+  )
+
+  const handleCalendarSelect = (date: Date) => {
+    setCalendarDate(date)
+    onDateChange(date.getDate())
+  }
+
   return (
     <div
       className={cn(
-        "rounded-2xl border border-[#E8E6E0] bg-white p-6 shadow-[0_1px_4px_rgba(0,0,0,0.06)]",
+        "rounded-2xl border border-[#cfd9d5] bg-white p-6 shadow-[0_1px_4px_rgba(0,0,0,0.06)]",
         className,
       )}
     >
       <div className="mb-5 flex items-center justify-between">
         <StepHeading step={2} title="Select Date & Time" />
-        <MonthNav label={monthLabel} />
+        <MonthNav 
+          label={monthLabel} 
+          selectedDate={calendarDate}
+          onDateSelect={handleCalendarSelect}
+        />
       </div>
 
       <div className="mb-8 flex gap-2 overflow-x-auto pb-2">
