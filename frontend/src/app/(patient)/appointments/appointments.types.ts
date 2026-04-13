@@ -16,7 +16,9 @@ export type TimeSlot = {
 export type DayOption = {
   day: string
   date: number
+  fullDate: string
   disabled?: boolean
+  label?: string
 }
 
 export type DoctorInfo = {
@@ -40,6 +42,7 @@ export type Appointment = {
   confirmationCode: string
   scheduledAt: string
   department: string
+  reason?: string
   clinician: string
   location: string
   locationDetail?: string
@@ -61,9 +64,9 @@ export type FeeRow = {
 
 export type AppointmentsPageData = {
   doctors: DoctorInfo[]
-  selectedDoctor: DoctorInfo
+  selectedDoctor: DoctorInfo | null
   days: DayOption[]
-  timeSlots: TimeSlot[]
+  timeSlotsByDate: Record<string, TimeSlot[]>
   appointments: Appointment[]
   upcoming: Appointment[]
   past: Appointment[]

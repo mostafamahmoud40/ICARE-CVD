@@ -68,13 +68,13 @@ function CompactRow({ appointment, isPast, isCancelled, onClick }: CompactRowPro
     <div
       onClick={onClick}
       className={cn(
-        "group flex cursor-pointer items-center gap-4 border-b border-[#E8E6E0] px-4 py-3 transition-colors hover:bg-[#F9F8F5]",
+        "group flex cursor-pointer items-center gap-2 border-b border-[#E8E6E0] px-3 py-3 transition-colors hover:bg-[#F9F8F5] lg:gap-3 lg:px-4",
         isPast && "opacity-70",
         isCancelled && "opacity-50"
       )}
     >
       {/* Code Column */}
-      <div className="w-[120px] shrink-0 text-center">
+      <div className="w-[92px] shrink-0 text-center lg:w-[110px]">
         <p className="font-mono text-[12px] font-medium text-[#00392D]">
           {appointment.confirmationCode}
         </p>
@@ -95,7 +95,7 @@ function CompactRow({ appointment, isPast, isCancelled, onClick }: CompactRowPro
       </div>
 
       {/* Date Column */}
-      <div className="w-[70px] shrink-0 text-center">
+      <div className="w-[56px] shrink-0 text-center lg:w-[64px]">
         <p className={cn(
           "text-[11px] font-medium uppercase",
           isToday ? "text-emerald-600" : "text-[#6B7870]"
@@ -107,9 +107,9 @@ function CompactRow({ appointment, isPast, isCancelled, onClick }: CompactRowPro
 
       {/* Content - Table Columns */}
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 lg:gap-3">
           {/* Doctor Column */}
-          <div className="w-[140px] shrink-0">
+          <div className="w-[120px] shrink-0 lg:w-[140px]">
             <p className="truncate text-[13px] font-semibold text-[#1A1F1E]">
               {appointment.clinician}
             </p>
@@ -117,7 +117,7 @@ function CompactRow({ appointment, isPast, isCancelled, onClick }: CompactRowPro
           </div>
 
           {/* Type Column */}
-          <div className="w-[80px] shrink-0">
+          <div className="w-[72px] shrink-0 lg:w-[80px]">
             <span className={cn(
               "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium",
               visitTypeIcon === "video"
@@ -130,7 +130,7 @@ function CompactRow({ appointment, isPast, isCancelled, onClick }: CompactRowPro
           </div>
 
           {/* Time Column */}
-          <div className="w-[100px] shrink-0">
+          <div className="w-[84px] shrink-0 lg:w-[96px]">
             <span className="flex items-center gap-1 text-[13px] text-[#1A1F1E]">
               <ClockIcon className="size-3.5 text-[#6B7870]" />
               {formatTimeOnly(appointment.scheduledAt)}
@@ -139,18 +139,20 @@ function CompactRow({ appointment, isPast, isCancelled, onClick }: CompactRowPro
 
           {/* Reason Column */}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] text-[#1A1F1E]">{appointment.department}</p>
+            <p className="truncate text-[13px] text-[#1A1F1E]">
+              {appointment.reason?.trim() || appointment.department}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Status Column */}
-      <div className="w-[80px] shrink-0 text-center">
+      <div className="w-[64px] shrink-0 text-center lg:w-[76px]">
         <StatusBadge status={appointment.status} />
       </div>
 
       {/* Action Column (Arrow) */}
-      <div className="w-4 shrink-0">
+      <div className="w-3 shrink-0">
         <ChevronRightIcon className="size-4 text-[#9CA3AF] opacity-0 transition-opacity group-hover:opacity-100" />
       </div>
     </div>
@@ -162,6 +164,7 @@ type MyAppointmentsProps = {
   upcoming: Appointment[]
   past: Appointment[]
   onBookNew: () => void
+  onCancelAppointment: (appointmentId: string) => Promise<unknown>
   className?: string
 }
 
@@ -170,6 +173,7 @@ export function MyAppointments({
   upcoming,
   past,
   onBookNew,
+  onCancelAppointment,
   className,
 }: MyAppointmentsProps) {
   const [filter, setFilter] = useState<FilterTab>("all")
@@ -226,9 +230,14 @@ export function MyAppointments({
     setTimeout(() => setIsRefreshing(false), 1000)
   }
 
-  const handleCancel = (id: string) => {
-    setCancelledAppointments(prev => [...prev, id])
-    setSelectedAppointment(null)
+  const handleCancel = async (id: string) => {
+    try {
+      await onCancelAppointment(id)
+      setCancelledAppointments(prev => [...prev, id])
+      setSelectedAppointment(null)
+    } catch {
+      alert("Could not cancel appointment. Please try again.")
+    }
   }
 
   const handleReschedule = (appointment: Appointment) => {
@@ -248,7 +257,7 @@ export function MyAppointments({
           scrollbar-width: none;
         }
       `}</style>
-      <div className={cn("bg-white", className)}>
+      <div className={cn("w-full overflow-hidden bg-white", className)}>
       {/* Header */}
       <div className="border-b border-[#E8E6E0] bg-[#FAFAF8] px-4 py-3">
         <div className="flex items-center justify-between">
@@ -294,8 +303,8 @@ export function MyAppointments({
         </div>
 
         {/* Filter Tabs with Search */}
-        <div className="mt-3 flex items-center gap-8">
-          <div className="relative w-96">
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <div className="relative w-full md:w-80 lg:w-96">
             <SearchIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-[#9CA3AF]" />
             <Input
               value={searchQuery}
@@ -312,42 +321,45 @@ export function MyAppointments({
               </button>
             )}
           </div>
-          <div className="ml-auto flex gap-1">
-            {(["all", "upcoming", "past", "cancelled"] as FilterTab[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setFilter(tab)}
-                className={cn(
-                  "rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors",
-                  filter === tab
-                    ? "bg-[#00392D] text-white"
-                    : "bg-[#E8E6E0]/50 text-[#6B7870] hover:bg-[#E8E6E0]"
-                )}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
+          <div className="w-full overflow-x-auto no-scrollbar md:ml-auto md:w-auto">
+            <div className="flex min-w-max gap-1">
+              {(["all", "upcoming", "past", "cancelled"] as FilterTab[]).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setFilter(tab)}
+                  className={cn(
+                    "rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors",
+                    filter === tab
+                      ? "bg-[#00392D] text-white"
+                      : "bg-[#E8E6E0]/50 text-[#6B7870] hover:bg-[#E8E6E0]"
+                  )}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Appointments List */}
-      <div>
+      <div className="w-full overflow-hidden">
+        <div className="w-full">
         {/* Table Header */}
-        <div className="flex items-center gap-4 border-b border-[#E8E6E0] bg-[#F9F8F5] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-[#6B7870]">
-          <div className="w-[120px] shrink-0 text-center">Code</div>
+        <div className="flex items-center gap-2 border-b border-[#E8E6E0] bg-[#F9F8F5] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-[#6B7870] lg:gap-3 lg:px-4">
+          <div className="w-[92px] shrink-0 text-center lg:w-[110px]">Code</div>
           <div className="flex size-10 shrink-0 items-center justify-center">Type</div>
-          <div className="w-[70px] shrink-0 text-center">Date</div>
+          <div className="w-[56px] shrink-0 text-center lg:w-[64px]">Date</div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-4">
-              <span className="w-[140px]">Doctor</span>
-              <span className="w-[80px]">Type</span>
-              <span className="w-[100px]">Time</span>
+            <div className="flex items-center gap-2 lg:gap-3">
+              <span className="w-[120px] lg:w-[140px]">Doctor</span>
+              <span className="w-[72px] lg:w-[80px]">Type</span>
+              <span className="w-[84px] lg:w-[96px]">Time</span>
               <span className="flex-1">Reason</span>
             </div>
           </div>
-          <div className="w-[80px] text-center">Status</div>
-          <div className="w-4 shrink-0"></div>
+          <div className="w-[64px] text-center lg:w-[76px]">Status</div>
+          <div className="w-3 shrink-0"></div>
         </div>
 
         {filteredAppointments.length === 0 ? (
@@ -370,6 +382,7 @@ export function MyAppointments({
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {/* Appointment Details Dialog */}
@@ -485,7 +498,9 @@ export function MyAppointments({
                     <Button
                       variant="destructive"
                       className="flex-1"
-                      onClick={() => handleCancel(selectedAppointment.id)}
+                      onClick={() => {
+                        void handleCancel(selectedAppointment.id)
+                      }}
                     >
                       Cancel
                     </Button>

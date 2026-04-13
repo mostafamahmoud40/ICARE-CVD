@@ -10,3 +10,5 @@ export * from './doctor.schema';
 export * from './assistant.schema';
 export * from './doctorSchedule.schema';
 export * from './blockedDates.schema';
+export * from './appointment.schema';
+export * from './appointmentAttachment.schema';

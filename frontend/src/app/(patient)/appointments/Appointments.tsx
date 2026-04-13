@@ -8,7 +8,7 @@ import { VisitTypeSelector } from "./VisitTypeSelector"
 import { DateTimePicker } from "./DateTimePicker"
 import { BookingSummary } from "./BookingSummary"
 import { BookingReason } from "./BookingReason"
-import { FileUpload, UploadedFile } from "./FileUpload"
+import { FileUpload } from "./FileUpload"
 import { MyAppointments } from "./MyAppointments"
 import { useBookingForm } from "./useBookingForm"
 import { useAppointments } from "./useAppointments"
@@ -53,7 +53,7 @@ function LoadingSkeleton() {
       </div>
       {/* My Appointments Skeleton */}
       <Skeleton className="h-[300px] w-full rounded-2xl" />
-      <div className="grid items-start gap-8 lg:grid-cols-[1fr_360px]">
+      <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
         <div className="space-y-6">
           <Skeleton className="h-[160px] w-full rounded-2xl" />
           <Skeleton className="h-[200px] w-full rounded-2xl" />
@@ -65,20 +65,19 @@ function LoadingSkeleton() {
   )
 }
 
-function ErrorMessage({ message }: { message: string }) {
-  return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-500">
-      {message}
-    </div>
-  )
-}
-
 function BookingSection({
   data,
   onBack,
+  onCreateAppointment,
 }: {
   data: AppointmentsPageData
   onBack: () => void
+  onCreateAppointment: (payload: {
+    doctorId: string
+    scheduledAt: string
+    visitType: "clinic" | "virtual"
+    reason: string
+  }) => Promise<unknown>
 }) {
   const {
     visitType,
@@ -93,9 +92,37 @@ function BookingSection({
     setFiles,
     handleConfirm,
   } = useBookingForm({
-    onConfirm: (state) => {
-      console.log("Appointment confirmed:", state)
-      alert("Appointment confirmed! Reason: " + state.reason)
+    selectedDate: data.days.find((d) => !d.disabled)?.fullDate ?? "",
+    selectedSlot:
+      data.timeSlotsByDate[data.days.find((d) => !d.disabled)?.fullDate ?? ""]?.find((s) => s.available)?.time ??
+      "",
+    onConfirm: async (state) => {
+      if (!data.selectedDoctor) {
+        alert("No doctors are available right now.")
+        return
+      }
+      if (!state.selectedDate || !state.selectedSlot) {
+        alert("Please select date and time.")
+        return
+      }
+      const normalizedReason = state.reason.trim()
+      if (!normalizedReason) {
+        alert("Reason for visit is required.")
+        return
+      }
+      try {
+        const scheduledAt = combineDateAndTime(state.selectedDate, state.selectedSlot)
+        await onCreateAppointment({
+          doctorId: data.selectedDoctor.id,
+          scheduledAt,
+          visitType: state.visitType,
+          reason: normalizedReason,
+        })
+        alert("Appointment confirmed.")
+        onBack()
+      } catch {
+        alert("This slot is already booked. Please choose another time.")
+      }
     },
   })
 
@@ -119,20 +146,26 @@ function BookingSection({
 
       <PageHeader />
 
-      <div className="grid items-start gap-8 lg:grid-cols-[1fr_360px]">
+      <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
         <div className="space-y-6">
-          <DoctorCard
-            name={data.selectedDoctor.name}
-            title={data.selectedDoctor.title}
-            experience={data.selectedDoctor.experience}
-            specialties={data.selectedDoctor.specialties}
-          />
+          {data.selectedDoctor ? (
+            <DoctorCard
+              name={data.selectedDoctor.name}
+              title={data.selectedDoctor.title}
+              experience={data.selectedDoctor.experience}
+              specialties={data.selectedDoctor.specialties}
+            />
+          ) : (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+              No doctors available currently. Please try again later.
+            </div>
+          )}
           <VisitTypeSelector selected={visitType} onChange={setVisitType} />
           <BookingReason value={reason} onChange={setReason} />
           <FileUpload files={files} onFilesChange={setFiles} />
           <DateTimePicker
             days={data.days}
-            timeSlots={data.timeSlots}
+            timeSlots={data.timeSlotsByDate[selectedDate] ?? []}
             monthLabel={data.monthLabel}
             selectedDate={selectedDate}
             selectedSlot={selectedSlot}
@@ -144,7 +177,7 @@ function BookingSection({
         </div>
 
         <BookingSummary
-          doctorName={data.selectedDoctor.name}
+          doctorName={data.selectedDoctor?.name ?? "Doctor unavailable"}
           selectedDate={selectedDate}
           selectedSlot={selectedSlot}
           fees={data.fees}
@@ -155,11 +188,30 @@ function BookingSection({
   )
 }
 
-function AppointmentsContent({ data }: { data: AppointmentsPageData }) {
+function AppointmentsContent({
+  data,
+  onCreateAppointment,
+  onCancelAppointment,
+}: {
+  data: AppointmentsPageData
+  onCreateAppointment: (payload: {
+    doctorId: string
+    scheduledAt: string
+    visitType: "clinic" | "virtual"
+    reason: string
+  }) => Promise<unknown>
+  onCancelAppointment: (appointmentId: string) => Promise<unknown>
+}) {
   const [showBooking, setShowBooking] = useState(false)
 
   if (showBooking) {
-    return <BookingSection data={data} onBack={() => setShowBooking(false)} />
+    return (
+      <BookingSection
+        data={data}
+        onBack={() => setShowBooking(false)}
+        onCreateAppointment={onCreateAppointment}
+      />
+    )
   }
 
   return (
@@ -169,22 +221,33 @@ function AppointmentsContent({ data }: { data: AppointmentsPageData }) {
         upcoming={data.upcoming}
         past={data.past}
         onBookNew={() => setShowBooking(true)}
+        onCancelAppointment={onCancelAppointment}
       />
     </div>
   )
 }
 
+function combineDateAndTime(dateOnly: string, slotLabel: string) {
+  const [time, period] = slotLabel.split(" ")
+  const [hhRaw, mmRaw] = time.split(":").map(Number)
+  const hours24 = period === "PM" ? (hhRaw % 12) + 12 : hhRaw % 12
+  const d = new Date(`${dateOnly}T00:00:00`)
+  d.setHours(hours24, mmRaw, 0, 0)
+  return d.toISOString()
+}
+
 export function Appointments() {
-  const { data, isLoading, isError, error } = useAppointments()
+  const { data, isLoading, createAppointment, cancelAppointment } = useAppointments()
   return (
-    <main className="flex flex-1 flex-col space-y-6 bg-[#F9F8F5] px-4 py-6 md:px-6">
+    <main className="flex flex-1 flex-col space-y-6 overflow-x-hidden bg-[#F9F8F5] px-4 py-6 md:px-6">
       {isLoading ? <LoadingSkeleton /> : null}
-      {isError ? (
-        <ErrorMessage
-          message={error instanceof Error ? error.message : "Unable to load appointments."}
+      {data ? (
+        <AppointmentsContent
+          data={data}
+          onCreateAppointment={createAppointment}
+          onCancelAppointment={cancelAppointment}
         />
       ) : null}
-      {data ? <AppointmentsContent data={data} /> : null}
     </main>
   )
 }
