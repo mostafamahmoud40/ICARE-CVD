@@ -12,3 +12,5 @@ export * from './doctorSchedule.schema';
 export * from './blockedDates.schema';
 export * from './appointment.schema';
 export * from './appointmentAttachment.schema';
+export * from './conversation.schema';
+export * from './message.schema';

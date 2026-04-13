@@ -3,7 +3,7 @@ import { MicIcon, PaperclipIcon, SendIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface ChatInputProps {
-  onSendMessage: (text: string) => void
+  onSendMessage: (text: string) => void | Promise<void>
 }
 
 export function ChatInput({ onSendMessage }: ChatInputProps) {
