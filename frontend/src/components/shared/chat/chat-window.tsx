@@ -10,7 +10,7 @@ import type { ChatContact, ChatMessage } from "./chat.types"
 interface ChatWindowProps {
   activeContact: ChatContact | undefined
   messages: ChatMessage[]
-  onSendMessage: (text: string) => void
+  onSendMessage: (text: string) => void | Promise<void>
 }
 
 export function ChatWindow({ activeContact, messages, onSendMessage }: ChatWindowProps) {

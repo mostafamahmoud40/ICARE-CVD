@@ -12,6 +12,7 @@ export default function DoctorChatPage() {
     setActiveContactId,
     messages,
     sendMessage,
+    startNewChat,
   } = useChat()
 
   return (
@@ -20,6 +21,7 @@ export default function DoctorChatPage() {
         contacts={contacts} 
         activeContactId={activeContactId} 
         onSelectContact={setActiveContactId} 
+        onStartNewChat={startNewChat}
       />
       
       <ChatWindow 
