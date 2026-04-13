@@ -6,7 +6,6 @@ import { DoctorCard } from "./DoctorCard"
 import { VisitTypeSelector } from "./VisitTypeSelector"
 import { DateTimePicker } from "./DateTimePicker"
 import { BookingSummary } from "./BookingSummary"
-import { PastAppointmentsSection } from "./PastAppointmentsSection"
 import { useBookingForm } from "./useBookingForm"
 import { useAppointments } from "./useAppointments"
 import { SparklesIcon } from "lucide-react"
@@ -84,7 +83,6 @@ function AppointmentsContent({ data }: { data: AppointmentsPageData }) {
             name={data.doctor.name}
             title={data.doctor.title}
             experience={data.doctor.experience}
-            rating={data.doctor.rating}
             specialties={data.doctor.specialties}
           />
           <VisitTypeSelector selected={visitType} onChange={setVisitType} />
@@ -99,7 +97,6 @@ function AppointmentsContent({ data }: { data: AppointmentsPageData }) {
             aiTipTitle={data.aiTipTitle}
             aiTipBody={data.aiTipBody}
           />
-          <PastAppointmentsSection appointments={data.past} />
         </div>
 
         <BookingSummary

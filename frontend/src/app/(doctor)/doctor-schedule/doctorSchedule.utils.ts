@@ -32,6 +32,7 @@ export function createEmptySchedule(): DoctorSchedulePayload {
       unavailableBlocks: [],
       maxAppointmentsPerDay: null,
     })),
+    blockedDates: [],
   }
 }
 
@@ -93,9 +94,12 @@ export function migrateLegacyDoctorSchedule(
       ? root.bufferBetweenSlotsMinutes
       : 10
 
+  const blockedDates = Array.isArray(root.blockedDates) ? root.blockedDates : []
+
   return {
     slotDurationMinutes: slot,
     bufferBetweenSlotsMinutes: buffer,
     days,
+    blockedDates,
   }
 }

@@ -68,6 +68,12 @@ export const dayAvailabilitySchema = z
     }
   })
 
+const blockedDateSchema = z.object({
+  id: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
+  reason: z.string().nullable().optional(),
+})
+
 export const doctorScheduleSchema = z.object({
   days: z.array(dayAvailabilitySchema).length(7),
   slotDurationMinutes: z
@@ -81,6 +87,7 @@ export const doctorScheduleSchema = z.object({
     .min(0, "Minimum 0 minutes")
     .max(30, "Maximum 30 minutes")
     .default(10),
+  blockedDates: z.array(blockedDateSchema).default([]),
 })
 
 export type DoctorScheduleFormValues = z.infer<typeof doctorScheduleSchema>

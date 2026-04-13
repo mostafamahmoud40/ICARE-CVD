@@ -48,6 +48,17 @@ export class DayAvailabilityDto {
   maxAppointmentsPerDay?: number | null;
 }
 
+export class BlockedDateItemDto {
+  @IsString()
+  id!: string;
+
+  @IsString()
+  date!: string;
+
+  @IsOptional()
+  reason?: string | null;
+}
+
 export class UpdateDoctorScheduleDto {
   @IsNumber()
   @Min(10)
@@ -63,4 +74,10 @@ export class UpdateDoctorScheduleDto {
   @ValidateNested({ each: true })
   @Type(() => DayAvailabilityDto)
   days!: DayAvailabilityDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BlockedDateItemDto)
+  blockedDates?: BlockedDateItemDto[];
 }

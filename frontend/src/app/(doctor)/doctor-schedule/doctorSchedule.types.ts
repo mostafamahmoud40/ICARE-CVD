@@ -29,10 +29,18 @@ export type DayAvailability = {
   maxAppointmentsPerDay: number | null
 }
 
+export type BlockedDate = {
+  id: string
+  date: string
+  reason?: string
+}
+
 export type DoctorSchedulePayload = {
   days: DayAvailability[]
   /** Length of each bookable slot when generating times */
   slotDurationMinutes: number
   /** Buffer time between consecutive slots (cleanup/prep time) */
   bufferBetweenSlotsMinutes: number
+  /** Specific dates the doctor is unavailable (vacation, conferences, etc.) */
+  blockedDates: BlockedDate[]
 }

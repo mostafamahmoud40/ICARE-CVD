@@ -9,3 +9,4 @@ export * from './document.schema';
 export * from './doctor.schema';
 export * from './assistant.schema';
 export * from './doctorSchedule.schema';
+export * from './blockedDates.schema';

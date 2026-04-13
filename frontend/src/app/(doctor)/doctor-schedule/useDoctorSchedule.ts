@@ -41,8 +41,8 @@ export function useDoctorSchedule() {
 
   const saveMutation = useMutation({
     mutationFn: persistSchedule,
-    onSuccess: (data) => {
-      queryClient.setQueryData(QUERY_KEY, data)
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEY })
       toast.success("Schedule saved", {
         description: "Your weekly availability has been updated.",
       })
@@ -56,8 +56,8 @@ export function useDoctorSchedule() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteSchedule,
-    onSuccess: () => {
-      queryClient.setQueryData(QUERY_KEY, createEmptySchedule())
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEY })
       toast.success("Schedule deleted", {
         description: "Your schedule has been cleared. You can start fresh.",
       })
