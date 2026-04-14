@@ -98,10 +98,10 @@ function DoctorLayoutContent({
       isActive: pathname === "/doctor-schedule",
     },
     {
-      href: "/doctor-dashboard",
+      href: "/doctor-appointments",
       label: "Appointments",
       icon: CalendarDaysIcon,
-      isActive: false,
+      isActive: pathname === "/doctor-appointments",
     },
     {
       href: "/doctor-dashboard",
@@ -110,10 +110,10 @@ function DoctorLayoutContent({
       isActive: false,
     },
     {
-      href: "/doctor-dashboard",
+      href: "/doctor-prescriptions",
       label: "Prescriptions",
       icon: PillIcon,
-      isActive: false,
+      isActive: pathname === "/doctor-prescriptions",
     },
     {
       href: "/doctor-chat",
@@ -288,12 +288,22 @@ function DoctorLayoutContent({
           <SidebarTrigger />
           <div className="flex flex-col">
             <div className="text-base font-semibold">
-              {pathname === "/doctor-schedule" ? "Schedule" : "Doctor Dashboard"}
+              {mounted && (pathname === "/doctor-schedule"
+                ? "Schedule"
+                : pathname === "/doctor-appointments"
+                  ? "Appointments"
+                  : pathname === "/doctor-prescriptions"
+                    ? "Prescriptions"
+                    : "Doctor Dashboard") || "Doctor Dashboard"}
             </div>
             <div className="text-sm text-muted-foreground">
-              {pathname === "/doctor-schedule"
+              {mounted && (pathname === "/doctor-schedule"
                 ? "Weekly availability & clinic hours"
-                : "Overview & patient insights"}
+                : pathname === "/doctor-appointments"
+                  ? "Manage your patient appointments"
+                  : pathname === "/doctor-prescriptions"
+                    ? "Manage patient prescriptions"
+                    : "Overview & patient insights") || "Overview & patient insights"}
             </div>
           </div>
         </div>

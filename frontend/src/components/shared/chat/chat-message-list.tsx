@@ -1,3 +1,6 @@
+"use client"
+
+import { useRef, useEffect } from "react"
 import { CheckIcon, CheckCheckIcon } from "lucide-react"
 import type { ChatMessage } from "./chat.types"
 
@@ -7,8 +10,16 @@ interface ChatMessageListProps {
 }
 
 export function ChatMessageList({ messages, activeContactId }: ChatMessageListProps) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages])
+
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 dark:bg-muted/10 custom-scrollbar relative">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 dark:bg-muted/10 custom-scrollbar relative">
       <div className="flex justify-center mb-8">
         <span className="text-[10px] font-medium bg-muted px-3 py-1 rounded-full text-muted-foreground shadow-xs">
           Today

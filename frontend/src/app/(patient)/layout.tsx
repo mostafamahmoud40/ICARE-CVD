@@ -102,10 +102,10 @@ function PatientLayoutContent({
       isActive: false,
     },
     {
-      href: "/dashboard",
+      href: "/medications",
       label: "Medications",
       icon: PillIcon,
-      isActive: false,
+      isActive: pathname === "/medications",
     },
     {
       href: "/chat",
@@ -277,8 +277,24 @@ function PatientLayoutContent({
         <div className="flex h-16 items-center gap-3 border-b border-black/5 px-4 dark:border-white/10">
           <SidebarTrigger />
           <div className="flex flex-col">
-            <div className="text-base font-semibold">Patient Dashboard</div>
-            <div className="text-sm text-muted-foreground">Overview & care summary</div>
+            <div className="text-base font-semibold">
+              {pathname === "/medications"
+                ? "Medications"
+                : pathname === "/appointments"
+                  ? "Appointments"
+                  : pathname === "/chat"
+                    ? "Chats"
+                    : "Patient Dashboard"}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {pathname === "/medications"
+                ? "Manage your prescriptions & doses"
+                : pathname === "/appointments"
+                  ? "View and manage your appointments"
+                  : pathname === "/chat"
+                    ? "Messages & conversations"
+                    : "Overview & care summary"}
+            </div>
           </div>
         </div>
 
