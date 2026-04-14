@@ -10,6 +10,7 @@ import { S3Module } from './shared/storage/s3.module';
 import { AppointmentModule } from './modules/appointment/appointment.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { MedicationModule } from './modules/medication/medication.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { MedicationModule } from './modules/medication/medication.module';
     AppointmentModule,
     ChatModule,
     MedicationModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

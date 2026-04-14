@@ -1,11 +1,13 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Sparkles } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { CHIEF_COMPLAINT_LABELS } from "./MedicalHpiBlocks";
 import type { RegisterDocumentsValues, RegisterMedicalValues, RegisterProfileValues, RegisterValues } from "./register.types";
 import type { StepValuesMap } from "./useRegisterSteps";
+import { useRegistrationAnalysis } from "./useRegistrationAnalysis";
 
 type StepReviewProps = {
   accountValues: RegisterValues;
@@ -35,6 +37,11 @@ export function StepReview({ accountValues, profileValues, medicalValues, docume
     medical: allValues.medical,
     documents: allValues.documents,
   };
+  const analysisQuery = useRegistrationAnalysis({
+    accountValues,
+    profileValues,
+    medicalValues,
+  });
 
   return (
     <div className="space-y-4">
@@ -77,6 +84,51 @@ export function StepReview({ accountValues, profileValues, medicalValues, docume
             Notes: {docs.notes?.trim() ? "Provided" : "—"}
           </p>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-border/80 bg-muted/30 p-4">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-4 text-primary" />
+            <p className="text-sm font-semibold text-foreground">AI registration analysis</p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8"
+            onClick={() => {
+              void analysisQuery.refetch();
+            }}
+            disabled={analysisQuery.isFetching}
+          >
+            <RefreshCw className={`mr-1 size-3.5 ${analysisQuery.isFetching ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
+
+        {analysisQuery.isLoading ? (
+          <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Loader2 className="size-4 animate-spin" />
+              Generating clinical note from your registration data...
+            </div>
+          </div>
+        ) : null}
+
+        {analysisQuery.isError ? (
+          <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-700 dark:border-red-400/60 dark:bg-red-950/40 dark:text-red-200">
+            <AlertCircle className="mt-0.5 size-4" />
+            <AlertTitle>AI unavailable</AlertTitle>
+            <AlertDescription>The local AI model is not available right now. Please ensure Ollama is running and try again.</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {analysisQuery.data?.analysis ? (
+          <pre className="max-h-[min(28rem,55vh)] overflow-auto whitespace-pre-wrap rounded-lg border border-border bg-card p-3 text-left text-[12px] leading-relaxed text-foreground">
+            {analysisQuery.data.analysis}
+          </pre>
+        ) : null}
       </div>
 
       <div className="rounded-xl border border-border/80 bg-muted/30 p-4">
