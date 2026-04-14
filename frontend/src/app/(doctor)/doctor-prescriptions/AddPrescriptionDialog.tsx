@@ -99,13 +99,12 @@ export function AddPrescriptionDialog({
   const handleSubmit = () => {
     if (!name.trim() || !dose.trim() || !frequency || !duration) return
     const freqLabel = FREQUENCY_OPTIONS.find((f) => f.value === frequency)?.label ?? frequency
-    const durationLabel = DURATION_OPTIONS.find((d) => d.value === duration)?.label ?? duration
     onAdd({
       patientId,
       name: name.trim(),
       dose: dose.trim(),
       frequency: freqLabel,
-      duration: durationLabel,
+      durationDays: duration === "ongoing" ? undefined : Number(duration),
       type,
       sideEffects: sideEffects.trim() || undefined,
       instructions: instructions.trim() || undefined,

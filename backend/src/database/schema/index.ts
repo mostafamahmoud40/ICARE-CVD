@@ -5,6 +5,8 @@ export * from './patientHistory.schema';
 export * from './familyHistory.schema';
 export * from './allergy.schema';
 export * from './medication.schema';
+export * from './doseLog.schema';
+export * from './medicationRefill.schema';
 export * from './document.schema';
 export * from './doctor.schema';
 export * from './assistant.schema';

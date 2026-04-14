@@ -85,6 +85,13 @@
       "when": 1775843216127,
       "tag": "0011_wide_electro",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1776138482693,
+      "tag": "0012_clear_mathemanic",
+      "breakpoints": true
     }
   ]
 }

@@ -25,19 +25,23 @@ export type Medication = {
   name: string
   dose: string
   frequency: string
-  duration?: string
   type: MedicationType
   compliance?: MedicationCompliance
   sideEffects?: string
   status: MedicationStatus
   prescribedBy: string
   prescribedAt: string
+  startDate?: string
+  durationDays?: number
+  endDate?: string
+  adherencePercent: number
   lastTakenAt?: string
   nextDoseAt?: string
+  duration?: string
   instructions?: string
   timeOfDay: TimeOfDay[]
   remainingRefills: number
-  adherenceHistory?: boolean[] // last 7 days
+  adherenceHistory?: boolean[]
 }
 
 export type MedicationTypeFilter = "all" | MedicationType
