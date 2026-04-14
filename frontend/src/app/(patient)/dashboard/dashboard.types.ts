@@ -24,12 +24,25 @@ export type Appointment = {
   status: AppointmentStatus
 }
 
+export type MedicationStatus = "taken" | "due" | "missed"
+
+export type MedicationTime = "Morning" | "Afternoon" | "Evening" | "Night"
+
+export type MedicationAdherenceDay = {
+  date: string
+  taken: boolean
+}
+
 export type Medication = {
   id: string
   name: string
   dosage: string
   frequency: string
+  timeOfDay: MedicationTime
   lastTakenAt?: string
+  status: MedicationStatus
+  adherenceHistory: boolean[] // last 7 days
+  dueAt?: string
 }
 
 export type PatientDashboardData = {

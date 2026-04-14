@@ -30,6 +30,12 @@ import {
   StethoscopeIcon,
   FileTextIcon,
   ClockIcon,
+  CheckIcon,
+  AlertCircleIcon,
+  SunriseIcon,
+  SunIcon,
+  SunsetIcon,
+  MoonIcon,
 } from "lucide-react"
 
 type DashboardMetric = {
@@ -180,7 +186,7 @@ function MetricCard({ metric, compact = false }: { metric: DashboardMetric; comp
       <CardContent className={compact ? "space-y-2 pt-4" : "space-y-3 pt-4"}>
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">{metric.label}</p>
+            <p className="text-sm font-semibold text-muted-foreground">{metric.label}</p>
             <div className="text-3xl font-semibold leading-none tracking-tight">{metric.value}</div>
           </div>
           <div className={`flex size-8 items-center justify-center rounded-lg ${metric.iconStyle}`}>
@@ -292,54 +298,131 @@ function AppointmentRow({ appt, isNext = false }: { appt: Appointment; isNext?: 
   )
 }
 
+function getMedicationStatusStyles(status: Medication["status"]) {
+  switch (status) {
+    case "taken":
+      return {
+        borderColor: "border-[#1A5345]",
+        iconBg: "bg-[#1A5345]",
+        iconColor: "text-white",
+        timeBadge: "bg-[#E8F0EE] text-[#1A5345]",
+      }
+    case "due":
+      return {
+        borderColor: "border-[#3577DA]",
+        iconBg: "bg-[#3577DA]/10",
+        iconColor: "text-[#3577DA]",
+        timeBadge: "bg-[#E8F2FF] text-[#3577DA]",
+      }
+    case "missed":
+      return {
+        borderColor: "border-[#C94B4B]",
+        iconBg: "bg-[#C94B4B]/10",
+        iconColor: "text-[#C94B4B]",
+        timeBadge: "bg-[#FFE5E5] text-[#C94B4B]",
+      }
+  }
+}
+
+function getTimeIcon(timeOfDay: Medication["timeOfDay"]) {
+  switch (timeOfDay) {
+    case "Morning":
+      return SunriseIcon
+    case "Afternoon":
+      return SunIcon
+    case "Evening":
+      return SunsetIcon
+    case "Night":
+      return MoonIcon
+  }
+}
+
+function formatTime(iso: string) {
+  const date = new Date(iso)
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date)
+}
+
 function MedicationRow({ med }: { med: Medication }) {
+  const styles = getMedicationStatusStyles(med.status)
+  const TimeIcon = getTimeIcon(med.timeOfDay)
+
   return (
-    <div className="rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-4">
+    <div className={`rounded-xl border-2 bg-white p-4 transition-all hover:shadow-sm ${styles.borderColor}`}>
       <div className="flex items-start gap-4">
-        {/* Left: Icon */}
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#F6EFE4] text-[#9A6B2F]">
-          <PillIcon className="size-6" />
+        {/* Left: Status Icon */}
+        <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${styles.iconBg} ${styles.iconColor}`}>
+          {med.status === "taken" ? (
+            <CheckIcon className="size-5" />
+          ) : med.status === "missed" ? (
+            <AlertCircleIcon className="size-5" />
+          ) : (
+            <ClockIcon className="size-5" />
+          )}
         </div>
 
         {/* Middle: Info */}
         <div className="min-w-0 flex-1">
-          <div className="font-semibold text-[#102F27] text-lg">
-            {med.name}
-          </div>
-
-          <div className="mt-1.5 flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-            <span className="flex items-center gap-1.5">
-              <svg className="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-              </svg>
-              {med.dosage}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-[#102F27] text-base">
+              {med.name} <span className="text-muted-foreground font-normal">{med.dosage}</span>
             </span>
-            <span className="text-[#DDE9E4]">|</span>
-            <span className="text-[#4F6D64]">{med.frequency}</span>
           </div>
 
-          {med.lastTakenAt ? (
-            <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <svg className="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Last taken: {formatDate(med.lastTakenAt)}
+          {/* Time info */}
+          <div className="mt-1 text-sm text-muted-foreground">
+            {med.status === "taken" && med.lastTakenAt ? (
+              <span>Taken at {formatTime(med.lastTakenAt)}</span>
+            ) : med.status === "missed" ? (
+              <span className="text-[#C94B4B]">Missed yesterday at {med.dueAt ? formatTime(med.dueAt) : "9:00 PM"}</span>
+            ) : (
+              <span>Due at {med.dueAt ? formatTime(med.dueAt) : "9:00 PM"}</span>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="my-2 border-t border-[#E7EFEB]" />
+
+          {/* Last 7 days */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">Last 7 days:</span>
+              <div className="flex gap-0.5">
+                {med.adherenceHistory.map((taken, idx) => (
+                  <div
+                    key={idx}
+                    className={`size-2.5 rounded-full ${
+                      taken ? "bg-[#1A5345]" : "bg-[#C94B4B]"
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
-          ) : (
-            <div className="mt-1 flex items-center gap-1.5 text-xs text-[#9A6B2F]">
-              <svg className="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Not taken yet
-            </div>
-          )}
+          </div>
         </div>
 
-        {/* Right: Status */}
-        <div className="shrink-0">
-          <span className="rounded-full bg-[#E8F0EE] px-3 py-1.5 text-xs font-medium text-[#1A5345]">
-            Active
+        {/* Right: Time Badge & Action */}
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium flex items-center gap-1 ${styles.timeBadge}`}>
+            <TimeIcon className="size-3" />
+            {med.timeOfDay}
           </span>
+          {med.status === "taken" ? (
+            <span className="rounded-lg border border-[#1A5345]/20 bg-white px-3 py-1.5 text-xs font-medium text-[#1A5345]">
+              Taken
+            </span>
+          ) : med.status === "missed" ? (
+            <span className="text-xs text-[#C94B4B] font-medium">
+              Due tonight
+            </span>
+          ) : (
+            <button className="rounded-lg border border-[#1A5345]/20 bg-white px-3 py-1.5 text-xs font-medium text-[#1A5345] hover:bg-[#E8F0EE] transition-colors">
+              Mark as taken
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -616,17 +699,72 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
         </Card>
 
         <Card className="border-0 shadow-sm ring-1 ring-[#DDE9E4]">
-          <CardHeader className="border-b border-[#E7EFEB] pb-3">
-            <div className="flex items-center gap-2">
-              <PillIcon className="size-4 text-[#1A5345]" />
-              <CardTitle className="text-base text-[#0F2D25]">Current Medications</CardTitle>
+          <CardHeader className="border-b border-[#E7EFEB] pb-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle className="text-lg font-semibold text-[#0F2D25]">Today's medications</CardTitle>
+                <CardDescription className="mt-0.5">
+                  {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                </CardDescription>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <span className="rounded-full bg-[#E8F0EE] px-3 py-1 text-sm font-medium text-[#1A5345]">
+                  {data.medications.filter(m => m.status === "taken").length} / {data.medications.length} taken
+                </span>
+              </div>
             </div>
-            <CardDescription>Your active prescriptions.</CardDescription>
+
+            {/* Progress bar */}
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-muted-foreground">Progress</span>
+                <span className="font-medium text-[#1A5345]">
+                  {Math.round((data.medications.filter(m => m.status === "taken").length / data.medications.length) * 100)}% done today
+                </span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-[#E7EFEB]">
+                <div
+                  className="h-2 rounded-full bg-[#1A5345] transition-all"
+                  style={{
+                    width: `${(data.medications.filter(m => m.status === "taken").length / data.medications.length) * 100}%`
+                  }}
+                />
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="max-h-[360px] space-y-3 overflow-y-auto pt-4 scrollbar-hide">
+          <CardContent className="space-y-3 overflow-y-auto max-h-[400px] pt-4 scrollbar-hide">
             {data.medications.map((med) => (
               <MedicationRow key={med.id} med={med} />
             ))}
+
+            {/* Weekly adherence */}
+            <div className="mt-4 rounded-xl bg-[#F8FAF9] p-4">
+              <h4 className="text-sm font-semibold text-[#0F2D25] mb-3">This week's adherence</h4>
+              <div className="grid grid-cols-7 gap-1 text-center">
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, idx) => {
+                  // Calculate overall adherence for each day
+                  const dayIndex = idx
+                  const totalMeds = data.medications.length
+                  const takenMeds = data.medications.filter(m => m.adherenceHistory[dayIndex]).length
+                  const percentage = (takenMeds / totalMeds) * 100
+
+                  let bgClass = "bg-[#E7EFEB]"
+                  if (percentage >= 80) bgClass = "bg-[#1A5345]/20"
+                  else if (percentage >= 50) bgClass = "bg-[#E89042]/20"
+
+                  return (
+                    <div key={day} className="flex flex-col items-center gap-1.5">
+                      <span className="text-[10px] text-muted-foreground">{day}</span>
+                      <div className={`w-full aspect-square rounded-lg ${bgClass} flex items-center justify-center`}>
+                        {percentage >= 80 && <CheckIcon className="size-3 text-[#1A5345]" />}
+                        {percentage >= 50 && percentage < 80 && <span className="text-[10px] text-[#E89042]">{Math.round(percentage)}%</span>}
+                        {percentage < 50 && percentage > 0 && <span className="text-[10px] text-muted-foreground">{Math.round(percentage)}%</span>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
