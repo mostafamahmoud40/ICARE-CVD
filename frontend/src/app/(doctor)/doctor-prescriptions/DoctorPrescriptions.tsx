@@ -53,7 +53,7 @@ function PatientListItem({
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-[13px] font-semibold text-[#102F27]">{patient.fullName}</p>
-        <p className="truncate text-[11px] text-muted-foreground">{patient.condition}</p>
+        <p className="truncate text-[11px] text-muted-foreground">{patient.activeMedications} active medications</p>
         <div className="mt-1 flex items-center gap-2">
           <span className="rounded-full bg-[#F5F5F3] px-1.5 py-0.5 text-[10px] font-medium text-[#6B7870]">
             {prescriptionCount} Rx
@@ -87,7 +87,7 @@ export function DoctorPrescriptions() {
     const q = patientSearch.toLowerCase()
     return data.patients.filter(
       (p) =>
-        p.fullName.toLowerCase().includes(q) || p.condition.toLowerCase().includes(q),
+        p.fullName.toLowerCase().includes(q),
     )
   }, [data.patients, patientSearch])
 

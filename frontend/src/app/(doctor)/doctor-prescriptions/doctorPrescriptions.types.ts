@@ -16,9 +16,10 @@ export type TimeOfDay = "morning" | "afternoon" | "evening"
 export type PatientInfo = {
   id: string
   fullName: string
-  age: number
+  dateOfBirth: string
   gender: "male" | "female"
-  condition: string
+  activeMedications: number
+  poorComplianceCount: number
 }
 
 export type PatientPrescription = {
@@ -27,7 +28,6 @@ export type PatientPrescription = {
   name: string
   dose: string
   frequency: string
-  duration?: string
   type: PrescriptionType
   compliance: PrescriptionCompliance
   sideEffects?: string
@@ -36,6 +36,9 @@ export type PatientPrescription = {
   instructions?: string
   timeOfDay: TimeOfDay[]
   adherencePercent: number
+  startDate?: string
+  durationDays?: number
+  endDate?: string
   lastTakenAt?: string
 }
 
@@ -44,11 +47,12 @@ export type AddPrescriptionPayload = {
   name: string
   dose: string
   frequency: string
-  duration?: string
   type: PrescriptionType
   sideEffects?: string
   instructions?: string
   timeOfDay: TimeOfDay[]
+  durationDays?: number
+  startDate?: string
 }
 
 export type UpdatePrescriptionPayload = {

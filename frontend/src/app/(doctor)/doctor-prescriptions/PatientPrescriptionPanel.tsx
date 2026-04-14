@@ -145,9 +145,9 @@ function PatientRxCard({
                 </span>
               )
             })}
-            {prescription.duration && (
+            {prescription.durationDays && (
               <span className="ml-1 rounded-full bg-[#F0F7F5] px-1.5 py-0.5 text-[11px] text-[#1A5345]">
-                {prescription.duration}
+                {prescription.durationDays}d
               </span>
             )}
           </div>
@@ -323,7 +323,7 @@ export function PatientPrescriptionPanel({
             <div>
               <h3 className="font-semibold text-[#1A1F1E]">{patient.fullName}</h3>
               <p className="text-[12px] text-muted-foreground">
-                {patient.age}y, {patient.gender} &middot; {patient.condition}
+                {patient.gender} &middot; {patient.activeMedications} active medications
               </p>
             </div>
           </div>
