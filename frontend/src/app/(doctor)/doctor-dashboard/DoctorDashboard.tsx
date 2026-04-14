@@ -297,7 +297,7 @@ function MetricCard({ metric, compact = false }: { metric: DashboardMetric; comp
 }
 
 function DoctorDashboardContent({ data }: { data: DoctorDashboardData }) {
-  const [activeRange, setActiveRange] = React.useState<(typeof rangeOptions)[number]["key"]>("1W")
+  const [activeRange, setActiveRange] = React.useState<(typeof rangeOptions)[number]["key"]>("1M")
 
   const chartData = React.useMemo(() => {
     if (activeRange === "1D") {
