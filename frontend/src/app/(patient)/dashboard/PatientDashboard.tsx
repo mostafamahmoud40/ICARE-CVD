@@ -660,12 +660,7 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
               </div>
             </div>
 
-            <div className="rounded-lg border border-[#F2E1C7] bg-[#FFF8EB] px-3 py-2.5">
-              <p className="text-xs text-[#8C5B1E]">
-                <span className="font-medium">Note:</span> {data.careSummary.planNote}
-              </p>
-            </div>
-          </CardContent>
+                      </CardContent>
         </Card>
       </div>
 
