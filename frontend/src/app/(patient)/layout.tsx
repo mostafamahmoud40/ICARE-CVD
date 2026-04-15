@@ -97,10 +97,10 @@ function PatientLayoutContent({
       isActive: pathname === "/appointments",
     },
     {
-      href: "/dashboard",
+      href: "/vitals",
       label: "Vitals",
       icon: HeartPulseIcon,
-      isActive: false,
+      isActive: pathname.startsWith("/vitals"),
     },
     {
       href: "/medications",
@@ -293,7 +293,9 @@ function PatientLayoutContent({
                     ? "AI assistant"
                     : pathname === "/chat"
                       ? "Chats"
-                      : "Patient Dashboard"}
+                      : pathname === "/vitals"
+                        ? "Vitals & Measurements"
+                        : "Patient Dashboard"}
             </div>
             <div className="text-sm text-muted-foreground">
               {pathname === "/medications"
@@ -304,7 +306,9 @@ function PatientLayoutContent({
                     ? "Ask questions — demo replies only"
                     : pathname === "/chat"
                       ? "Messages & conversations"
-                      : "Overview & care summary"}
+                      : pathname === "/vitals"
+                        ? "Track your health metrics and progression"
+                        : "Overview & care summary"}
             </div>
           </div>
         </div>
