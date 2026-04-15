@@ -135,10 +135,12 @@ export function useDoctorPrescriptions() {
     staleTime: 2 * 60 * 1000,
   })
 
-  const invalidate = useCallback(
-    () => queryClient.invalidateQueries({ queryKey }),
-    [queryClient, queryKey],
-  )
+  const invalidate = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey }),
+      queryClient.invalidateQueries({ queryKey: ["doctor", "medications", "patients"] }),
+    ])
+  }, [queryClient, queryKey])
 
   const addPrescription = useCallback(
     async (payload: AddPrescriptionPayload) => {

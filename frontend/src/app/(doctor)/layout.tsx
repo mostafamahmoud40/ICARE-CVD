@@ -104,10 +104,10 @@ function DoctorLayoutContent({
       isActive: pathname === "/doctor-appointments",
     },
     {
-      href: "/doctor-dashboard",
+      href: "/doctor-patients",
       label: "Patients",
       icon: HeartPulseIcon,
-      isActive: false,
+      isActive: pathname.startsWith("/doctor-patients"),
     },
     {
       href: "/doctor-prescriptions",
@@ -292,18 +292,22 @@ function DoctorLayoutContent({
                 ? "Schedule"
                 : pathname === "/doctor-appointments"
                   ? "Appointments"
-                  : pathname === "/doctor-prescriptions"
-                    ? "Prescriptions"
-                    : "Doctor Dashboard") || "Doctor Dashboard"}
+                  : pathname === "/doctor-patients"
+                    ? "Patients"
+                    : pathname === "/doctor-prescriptions"
+                      ? "Prescriptions"
+                      : "Doctor Dashboard") || "Doctor Dashboard"}
             </div>
             <div className="text-sm text-muted-foreground">
               {mounted && (pathname === "/doctor-schedule"
                 ? "Weekly availability & clinic hours"
                 : pathname === "/doctor-appointments"
                   ? "Manage your patient appointments"
-                  : pathname === "/doctor-prescriptions"
-                    ? "Manage patient prescriptions"
-                    : "Overview & patient insights") || "Overview & patient insights"}
+                  : pathname === "/doctor-patients"
+                    ? "Patient directory & quick links"
+                    : pathname === "/doctor-prescriptions"
+                      ? "Manage patient prescriptions"
+                      : "Overview & patient insights") || "Overview & patient insights"}
             </div>
           </div>
         </div>
