@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation"
 import type { AuthUser } from "@/lib/auth-tokens"
 import {
   BellIcon,
+  BotMessageSquareIcon,
   CalendarDaysIcon,
   CreditCardIcon,
   HeartPulseIcon,
@@ -106,6 +107,12 @@ function PatientLayoutContent({
       label: "Medications",
       icon: PillIcon,
       isActive: pathname === "/medications",
+    },
+    {
+      href: "/ai-chat",
+      label: "AI assistant",
+      icon: BotMessageSquareIcon,
+      isActive: pathname.startsWith("/ai-chat"),
     },
     {
       href: "/chat",
@@ -282,18 +289,22 @@ function PatientLayoutContent({
                 ? "Medications"
                 : pathname === "/appointments"
                   ? "Appointments"
-                  : pathname === "/chat"
-                    ? "Chats"
-                    : "Patient Dashboard"}
+                  : pathname === "/ai-chat"
+                    ? "AI assistant"
+                    : pathname === "/chat"
+                      ? "Chats"
+                      : "Patient Dashboard"}
             </div>
             <div className="text-sm text-muted-foreground">
               {pathname === "/medications"
                 ? "Manage your prescriptions & doses"
                 : pathname === "/appointments"
                   ? "View and manage your appointments"
-                  : pathname === "/chat"
-                    ? "Messages & conversations"
-                    : "Overview & care summary"}
+                  : pathname === "/ai-chat"
+                    ? "Ask questions — demo replies only"
+                    : pathname === "/chat"
+                      ? "Messages & conversations"
+                      : "Overview & care summary"}
             </div>
           </div>
         </div>
