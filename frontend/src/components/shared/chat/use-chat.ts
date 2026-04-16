@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { io, type Socket } from "socket.io-client"
 import { apiClient } from "@/lib/api-client"
@@ -58,12 +58,49 @@ async function fetchConversationMessages(conversationId: string) {
   return data
 }
 
+/** Socket payload may include extra fields from the gateway. */
+type IncomingSocketMessage = MessageApiRow & { recipientUserIds?: number[] }
+
+function stripSocketMessage(raw: IncomingSocketMessage): MessageApiRow {
+  const { recipientUserIds: _r, ...msg } = raw
+  return msg
+}
+
+function bumpConversationLastMessage(
+  prev: ConversationApiRow[] | undefined,
+  conversationId: string,
+  msg: MessageApiRow,
+  options?: { clearUnread?: boolean },
+): ConversationApiRow[] | undefined {
+  if (!prev) return prev
+  const idx = prev.findIndex((r) => String(r.id) === conversationId)
+  if (idx === -1) return prev
+  const row = prev[idx]
+  const updated: ConversationApiRow = {
+    ...row,
+    lastMessage: {
+      text: msg.message,
+      senderType: msg.senderType,
+      sentAt: msg.sentAt,
+      isRead: msg.isRead,
+    },
+    ...(options?.clearUnread ? { unreadCount: 0 } : {}),
+  }
+  const rest = prev.filter((_, i) => i !== idx)
+  return [updated, ...rest]
+}
+
 export function useChat() {
   const queryClient = useQueryClient()
   const currentUser = getAuthUser()
   const token = getAccessToken()
   const [activeContactId, setActiveContactId] = useState<string>("")
+  const activeContactIdRef = useRef(activeContactId)
   const [socket, setSocket] = useState<Socket | null>(null)
+
+  useEffect(() => {
+    activeContactIdRef.current = activeContactId
+  }, [activeContactId])
 
   const conversationsQuery = useQuery({
     queryKey: CONVERSATIONS_QUERY_KEY,
@@ -76,17 +113,45 @@ export function useChat() {
     [conversationsQuery.data],
   )
 
-  useEffect(() => {
-    if (!activeContactId && contacts[0]) {
-      setActiveContactId(contacts[0].id)
-    }
-  }, [activeContactId, contacts])
 
   const messagesQuery = useQuery({
     queryKey: ["chat", "messages", activeContactId],
     queryFn: () => fetchConversationMessages(activeContactId),
     enabled: Boolean(activeContactId),
   })
+
+  /** Opening a conversation marks messages read on the server; sync list + clear badge immediately in the UI. */
+  const clearUnreadForConversation = useCallback(
+    (conversationId: string) => {
+      queryClient.setQueryData<ConversationApiRow[]>(CONVERSATIONS_QUERY_KEY, (prev) => {
+        if (!prev) return prev
+        return prev.map((row) =>
+          String(row.id) === conversationId ? { ...row, unreadCount: 0 } : row,
+        )
+      })
+    },
+    [queryClient],
+  )
+
+  const selectContact = useCallback(
+    (id: string) => {
+      clearUnreadForConversation(id)
+      setActiveContactId(id)
+    },
+    [clearUnreadForConversation],
+  )
+
+  useEffect(() => {
+    if (!activeContactId) return
+    if (messagesQuery.isSuccess) {
+      void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_QUERY_KEY })
+    }
+  }, [activeContactId, messagesQuery.isSuccess, messagesQuery.dataUpdatedAt, queryClient])
+
+  useEffect(() => {
+    if (!activeContactId || !messagesQuery.isError) return
+    void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_QUERY_KEY })
+  }, [activeContactId, messagesQuery.isError, queryClient])
 
   const activeContact = contacts.find((c) => c.id === activeContactId)
   const messages = useMemo(
@@ -115,8 +180,14 @@ export function useChat() {
   useEffect(() => {
     if (!socket) return
 
-    const onNewMessage = (incoming: MessageApiRow) => {
+    const onNewMessage = (raw: IncomingSocketMessage) => {
+      const incoming = stripSocketMessage(raw)
       const incomingConversationId = String(incoming.conversationId)
+      const isViewingThisChat = incomingConversationId === activeContactIdRef.current
+      const fromOther = Boolean(
+        currentUser?.role && incoming.senderType !== currentUser.role,
+      )
+
       queryClient.setQueryData<MessageApiRow[]>(
         ["chat", "messages", incomingConversationId],
         (prev = []) => {
@@ -124,14 +195,27 @@ export function useChat() {
           return [...prev, incoming]
         },
       )
-      void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_QUERY_KEY })
+      queryClient.setQueryData<ConversationApiRow[]>(CONVERSATIONS_QUERY_KEY, (prev) =>
+        bumpConversationLastMessage(prev, incomingConversationId, incoming, {
+          clearUnread: isViewingThisChat,
+        }),
+      )
+
+      void (async () => {
+        if (isViewingThisChat && fromOther) {
+          await queryClient.refetchQueries({
+            queryKey: ["chat", "messages", incomingConversationId],
+          })
+        }
+        await queryClient.refetchQueries({ queryKey: CONVERSATIONS_QUERY_KEY })
+      })()
     }
 
     socket.on("chat:newMessage", onNewMessage)
     return () => {
       socket.off("chat:newMessage", onNewMessage)
     }
-  }, [socket, queryClient])
+  }, [socket, queryClient, currentUser?.role])
 
   const sendMutation = useMutation({
     mutationFn: async (text: string) => {
@@ -143,9 +227,25 @@ export function useChat() {
           socket.emit(
             "chat:sendMessage",
             { conversationId: Number(activeContactId), message: value },
-            (ack: { ok?: boolean }) => {
+            (ack: { ok?: boolean; message?: IncomingSocketMessage }) => {
               if (ack?.ok) {
-                resolve()
+                const created = ack.message ? stripSocketMessage(ack.message) : undefined
+                if (created) {
+                  const cid = String(created.conversationId)
+                  queryClient.setQueryData<MessageApiRow[]>(
+                    ["chat", "messages", cid],
+                    (prev = []) => {
+                      if (prev.some((row) => row.id === created.id)) return prev
+                      return [...prev, created]
+                    },
+                  )
+                  queryClient.setQueryData<ConversationApiRow[]>(CONVERSATIONS_QUERY_KEY, (prev) =>
+                    bumpConversationLastMessage(prev, cid, created, { clearUnread: true }),
+                  )
+                }
+                void queryClient
+                  .refetchQueries({ queryKey: CONVERSATIONS_QUERY_KEY })
+                  .finally(() => resolve())
                 return
               }
               reject(new Error("Could not send message"))
@@ -167,11 +267,11 @@ export function useChat() {
     contacts,
     activeContact,
     activeContactId,
-    setActiveContactId,
+    setActiveContactId: selectContact,
     messages,
     sendMessage: (text: string) => sendMutation.mutateAsync(text),
     startNewChat: (conversationId: string) => {
-      setActiveContactId(conversationId)
+      selectContact(conversationId)
     },
     isLoadingConversations: conversationsQuery.isLoading,
     isLoadingMessages: messagesQuery.isLoading,
