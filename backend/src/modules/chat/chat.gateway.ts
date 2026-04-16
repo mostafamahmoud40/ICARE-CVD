@@ -65,7 +65,7 @@ export class ChatGateway implements OnGatewayConnection {
       message: body.message,
     });
 
-    this.server.to(`conversation:${body.conversationId}`).emit('chat:newMessage', created);
+    // One emit per participant (user room). Avoid also broadcasting to `conversation:` or clients get duplicate events.
     for (const recipientUserId of created.recipientUserIds) {
       this.server.to(`user:${recipientUserId}`).emit('chat:newMessage', created);
     }

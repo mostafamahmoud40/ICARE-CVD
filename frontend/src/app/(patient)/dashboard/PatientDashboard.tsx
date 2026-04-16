@@ -36,6 +36,8 @@ import {
   SunIcon,
   SunsetIcon,
   MoonIcon,
+  GaugeIcon,
+  TrendingDownIcon,
 } from "lucide-react"
 
 type DashboardMetric = {
@@ -545,15 +547,52 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-[#DCE9E4] bg-[#F6FBF9] p-3">
-                <div className="text-xs text-[#6A7F77]">Average Heart Rate</div>
-                <div className="mt-1 text-3xl font-semibold tracking-tight text-[#10382E]">{avgHeartRate} <span className="text-sm font-normal text-muted-foreground">bpm</span></div>
-                <div className="mt-1 text-xs text-[#2A7D66]">Normal range</div>
+              {/* Heart Rate Card */}
+              <div className="group flex items-center gap-4 rounded-xl border border-[#E7EFEB] bg-white p-4 shadow-sm transition-all duration-200 hover:border-[#1A5345]/30 hover:shadow-md">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#E8F0EE] text-[#1A5345] transition-colors group-hover:bg-[#1A5345] group-hover:text-white">
+                  <HeartPulseIcon className="size-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-[#6A7F77]">Heart Rate</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-2 py-0.5 text-[10px] font-semibold text-[#2E7D32]">
+                      <span className="size-1.5 rounded-full bg-[#4CAF50]" />
+                      Normal
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-baseline gap-1.5">
+                    <span className="text-2xl font-bold text-[#0F2D25]">{avgHeartRate}</span>
+                    <span className="text-sm text-[#6A7F77]">bpm</span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-1 text-xs text-[#8A9A93]">
+                    <ActivityIcon className="size-3" />
+                    <span>7-day average</span>
+                  </div>
+                </div>
               </div>
-              <div className="rounded-xl border border-[#E9DFD2] bg-[#FDF8F2] p-3">
-                <div className="text-xs text-[#7F7568]">Average BP</div>
-                <div className="mt-1 text-3xl font-semibold tracking-tight text-[#3A2F22]">{avgBP}</div>
-                <div className="mt-1 text-xs text-[#A06A36]">Optimal range</div>
+
+              {/* Blood Pressure Card */}
+              <div className="group flex items-center gap-4 rounded-xl border border-[#E7EFEB] bg-white p-4 shadow-sm transition-all duration-200 hover:border-[#E89042]/30 hover:shadow-md">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#F6EFE4] text-[#B0783C] transition-colors group-hover:bg-[#E89042] group-hover:text-white">
+                  <GaugeIcon className="size-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-[#6A7F77]">Blood Pressure</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F6EFE4] px-2 py-0.5 text-[10px] font-semibold text-[#9A6B2F]">
+                      <span className="size-1.5 rounded-full bg-[#E89042]" />
+                      Optimal
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-baseline gap-1.5">
+                    <span className="text-2xl font-bold text-[#0F2D25]">{avgBP}</span>
+                    <span className="text-sm text-[#6A7F77]">mmHg</span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-1 text-xs text-[#8A9A93]">
+                    <TrendingDownIcon className="size-3" />
+                    <span>Stable trend</span>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="rounded-xl border border-[#E7EFEB] bg-white p-3">
