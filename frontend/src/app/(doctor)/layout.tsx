@@ -18,6 +18,7 @@ import {
   SparklesIcon,
   StethoscopeIcon,
   User2Icon,
+  UsersIcon,
 } from "lucide-react"
 
 import { useRequireRole } from "@/hooks/use-require-role"
@@ -102,6 +103,12 @@ function DoctorLayoutContent({
       label: "Appointments",
       icon: CalendarDaysIcon,
       isActive: pathname === "/doctor-appointments",
+    },
+    {
+      href: "/doctor-queue",
+      label: "Queue",
+      icon: UsersIcon,
+      isActive: pathname === "/doctor-queue",
     },
     {
       href: "/doctor-patients",
@@ -290,24 +297,50 @@ function DoctorLayoutContent({
             <div className="text-base font-semibold">
               {mounted && (pathname === "/doctor-schedule"
                 ? "Schedule"
-                : pathname === "/doctor-appointments"
-                  ? "Appointments"
-                  : pathname === "/doctor-patients"
-                    ? "Patients"
-                    : pathname === "/doctor-prescriptions"
-                      ? "Prescriptions"
-                      : "Doctor Dashboard") || "Doctor Dashboard"}
+                : pathname.startsWith("/doctor-queue") && pathname.includes("/consultation")
+                  ? "Consultation"
+                  : pathname === "/doctor-queue"
+                    ? "Queue"
+                    : pathname === "/doctor-appointments"
+                      ? "Appointments"
+                      : pathname.match(/^\/doctor-patients\/[^/]+\/consultations\/[^/]+$/)
+                        ? "Consultation Report"
+                        : pathname.match(/^\/doctor-patients\/[^/]+\/(vitals|medications|diagnoses|lab-results|documents|consultations)$/)
+                          ? pathname.includes("/vitals") ? "Vitals & Readings"
+                          : pathname.includes("/medications") ? "Medications"
+                          : pathname.includes("/diagnoses") ? "Diagnoses & Conditions"
+                          : pathname.includes("/lab-results") ? "Lab Results"
+                          : pathname.includes("/documents") ? "Documents & Files"
+                          : pathname.includes("/consultations") ? "Consultation History"
+                          : "Patient"
+                      : pathname.match(/^\/doctor-patients\/[^/]+$/)
+                        ? "Patient Profile"
+                        : pathname === "/doctor-patients"
+                          ? "Patients"
+                          : pathname === "/doctor-prescriptions"
+                            ? "Prescriptions"
+                            : "Doctor Dashboard") || "Doctor Dashboard"}
             </div>
             <div className="text-sm text-muted-foreground">
               {mounted && (pathname === "/doctor-schedule"
                 ? "Weekly availability & clinic hours"
-                : pathname === "/doctor-appointments"
-                  ? "Manage your patient appointments"
-                  : pathname === "/doctor-patients"
-                    ? "Patient directory & quick links"
-                    : pathname === "/doctor-prescriptions"
-                      ? "Manage patient prescriptions"
-                      : "Overview & patient insights") || "Overview & patient insights"}
+                : pathname.startsWith("/doctor-queue") && pathname.includes("/consultation")
+                  ? "Active patient consultation"
+                  : pathname === "/doctor-queue"
+                    ? "Today's patient queue"
+                    : pathname === "/doctor-appointments"
+                      ? "Manage your patient appointments"
+                      : pathname.match(/^\/doctor-patients\/[^/]+\/consultations\/[^/]+$/)
+                        ? "Full consultation report"
+                        : pathname.match(/^\/doctor-patients\/[^/]+\/(vitals|medications|diagnoses|lab-results|documents|consultations)$/)
+                        ? "Patient record details"
+                        : pathname.match(/^\/doctor-patients\/[^/]+$/)
+                          ? "Patient profile & quick links"
+                          : pathname === "/doctor-patients"
+                            ? "Patient directory & quick links"
+                            : pathname === "/doctor-prescriptions"
+                              ? "Manage patient prescriptions"
+                              : "Overview & patient insights") || "Overview & patient insights"}
             </div>
           </div>
         </div>
