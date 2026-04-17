@@ -56,8 +56,34 @@ export type MedicationRecord = {
   name: string
   dose: string
   frequency: string
-  type: string
+  /** Mirrors backend `medication.type` enum (stored as text). */
+  type:
+    | "antihypertensives"
+    | "antiplatelets"
+    | "anticoagulants"
+    | "statins"
+    | "antiarrhythmics"
+    | "diuretics"
+    | "diabetes_medications"
+    | "other"
+  /** Mirrors backend `medication.status` enum. */
   status: "active" | "paused" | "discontinued"
+  /** Mirrors backend `medication.compliance` enum (optional). */
+  compliance?: "good" | "poor" | null
+  /** Mirrors backend `medication.time_of_day` enum array (optional). */
+  timeOfDay?: Array<"morning" | "afternoon" | "evening">
+  /** Mirrors backend `medication.instructions` (optional). */
+  instructions?: string | null
+  /** Mirrors backend `medication.start_date` (optional in UI mock). */
+  startDate?: string
+  /** Mirrors backend `medication.duration_days` (optional). */
+  durationDays?: number | null
+  /** Mirrors backend computed `end_date` (optional). */
+  endDate?: string | null
+  /** Mirrors backend `paused_at` / `discontinued_at` (optional). */
+  pausedAt?: string | null
+  discontinuedAt?: string | null
+  /** Legacy/mock fields used by current UI cards. */
   prescribedAt: string
   prescribedBy: string
   adherencePercent: number
