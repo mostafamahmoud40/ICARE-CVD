@@ -10,6 +10,7 @@ import {
   BotMessageSquareIcon,
   CalendarDaysIcon,
   CreditCardIcon,
+  FileTextIcon,
   HeartPulseIcon,
   LayoutDashboardIcon,
   LogOutIcon,
@@ -95,6 +96,12 @@ function PatientLayoutContent({
       label: "Appointments",
       icon: CalendarDaysIcon,
       isActive: pathname === "/appointments",
+    },
+    {
+      href: "/consultations",
+      label: "Consultations",
+      icon: FileTextIcon,
+      isActive: pathname === "/consultations",
     },
     {
       href: "/vitals",
