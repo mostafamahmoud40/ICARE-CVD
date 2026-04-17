@@ -1,6 +1,7 @@
 "use client";
 
-import { Eye, EyeOff, Lock, Mail, Phone, UserRound } from "lucide-react";
+import { useState } from "react";
+import { Copy, Eye, EyeOff, Lock, Mail, Phone, RefreshCw, UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,24 @@ export function Step1Account({
   onTogglePassword,
   onToggleConfirmPassword,
 }: Step1AccountProps) {
+  const [generatedPassword, setGeneratedPassword] = useState("");
+
+  function generatePassword() {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let password = "";
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setGeneratedPassword(password);
+    onFieldChange("password", password);
+    onFieldChange("confirmPassword", password);
+  }
+
+  async function copyPassword() {
+    if (generatedPassword) {
+      await navigator.clipboard.writeText(generatedPassword);
+    }
+  }
   return (
     <div className="space-y-5">
       <div className="space-y-2">
@@ -69,6 +88,7 @@ export function Step1Account({
             name="email"
             type="email"
             autoComplete="email"
+            list="register-email-suggestions"
             placeholder="your@email.com"
             value={values.email}
             onChange={(e) => onFieldChange("email", e.target.value)}
@@ -77,6 +97,9 @@ export function Step1Account({
             disabled={isPending}
             className="h-12 rounded-xl border-input bg-background pl-9 text-foreground placeholder:text-muted-foreground"
           />
+          <datalist id="register-email-suggestions">
+            <option value="patient1@test.com" />
+          </datalist>
         </div>
         {errors.email ? (
           <p id="register-email-error" className="text-sm text-destructive" role="alert">
@@ -96,6 +119,7 @@ export function Step1Account({
             name="phoneNumber"
             type="tel"
             autoComplete="tel"
+            list="register-phone-suggestions"
             placeholder="+1 234 567 890"
             value={values.phoneNumber}
             onChange={(e) => onFieldChange("phoneNumber", e.target.value)}
@@ -104,6 +128,9 @@ export function Step1Account({
             disabled={isPending}
             className="h-12 rounded-xl border-input bg-background pl-9 text-foreground placeholder:text-muted-foreground"
           />
+          <datalist id="register-phone-suggestions">
+            <option value="+20 123 456 7890" />
+          </datalist>
         </div>
         {errors.phoneNumber ? (
           <p id="register-phone-number-error" className="text-sm text-destructive" role="alert">
@@ -113,9 +140,38 @@ export function Step1Account({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="register-password" className="text-sm font-medium text-foreground">
-          Password <span className="text-red-500">*</span>
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="register-password" className="text-sm font-medium text-foreground">
+            Password <span className="text-red-500">*</span>
+            {generatedPassword && (
+              <span className="ml-2 flex items-center gap-1 text-sm text-muted-foreground">
+                ({generatedPassword})
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="h-4 w-4 p-0 hover:bg-muted"
+                  onClick={copyPassword}
+                  disabled={isPending}
+                  title="Copy password"
+                >
+                  <Copy className="size-3" />
+                </Button>
+              </span>
+            )}
+          </Label>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={generatePassword}
+            disabled={isPending}
+          >
+            <RefreshCw className="mr-1 size-3" />
+            Generate
+          </Button>
+        </div>
         <div className="relative">
           <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
