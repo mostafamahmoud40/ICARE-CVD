@@ -11,6 +11,12 @@ import { AppointmentModule } from './modules/appointment/appointment.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { MedicationModule } from './modules/medication/medication.module';
 import { AiModule } from './modules/ai/ai.module';
+import { DoctorPatientModule } from './modules/doctor/patients/doctor-patient.module';
+import { VitalsModule } from './modules/vitals/vitals.module';
+import { DiagnosisModule } from './modules/diagnosis/diagnosis.module';
+import { DocumentsModule } from './modules/documents/documents.module';
+import { LabModule } from './modules/lab/lab.module';
+import { ConsultationModule } from './modules/consultation/consultation.module';
 
 @Module({
   imports: [
@@ -24,6 +30,12 @@ import { AiModule } from './modules/ai/ai.module';
     ChatModule,
     MedicationModule,
     AiModule,
+    DoctorPatientModule,
+    VitalsModule,
+    DiagnosisModule,
+    DocumentsModule,
+    LabModule,
+    ConsultationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
