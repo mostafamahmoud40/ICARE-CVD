@@ -30,6 +30,21 @@ export function LoginForm({ submit, fieldErrors, isPending }: LoginFormProps) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const emailPasswordMap: Record<string, string> = {
+    "admin@icare-cvd.local": "Admin123456",
+    "patient@gmail.com": "patient23@",
+    "doctor@gmail.com": "doctor@23",
+    "assistant@gmail.com": "assistant@23",
+  };
+
+  function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    if (emailPasswordMap[newEmail]) {
+      setPassword(emailPasswordMap[newEmail]);
+    }
+  }
+
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     submit({ email, password });
@@ -69,14 +84,21 @@ export function LoginForm({ submit, fieldErrors, isPending }: LoginFormProps) {
                 name="email"
                 type="email"
                 autoComplete="email"
+                list="email-suggestions"
                 placeholder="your@email.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={handleEmailChange}
                 aria-invalid={Boolean(fieldErrors.email)}
                 aria-describedby={fieldErrors.email ? "login-email-error" : undefined}
                 disabled={isPending}
                 className="h-12 rounded-xl border-input bg-background pl-9 text-foreground placeholder:text-muted-foreground"
               />
+              <datalist id="email-suggestions">
+                <option value="assistant@gmail.com" />
+                <option value="doctor@gmail.com" />
+                <option value="patient@gmail.com" />
+                <option value="admin@icare-cvd.local" />
+              </datalist>
             </div>
 
             {fieldErrors.email ? (
