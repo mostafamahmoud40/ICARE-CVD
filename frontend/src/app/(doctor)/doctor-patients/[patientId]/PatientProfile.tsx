@@ -394,7 +394,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
         {/* Clinical Notes and Care Plan - Side by Side */}
         <div className="grid gap-3 lg:grid-cols-2">
           {/* Clinical Notes */}
-          <div className="rounded-xl border border-[#E5EEEA] bg-white p-3 sm:p-4">
+          <div className="rounded-xl border border-[#E5EEEA] bg-white p-4 sm:p-5">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="flex size-6 items-center justify-center rounded-lg bg-[#E8F0EE] sm:size-7">
@@ -414,7 +414,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
                 {clinicalNotes.map((note) => (
                   <div key={note.id} className="group flex items-start gap-2 rounded-lg border border-[#E5EEEA] bg-[#FBFDFC] p-2 sm:p-2.5">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] leading-relaxed text-[#102F27] sm:text-[11px]">{note.text}</p>
+                      <p className="text-[12px] leading-relaxed text-[#102F27] sm:text-[13px]">{note.text}</p>
                       <p className="mt-1 text-[9px] text-muted-foreground">{fmt(note.date)} &middot; {note.author}</p>
                     </div>
                     <Button size="sm" variant="ghost" className="hidden h-6 w-6 shrink-0 p-0 group-hover:flex" onClick={() => removeNote(note.id)}>
@@ -427,7 +427,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
           </div>
 
           {/* Care Plan */}
-          <div className="rounded-xl border border-[#E5EEEA] bg-white p-3 sm:p-4">
+          <div className="rounded-xl border border-[#E5EEEA] bg-white p-4 sm:p-5">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="flex size-6 items-center justify-center rounded-lg bg-[#E8F0EE] sm:size-7">
