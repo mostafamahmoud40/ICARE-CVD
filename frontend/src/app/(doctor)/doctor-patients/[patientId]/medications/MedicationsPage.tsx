@@ -45,17 +45,46 @@ type MedFormData = {
   name: string
   dose: string
   frequency: string
-  type: string
+  type: MedicationRecord["type"] | ""
+  status: MedicationRecord["status"]
+  compliance: NonNullable<MedicationRecord["compliance"]> | "unknown"
+  timeOfDay: Array<"morning" | "afternoon" | "evening">
+  startDate: string
+  durationDays: string
+  instructions: string
   sideEffects: string
-  notes: string
 }
 
 function emptyMedForm(): MedFormData {
-  return { name: "", dose: "", frequency: "", type: "", sideEffects: "", notes: "" }
+  return {
+    name: "",
+    dose: "",
+    frequency: "",
+    type: "",
+    status: "active",
+    compliance: "unknown",
+    timeOfDay: ["morning"],
+    startDate: new Date().toISOString().slice(0, 10),
+    durationDays: "",
+    instructions: "",
+    sideEffects: "",
+  }
 }
 
 function toMedForm(m: MedicationRecord): MedFormData {
-  return { name: m.name, dose: m.dose, frequency: m.frequency, type: m.type, sideEffects: m.sideEffects ?? "", notes: "" }
+  return {
+    name: m.name,
+    dose: m.dose,
+    frequency: m.frequency,
+    type: m.type,
+    status: m.status,
+    compliance: m.compliance ?? "unknown",
+    timeOfDay: m.timeOfDay?.length ? m.timeOfDay : ["morning"],
+    startDate: m.startDate ?? m.prescribedAt,
+    durationDays: m.durationDays?.toString() ?? "",
+    instructions: m.instructions ?? "",
+    sideEffects: m.sideEffects ?? "",
+  }
 }
 
 type DiscontinueFormData = {
@@ -69,6 +98,26 @@ function MedicationForm({ initial, onSave, onCancel }: {
 }) {
   const [form, setForm] = useState<MedFormData>(initial)
   const set = (k: keyof MedFormData, v: string) => setForm((f) => ({ ...f, [k]: v }))
+
+  const TYPE_OPTIONS: Array<{ value: MedicationRecord["type"]; label: string }> = [
+    { value: "antihypertensives", label: "Antihypertensives" },
+    { value: "antiplatelets", label: "Antiplatelets" },
+    { value: "anticoagulants", label: "Anticoagulants" },
+    { value: "statins", label: "Statins" },
+    { value: "antiarrhythmics", label: "Antiarrhythmics" },
+    { value: "diuretics", label: "Diuretics" },
+    { value: "diabetes_medications", label: "Diabetes Medications" },
+    { value: "other", label: "Other" },
+  ]
+
+  function toggleTimeOfDay(t: "morning" | "afternoon" | "evening") {
+    setForm((f) => ({
+      ...f,
+      timeOfDay: f.timeOfDay.includes(t) ? f.timeOfDay.filter((x) => x !== t) : [...f.timeOfDay, t],
+    }))
+  }
+
+  const canSave = !!form.name.trim() && !!form.dose.trim() && !!form.frequency.trim() && !!form.type
 
   return (
     <div className="space-y-4">
@@ -100,35 +149,110 @@ function MedicationForm({ initial, onSave, onCancel }: {
           </Select>
         </div>
         <div>
-          <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Category</Label>
-          <Select value={form.type} onValueChange={(v) => set("type", v)}>
+          <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Type</Label>
+          <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v as MedFormData["type"] }))}>
             <SelectTrigger className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]">
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Antihypertensives">Antihypertensives</SelectItem>
-              <SelectItem value="Statins">Statins</SelectItem>
-              <SelectItem value="Diabetes Medications">Diabetes Medications</SelectItem>
-              <SelectItem value="Antiplatelets">Antiplatelets</SelectItem>
-              <SelectItem value="Anticoagulants">Anticoagulants</SelectItem>
-              <SelectItem value="Diuretics">Diuretics</SelectItem>
-              <SelectItem value="Beta Blockers">Beta Blockers</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
+              {TYPE_OPTIONS.map((t) => (
+                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
       </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Status</Label>
+          <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as MedFormData["status"] }))}>
+            <SelectTrigger className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="paused">Paused</SelectItem>
+              <SelectItem value="discontinued">Discontinued</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Compliance</Label>
+          <Select value={form.compliance} onValueChange={(v) => setForm((f) => ({ ...f, compliance: v as MedFormData["compliance"] }))}>
+            <SelectTrigger className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unknown">Unknown</SelectItem>
+              <SelectItem value="good">Good</SelectItem>
+              <SelectItem value="poor">Poor</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Time of day</Label>
+        <div className="mt-1 flex flex-wrap gap-2">
+          {(["morning", "afternoon", "evening"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => toggleTimeOfDay(t)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-[10px] font-medium transition-colors sm:text-[11px]",
+                form.timeOfDay.includes(t)
+                  ? "border-[#1A5345]/30 bg-[#EEF5F3] text-[#1A5345]"
+                  : "border-[#E5EEEA] bg-white text-muted-foreground hover:border-[#1A5345]/30",
+              )}
+            >
+              {t[0].toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Start date</Label>
+          <Input
+            type="date"
+            value={form.startDate}
+            onChange={(e) => set("startDate", e.target.value)}
+            className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]"
+          />
+        </div>
+        <div>
+          <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Duration (days)</Label>
+          <Input
+            type="number"
+            min={1}
+            value={form.durationDays}
+            onChange={(e) => set("durationDays", e.target.value)}
+            placeholder="e.g. 30"
+            className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]"
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Instructions (optional)</Label>
+        <Textarea
+          value={form.instructions}
+          onChange={(e) => set("instructions", e.target.value)}
+          placeholder="How to take, precautions..."
+          className="mt-1 min-h-[60px] text-[11px] sm:text-[12px]"
+        />
+      </div>
+
       <div>
         <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Side Effects (optional)</Label>
         <Input value={form.sideEffects} onChange={(e) => set("sideEffects", e.target.value)} placeholder="e.g. Mild muscle pain" className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]" />
       </div>
-      <div>
-        <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Notes (optional)</Label>
-        <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Additional notes..." className="mt-1 min-h-[50px] text-[11px] sm:text-[12px]" />
-      </div>
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="outline" onClick={onCancel} className="text-[10px] sm:text-[11px]">Cancel</Button>
-        <Button size="sm" onClick={() => onSave(form)} className="bg-[#1A5345] text-[10px] hover:bg-[#0F3D32] sm:text-[11px]" disabled={!form.name || !form.dose}>
+        <Button size="sm" onClick={() => onSave(form)} className="bg-[#1A5345] text-[10px] hover:bg-[#0F3D32] sm:text-[11px]" disabled={!canSave}>
           Save Medication
         </Button>
       </div>
@@ -156,10 +280,34 @@ export function MedicationsPage({ patientId, patientName, medications: initialMe
 
   function handleSave(data: MedFormData) {
     const now = new Date().toISOString().slice(0, 10)
+    const durationDays = data.durationDays ? Number(data.durationDays) : null
+    const compliance = data.compliance === "unknown" ? null : data.compliance
+    const type = (data.type || "other") as MedicationRecord["type"]
+    const endDate =
+      durationDays && data.startDate
+        ? new Date(new Date(data.startDate).getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+        : null
+
     if (editingId) {
       setMeds((prev) => prev.map((m) =>
         m.id === editingId
-          ? { ...m, name: data.name, dose: data.dose, frequency: data.frequency, type: data.type, sideEffects: data.sideEffects || null }
+          ? {
+            ...m,
+            name: data.name,
+            dose: data.dose,
+            frequency: data.frequency,
+            type,
+            status: data.status,
+            compliance,
+            timeOfDay: data.timeOfDay,
+            startDate: data.startDate,
+            durationDays,
+            endDate,
+            instructions: data.instructions || null,
+            sideEffects: data.sideEffects || null,
+            pausedAt: data.status === "paused" ? m.pausedAt ?? new Date().toISOString() : null,
+            discontinuedAt: data.status === "discontinued" ? m.discontinuedAt ?? new Date().toISOString() : null,
+          }
           : m
       ))
     } else {
@@ -168,8 +316,16 @@ export function MedicationsPage({ patientId, patientName, medications: initialMe
         name: data.name,
         dose: data.dose,
         frequency: data.frequency,
-        type: data.type || "Other",
-        status: "active",
+        type,
+        status: data.status,
+        compliance,
+        timeOfDay: data.timeOfDay,
+        startDate: data.startDate,
+        durationDays,
+        endDate,
+        instructions: data.instructions || null,
+        pausedAt: data.status === "paused" ? new Date().toISOString() : null,
+        discontinuedAt: data.status === "discontinued" ? new Date().toISOString() : null,
         prescribedAt: now,
         prescribedBy: "Dr. Mahmoud",
         adherencePercent: 100,
@@ -353,7 +509,7 @@ export function MedicationsPage({ patientId, patientName, medications: initialMe
         )}
 
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingId(null) }}>
-          <DialogContent className="max-w-lg sm:max-w-xl">
+          <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-[13px] font-semibold text-[#102F27] sm:text-[14px]">
                 {editingId ? "Edit Medication" : "Add New Medication"}

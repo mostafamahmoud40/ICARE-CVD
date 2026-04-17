@@ -34,103 +34,42 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { DiagnosisForm } from "./DiagnosisForm"
+import type { DiagnosisFormValues } from "./diagnosisForm.types"
 
 function fmtShort(iso: string | null | undefined) {
   if (!iso) return "\u2014"
   return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso))
 }
 
-type DiagnosisFormData = {
-  icdCode: string
-  description: string
-  type: DiagnosisRecord["type"]
-  severity: DiagnosisRecord["severity"]
-  status: DiagnosisRecord["status"]
-  notes: string
+function emptyDiagnosisForm(): DiagnosisFormValues {
+  return {
+    icdCode: "",
+    description: "",
+    type: "secondary",
+    confirmation: "confirmed",
+    onsetDate: "",
+    severity: "moderate",
+    status: "active",
+    nyhaClass: "",
+    laterality: "unspecified",
+    clinicalNotes: "",
+  }
 }
 
-function emptyDiagnosisForm(): DiagnosisFormData {
-  return { icdCode: "", description: "", type: "secondary", severity: "moderate", status: "active", notes: "" }
-}
-
-function toDiagnosisForm(d: DiagnosisRecord): DiagnosisFormData {
-  return { icdCode: d.icdCode, description: d.description, type: d.type, severity: d.severity, status: d.status, notes: d.notes }
-}
-
-function DiagnosisForm({ initial, onSave, onCancel }: {
-  initial: DiagnosisFormData
-  onSave: (data: DiagnosisFormData) => void
-  onCancel: () => void
-}) {
-  const [form, setForm] = useState<DiagnosisFormData>(initial)
-  const set = <K extends keyof DiagnosisFormData>(k: K, v: DiagnosisFormData[K]) => setForm((f) => ({ ...f, [k]: v }))
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-[10px] text-muted-foreground sm:text-[11px]">ICD-10 Code</Label>
-          <Input value={form.icdCode} onChange={(e) => set("icdCode", e.target.value)} placeholder="e.g. I10" className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]" />
-        </div>
-        <div>
-          <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Description</Label>
-          <Input value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="e.g. Essential Hypertension" className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]" />
-        </div>
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Type</Label>
-          <Select value={form.type} onValueChange={(v) => set("type", v as DiagnosisRecord["type"])}>
-            <SelectTrigger className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="primary">Primary</SelectItem>
-              <SelectItem value="secondary">Secondary</SelectItem>
-              <SelectItem value="differential">Differential</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Severity</Label>
-          <Select value={form.severity} onValueChange={(v) => set("severity", v as DiagnosisRecord["severity"])}>
-            <SelectTrigger className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="mild">Mild</SelectItem>
-              <SelectItem value="moderate">Moderate</SelectItem>
-              <SelectItem value="severe">Severe</SelectItem>
-              <SelectItem value="critical">Critical</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Status</Label>
-          <Select value={form.status} onValueChange={(v) => set("status", v as DiagnosisRecord["status"])}>
-            <SelectTrigger className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="chronic">Chronic</SelectItem>
-              <SelectItem value="resolved">Resolved</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div>
-        <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Notes</Label>
-        <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Clinical notes..." className="mt-1 min-h-[60px] text-[11px] sm:text-[12px]" />
-      </div>
-      <div className="flex justify-end gap-2">
-        <Button size="sm" variant="outline" onClick={onCancel} className="text-[10px] sm:text-[11px]">Cancel</Button>
-        <Button size="sm" onClick={() => onSave(form)} className="bg-[#1A5345] text-[10px] hover:bg-[#0F3D32] sm:text-[11px]" disabled={!form.description}>
-          Save Diagnosis
-        </Button>
-      </div>
-    </div>
-  )
+function toDiagnosisForm(d: DiagnosisRecord): DiagnosisFormValues {
+  return {
+    icdCode: d.icdCode,
+    description: d.description,
+    type: d.type,
+    confirmation: "confirmed",
+    onsetDate: "",
+    severity: d.severity,
+    status: d.status,
+    nyhaClass: "",
+    laterality: "unspecified",
+    clinicalNotes: d.notes,
+  }
 }
 
 type DiagnosesPageProps = {
@@ -143,7 +82,7 @@ export function DiagnosesPage({ patientId, patientName, diagnoses: initialDiagno
   const [diagnoses, setDiagnoses] = useState<DiagnosisRecord[]>(initialDiagnoses)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<DiagnosisFormData>(emptyDiagnosisForm())
+  const [editForm, setEditForm] = useState<DiagnosisFormValues>(emptyDiagnosisForm())
 
   const primary = diagnoses.filter((d) => d.type === "primary")
   const secondary = diagnoses.filter((d) => d.type === "secondary")
@@ -161,12 +100,19 @@ export function DiagnosesPage({ patientId, patientName, diagnoses: initialDiagno
     resolved: "bg-gray-50 text-gray-500",
   }
 
-  function handleSave(data: DiagnosisFormData) {
+  function handleSave(data: DiagnosisFormValues) {
     const now = new Date().toISOString().slice(0, 10)
+    const extra: string[] = []
+    if (data.confirmation) extra.push(`Confirmation: ${data.confirmation}`)
+    if (data.onsetDate) extra.push(`Onset: ${data.onsetDate}`)
+    if (data.nyhaClass) extra.push(`NYHA: ${data.nyhaClass}`)
+    if (data.laterality && data.laterality !== "unspecified") extra.push(`Laterality/Region: ${data.laterality}`)
+    const notes = [data.clinicalNotes.trim(), extra.length ? `\n\n${extra.join(" • ")}` : ""].join("").trim()
+
     if (editingId) {
       setDiagnoses((prev) => prev.map((d) =>
         d.id === editingId
-          ? { ...d, icdCode: data.icdCode, description: data.description, type: data.type, severity: data.severity, status: data.status, notes: data.notes }
+          ? { ...d, icdCode: data.icdCode, description: data.description, type: data.type, severity: data.severity, status: data.status, notes }
           : d
       ))
     } else {
@@ -179,7 +125,7 @@ export function DiagnosesPage({ patientId, patientName, diagnoses: initialDiagno
         diagnosedAt: now,
         diagnosedBy: "Dr. Mahmoud",
         status: data.status,
-        notes: data.notes,
+        notes,
       }
       setDiagnoses((prev) => [newDiagnosis, ...prev])
     }
@@ -292,13 +238,17 @@ export function DiagnosesPage({ patientId, patientName, diagnoses: initialDiagno
         )}
 
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingId(null) }}>
-          <DialogContent className="max-w-lg sm:max-w-xl">
+          <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-[13px] font-semibold text-[#102F27] sm:text-[14px]">
                 {editingId ? "Edit Diagnosis" : "Add New Diagnosis"}
               </DialogTitle>
             </DialogHeader>
-            <DiagnosisForm initial={editForm} onSave={handleSave} onCancel={() => { setDialogOpen(false); setEditingId(null) }} />
+            <DiagnosisForm
+              initial={editForm}
+              onSubmit={handleSave}
+              onCancel={() => { setDialogOpen(false); setEditingId(null) }}
+            />
           </DialogContent>
         </Dialog>
       </div>
