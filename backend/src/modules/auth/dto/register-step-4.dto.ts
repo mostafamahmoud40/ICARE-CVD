@@ -1,14 +1,23 @@
 import {
   IsArray,
+  IsEnum,
   IsOptional,
   IsString,
   MaxLength,
   ValidateNested,
-  IsUrl,
-  IsNumber,
-  Min,
   Allow,
 } from 'class-validator';
+
+export const DOCUMENT_CATEGORIES = [
+  'lab_report',
+  'imaging',
+  'ecg',
+  'prescription',
+  'referral',
+  'other',
+] as const;
+
+export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number];
 import { Type } from 'class-transformer';
 
 /**
@@ -37,9 +46,9 @@ export class DocumentFileDto {
   @IsOptional()
   fileSize?: number; // Alternative field name
 
-  @Allow()
+  @IsEnum(DOCUMENT_CATEGORIES)
   @IsOptional()
-  category?: string; // lab_report | imaging | ecg | prescription | other
+  category?: DocumentCategory;
 
   @Allow()
   @IsOptional()

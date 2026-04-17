@@ -8,12 +8,14 @@ import {
   text,
 } from 'drizzle-orm/pg-core';
 import { user } from './users.schema';
+import { patient } from './patient.schema';
 
 export const documentCategoryEnum = pgEnum('document_category', [
   'lab_report',
   'imaging',
   'ecg',
   'prescription',
+  'referral',
   'other',
 ]);
 
@@ -26,11 +28,18 @@ export const patientDocument = pgTable('patient_document', {
   userId: integer('user_id')
     .references(() => user.id, { onDelete: 'cascade' })
     .notNull(),
-  s3Key: varchar('s3_key', { length: 500 }).notNull(), // S3 object key
+  patientId: uuid('patient_id').references(() => patient.id, {
+    onDelete: 'cascade',
+  }),
+  s3Key: varchar('s3_key', { length: 500 }).notNull(),
   fileName: varchar('file_name', { length: 255 }),
   contentType: varchar('content_type', { length: 100 }),
   sizeBytes: integer('size_bytes'),
-  category: varchar('document_category', { length: 50 }),
+  category: documentCategoryEnum('document_category'),
+  title: varchar('title', { length: 255 }),
+  uploadedByUserId: integer('uploaded_by_user_id').references(() => user.id, {
+    onDelete: 'set null',
+  }),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

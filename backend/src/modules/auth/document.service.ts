@@ -38,6 +38,7 @@ export class DocumentService {
       'imaging',
       'ecg',
       'prescription',
+      'referral',
       'other',
     ];
     if (!validCategories.includes(category)) {
@@ -61,7 +62,13 @@ export class DocumentService {
     userId: number;
     fileName: string;
     fileSize: number;
-    category: string;
+    category:
+      | 'lab_report'
+      | 'imaging'
+      | 'ecg'
+      | 'prescription'
+      | 'referral'
+      | 'other';
     s3Key: string;
     mimeType: string;
   }) {
