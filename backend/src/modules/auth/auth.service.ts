@@ -392,7 +392,14 @@ export class AuthService {
         fileName: file.name || file.fileName || 'Unnamed', // Use first available name
         contentType: file.mimeType || 'application/octet-stream',
         sizeBytes: file.size || file.fileSize || 0, // Use first available size
-        category: file.category || null, // Can be null
+        category:
+          (file.category as
+            | 'lab_report'
+            | 'imaging'
+            | 'ecg'
+            | 'prescription'
+            | 'referral'
+            | 'other') || null,
       }));
 
       const inserted = await this.db

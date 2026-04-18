@@ -2,6 +2,7 @@ import {
   check,
   date,
   decimal,
+  integer,
   pgEnum,
   pgTable,
   smallint,
@@ -12,6 +13,8 @@ import {
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { patient } from './patient.schema';
+import { user } from './users.schema';
+import { consultation } from './consultation.schema';
 import { vector } from './helpers/vector';
 
 export const vitalSourceEnum = pgEnum('vital_source', [
@@ -27,7 +30,9 @@ export const vitalReading = pgTable(
     patientId: uuid('patient_id')
       .references(() => patient.id, { onDelete: 'cascade' })
       .notNull(),
-    date: date('date', { mode: 'date' }).notNull().default(sql`CURRENT_DATE`),
+    date: date('date', { mode: 'date' })
+      .notNull()
+      .default(sql`CURRENT_DATE`),
     time: varchar('time', { length: 5 })
       .notNull()
       .default(sql`TO_CHAR(CURRENT_TIME, 'HH24:MI')`),
@@ -41,6 +46,12 @@ export const vitalReading = pgTable(
     bloodSugar: smallint('blood_sugar'),
     notes: text('notes'),
     notesEmbedding: vector(384),
+    recordedByUserId: integer('recorded_by_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    consultationId: uuid('consultation_id').references(() => consultation.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),

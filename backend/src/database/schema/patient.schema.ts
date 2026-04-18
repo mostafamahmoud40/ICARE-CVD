@@ -98,6 +98,12 @@ export const patientStressLevelEnum = pgEnum('patient_stress_level', [
   'high',
 ]);
 
+export const patientRiskLevelEnum = pgEnum('patient_risk_level', [
+  'low',
+  'moderate',
+  'high',
+]);
+
 /** One profile per `user` with role patient; `user_id` matches `user.id` (serial). */
 export const patient = pgTable('patient', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -156,6 +162,8 @@ export const patient = pgTable('patient', {
         sql`(${sql.identifier('dietary_habits')} IS NOT NULL AND ${sql.identifier('dietary_habits')} IN ('high_fat'::patient_dietary_habits, 'high_both'::patient_dietary_habits))`,
     ),
   stressLevel: patientStressLevelEnum('stress_level'),
+  riskLevel: patientRiskLevelEnum('risk_level').notNull().default('low'),
+  avatarUrl: varchar('avatar_url', { length: 500 }),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),
