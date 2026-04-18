@@ -26,5 +26,6 @@ import { DoctorAppointmentService } from './doctor-appointment.service';
     AuthJwtService,
     AccessTokenGuard,
   ],
+  exports: [AppointmentService],
 })
 export class AppointmentModule {}

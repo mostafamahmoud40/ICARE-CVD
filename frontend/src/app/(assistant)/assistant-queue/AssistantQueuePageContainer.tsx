@@ -19,6 +19,8 @@ export function AssistantQueuePageContainer() {
     selectPatient,
     clearSelection,
     inClinicPatients,
+    isLoading,
+    isError,
   } = useAssistantQueue()
 
   return (
@@ -37,6 +39,8 @@ export function AssistantQueuePageContainer() {
       selectPatient={selectPatient}
       clearSelection={clearSelection}
       inClinicPatients={inClinicPatients}
+      isLoading={isLoading}
+      isError={isError}
     />
   )
 }

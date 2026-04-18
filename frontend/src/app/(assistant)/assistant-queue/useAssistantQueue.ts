@@ -1,27 +1,90 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { mockQueuePatients, mockQueueStats } from "./assistantQueue.mock"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { apiClient } from "@/lib/api-client"
 import type { QueuePatient, QueueStats, QueueFilter, QueueStatus } from "./assistantQueue.types"
 
+/* ---------- API helpers ---------- */
+
+async function fetchQueueEntries(filter?: QueueFilter): Promise<QueuePatient[]> {
+  const params = filter ? { params: { filter } } : undefined
+  const { data } = await apiClient.get<QueuePatient[]>("/assistant/patient-queue", params)
+  return data
+}
+
+async function fetchStats(): Promise<QueueStats> {
+  const { data } = await apiClient.get<QueueStats>("/assistant/patient-queue/stats")
+  return data
+}
+
+async function updateQueueStatus(payload: { queueId: string; status: QueueStatus }) {
+  const { data } = await apiClient.patch(
+    `/assistant/patient-queue/${payload.queueId}/status`,
+    { status: payload.status },
+  )
+  return data
+}
+
+/* ---------- Query keys ---------- */
+
+const queueKey = (filter?: QueueFilter) => ["assistant-patient-queue", filter ?? "all"]
+const statsKey = ["assistant-patient-queue-stats"]
+
+/* ---------- Hook ---------- */
+
 export function useAssistantQueue() {
-  const [patients, setPatients] = useState<QueuePatient[]>(mockQueuePatients)
+  const queryClient = useQueryClient()
   const [filter, setFilter] = useState<QueueFilter>("active")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
 
-  const stats: QueueStats = useMemo(() => {
-    return {
-      totalToday: patients.length,
-      scheduled: patients.filter((p) => p.status === "scheduled").length,
-      arrived: patients.filter((p) => p.status === "arrived").length,
-      inWaiting: patients.filter((p) => p.status === "waiting").length,
-      inConsultation: patients.filter((p) => p.status === "in-consultation").length,
-      completed: patients.filter((p) => p.status === "completed").length,
-      noShow: patients.filter((p) => p.status === "no-show" || p.status === "cancelled").length,
-      avgWaitMin: mockQueueStats.avgWaitMin,
-    }
-  }, [patients])
+  const queueQuery = useQuery<QueuePatient[], Error>({
+    queryKey: queueKey(filter),
+    queryFn: () => fetchQueueEntries(filter),
+    staleTime: 30 * 1000,
+  })
+
+  const statsQuery = useQuery<QueueStats, Error>({
+    queryKey: statsKey,
+    queryFn: fetchStats,
+    staleTime: 30 * 1000,
+  })
+
+  const invalidateAll = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["assistant-patient-queue"] }),
+      queryClient.invalidateQueries({ queryKey: statsKey }),
+    ])
+  }
+
+  const statusMutation = useMutation({
+    mutationFn: updateQueueStatus,
+    onSuccess: invalidateAll,
+  })
+
+  const patients = queueQuery.data ?? []
+  const stats = statsQuery.data ?? {
+    totalToday: 0,
+    scheduled: 0,
+    arrived: 0,
+    inWaiting: 0,
+    inConsultation: 0,
+    completed: 0,
+    noShow: 0,
+    avgWaitMin: 0,
+  }
+
+  const filteredPatients = useMemo(() => {
+    if (!searchTerm.trim()) return patients
+    const q = searchTerm.toLowerCase()
+    return patients.filter(
+      (p) =>
+        p.fullName.toLowerCase().includes(q) ||
+        p.assignedDoctor.toLowerCase().includes(q) ||
+        p.condition.toLowerCase().includes(q),
+    )
+  }, [patients, searchTerm])
 
   const inClinicPatients = useMemo(
     () =>
@@ -42,80 +105,24 @@ export function useAssistantQueue() {
     [patients, selectedPatientId],
   )
 
-  const filteredPatients = useMemo(() => {
-    const sorted = [...patients].sort((a, b) => {
-      if (a.status === "in-consultation" && b.status !== "in-consultation") return -1
-      if (a.status !== "in-consultation" && b.status === "in-consultation") return 1
-      if (a.status === "waiting" && b.status !== "waiting") return -1
-      if (a.status !== "waiting" && b.status === "waiting") return 1
-      if (a.status === "arrived" && b.status !== "arrived") return -1
-      if (a.status !== "arrived" && b.status === "arrived") return 1
-      if (a.priority === "emergency" && b.priority !== "emergency") return -1
-      if (a.priority !== "emergency" && b.priority === "emergency") return 1
-      if (a.priority === "urgent" && b.priority === "normal") return -1
-      if (a.priority === "normal" && b.priority === "urgent") return 1
-      return 0
-    })
-
-    const byFilter =
-      filter === "active"
-        ? sorted.filter((p) => ["scheduled", "arrived", "waiting", "in-consultation"].includes(p.status))
-        : filter === "scheduled"
-          ? sorted.filter((p) => p.status === "scheduled")
-          : filter === "completed"
-            ? sorted.filter((p) => p.status === "completed")
-            : sorted.filter((p) => p.status === "no-show" || p.status === "cancelled")
-
-    if (!searchTerm.trim()) return byFilter
-    const q = searchTerm.toLowerCase()
-    return byFilter.filter(
-      (p) =>
-        p.fullName.toLowerCase().includes(q) ||
-        p.assignedDoctor.toLowerCase().includes(q) ||
-        p.condition.toLowerCase().includes(q),
-    )
-  }, [patients, filter, searchTerm])
-
-  const now = () => new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+  const tabCounts = useMemo(() => ({
+    active: stats.scheduled + stats.arrived + stats.inWaiting + stats.inConsultation,
+    scheduled: stats.scheduled,
+    completed: stats.completed,
+    "no-show": stats.noShow,
+  }), [stats])
 
   const markArrived = (queueEntryId: string) => {
-    const time = now()
-    setPatients((prev) =>
-      prev.map((p) =>
-        p.queueEntryId === queueEntryId
-          ? { ...p, status: "arrived" as const, arrivedAt: time }
-          : p,
-      ),
-    )
+    statusMutation.mutate({ queueId: queueEntryId, status: "arrived" })
   }
 
   const moveToWaiting = (queueEntryId: string) => {
-    const time = now()
-    setPatients((prev) =>
-      prev.map((p) =>
-        p.queueEntryId === queueEntryId
-          ? { ...p, status: "waiting" as const, waitingSince: time }
-          : p,
-      ),
-    )
+    statusMutation.mutate({ queueId: queueEntryId, status: "waiting" })
   }
 
   const markNoShow = (queueEntryId: string) => {
-    setPatients((prev) =>
-      prev.map((p) =>
-        p.queueEntryId === queueEntryId
-          ? { ...p, status: "no-show" as const }
-          : p,
-      ),
-    )
+    statusMutation.mutate({ queueId: queueEntryId, status: "no-show" })
   }
-
-  const tabCounts = useMemo(() => ({
-    active: patients.filter((p) => ["scheduled", "arrived", "waiting", "in-consultation"].includes(p.status)).length,
-    scheduled: patients.filter((p) => p.status === "scheduled").length,
-    completed: patients.filter((p) => p.status === "completed").length,
-    "no-show": patients.filter((p) => p.status === "no-show" || p.status === "cancelled").length,
-  }), [patients])
 
   return {
     patients: filteredPatients,
@@ -133,5 +140,8 @@ export function useAssistantQueue() {
     selectPatient: setSelectedPatientId,
     clearSelection: () => setSelectedPatientId(null),
     inClinicPatients,
+    isLoading: queueQuery.isLoading || statsQuery.isLoading,
+    isError: queueQuery.isError || statsQuery.isError,
+    isUpdating: statusMutation.isPending,
   }
 }
