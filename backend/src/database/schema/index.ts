@@ -25,3 +25,4 @@ export * from './consultation.schema';
 export * from './consultationDiagnosis.schema';
 export * from './consultationPrescription.schema';
 export * from './consultationReferral.schema';
+export * from './doctorPatient.schema';

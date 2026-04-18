@@ -4,6 +4,7 @@
 
 -- 1. New enums
 CREATE TYPE "public"."patient_risk_level" AS ENUM('low', 'moderate', 'high');
+CREATE TYPE "public"."assignment_status" AS ENUM('active', 'archived');
 CREATE TYPE "public"."diagnosis_type" AS ENUM('primary', 'secondary', 'differential');
 CREATE TYPE "public"."diagnosis_severity" AS ENUM('mild', 'moderate', 'severe', 'critical');
 CREATE TYPE "public"."diagnosis_confirmation" AS ENUM('confirmed', 'unconfirmed', 'presumed');
@@ -93,7 +94,22 @@ CREATE TABLE IF NOT EXISTS "consultation_referral" (
   "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
--- 4. Add columns to existing tables
+-- 4. Doctor-patient assignment table
+
+CREATE TABLE IF NOT EXISTS "doctor_patient" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "doctor_id" uuid NOT NULL REFERENCES "public"."doctor"("id") ON DELETE cascade,
+  "patient_id" uuid NOT NULL REFERENCES "public"."patient"("id") ON DELETE cascade,
+  "assigned_by_user_id" integer REFERENCES "public"."user"("id") ON DELETE set null,
+  "status" "assignment_status" DEFAULT 'active' NOT NULL,
+  "is_primary" boolean DEFAULT false NOT NULL,
+  "notes" text,
+  "assigned_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "archived_at" timestamp with time zone,
+  CONSTRAINT "doctor_patient_unique" UNIQUE ("doctor_id", "patient_id")
+);
+
+-- 5. Add columns to existing tables
 
 ALTER TABLE "patient" ADD COLUMN IF NOT EXISTS "risk_level" "patient_risk_level" DEFAULT 'low' NOT NULL;
 ALTER TABLE "patient" ADD COLUMN IF NOT EXISTS "avatar_url" varchar(500);
