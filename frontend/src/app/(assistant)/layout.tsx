@@ -15,6 +15,7 @@ import {
   ClipboardListIcon,
   CalendarClockIcon,
   HeartHandshakeIcon,
+  UsersIcon,
 } from "lucide-react"
 
 import { useRequireRole } from "@/hooks/use-require-role"
@@ -99,6 +100,12 @@ function AssistantLayoutContent({
       label: "Appointments",
       icon: CalendarClockIcon,
       isActive: pathname === "/assistant-appointments",
+    },
+    {
+      href: "/assistant-queue",
+      label: "Queue",
+      icon: UsersIcon,
+      isActive: pathname === "/assistant-queue",
     },
     {
       href: "/assistant-dashboard",
