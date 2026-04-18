@@ -59,8 +59,8 @@ function formatTimeOnly(iso: string) {
 type AppointmentDetailProps = {
   appointment: DoctorAppointment | null
   onClose: () => void
-  onUpdateStatus: (id: string, status: AppointmentStatus, notes?: string) => void
-  onUpdateNotes: (id: string, notes: string) => void
+  onUpdateStatus: (params: { appointmentId: string; status: AppointmentStatus; notes?: string }) => Promise<void>
+  onUpdateNotes: (params: { appointmentId: string; notes: string }) => Promise<void>
 }
 
 export function AppointmentDetail({
@@ -80,21 +80,21 @@ export function AppointmentDetail({
   const isPastSlot = new Date(appointment.scheduledAt) < new Date()
 
   const handleSaveNotes = () => {
-    onUpdateNotes(appointment.id, notes)
+    onUpdateNotes({ appointmentId: appointment.id, notes })
   }
 
   const handleConfirm = () => {
-    onUpdateStatus(appointment.id, "confirmed")
+    onUpdateStatus({ appointmentId: appointment.id, status: "confirmed" })
     onClose()
   }
 
   const handleComplete = () => {
-    onUpdateStatus(appointment.id, "completed", notes)
+    onUpdateStatus({ appointmentId: appointment.id, status: "completed", notes })
     onClose()
   }
 
   const handleCancel = () => {
-    onUpdateStatus(appointment.id, "cancelled")
+    onUpdateStatus({ appointmentId: appointment.id, status: "cancelled" })
     setShowCancelConfirm(false)
     onClose()
   }
@@ -122,15 +122,10 @@ export function AppointmentDetail({
               <UserRoundIcon className="size-5 text-[#1A5345]" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-[#1A1F1E]">{appointment.patient.fullName}</p>
+              <p className="font-semibold text-[#1A1F1E]">{appointment.patient.name}</p>
               <p className="text-[13px] text-[#6B7870]">
-                {appointment.patient.age} years &middot; {appointment.patient.gender}
+                {appointment.patient.age != null ? `${appointment.patient.age} years` : ""} &middot; {appointment.patient.gender}
               </p>
-              {appointment.patient.condition && (
-                <p className="mt-1 text-[12px] text-[#1A5345]">
-                  {appointment.patient.condition}
-                </p>
-              )}
             </div>
           </div>
 

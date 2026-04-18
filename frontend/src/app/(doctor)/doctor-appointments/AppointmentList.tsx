@@ -142,10 +142,10 @@ function AppointmentRow({ appointment, onClick, isPast, isCancelled }: Appointme
           {/* Patient Name */}
           <div className="w-[120px] shrink-0 lg:w-[140px]">
             <p className="truncate text-[13px] font-semibold text-[#1A1F1E]">
-              {appointment.patient.fullName}
+              {appointment.patient.name}
             </p>
             <p className="truncate text-[11px] text-[#6B7870]">
-              {appointment.patient.age}y, {appointment.patient.gender}
+              {appointment.patient.age != null ? `${appointment.patient.age}y, ` : ""}{appointment.patient.gender}
             </p>
           </div>
 
@@ -250,7 +250,7 @@ export function AppointmentList({
       const q = searchQuery.toLowerCase()
       filtered = filtered.filter(
         (a) =>
-          a.patient.fullName.toLowerCase().includes(q) ||
+          a.patient.name.toLowerCase().includes(q) ||
           a.confirmationCode.toLowerCase().includes(q) ||
           a.reason.toLowerCase().includes(q) ||
           a.department.toLowerCase().includes(q),
@@ -282,7 +282,7 @@ export function AppointmentList({
               <div>
                 <h2 className="text-[15px] font-bold text-[#1A1F1E]">My Appointments</h2>
                 <p className="text-[11px] text-[#6B7870]">
-                  {stats.todayCount} today &middot; {stats.upcomingCount} upcoming &middot; {stats.cancelledCount} cancelled
+                  {stats.today} today &middot; {stats.upcoming} upcoming &middot; {stats.cancelled} cancelled
                 </p>
               </div>
             </div>
@@ -293,25 +293,25 @@ export function AppointmentList({
             <StatCard
               icon={<CalendarDaysIcon className="size-4 text-[#1A5345]" />}
               label="Today"
-              value={stats.todayCount}
+              value={stats.today}
               accent="bg-[#E8F0EE]"
             />
             <StatCard
               icon={<ClockIcon className="size-4 text-[#C26D2A]" />}
               label="Upcoming"
-              value={stats.upcomingCount}
+              value={stats.upcoming}
               accent="bg-[#F9F2E8]"
             />
             <StatCard
               icon={<CheckCircle2Icon className="size-4 text-[#2E8B68]" />}
               label="Completed"
-              value={stats.completedTodayCount}
+              value={stats.completed}
               accent="bg-[#F4F9F7]"
             />
             <StatCard
               icon={<XCircleIcon className="size-4 text-red-500" />}
               label="Cancelled"
-              value={stats.cancelledCount}
+              value={stats.cancelled}
               accent="bg-red-50"
             />
           </div>

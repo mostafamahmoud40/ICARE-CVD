@@ -35,7 +35,7 @@ export const vitalReading = pgTable(
       .default(sql`CURRENT_DATE`),
     time: varchar('time', { length: 5 })
       .notNull()
-      .default(sql`TO_CHAR(CURRENT_TIME, 'HH24:MI')`),
+      .default(sql`TO_CHAR(CURRENT_TIME::time, 'HH24:MI'::text)`),
     source: vitalSourceEnum('source').notNull().default('home'),
     systolicBp: smallint('systolic_bp'),
     diastolicBp: smallint('diastolic_bp'),

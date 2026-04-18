@@ -1,79 +1,89 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { apiClient } from "@/lib/api-client"
 import type {
   DoctorAppointment,
   AppointmentStatus,
-  DoctorAppointmentsPageData,
+  AppointmentStats,
 } from "./doctorAppointments.types"
-import { MOCK_DOCTOR_APPOINTMENTS } from "./doctorAppointments.mock"
 
-function computeStats(appointments: DoctorAppointment[]) {
-  const now = new Date()
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const todayEnd = new Date(todayStart)
-  todayEnd.setDate(todayEnd.getDate() + 1)
+async function fetchStats(): Promise<AppointmentStats> {
+  const { data } = await apiClient.get<AppointmentStats>("/doctor/appointments/stats")
+  return data
+}
 
-  return {
-    todayCount: appointments.filter(
-      (a) =>
-        new Date(a.scheduledAt) >= todayStart &&
-        new Date(a.scheduledAt) < todayEnd &&
-        a.status !== "cancelled",
-    ).length,
-    upcomingCount: appointments.filter(
-      (a) => new Date(a.scheduledAt) > now && a.status !== "cancelled" && a.status !== "completed",
-    ).length,
-    completedTodayCount: appointments.filter(
-      (a) =>
-        new Date(a.scheduledAt) >= todayStart &&
-        new Date(a.scheduledAt) < todayEnd &&
-        a.status === "completed",
-    ).length,
-    cancelledCount: appointments.filter((a) => a.status === "cancelled").length,
-  }
+async function fetchAppointments(): Promise<DoctorAppointment[]> {
+  const { data } = await apiClient.get<DoctorAppointment[]>("/doctor/appointments")
+  return data
+}
+
+async function updateAppointmentStatus({
+  appointmentId,
+  status,
+  notes,
+}: {
+  appointmentId: string
+  status: AppointmentStatus
+  notes?: string
+}) {
+  const { data } = await apiClient.patch(`/doctor/appointments/${appointmentId}`, {
+    status,
+    notes,
+  })
+  return data
+}
+
+async function updateAppointmentNotes({
+  appointmentId,
+  notes,
+}: {
+  appointmentId: string
+  notes: string
+}) {
+  const { data } = await apiClient.patch(`/doctor/appointments/${appointmentId}`, { notes })
+  return data
 }
 
 export function useDoctorAppointments() {
-  // Using mock data until backend doctor appointment endpoints are ready
-  const [appointments, setAppointments] = useState<DoctorAppointment[]>(
-    MOCK_DOCTOR_APPOINTMENTS.appointments,
-  )
+  const queryClient = useQueryClient()
 
-  const stats = useMemo(() => computeStats(appointments), [appointments])
+  const statsQuery = useQuery<AppointmentStats, Error>({
+    queryKey: ["doctor-appointments-stats"],
+    queryFn: fetchStats,
+    staleTime: 60 * 1000,
+  })
 
-  const data: DoctorAppointmentsPageData = useMemo(
-    () => ({ appointments, stats }),
-    [appointments, stats],
-  )
+  const appointmentsQuery = useQuery<DoctorAppointment[], Error>({
+    queryKey: ["doctor-appointments"],
+    queryFn: fetchAppointments,
+    staleTime: 60 * 1000,
+  })
 
-  const updateStatus = useCallback(
-    (appointmentId: string, status: AppointmentStatus, notes?: string) => {
-      setAppointments((prev) =>
-        prev.map((a) =>
-          a.id === appointmentId
-            ? {
-                ...a,
-                status,
-                notes: notes ?? a.notes,
-                ...(status === "cancelled" ? { cancelledAt: new Date().toISOString() } : {}),
-              }
-            : a,
-        ),
-      )
-    },
-    [],
-  )
+  const invalidateAll = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["doctor-appointments"] }),
+      queryClient.invalidateQueries({ queryKey: ["doctor-appointments-stats"] }),
+    ])
+  }
 
-  const updateNotes = useCallback((appointmentId: string, notes: string) => {
-    setAppointments((prev) =>
-      prev.map((a) => (a.id === appointmentId ? { ...a, notes } : a)),
-    )
-  }, [])
+  const statusMutation = useMutation({
+    mutationFn: updateAppointmentStatus,
+    onSuccess: invalidateAll,
+  })
+
+  const notesMutation = useMutation({
+    mutationFn: updateAppointmentNotes,
+    onSuccess: invalidateAll,
+  })
 
   return {
-    data,
-    updateStatus,
-    updateNotes,
+    stats: statsQuery.data ?? { today: 0, upcoming: 0, completed: 0, cancelled: 0 },
+    appointments: appointmentsQuery.data ?? [],
+    isLoading: appointmentsQuery.isLoading || statsQuery.isLoading,
+    isError: appointmentsQuery.isError || statsQuery.isError,
+    updateStatus: statusMutation.mutateAsync,
+    updateNotes: notesMutation.mutateAsync,
+    isUpdating: statusMutation.isPending || notesMutation.isPending,
   }
 }
