@@ -7,6 +7,8 @@ import { AuthJwtService } from '../auth/jwt';
 import { AssistantController } from './assistant.controller';
 import { AssistantGuard } from './assistant.guard';
 import { AssistantService } from './assistant.service';
+import { AssistantAppointmentController } from './assistant-appointment.controller';
+import { AssistantAppointmentService } from './assistant-appointment.service';
 
 @Module({
   imports: [
@@ -14,9 +16,10 @@ import { AssistantService } from './assistant.service';
       secret: process.env.JWT_ACCESS_SECRET,
     }),
   ],
-  controllers: [AssistantController],
+  controllers: [AssistantController, AssistantAppointmentController],
   providers: [
     AssistantService,
+    AssistantAppointmentService,
     AssistantGuard,
     AuthJwtService,
     AccessTokenGuard,

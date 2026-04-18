@@ -41,18 +41,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 
-import type { AssistantAppointment, AssistantAppointmentStatus } from "./assistantAppointments.types"
+import type {
+  AssistantAppointment,
+  AssistantAppointmentStatus,
+  AppointmentStats,
+  DoctorOption,
+  PatientOption,
+} from "./assistantAppointments.types"
 
 type AssistantAppointmentsProps = {
   appointments: AssistantAppointment[]
   totalAppointments: number
-  counts: {
-    total: number
-    pending: number
-    confirmed: number
-    completed: number
-    cancelled: number
-  }
+  counts: AppointmentStats
   searchTerm: string
   setSearchTerm: (value: string) => void
   statusFilter: AssistantAppointmentStatus | "all"
@@ -60,19 +60,29 @@ type AssistantAppointmentsProps = {
   isLoading: boolean
   isError: boolean
   error: Error | null
-  updateStatus: (payload: { appointmentId: string; status: AssistantAppointmentStatus }) => void
+  updateStatus: (payload: { appointmentId: string; status: AssistantAppointmentStatus }) => Promise<void>
   isUpdatingStatus: boolean
+  createAppointment: (payload: {
+    patientId: string
+    doctorId: string
+    scheduledAt: string
+    visitType: "clinic" | "virtual"
+    reason: string
+  }) => Promise<void>
+  isCreating: boolean
+  doctors: DoctorOption[]
+  patients: PatientOption[]
 }
 
 const statusLabel: Record<AssistantAppointmentStatus, string> = {
-  pending: "Pending",
+  scheduled: "Scheduled",
   confirmed: "Confirmed",
   completed: "Completed",
   cancelled: "Cancelled",
 }
 
 const statusStyles: Record<AssistantAppointmentStatus, string> = {
-  pending: "bg-amber-500/10 text-amber-700",
+  scheduled: "bg-amber-500/10 text-amber-700",
   confirmed: "bg-blue-500/10 text-blue-700",
   completed: "bg-emerald-500/10 text-emerald-700",
   cancelled: "bg-red-500/10 text-red-700",
@@ -86,7 +96,7 @@ const statCardStyles = {
     deltaStyle: "bg-[#E8F0EE] text-[#1A5345]",
     spark: "bg-[#1A5345]/80",
   },
-  pending: {
+  scheduled: {
     icon: ActivityIcon,
     iconWrap: "bg-[#F6EFE4] text-[#9A6B2F]",
     delta: "+4%",
@@ -115,19 +125,6 @@ const statCardStyles = {
     spark: "bg-[#C97070]/75",
   },
 } as const
-
-const mockPatientOptions = [
-  { id: "PAT-1001", name: "Ahmed Ali", phone: "+20 101 445 3290" },
-  { id: "PAT-1002", name: "Mona Sameh", phone: "+20 112 900 1142" },
-  { id: "PAT-1003", name: "Youssef Mamdouh", phone: "+20 100 750 2368" },
-  { id: "PAT-1004", name: "Salma Hegazy", phone: "+20 109 772 5531" },
-]
-
-const mockDoctorOptions = [
-  { id: "DOC-01", name: "Dr. Nada Hassan", department: "Cardiology" },
-  { id: "DOC-02", name: "Dr. Khaled Emad", department: "Hypertension Clinic" },
-  { id: "DOC-03", name: "Dr. Mariam Lotfy", department: "Arrhythmia Unit" },
-]
 
 function formatAppointmentDate(value: string): string {
   return new Intl.DateTimeFormat("en-GB", {
@@ -159,7 +156,7 @@ function AppointmentRow({
     <tr className="border-b last:border-b-0 hover:bg-muted/30">
       <td className="px-4 py-4 align-top">
         <div className="space-y-1">
-          <p className="font-mono text-xs font-medium text-[#00392D]">{appointment.id}</p>
+          <p className="font-mono text-xs font-medium text-[#00392D]">{appointment.id.slice(0, 8).toUpperCase()}</p>
         </div>
       </td>
 
@@ -266,6 +263,10 @@ export function AssistantAppointments({
   error,
   updateStatus,
   isUpdatingStatus,
+  createAppointment,
+  isCreating,
+  doctors,
+  patients,
 }: AssistantAppointmentsProps) {
   const [selectedPatient, setSelectedPatient] = useState<AssistantAppointment | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -280,8 +281,39 @@ export function AssistantAppointments({
     reason: "",
   })
 
-  const selectedPatientOption = mockPatientOptions.find((patient) => patient.id === bookingDraft.patientId)
-  const selectedDoctorOption = mockDoctorOptions.find((doctor) => doctor.id === bookingDraft.doctorId)
+  const selectedPatientOption = patients.find((p) => p.id === bookingDraft.patientId)
+  const selectedDoctorOption = doctors.find((d) => d.id === bookingDraft.doctorId)
+
+  const handleCreate = async () => {
+    if (!bookingDraft.patientId || !bookingDraft.doctorId || !bookingDraft.date || !bookingDraft.reason) return
+
+    let hour = parseInt(bookingDraft.timeHour, 10)
+    if (bookingDraft.timePeriod === "PM" && hour !== 12) hour += 12
+    if (bookingDraft.timePeriod === "AM" && hour === 12) hour = 0
+    const scheduledAt = new Date(
+      `${bookingDraft.date}T${String(hour).padStart(2, "0")}:${bookingDraft.timeMinute}:00.000Z`,
+    ).toISOString()
+
+    await createAppointment({
+      patientId: bookingDraft.patientId,
+      doctorId: bookingDraft.doctorId,
+      scheduledAt,
+      visitType: bookingDraft.visitType,
+      reason: bookingDraft.reason,
+    })
+
+    setBookingDraft({
+      patientId: "",
+      doctorId: "",
+      visitType: "clinic",
+      date: "",
+      timeHour: "09",
+      timeMinute: "00",
+      timePeriod: "AM",
+      reason: "",
+    })
+    setIsCreateDialogOpen(false)
+  }
 
   return (
     <main className="w-full space-y-6 p-4">
@@ -317,20 +349,20 @@ export function AssistantAppointments({
         <Card className="border-0 shadow-sm ring-1 ring-black/5">
           <CardContent className="space-y-3 pt-5">
             <div className="flex items-start justify-between">
-              <div className={`flex size-9 items-center justify-center rounded-xl ${statCardStyles.pending.iconWrap}`}>
-                <statCardStyles.pending.icon className="size-4" />
+              <div className={`flex size-9 items-center justify-center rounded-xl ${statCardStyles.scheduled.iconWrap}`}>
+                <statCardStyles.scheduled.icon className="size-4" />
               </div>
-              <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${statCardStyles.pending.deltaStyle}`}>
-                {statCardStyles.pending.delta}
+              <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${statCardStyles.scheduled.deltaStyle}`}>
+                {statCardStyles.scheduled.delta}
               </span>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Pending</p>
-              <p className="text-2xl font-semibold">{counts.pending}</p>
+              <p className="text-xs text-muted-foreground">Scheduled</p>
+              <p className="text-2xl font-semibold">{counts.scheduled}</p>
             </div>
             <div className="flex h-8 items-end gap-1">
               {[8, 11, 9, 7, 13, 10, 12].map((h, idx) => (
-                <span key={idx} className={`w-1.5 rounded ${statCardStyles.pending.spark}`} style={{ height: `${h * 2}px` }} />
+                <span key={idx} className={`w-1.5 rounded ${statCardStyles.scheduled.spark}`} style={{ height: `${h * 2}px` }} />
               ))}
             </div>
           </CardContent>
@@ -415,7 +447,7 @@ export function AssistantAppointments({
             {(
               [
                 { value: "all", label: "All" },
-                { value: "pending", label: "Pending" },
+                { value: "scheduled", label: "Scheduled" },
                 { value: "confirmed", label: "Confirmed" },
                 { value: "completed", label: "Completed" },
                 { value: "cancelled", label: "Cancelled" },
@@ -489,7 +521,7 @@ export function AssistantAppointments({
                   <AppointmentRow
                     key={appointment.id}
                     appointment={appointment}
-                    onUpdateStatus={updateStatus}
+                    onUpdateStatus={(payload) => { updateStatus(payload) }}
                     isUpdating={isUpdatingStatus}
                     onOpenPatientDetails={setSelectedPatient}
                   />
@@ -512,7 +544,7 @@ export function AssistantAppointments({
               <div className="grid gap-4 text-sm sm:grid-cols-2">
                 <div className="rounded-lg border p-3">
                   <p className="text-xs text-muted-foreground">Booking ID</p>
-                  <p className="mt-1 font-medium">{selectedPatient.id}</p>
+                  <p className="mt-1 font-mono font-medium">{selectedPatient.id.slice(0, 8).toUpperCase()}</p>
                 </div>
                 <div className="rounded-lg border p-3">
                   <p className="text-xs text-muted-foreground">Status</p>
@@ -534,7 +566,7 @@ export function AssistantAppointments({
                 </div>
                 <div className="rounded-lg border p-3">
                   <p className="text-xs text-muted-foreground">Phone</p>
-                  <p className="mt-1 font-medium">{selectedPatient.patientPhone}</p>
+                  <p className="mt-1 font-medium">{selectedPatient.patientPhone ?? "—"}</p>
                 </div>
                 <div className="rounded-lg border p-3">
                   <p className="text-xs text-muted-foreground">Email</p>
@@ -564,7 +596,7 @@ export function AssistantAppointments({
           <DialogHeader>
             <DialogTitle>Add appointment</DialogTitle>
             <DialogDescription>
-              Create a new booking for an existing patient. This is UI-only for now.
+              Create a new booking for an existing patient.
             </DialogDescription>
           </DialogHeader>
 
@@ -572,7 +604,7 @@ export function AssistantAppointments({
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault()
-              setIsCreateDialogOpen(false)
+              handleCreate()
             }}
           >
             <div className="space-y-2">
@@ -585,15 +617,15 @@ export function AssistantAppointments({
                   <SelectValue placeholder="Select existing patient" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockPatientOptions.map((patient) => (
-                    <SelectItem key={patient.id} value={patient.id}>
-                      {patient.name} ({patient.id})
+                  {patients.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {selectedPatientOption ? (
-                <p className="text-xs text-muted-foreground">Phone: {selectedPatientOption.phone}</p>
+                <p className="text-xs text-muted-foreground">Phone: {selectedPatientOption.phone ?? "—"}</p>
               ) : null}
             </div>
 
@@ -607,15 +639,15 @@ export function AssistantAppointments({
                   <SelectValue placeholder="Select doctor" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockDoctorOptions.map((doctor) => (
-                    <SelectItem key={doctor.id} value={doctor.id}>
-                      {doctor.name}
+                  {doctors.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {selectedDoctorOption ? (
-                <p className="text-xs text-muted-foreground">Department: {selectedDoctorOption.department}</p>
+                <p className="text-xs text-muted-foreground">Department: {selectedDoctorOption.specialty ?? "Cardiology"}</p>
               ) : null}
             </div>
 
@@ -719,8 +751,12 @@ export function AssistantAppointments({
               <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-[#00392D] hover:bg-[#00392D]/90">
-                Create booking
+              <Button
+                type="submit"
+                className="bg-[#00392D] hover:bg-[#00392D]/90"
+                disabled={isCreating || !bookingDraft.patientId || !bookingDraft.doctorId || !bookingDraft.date || !bookingDraft.reason}
+              >
+                {isCreating ? "Creating..." : "Create booking"}
               </Button>
             </div>
           </form>

@@ -2,36 +2,105 @@
 
 import { useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { apiClient } from "@/lib/api-client"
+import type {
+  AssistantAppointment,
+  AssistantAppointmentStatus,
+  AppointmentStats,
+  DoctorOption,
+  PatientOption,
+  CreateAppointmentPayload,
+} from "./assistantAppointments.types"
 
-import { mockAssistantAppointments } from "./assistantAppointments.mock"
-import type { AssistantAppointment, AssistantAppointmentStatus } from "./assistantAppointments.types"
+async function fetchAppointments(): Promise<AssistantAppointment[]> {
+  const { data } = await apiClient.get<AssistantAppointment[]>("/assistant/appointments")
+  return data
+}
 
-type AppointmentsQueryData = AssistantAppointment[]
+async function fetchStats(): Promise<AppointmentStats> {
+  const { data } = await apiClient.get<AppointmentStats>("/assistant/appointments/stats")
+  return data
+}
 
-const queryKey = ["assistant-appointments"]
+async function fetchDoctors(): Promise<DoctorOption[]> {
+  const { data } = await apiClient.get<DoctorOption[]>("/assistant/appointments/doctors")
+  return data
+}
+
+async function fetchPatients(): Promise<PatientOption[]> {
+  const { data } = await apiClient.get<PatientOption[]>("/assistant/appointments/patients")
+  return data
+}
+
+async function updateAppointmentStatus(payload: {
+  appointmentId: string
+  status: AssistantAppointmentStatus
+}) {
+  const { data } = await apiClient.patch(
+    `/assistant/appointments/${payload.appointmentId}/status`,
+    { status: payload.status },
+  )
+  return data
+}
+
+async function createAppointment(payload: CreateAppointmentPayload) {
+  const { data } = await apiClient.post("/assistant/appointments", payload)
+  return data
+}
+
+const appointmentsKey = ["assistant-appointments"]
+const statsKey = ["assistant-appointments-stats"]
+const doctorsKey = ["assistant-doctors"]
+const patientsKey = ["assistant-patients"]
 
 export function useAssistantAppointments() {
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<AssistantAppointmentStatus | "all">("all")
 
-  const query = useQuery<AppointmentsQueryData, Error>({
-    queryKey,
-    queryFn: async () => mockAssistantAppointments,
+  const appointmentsQuery = useQuery<AssistantAppointment[], Error>({
+    queryKey: appointmentsKey,
+    queryFn: fetchAppointments,
+    staleTime: 60 * 1000,
+  })
+
+  const statsQuery = useQuery<AppointmentStats, Error>({
+    queryKey: statsKey,
+    queryFn: fetchStats,
+    staleTime: 60 * 1000,
+  })
+
+  const doctorsQuery = useQuery<DoctorOption[], Error>({
+    queryKey: doctorsKey,
+    queryFn: fetchDoctors,
     staleTime: 5 * 60 * 1000,
   })
 
-  const updateStatusMutation = useMutation({
-    mutationFn: async (payload: { appointmentId: string; status: AssistantAppointmentStatus }) =>
-      payload,
-    onSuccess: ({ appointmentId, status }) => {
-      queryClient.setQueryData<AppointmentsQueryData>(queryKey, (current = []) =>
-        current.map((item) => (item.id === appointmentId ? { ...item, status } : item)),
-      )
-    },
+  const patientsQuery = useQuery<PatientOption[], Error>({
+    queryKey: patientsKey,
+    queryFn: fetchPatients,
+    staleTime: 5 * 60 * 1000,
   })
 
-  const appointments = query.data ?? []
+  const invalidateAll = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: appointmentsKey }),
+      queryClient.invalidateQueries({ queryKey: statsKey }),
+    ])
+  }
+
+  const statusMutation = useMutation({
+    mutationFn: updateAppointmentStatus,
+    onSuccess: invalidateAll,
+  })
+
+  const createMutation = useMutation({
+    mutationFn: createAppointment,
+    onSuccess: invalidateAll,
+  })
+
+  const appointments = appointmentsQuery.data ?? []
+  const stats = statsQuery.data ?? { total: 0, scheduled: 0, confirmed: 0, completed: 0, cancelled: 0 }
 
   const filteredAppointments = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
@@ -47,29 +116,22 @@ export function useAssistantAppointments() {
     })
   }, [appointments, searchTerm, statusFilter])
 
-  const counts = useMemo(() => {
-    return appointments.reduce(
-      (acc, appointment) => {
-        acc.total += 1
-        acc[appointment.status] += 1
-        return acc
-      },
-      { total: 0, pending: 0, confirmed: 0, completed: 0, cancelled: 0 },
-    )
-  }, [appointments])
-
   return {
     appointments: filteredAppointments,
-    totalAppointments: counts.total,
-    counts,
+    totalAppointments: stats.total,
+    counts: stats,
     searchTerm,
     setSearchTerm,
     statusFilter,
     setStatusFilter,
-    isLoading: query.isLoading,
-    isError: query.isError,
-    error: query.error ?? null,
-    updateStatus: updateStatusMutation.mutate,
-    isUpdatingStatus: updateStatusMutation.isPending,
+    isLoading: appointmentsQuery.isLoading || statsQuery.isLoading,
+    isError: appointmentsQuery.isError || statsQuery.isError,
+    error: appointmentsQuery.error ?? statsQuery.error ?? null,
+    updateStatus: statusMutation.mutateAsync,
+    isUpdatingStatus: statusMutation.isPending,
+    createAppointment: createMutation.mutateAsync,
+    isCreating: createMutation.isPending,
+    doctors: doctorsQuery.data ?? [],
+    patients: patientsQuery.data ?? [],
   }
 }
