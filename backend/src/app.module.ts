@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AssistantModule } from './modules/assistant/assistant.module';
 import { DoctorScheduleModule } from './modules/doctor/schedule/doctor-schedule.module';
+import { DoctorQueueModule } from './modules/doctor/queue/doctor-queue.module';
 import { S3Module } from './shared/storage/s3.module';
 import { AppointmentModule } from './modules/appointment/appointment.module';
 import { ChatModule } from './modules/chat/chat.module';
@@ -25,6 +26,7 @@ import { ConsultationModule } from './modules/consultation/consultation.module';
     AdminModule,
     AssistantModule,
     DoctorScheduleModule,
+    DoctorQueueModule,
     S3Module,
     AppointmentModule,
     ChatModule,
