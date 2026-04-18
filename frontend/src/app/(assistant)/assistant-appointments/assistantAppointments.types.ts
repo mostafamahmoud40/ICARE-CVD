@@ -30,6 +30,11 @@ export type DoctorOption = {
   specialty: string | null
 }
 
+export type AvailableSlotOption = {
+  value: string
+  label: string
+}
+
 export type PatientOption = {
   id: string
   name: string

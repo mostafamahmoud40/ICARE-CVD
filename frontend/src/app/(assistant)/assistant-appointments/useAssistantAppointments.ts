@@ -6,6 +6,7 @@ import { apiClient } from "@/lib/api-client"
 import type {
   AssistantAppointment,
   AssistantAppointmentStatus,
+  AvailableSlotOption,
   AppointmentStats,
   DoctorOption,
   PatientOption,
@@ -46,6 +47,14 @@ async function updateAppointmentStatus(payload: {
 async function createAppointment(payload: CreateAppointmentPayload) {
   const { data } = await apiClient.post("/assistant/appointments", payload)
   return data
+}
+
+async function fetchAvailableSlots(doctorId: string, date: string): Promise<AvailableSlotOption[]> {
+  const { data } = await apiClient.get<{ date: string; slots: AvailableSlotOption[] }>(
+    "/assistant/appointments/available-slots",
+    { params: { doctorId, date } },
+  )
+  return data.slots ?? []
 }
 
 const appointmentsKey = ["assistant-appointments"]
@@ -96,7 +105,10 @@ export function useAssistantAppointments() {
 
   const createMutation = useMutation({
     mutationFn: createAppointment,
-    onSuccess: invalidateAll,
+    onSuccess: async () => {
+      await invalidateAll()
+      await queryClient.invalidateQueries({ queryKey: ["assistant-appointments-available-slots"] })
+    },
   })
 
   const appointments = appointmentsQuery.data ?? []
@@ -134,4 +146,13 @@ export function useAssistantAppointments() {
     doctors: doctorsQuery.data ?? [],
     patients: patientsQuery.data ?? [],
   }
+}
+
+export function useAssistantAppointmentAvailableSlots(doctorId: string, date: string) {
+  return useQuery<AvailableSlotOption[], Error>({
+    queryKey: ["assistant-appointments-available-slots", doctorId, date],
+    queryFn: () => fetchAvailableSlots(doctorId, date),
+    enabled: Boolean(doctorId && date),
+    staleTime: 15 * 1000,
+  })
 }

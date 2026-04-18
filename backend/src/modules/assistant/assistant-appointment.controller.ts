@@ -43,6 +43,14 @@ export class AssistantAppointmentController {
     return this.service.listAppointments();
   }
 
+  @Get('available-slots')
+  getAvailableSlots(
+    @Query('doctorId') doctorId: string,
+    @Query('date') date: string,
+  ) {
+    return this.service.getAvailableSlots(doctorId, date);
+  }
+
   @Get(':appointmentId')
   getAppointment(@Param('appointmentId') appointmentId: string) {
     return this.service.getAppointment(appointmentId);

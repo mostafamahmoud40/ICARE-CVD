@@ -48,6 +48,7 @@ import type {
   DoctorOption,
   PatientOption,
 } from "./assistantAppointments.types"
+import { useAssistantAppointmentAvailableSlots } from "./useAssistantAppointments"
 
 type AssistantAppointmentsProps = {
   appointments: AssistantAppointment[]
@@ -275,24 +276,20 @@ export function AssistantAppointments({
     doctorId: "",
     visitType: "clinic" as "clinic" | "virtual",
     date: "",
-    timeHour: "09",
-    timeMinute: "00",
-    timePeriod: "AM" as "AM" | "PM",
+    timeSlot: "",
     reason: "",
   })
 
   const selectedPatientOption = patients.find((p) => p.id === bookingDraft.patientId)
   const selectedDoctorOption = doctors.find((d) => d.id === bookingDraft.doctorId)
+  const availableSlotsQuery = useAssistantAppointmentAvailableSlots(bookingDraft.doctorId, bookingDraft.date)
 
   const handleCreate = async () => {
-    if (!bookingDraft.patientId || !bookingDraft.doctorId || !bookingDraft.date || !bookingDraft.reason) return
+    if (!bookingDraft.patientId || !bookingDraft.doctorId || !bookingDraft.date || !bookingDraft.timeSlot || !bookingDraft.reason) return
 
-    let hour = parseInt(bookingDraft.timeHour, 10)
-    if (bookingDraft.timePeriod === "PM" && hour !== 12) hour += 12
-    if (bookingDraft.timePeriod === "AM" && hour === 12) hour = 0
-    const scheduledAt = new Date(
-      `${bookingDraft.date}T${String(hour).padStart(2, "0")}:${bookingDraft.timeMinute}:00.000Z`,
-    ).toISOString()
+    const [year, month, day] = bookingDraft.date.split("-").map(Number)
+    const [hours, minutes] = bookingDraft.timeSlot.split(":").map(Number)
+    const scheduledAt = new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString()
 
     await createAppointment({
       patientId: bookingDraft.patientId,
@@ -307,9 +304,7 @@ export function AssistantAppointments({
       doctorId: "",
       visitType: "clinic",
       date: "",
-      timeHour: "09",
-      timeMinute: "00",
-      timePeriod: "AM",
+      timeSlot: "",
       reason: "",
     })
     setIsCreateDialogOpen(false)
@@ -633,7 +628,7 @@ export function AssistantAppointments({
               <Label>Doctor</Label>
               <Select
                 value={bookingDraft.doctorId}
-                onValueChange={(value) => setBookingDraft((prev) => ({ ...prev, doctorId: value }))}
+                onValueChange={(value) => setBookingDraft((prev) => ({ ...prev, doctorId: value, timeSlot: "" }))}
               >
                 <SelectTrigger className="w-[300px]">
                   <SelectValue placeholder="Select doctor" />
@@ -657,65 +652,41 @@ export function AssistantAppointments({
                 <Input
                   type="date"
                   value={bookingDraft.date}
-                  onChange={(event) => setBookingDraft((prev) => ({ ...prev, date: event.target.value }))}
+                  onChange={(event) => setBookingDraft((prev) => ({ ...prev, date: event.target.value, timeSlot: "" }))}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Time</Label>
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={bookingDraft.timeHour}
-                    onValueChange={(value) => setBookingDraft((prev) => ({ ...prev, timeHour: value }))}
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].map(
-                        (hour) => (
-                          <SelectItem key={hour} value={hour}>
-                            {hour}
-                          </SelectItem>
-                        ),
-                      )}
-                    </SelectContent>
-                  </Select>
-
-                  <span className="text-sm text-muted-foreground">:</span>
-
-                  <Select
-                    value={bookingDraft.timeMinute}
-                    onValueChange={(value) => setBookingDraft((prev) => ({ ...prev, timeMinute: value }))}
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map(
-                        (minute) => (
-                          <SelectItem key={minute} value={minute}>
-                            {minute}
-                          </SelectItem>
-                        ),
-                      )}
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={bookingDraft.timePeriod}
-                    onValueChange={(value) =>
-                      setBookingDraft((prev) => ({ ...prev, timePeriod: value as "AM" | "PM" }))
-                    }
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="AM">AM</SelectItem>
-                      <SelectItem value="PM">PM</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select
+                  value={bookingDraft.timeSlot}
+                  onValueChange={(value) => setBookingDraft((prev) => ({ ...prev, timeSlot: value }))}
+                  disabled={!bookingDraft.date || !bookingDraft.doctorId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={!bookingDraft.date ? "Choose date first" : !bookingDraft.doctorId ? "Choose doctor first" : "Select available slot"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSlotsQuery.isLoading ? (
+                      <SelectItem value="loading-slot" disabled>
+                        Loading available slots...
+                      </SelectItem>
+                    ) : availableSlotsQuery.isError ? (
+                      <SelectItem value="error-slot" disabled>
+                        Failed to load slots
+                      </SelectItem>
+                    ) : (availableSlotsQuery.data?.length ?? 0) > 0 ? (
+                      availableSlotsQuery.data!.map((slot) => (
+                        <SelectItem key={slot.value} value={slot.value}>
+                          {slot.label}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-slot" disabled>
+                        No available slots
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -754,7 +725,7 @@ export function AssistantAppointments({
               <Button
                 type="submit"
                 className="bg-[#00392D] hover:bg-[#00392D]/90"
-                disabled={isCreating || !bookingDraft.patientId || !bookingDraft.doctorId || !bookingDraft.date || !bookingDraft.reason}
+                disabled={isCreating || !bookingDraft.patientId || !bookingDraft.doctorId || !bookingDraft.date || !bookingDraft.timeSlot || !bookingDraft.reason}
               >
                 {isCreating ? "Creating..." : "Create booking"}
               </Button>

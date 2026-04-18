@@ -468,6 +468,8 @@ type AssistantQueueProps = {
   onMarkArrived: (queueEntryId: string) => void
   onMoveToWaiting: (queueEntryId: string) => void
   onNoShow: (queueEntryId: string) => void
+  isLoading?: boolean
+  isError?: boolean
 }
 
 export function AssistantQueue({
@@ -485,7 +487,31 @@ export function AssistantQueue({
   onMarkArrived,
   onMoveToWaiting,
   onNoShow,
+  isLoading,
+  isError,
 }: AssistantQueueProps) {
+  if (isLoading) {
+    return (
+      <main className="flex h-full flex-1 items-center justify-center bg-[#F9F8F5]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="size-8 animate-spin rounded-full border-2 border-[#1A5345] border-t-transparent" />
+          <p className="text-[11px] text-muted-foreground sm:text-[12px]">Loading queue...</p>
+        </div>
+      </main>
+    )
+  }
+
+  if (isError) {
+    return (
+      <main className="flex h-full flex-1 items-center justify-center bg-[#F9F8F5]">
+        <div className="flex flex-col items-center gap-3">
+          <AlertTriangleIcon className="size-8 text-red-400" />
+          <p className="text-[11px] text-red-600 sm:text-[12px]">Failed to load patient queue.</p>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="flex h-full flex-1 flex-col overflow-hidden bg-[#F9F8F5]">
       {/* ======== TOP SECTION: Header + Stats ======== */}

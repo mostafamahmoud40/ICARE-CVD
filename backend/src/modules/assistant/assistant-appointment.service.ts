@@ -1,8 +1,17 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   count,
   desc,
   eq,
+  gte,
+  lt,
+  ne,
+  and,
 } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
@@ -13,12 +22,16 @@ import {
   user,
 } from '../../database/schema';
 import type { CreateAssistantAppointmentDto } from './dto/create-appointment.dto';
+import { AppointmentService } from '../appointment/appointment.service';
 
 type DoctorRow = { id: string; name: string; specialty: string | null };
 
 @Injectable()
 export class AssistantAppointmentService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly appointmentService: AppointmentService,
+  ) {}
 
   async getStats() {
     const [totalRow] = await this.db
@@ -186,6 +199,45 @@ export class AssistantAppointmentService {
     });
     if (!doctorRow) throw new NotFoundException('Doctor not found');
 
+    const requestedAt = new Date(dto.scheduledAt);
+    if (Number.isNaN(requestedAt.getTime())) {
+      throw new BadRequestException('Invalid scheduledAt');
+    }
+    const requestedDate = this.toDateOnly(requestedAt);
+    const requestedTime = this.toHHMM(requestedAt);
+    const availability = await this.getAvailableSlots(dto.doctorId, requestedDate);
+    const isAvailable = availability.slots.some(
+      (slot) => slot.value === requestedTime,
+    );
+    if (!isAvailable) {
+      throw new BadRequestException('This slot is not available');
+    }
+
+    // Hard conflict check in DB to avoid any race condition/cache drift.
+    const dayStart = new Date(`${requestedDate}T00:00:00`);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+    const queryStart = new Date(dayStart);
+    queryStart.setDate(queryStart.getDate() - 1);
+    const queryEnd = new Date(dayEnd);
+    queryEnd.setDate(queryEnd.getDate() + 1);
+    const sameDayAppointments = await this.db.query.appointment.findMany({
+      where: and(
+        eq(appointment.doctorId, dto.doctorId),
+        gte(appointment.scheduledAt, queryStart),
+        lt(appointment.scheduledAt, queryEnd),
+        ne(appointment.status, 'cancelled'),
+      ),
+    });
+    const hasExactConflict = sameDayAppointments.some(
+      (item) =>
+        this.toDateOnly(item.scheduledAt) === requestedDate &&
+        this.toHHMM(item.scheduledAt) === requestedTime,
+    );
+    if (hasExactConflict) {
+      throw new BadRequestException('This slot is already booked');
+    }
+
     const code = await this.generateConfirmationCode();
 
     const [created] = await this.db
@@ -203,6 +255,26 @@ export class AssistantAppointmentService {
       .returning();
 
     return this.getAppointment(created.id);
+  }
+
+  async getAvailableSlots(doctorId: string, date: string) {
+    if (!doctorId || !date) {
+      throw new BadRequestException('doctorId and date are required');
+    }
+    const availability = await this.appointmentService.getDoctorAvailability(
+      doctorId,
+      date,
+      1,
+    );
+    const slotsForDate = availability.timeSlotsByDate[date] ?? [];
+    const slots = slotsForDate
+      .filter((slot) => slot.label !== 'Booked')
+      .map((slot) => ({
+        value: this.fromAmPmToHHMM(slot.time),
+        label: slot.time,
+      }));
+
+    return { date, slots };
   }
 
   async listDoctors(): Promise<DoctorRow[]> {
@@ -256,5 +328,43 @@ export class AssistantAppointmentService {
       if (!exists) return candidate;
     }
     throw new Error('Unable to generate confirmation code');
+  }
+
+  private toDateOnly(date: Date) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Africa/Cairo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(date);
+    const y = parts.find((p) => p.type === 'year')?.value ?? '1970';
+    const m = parts.find((p) => p.type === 'month')?.value ?? '01';
+    const d = parts.find((p) => p.type === 'day')?.value ?? '01';
+    return `${y}-${m}-${d}`;
+  }
+
+  private toHHMM(date: Date) {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Africa/Cairo',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(date);
+    const hour = parts.find((p) => p.type === 'hour')?.value ?? '00';
+    const minute = parts.find((p) => p.type === 'minute')?.value ?? '00';
+    return `${hour}:${minute}`;
+  }
+
+  private fromAmPmToHHMM(time: string) {
+    const [rawTime, rawPeriod] = time.trim().split(' ');
+    const [rawHour, rawMinute] = rawTime.split(':').map(Number);
+    const period = rawPeriod?.toUpperCase();
+    let hour = rawHour;
+    if (period === 'PM' && hour !== 12) hour += 12;
+    if (period === 'AM' && hour === 12) hour = 0;
+    return `${String(hour).padStart(2, '0')}:${String(rawMinute).padStart(
+      2,
+      '0',
+    )}`;
   }
 }
