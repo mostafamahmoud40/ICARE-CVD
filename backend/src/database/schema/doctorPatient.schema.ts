@@ -1,4 +1,13 @@
-import { boolean, integer, pgEnum, pgTable, text, timestamp, uuid, varchar, uniqueIndex } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { doctor } from './doctor.schema';
 import { patient } from './patient.schema';
 import { user } from './users.schema';
@@ -18,10 +27,9 @@ export const doctorPatient = pgTable(
     patientId: uuid('patient_id')
       .references(() => patient.id, { onDelete: 'cascade' })
       .notNull(),
-    assignedByUserId: integer('assigned_by_user_id').references(
-      () => user.id,
-      { onDelete: 'set null' },
-    ),
+    assignedByUserId: integer('assigned_by_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
     status: assignmentStatusEnum('status').notNull().default('active'),
     isPrimary: boolean('is_primary').notNull().default(false),
     notes: text('notes'),
@@ -31,9 +39,6 @@ export const doctorPatient = pgTable(
     archivedAt: timestamp('archived_at', { withTimezone: true }),
   },
   (table) => [
-    uniqueIndex('doctor_patient_unique').on(
-      table.doctorId,
-      table.patientId,
-    ),
+    uniqueIndex('doctor_patient_unique').on(table.doctorId, table.patientId),
   ],
 );

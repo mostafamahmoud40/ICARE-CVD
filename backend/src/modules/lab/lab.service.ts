@@ -7,8 +7,8 @@ import {
   labOrderItem,
   labResult,
   patient,
-  doctor,
 } from '../../database/schema';
+import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type {
   CreateLabOrderDto,
   CreateLabResultDto,
@@ -17,10 +17,13 @@ import type {
 
 @Injectable()
 export class LabService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly doctorVerifier: DoctorVerifierService,
+  ) {}
 
   async listLabOrders(doctorUserId: number, patientId: string) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await this.db.query.patient.findFirst({
       where: eq(patient.id, patientId),
@@ -34,7 +37,7 @@ export class LabService {
   }
 
   async getLabOrder(doctorUserId: number, orderId: string) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const order = await this.db.query.labOrder.findFirst({
       where: eq(labOrder.id, orderId),
@@ -53,7 +56,7 @@ export class LabService {
     patientId: string,
     dto: CreateLabOrderDto,
   ) {
-    const doctorRow = await this.verifyDoctor(doctorUserId);
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await this.db.query.patient.findFirst({
       where: eq(patient.id, patientId),
@@ -91,7 +94,7 @@ export class LabService {
     orderId: string,
     dto: UpdateLabOrderDto,
   ) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const existing = await this.db.query.labOrder.findFirst({
       where: eq(labOrder.id, orderId),
@@ -111,7 +114,7 @@ export class LabService {
   }
 
   async cancelLabOrder(doctorUserId: number, orderId: string) {
-    const doctorRow = await this.verifyDoctor(doctorUserId);
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
 
     const existing = await this.db.query.labOrder.findFirst({
       where: eq(labOrder.id, orderId),
@@ -133,7 +136,7 @@ export class LabService {
   }
 
   async listLabResults(doctorUserId: number, patientId: string) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await this.db.query.patient.findFirst({
       where: eq(patient.id, patientId),
@@ -151,7 +154,7 @@ export class LabService {
     patientId: string,
     dto: CreateLabResultDto,
   ) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await this.db.query.patient.findFirst({
       where: eq(patient.id, patientId),
@@ -173,13 +176,5 @@ export class LabService {
       .returning();
 
     return result;
-  }
-
-  private async verifyDoctor(userId: number) {
-    const row = await this.db.query.doctor.findFirst({
-      where: eq(doctor.userId, userId),
-    });
-    if (!row) throw new NotFoundException('Doctor profile not found');
-    return row;
   }
 }

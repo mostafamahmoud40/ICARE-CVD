@@ -2,8 +2,9 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { desc, eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
-import { patientDocument, patient, doctor } from '../../database/schema';
+import { patientDocument, patient } from '../../database/schema';
 import { S3Service } from '../../shared/storage/s3.service';
+import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type { CreateDocumentDto } from './dto/documents.dto';
 
 @Injectable()
@@ -11,10 +12,11 @@ export class DoctorDocumentService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly s3Service: S3Service,
+    private readonly doctorVerifier: DoctorVerifierService,
   ) {}
 
   async listDocuments(doctorUserId: number, patientId: string) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await this.db.query.patient.findFirst({
       where: eq(patient.id, patientId),
@@ -32,7 +34,7 @@ export class DoctorDocumentService {
     patientId: string,
     dto: CreateDocumentDto,
   ) {
-    const doctorRow = await this.verifyDoctor(doctorUserId);
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await this.db.query.patient.findFirst({
       where: eq(patient.id, patientId),
@@ -68,7 +70,7 @@ export class DoctorDocumentService {
   }
 
   async deleteDocument(doctorUserId: number, documentId: string) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const doc = await this.db.query.patientDocument.findFirst({
       where: eq(patientDocument.id, documentId),
@@ -81,13 +83,5 @@ export class DoctorDocumentService {
       .where(eq(patientDocument.id, documentId));
 
     return { success: true };
-  }
-
-  private async verifyDoctor(userId: number) {
-    const row = await this.db.query.doctor.findFirst({
-      where: eq(doctor.userId, userId),
-    });
-    if (!row) throw new NotFoundException('Doctor profile not found');
-    return row;
   }
 }

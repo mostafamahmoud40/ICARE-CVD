@@ -2,7 +2,8 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
-import { vitalReading, patient, doctor } from '../../database/schema';
+import { vitalReading, patient } from '../../database/schema';
+import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type {
   CreateVitalReadingDto,
   UpdateVitalReadingDto,
@@ -10,10 +11,13 @@ import type {
 
 @Injectable()
 export class VitalsService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly doctorVerifier: DoctorVerifierService,
+  ) {}
 
   async listVitals(doctorUserId: number, patientId: string) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await this.db.query.patient.findFirst({
       where: eq(patient.id, patientId),
@@ -27,7 +31,7 @@ export class VitalsService {
   }
 
   async getVital(doctorUserId: number, vitalId: string) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const row = await this.db.query.vitalReading.findFirst({
       where: eq(vitalReading.id, vitalId),
@@ -41,7 +45,7 @@ export class VitalsService {
     patientId: string,
     dto: CreateVitalReadingDto,
   ) {
-    const doctorRow = await this.verifyDoctor(doctorUserId);
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await this.db.query.patient.findFirst({
       where: eq(patient.id, patientId),
@@ -75,7 +79,7 @@ export class VitalsService {
     vitalId: string,
     dto: UpdateVitalReadingDto,
   ) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const existing = await this.db.query.vitalReading.findFirst({
       where: eq(vitalReading.id, vitalId),
@@ -102,7 +106,7 @@ export class VitalsService {
   }
 
   async deleteVital(doctorUserId: number, vitalId: string) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const existing = await this.db.query.vitalReading.findFirst({
       where: eq(vitalReading.id, vitalId),
@@ -114,7 +118,7 @@ export class VitalsService {
   }
 
   async getVitalStats(doctorUserId: number, patientId: string) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await this.db.query.patient.findFirst({
       where: eq(patient.id, patientId),
@@ -152,13 +156,5 @@ export class VitalsService {
       latestWeight: latest.weight,
       latestBloodSugar: latest.bloodSugar,
     };
-  }
-
-  private async verifyDoctor(userId: number) {
-    const row = await this.db.query.doctor.findFirst({
-      where: eq(doctor.userId, userId),
-    });
-    if (!row) throw new NotFoundException('Doctor profile not found');
-    return row;
   }
 }
