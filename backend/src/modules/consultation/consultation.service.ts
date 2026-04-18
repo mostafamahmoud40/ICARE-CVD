@@ -11,6 +11,7 @@ import {
   doctor,
   user,
 } from '../../database/schema';
+import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type {
   CreateConsultationDto,
   UpdateConsultationDto,
@@ -21,10 +22,13 @@ import type {
 
 @Injectable()
 export class ConsultationService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly doctorVerifier: DoctorVerifierService,
+  ) {}
 
   async listConsultations(doctorUserId: number, patientId: string) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await this.db.query.patient.findFirst({
       where: eq(patient.id, patientId),
@@ -38,7 +42,7 @@ export class ConsultationService {
   }
 
   async getConsultation(doctorUserId: number, consultationId: string) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const cons = await this.db.query.consultation.findFirst({
       where: eq(consultation.id, consultationId),
@@ -91,7 +95,7 @@ export class ConsultationService {
     patientId: string,
     dto: CreateConsultationDto,
   ) {
-    const doctorRow = await this.verifyDoctor(doctorUserId);
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await this.db.query.patient.findFirst({
       where: eq(patient.id, patientId),
@@ -124,7 +128,7 @@ export class ConsultationService {
     consultationId: string,
     dto: UpdateConsultationDto,
   ) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const existing = await this.db.query.consultation.findFirst({
       where: eq(consultation.id, consultationId),
@@ -154,7 +158,7 @@ export class ConsultationService {
     consultationId: string,
     dto: LinkDiagnosisDto,
   ) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const cons = await this.db.query.consultation.findFirst({
       where: eq(consultation.id, consultationId),
@@ -179,7 +183,7 @@ export class ConsultationService {
     consultationId: string,
     diagnosisId: string,
   ) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     await this.db
       .delete(consultationDiagnosis)
@@ -198,7 +202,7 @@ export class ConsultationService {
     consultationId: string,
     dto: LinkPrescriptionDto,
   ) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const cons = await this.db.query.consultation.findFirst({
       where: eq(consultation.id, consultationId),
@@ -225,7 +229,7 @@ export class ConsultationService {
     patientId: string,
     dto: CreateReferralDto,
   ) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const cons = await this.db.query.consultation.findFirst({
       where: eq(consultation.id, consultationId),
@@ -245,13 +249,5 @@ export class ConsultationService {
       .returning();
 
     return referral;
-  }
-
-  private async verifyDoctor(userId: number) {
-    const row = await this.db.query.doctor.findFirst({
-      where: eq(doctor.userId, userId),
-    });
-    if (!row) throw new NotFoundException('Doctor profile not found');
-    return row;
   }
 }

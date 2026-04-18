@@ -5,12 +5,14 @@ import { AuthJwtService } from '../auth/jwt';
 import { DoctorGuard } from '../doctor/doctor.guard';
 import { ConsultationService } from './consultation.service';
 import { DoctorConsultationController } from './doctor-consultation.controller';
+import { DoctorVerifierModule } from '../../shared/doctor/doctor-verifier.module';
 
 @Module({
   imports: [
     JwtModule.register({
       secret: process.env.JWT_ACCESS_SECRET,
     }),
+    DoctorVerifierModule,
   ],
   controllers: [DoctorConsultationController],
   providers: [

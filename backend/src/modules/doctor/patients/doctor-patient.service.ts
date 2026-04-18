@@ -6,7 +6,6 @@ import {
   doctorPatient,
   patient,
   user,
-  doctor,
   allergy,
   familyHistory,
   medication,
@@ -16,13 +15,17 @@ import {
   consultation,
   labResult,
 } from '../../../database/schema';
+import { DoctorVerifierService } from '../../../shared/doctor/doctor-verifier.service';
 
 @Injectable()
 export class DoctorPatientService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly doctorVerifier: DoctorVerifierService,
+  ) {}
 
   async listDoctorPatients(doctorUserId: number) {
-    const doctorRow = await this.verifyDoctor(doctorUserId);
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
 
     const rows = await this.db
       .select({
@@ -78,7 +81,7 @@ export class DoctorPatientService {
   }
 
   async getDoctorPatientStats(doctorUserId: number) {
-    const doctorRow = await this.verifyDoctor(doctorUserId);
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
 
     const [stats] = await this.db
       .select({
@@ -108,7 +111,7 @@ export class DoctorPatientService {
   }
 
   async getPatientFullRecord(doctorUserId: number, patientId: string) {
-    const doctorRow = await this.verifyDoctor(doctorUserId);
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
 
     await this.verifyAssignment(doctorRow.id, patientId);
 
@@ -249,7 +252,7 @@ export class DoctorPatientService {
   }
 
   async assignPatient(doctorUserId: number, patientId: string, notes?: string) {
-    const doctorRow = await this.verifyDoctor(doctorUserId);
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await this.db.query.patient.findFirst({
       where: eq(patient.id, patientId),
@@ -286,14 +289,6 @@ export class DoctorPatientService {
       .returning();
 
     return assignment;
-  }
-
-  private async verifyDoctor(userId: number) {
-    const row = await this.db.query.doctor.findFirst({
-      where: eq(doctor.userId, userId),
-    });
-    if (!row) throw new NotFoundException('Doctor profile not found');
-    return row;
   }
 
   private async verifyAssignment(doctorId: string, patientId: string) {

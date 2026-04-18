@@ -2,7 +2,8 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { desc, eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
-import { diagnosis, patient, doctor } from '../../database/schema';
+import { diagnosis, patient } from '../../database/schema';
+import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type {
   CreateDiagnosisDto,
   UpdateDiagnosisDto,
@@ -10,10 +11,13 @@ import type {
 
 @Injectable()
 export class DiagnosisService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly doctorVerifier: DoctorVerifierService,
+  ) {}
 
   async listDiagnoses(doctorUserId: number, patientId: string) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await this.db.query.patient.findFirst({
       where: eq(patient.id, patientId),
@@ -27,7 +31,7 @@ export class DiagnosisService {
   }
 
   async getDiagnosis(doctorUserId: number, diagnosisId: string) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const row = await this.db.query.diagnosis.findFirst({
       where: eq(diagnosis.id, diagnosisId),
@@ -41,7 +45,7 @@ export class DiagnosisService {
     patientId: string,
     dto: CreateDiagnosisDto,
   ) {
-    const doctorRow = await this.verifyDoctor(doctorUserId);
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await this.db.query.patient.findFirst({
       where: eq(patient.id, patientId),
@@ -74,7 +78,7 @@ export class DiagnosisService {
     diagnosisId: string,
     dto: UpdateDiagnosisDto,
   ) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const existing = await this.db.query.diagnosis.findFirst({
       where: eq(diagnosis.id, diagnosisId),
@@ -98,7 +102,7 @@ export class DiagnosisService {
   }
 
   async deleteDiagnosis(doctorUserId: number, diagnosisId: string) {
-    await this.verifyDoctor(doctorUserId);
+    await this.doctorVerifier.verify(doctorUserId);
 
     const existing = await this.db.query.diagnosis.findFirst({
       where: eq(diagnosis.id, diagnosisId),
@@ -107,13 +111,5 @@ export class DiagnosisService {
 
     await this.db.delete(diagnosis).where(eq(diagnosis.id, diagnosisId));
     return { success: true };
-  }
-
-  private async verifyDoctor(userId: number) {
-    const row = await this.db.query.doctor.findFirst({
-      where: eq(doctor.userId, userId),
-    });
-    if (!row) throw new NotFoundException('Doctor profile not found');
-    return row;
   }
 }
