@@ -300,27 +300,39 @@ function PatientDetailView({
 
         {/* Timeline */}
         <div>
-          <p className="mb-1.5 text-[9px] uppercase tracking-wider text-muted-foreground sm:text-[10px]">Progress</p>
-          <div className="flex items-center gap-0.5 sm:gap-1">
+          <p className="mb-3 text-[9px] uppercase tracking-wider text-muted-foreground sm:text-[10px]">Progress</p>
+          <div className="flex items-center">
             {steps.map((step, idx) => (
-              <div key={step.key} className="flex items-center">
-                <div
-                  className={cn(
-                    "size-2.5 rounded-full sm:size-3",
-                    idx === currentIdx && !patient.completedAt
-                      ? "bg-[#1A5345] ring-2 ring-[#1A5345]/20"
-                      : step.done ? "bg-[#1A5345]" : "bg-[#E8E6E0]",
-                  )}
-                  title={step.label}
-                />
-                {idx < steps.length - 1 && (
-                  <div className={cn("h-px w-3 sm:w-4", step.done && steps[idx + 1]?.done ? "bg-[#1A5345]" : "bg-[#E8E6E0]")} />
-                )}
+              <div key={step.key} className="flex flex-1 flex-col items-center">
+                {/* Dot row */}
+                <div className="flex w-full items-center">
+                  {/* Left line */}
+                  <div className="flex-1 flex justify-end">
+                    {idx > 0 && (
+                      <div className={cn("h-px w-full", step.done ? "bg-[#1A5345]" : "bg-[#E8E6E0]")} />
+                    )}
+                  </div>
+                  {/* Dot */}
+                  <div
+                    className={cn(
+                      "mx-2 size-2.5 shrink-0 rounded-full sm:size-3",
+                      idx === currentIdx && !patient.completedAt
+                        ? "bg-[#1A5345] ring-2 ring-[#1A5345]/20"
+                        : step.done ? "bg-[#1A5345]" : "bg-[#E8E6E0]",
+                    )}
+                    title={step.label}
+                  />
+                  {/* Right line */}
+                  <div className="flex-1 flex justify-start">
+                    {idx < steps.length - 1 && (
+                      <div className={cn("h-px w-full", step.done && steps[idx + 1]?.done ? "bg-[#1A5345]" : "bg-[#E8E6E0]")} />
+                    )}
+                  </div>
+                </div>
+                {/* Label */}
+                <span className="mt-2 whitespace-nowrap text-center text-[8px] text-muted-foreground sm:text-[9px]">{step.label}</span>
               </div>
             ))}
-          </div>
-          <div className="mt-1 flex justify-between text-[8px] text-muted-foreground sm:text-[9px]">
-            {steps.map((s) => <span key={s.key}>{s.label}</span>)}
           </div>
         </div>
 
