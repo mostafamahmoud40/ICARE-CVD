@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { cn } from "@/lib/utils"
+import { useConsultationPanelWidths } from "./usePanelResize"
 import type { ConsultationData, DiagnosisEntry, PrescriptionEntry, TestOrder, HomeMeasurement, VitalSigns, PhysicalExamFindings, AISuggestion } from "./consultation.types"
 import { mockConsultationData } from "./consultation.mock"
 import { PatientSidebar } from "./PatientSidebar"
@@ -22,6 +24,16 @@ import {
 
 export function ConsultationPage() {
   const [data, setData] = useState<ConsultationData>(mockConsultationData)
+  const [isPatientSidebarCollapsed, setIsPatientSidebarCollapsed] = useState(false)
+  const [isAiPanelCollapsed, setIsAiPanelCollapsed] = useState(false)
+  const {
+    patientSidebarWidth,
+    aiPanelWidth,
+    onPatientResizePointerDown,
+    onAiResizePointerDown,
+    nudgePatient,
+    nudgeAi,
+  } = useConsultationPanelWidths()
 
   const updateVitals = (key: keyof VitalSigns, value: string) => {
     setData((prev) => ({ ...prev, vitals: { ...prev.vitals, [key]: value } as VitalSigns }))
@@ -121,18 +133,37 @@ export function ConsultationPage() {
           familyHistory={data.patientSummary.familyHistory}
           lifestyleFlags={data.patientSummary.lifestyleFlags}
           existingConditions={data.patientSummary.existingConditions}
+          collapsed={isPatientSidebarCollapsed}
+          onToggle={() => setIsPatientSidebarCollapsed((prev) => !prev)}
+          widthPx={patientSidebarWidth}
+          onNudgeWidth={nudgePatient}
         />
 
+        {!isPatientSidebarCollapsed ? (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize patient summary panel"
+            onPointerDown={onPatientResizePointerDown}
+            className={cn(
+              "group relative w-2 shrink-0 cursor-col-resize select-none touch-none",
+              "hover:bg-[#1A5345]/10 active:bg-[#1A5345]/15",
+            )}
+          >
+            <div className="pointer-events-none mx-auto h-full w-px bg-[#E8E6E0] group-hover:bg-[#1A5345]/35" />
+          </div>
+        ) : null}
+
         {/* Center: Consultation workflow */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="scrollbar-hide flex-1 overflow-y-auto p-5">
           <div className="mx-auto max-w-[900px] space-y-5">
             <VitalsSection vitals={data.vitals} onVitalChange={updateVitals} />
 
             <ChiefComplaintSection
               complaint={data.chiefComplaint}
               onComplaintChange={(v) => setData((prev) => ({ ...prev, chiefComplaint: v }))}
-              structuredComplaint={""}
-              onStructuredComplaintChange={() => {}}
+              structuredComplaint={data.structuredComplaint}
+              onStructuredComplaintChange={(v) => setData((prev) => ({ ...prev, structuredComplaint: v }))}
             />
 
             <PhysicalExamSection exam={data.physicalExam} onExamChange={updateExam} />
@@ -174,10 +205,29 @@ export function ConsultationPage() {
           </div>
         </div>
 
+        {!isAiPanelCollapsed ? (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize AI assistant panel"
+            onPointerDown={onAiResizePointerDown}
+            className={cn(
+              "group relative w-2 shrink-0 cursor-col-resize select-none touch-none",
+              "hover:bg-[#1A5345]/10 active:bg-[#1A5345]/15",
+            )}
+          >
+            <div className="pointer-events-none mx-auto h-full w-px bg-[#E8E6E0] group-hover:bg-[#1A5345]/35" />
+          </div>
+        ) : null}
+
         <AIAssistantPanel
           suggestions={data.aiSuggestions}
           onAcceptSuggestion={acceptSuggestion}
           onDismissSuggestion={dismissSuggestion}
+          collapsed={isAiPanelCollapsed}
+          onToggle={() => setIsAiPanelCollapsed((prev) => !prev)}
+          widthPx={aiPanelWidth}
+          onNudgeWidth={nudgeAi}
         />
       </div>
     </div>

@@ -5,6 +5,9 @@ import { cn } from "@/lib/utils"
 import {
   AlertTriangleIcon,
   BotIcon,
+  ChevronLeftIcon,
+  MinusIcon,
+  PlusIcon,
   CheckCircle2Icon,
   ClipboardCheckIcon,
   FileTextIcon,
@@ -100,22 +103,82 @@ export type AIAssistantPanelProps = {
   suggestions: AISuggestion[]
   onAcceptSuggestion: (id: string) => void
   onDismissSuggestion: (id: string) => void
+  collapsed: boolean
+  onToggle: () => void
+  widthPx: number
+  onNudgeWidth?: (delta: number) => void
 }
 
-export function AIAssistantPanel({ suggestions, onAcceptSuggestion, onDismissSuggestion }: AIAssistantPanelProps) {
+export function AIAssistantPanel({
+  suggestions,
+  onAcceptSuggestion,
+  onDismissSuggestion,
+  collapsed,
+  onToggle,
+  widthPx,
+  onNudgeWidth,
+}: AIAssistantPanelProps) {
   const pendingCount = suggestions.filter((s) => s.accepted === null).length
   const acceptedCount = suggestions.filter((s) => s.accepted === true).length
 
+  if (collapsed) {
+    return (
+      <div className="flex w-11 shrink-0 flex-col items-center border-l border-[#E8E6E0] bg-white py-2">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex size-7 items-center justify-center rounded-md border border-[#E8E6E0] text-violet-600 transition-colors hover:bg-violet-50"
+          aria-label="Expand AI assistant"
+        >
+          <ChevronLeftIcon className="size-4" />
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex w-[300px] shrink-0 flex-col border-l border-[#E8E6E0] bg-white">
-      <div className="border-b border-[#E8E6E0] bg-[#FAFAF8] px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-violet-100">
+    <div
+      className="flex shrink-0 flex-col border-l border-[#E8E6E0] bg-white"
+      style={{ width: widthPx, minWidth: widthPx, maxWidth: widthPx }}
+    >
+      <div className="border-b border-[#E8E6E0] bg-[#FAFAF8] px-2 py-2 sm:px-4 sm:py-3">
+        <div className="flex items-center gap-1.5">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-violet-100">
             <BotIcon className="size-4 text-violet-600" />
           </div>
-          <div>
-            <h3 className="text-[13px] font-semibold text-[#102F27]">AI Assistant</h3>
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-[13px] font-semibold text-[#102F27]">AI Assistant</h3>
             <p className="text-[10px] text-muted-foreground">Real-time clinical support</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-0.5">
+            {onNudgeWidth ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onNudgeWidth(-20)}
+                  className="flex size-7 items-center justify-center rounded-md border border-[#E8E6E0] text-violet-600 transition-colors hover:bg-violet-50"
+                  aria-label="Narrow AI panel"
+                >
+                  <MinusIcon className="size-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNudgeWidth(20)}
+                  className="flex size-7 items-center justify-center rounded-md border border-[#E8E6E0] text-violet-600 transition-colors hover:bg-violet-50"
+                  aria-label="Widen AI panel"
+                >
+                  <PlusIcon className="size-3.5" />
+                </button>
+              </>
+            ) : null}
+            <button
+              type="button"
+              onClick={onToggle}
+              className="flex size-7 items-center justify-center rounded-md border border-[#E8E6E0] text-violet-600 transition-colors hover:bg-violet-50"
+              aria-label="Collapse AI assistant"
+            >
+              <ChevronLeftIcon className="size-4 rotate-180" />
+            </button>
           </div>
         </div>
         <div className="mt-2 flex items-center gap-2">
@@ -128,7 +191,7 @@ export function AIAssistantPanel({ suggestions, onAcceptSuggestion, onDismissSug
         </div>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto p-3">
+      <div className="scrollbar-hide flex-1 space-y-3 overflow-y-auto p-3">
         {suggestions.map((s) => (
           <SuggestionCard
             key={s.id}

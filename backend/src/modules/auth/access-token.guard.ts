@@ -1,11 +1,15 @@
 import {
   CanActivate,
   ExecutionContext,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
+import { eq } from 'drizzle-orm';
 import { AuthJwtService, type TokenPayload } from './jwt';
+import { DRIZZLE, type Database } from '../../database/drizzle.provider';
+import { user } from '../../database/schema';
 
 type AuthenticatedRequest = Request & {
   user?: TokenPayload;
@@ -16,7 +20,10 @@ type AuthenticatedRequest = Request & {
 
 @Injectable()
 export class AccessTokenGuard implements CanActivate {
-  constructor(private readonly authJwtService: AuthJwtService) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly authJwtService: AuthJwtService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
@@ -30,7 +37,18 @@ export class AccessTokenGuard implements CanActivate {
       throw new UnauthorizedException('Missing Bearer token');
     }
 
-    request.user = await this.authJwtService.verifyAccessToken(token);
+    const payload = await this.authJwtService.verifyAccessToken(token);
+    const userRecord = await this.db.query.user.findFirst({
+      where: eq(user.id, payload.sub),
+    });
+
+    if (!userRecord || !userRecord.isActive) {
+      throw new UnauthorizedException(
+        'Your registration session is no longer valid. Please start again.',
+      );
+    }
+
+    request.user = payload;
     return true;
   }
 }

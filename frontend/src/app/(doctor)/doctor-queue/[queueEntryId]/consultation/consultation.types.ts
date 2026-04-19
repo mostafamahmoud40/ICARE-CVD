@@ -132,6 +132,7 @@ export type ConsultationData = {
   patientSummary: PatientSummary
   vitals: VitalSigns
   chiefComplaint: string
+  structuredComplaint: string
   physicalExam: PhysicalExamFindings
   diagnoses: DiagnosisEntry[]
   prescriptions: PrescriptionEntry[]

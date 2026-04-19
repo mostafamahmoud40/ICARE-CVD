@@ -5,6 +5,9 @@ import { cn } from "@/lib/utils"
 import {
   AlertTriangleIcon,
   ActivityIcon,
+  ChevronRightIcon,
+  MinusIcon,
+  PlusIcon,
   HeartIcon,
   PillIcon,
   ShieldAlertIcon,
@@ -154,6 +157,10 @@ export type PatientSidebarProps = {
   familyHistory: FamilyHistoryItem[]
   lifestyleFlags: LifestyleFlag[]
   existingConditions: ExistingCondition[]
+  collapsed: boolean
+  onToggle: () => void
+  widthPx: number
+  onNudgeWidth?: (delta: number) => void
 }
 
 export function PatientSidebar({
@@ -163,14 +170,66 @@ export function PatientSidebar({
   familyHistory,
   lifestyleFlags,
   existingConditions,
+  collapsed,
+  onToggle,
+  widthPx,
+  onNudgeWidth,
 }: PatientSidebarProps) {
+  if (collapsed) {
+    return (
+      <div className="flex w-11 shrink-0 flex-col items-center border-r border-[#E8E6E0] bg-white py-2">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex size-7 items-center justify-center rounded-md border border-[#E8E6E0] text-[#1A5345] transition-colors hover:bg-[#E8F0EE]"
+          aria-label="Expand patient summary"
+        >
+          <ChevronRightIcon className="size-4" />
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex w-[280px] shrink-0 flex-col border-r border-[#E8E6E0] bg-white">
-      <div className="border-b border-[#E8E6E0] bg-[#FAFAF8] px-4 py-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7870]">Patient Summary</p>
+    <div
+      className="flex shrink-0 flex-col border-r border-[#E8E6E0] bg-white"
+      style={{ width: widthPx, minWidth: widthPx, maxWidth: widthPx }}
+    >
+      <div className="flex items-center justify-between gap-1 border-b border-[#E8E6E0] bg-[#FAFAF8] px-2 py-2 sm:px-4 sm:py-3">
+        <p className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-wider text-[#6B7870]">Patient Summary</p>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {onNudgeWidth ? (
+            <>
+              <button
+                type="button"
+                onClick={() => onNudgeWidth(-20)}
+                className="flex size-7 items-center justify-center rounded-md border border-[#E8E6E0] text-[#1A5345] transition-colors hover:bg-[#E8F0EE]"
+                aria-label="Narrow patient panel"
+              >
+                <MinusIcon className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onNudgeWidth(20)}
+                className="flex size-7 items-center justify-center rounded-md border border-[#E8E6E0] text-[#1A5345] transition-colors hover:bg-[#E8F0EE]"
+                aria-label="Widen patient panel"
+              >
+                <PlusIcon className="size-3.5" />
+              </button>
+            </>
+          ) : null}
+          <button
+            type="button"
+            onClick={onToggle}
+            className="flex size-7 items-center justify-center rounded-md border border-[#E8E6E0] text-[#1A5345] transition-colors hover:bg-[#E8F0EE]"
+            aria-label="Collapse patient summary"
+          >
+            <ChevronRightIcon className="size-4 rotate-180" />
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-4">
+      <div className="scrollbar-hide flex-1 space-y-4 overflow-y-auto p-4">
         <PatientHeader
           name={demographics.fullName}
           age={demographics.age}

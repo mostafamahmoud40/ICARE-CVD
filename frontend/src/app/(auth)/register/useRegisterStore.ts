@@ -3,6 +3,10 @@
 import { create } from "zustand";
 
 import { REGISTER_VALIDATION_ENABLED, registerSchema } from "./register.schema";
+import {
+  buildRegisterTestingMedicalValues,
+  buildRegisterTestingProfileValues,
+} from "./registerTestingData";
 import type {
   RegisterDocumentsValues,
   RegisterMedicalValues,
@@ -12,7 +16,7 @@ import type {
   RegisterStep,
   RegisterValues,
 } from "./register.types";
-import { setAuthTokens } from "@/lib/auth-tokens";
+import { clearAuthTokens, setAuthTokens } from "@/lib/auth-tokens";
 
 import {
   buildInitialAllValues,
@@ -88,11 +92,35 @@ type RegisterStoreActions = {
   /* ── validation ────────────────────────────────────── */
   validateCurrentStep: () => boolean;
 
+  /* ── testing helpers ─────────────────────────────── */
+  fillTestingData: () => void;
+
   /* ── submission ────────────────────────────────────── */
   submitForm: () => void;
 };
 
 export type RegisterStore = RegisterStoreState & RegisterStoreActions;
+
+function buildInitialRegisterState(): RegisterStoreState {
+  return {
+    step: FIRST_STEP as RegisterStep,
+    formValues: buildInitialAllValues(),
+    accountFieldErrors: {},
+    stepFieldErrors: {},
+    profileFieldErrors: {},
+    medicalStepErrors: {},
+    showPassword: false,
+    showConfirmPassword: false,
+    isPending: false,
+    hasRegisteredAccount: false,
+    hasSavedProfileStep: false,
+    hasSavedMedicalStep: false,
+    hasSavedDocumentsStep: false,
+    isSuccess: false,
+    successMessage: "",
+    serverErrorMessage: null,
+  };
+}
 
 /* ────────────────────────────────────────────────────────────
    Selectors (ISP: components pick only what they need)
@@ -167,10 +195,6 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
     return getConfigByStep(get().step);
   }
 
-  function getFieldPath(stepKey: string, field: string): string {
-    return `${stepKey}.${field}`;
-  }
-
   function updateFormValue(stepKey: string, field: string, value: unknown) {
     set((state) => ({
       formValues: {
@@ -181,6 +205,28 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
         },
       },
     }));
+  }
+
+  function resetExpiredRegistrationSession(message?: string) {
+    const initialState = buildInitialRegisterState();
+    const currentAccountValues = get().formValues.account;
+
+    clearAuthTokens();
+
+    set({
+      ...initialState,
+      formValues: {
+        ...initialState.formValues,
+        account: {
+          ...currentAccountValues,
+          password: "",
+          confirmPassword: "",
+        },
+      },
+      serverErrorMessage:
+        message ??
+        "Your registration session expired. Please create the account again.",
+    });
   }
 
   /* ── API submit (mirrors useRegister logic) ─────────── */
@@ -447,6 +493,14 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
       let message = "Failed to save step 2. Try again.";
       if (isAxiosError(err)) {
         const data = err.response?.data as { message?: string | string[] } | undefined;
+        if (err.response?.status === 401) {
+          resetExpiredRegistrationSession(
+            Array.isArray(data?.message)
+              ? data.message.join(", ")
+              : data?.message
+          );
+          return;
+        }
         if (Array.isArray(data?.message)) {
           message = data.message.join(", ");
         } else {
@@ -473,6 +527,14 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
       let message = "Failed to save step 3. Try again.";
       if (isAxiosError(err)) {
         const data = err.response?.data as { message?: string | string[] } | undefined;
+        if (err.response?.status === 401) {
+          resetExpiredRegistrationSession(
+            Array.isArray(data?.message)
+              ? data.message.join(", ")
+              : data?.message
+          );
+          return;
+        }
         if (Array.isArray(data?.message)) {
           message = data.message.join(", ");
         } else {
@@ -499,6 +561,14 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
       let message = "Failed to save step 4. Try again.";
       if (isAxiosError(err)) {
         const data = err.response?.data as { message?: string | string[] } | undefined;
+        if (err.response?.status === 401) {
+          resetExpiredRegistrationSession(
+            Array.isArray(data?.message)
+              ? data.message.join(", ")
+              : data?.message
+          );
+          return;
+        }
         if (Array.isArray(data?.message)) {
           message = data.message.join(", ");
         } else {
@@ -511,22 +581,7 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
 
   return {
     /* ── initial state ───────────────────────────────── */
-    step: FIRST_STEP as RegisterStep,
-    formValues: buildInitialAllValues(),
-    accountFieldErrors: {},
-    stepFieldErrors: {},
-    profileFieldErrors: {},
-    medicalStepErrors: {},
-    showPassword: false,
-    showConfirmPassword: false,
-    isPending: false,
-    hasRegisteredAccount: false,
-    hasSavedProfileStep: false,
-    hasSavedMedicalStep: false,
-    hasSavedDocumentsStep: false,
-    isSuccess: false,
-    successMessage: "",
-    serverErrorMessage: null,
+    ...buildInitialRegisterState(),
 
     /* ── step navigation ─────────────────────────────── */
     nextStep() {
@@ -614,11 +669,14 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
       updateFormValue("profile", field, value);
       set((s) => ({
         profileFieldErrors: { ...s.profileFieldErrors, [field]: undefined },
+        hasSavedProfileStep: false,
       }));
     },
 
     setMedicalField(field, value) {
       updateFormValue("medical", field, value);
+
+      set({ hasSavedMedicalStep: false });
 
       if (field === "chiefComplaint" || field === "otherComplaint") {
         set({ medicalStepErrors: {} });
@@ -627,6 +685,7 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
 
     setDocumentsField(field, value) {
       updateFormValue("documents", field, value);
+      set({ hasSavedDocumentsStep: false });
     },
 
     /* ── UI toggles ──────────────────────────────────── */
@@ -678,6 +737,23 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
 
       const result = config.schema.safeParse(currentValues);
       return result.success;
+    },
+
+    /* ── testing helpers ─────────────────────────────── */
+    fillTestingData() {
+      const { formValues } = get();
+      set({
+        formValues: {
+          ...formValues,
+          profile: buildRegisterTestingProfileValues(),
+          medical: buildRegisterTestingMedicalValues(),
+        },
+        profileFieldErrors: {},
+        medicalStepErrors: {},
+        serverErrorMessage: null,
+        hasSavedProfileStep: false,
+        hasSavedMedicalStep: false,
+      });
     },
 
     /* ── submission ──────────────────────────────────── */

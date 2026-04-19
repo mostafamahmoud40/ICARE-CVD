@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { StepNavigation } from "./StepNavigation";
+import { RegisterTestingActions } from "./RegisterTestingActions";
 import { StepRenderer } from "./StepRenderer";
 import { useRegisterStore } from "./useRegisterStore";
 
@@ -143,6 +144,8 @@ export function RegisterForm() {
         noValidate
       >
         <CardContent className="space-y-5 px-8 pb-8 pt-5">
+          <RegisterTestingActions />
+
           <StepRenderer step={step} />
 
           {isSuccess ? (
