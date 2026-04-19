@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import React from "react"
 import type { QueuePatient, QueueStats, QueueStatus, QueuePriority } from "./doctorQueue.types"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -24,7 +24,6 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-
 const STATUS_CONFIG: Record<QueueStatus, { label: string; icon: React.ElementType; style: string; dot: string }> = {
   scheduled: { label: "Scheduled", icon: CalendarDaysIcon, style: "bg-[#E8F0EE] text-[#4F6D64]", dot: "bg-[#6B7870]" },
   arrived: { label: "Arrived", icon: LogInIcon, style: "bg-blue-50 text-blue-700", dot: "bg-blue-400" },
@@ -330,88 +329,53 @@ function QueuePatientCard({
 type DoctorQueueProps = {
   patients: QueuePatient[]
   stats: QueueStats
+  filter: string
+  setFilter: (filter: string) => void
+  tabCounts: Record<string, number>
+  onMarkArrived: (id: string) => void
+  onMoveToWaiting: (id: string) => void
+  onStartConsultation: (id: string) => void
+  onComplete: (id: string) => void
+  onNoShow: (id: string) => void
+  isLoading?: boolean
+  isError?: boolean
 }
 
-export function DoctorQueue({ patients, stats }: DoctorQueueProps) {
-  const [filter, setFilter] = useState<QueueFilter>("active")
-  const [queuePatients, setQueuePatients] = useState<QueuePatient[]>(patients)
-
-  const now = () => new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-
-  const handleMarkArrived = (queueEntryId: string) => {
-    const time = now()
-    setQueuePatients((prev) =>
-      prev.map((p) =>
-        p.queueEntryId === queueEntryId
-          ? { ...p, status: "arrived" as const, arrivedAt: time }
-          : p,
-      ),
+export function DoctorQueue({
+  patients,
+  stats,
+  filter,
+  setFilter,
+  tabCounts,
+  onMarkArrived,
+  onMoveToWaiting,
+  onStartConsultation,
+  onComplete,
+  onNoShow,
+  isLoading,
+  isError,
+}: DoctorQueueProps) {
+  if (isLoading) {
+    return (
+      <main className="flex h-full flex-1 items-center justify-center bg-[#F9F8F5]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="size-8 animate-spin rounded-full border-2 border-[#1A5345] border-t-transparent" />
+          <p className="text-[11px] text-muted-foreground sm:text-[12px]">Loading queue...</p>
+        </div>
+      </main>
     )
   }
 
-  const handleStart = (queueEntryId: string) => {
-    const time = now()
-    setQueuePatients((prev) =>
-      prev.map((p) => {
-        if (p.queueEntryId !== queueEntryId) return p
-        if (p.status === "arrived") {
-          return { ...p, status: "waiting" as const, waitingSince: time }
-        }
-        if (p.status === "waiting") {
-          return { ...p, status: "in-consultation" as const, startedAt: time }
-        }
-        return p
-      }),
+  if (isError) {
+    return (
+      <main className="flex h-full flex-1 items-center justify-center bg-[#F9F8F5]">
+        <div className="flex flex-col items-center gap-3">
+          <AlertTriangleIcon className="size-8 text-red-400" />
+          <p className="text-[11px] text-red-600 sm:text-[12px]">Failed to load patient queue.</p>
+        </div>
+      </main>
     )
   }
-
-  const handleComplete = (queueEntryId: string) => {
-    const time = now()
-    setQueuePatients((prev) =>
-      prev.map((p) =>
-        p.queueEntryId === queueEntryId
-          ? { ...p, status: "completed" as const, completedAt: time }
-          : p,
-      ),
-    )
-  }
-
-  const handleNoShow = (queueEntryId: string) => {
-    setQueuePatients((prev) =>
-      prev.map((p) =>
-        p.queueEntryId === queueEntryId
-          ? { ...p, status: "no-show" as const }
-          : p,
-      ),
-    )
-  }
-
-  const filteredPatients = useMemo(() => {
-    const sorted = [...queuePatients].sort((a, b) => {
-      if (a.status === "in-consultation" && b.status !== "in-consultation") return -1
-      if (a.status !== "in-consultation" && b.status === "in-consultation") return 1
-      if (a.status === "waiting" && b.status !== "waiting") return -1
-      if (a.status !== "waiting" && b.status === "waiting") return 1
-      if (a.status === "arrived" && b.status !== "arrived") return -1
-      if (a.status !== "arrived" && b.status === "arrived") return 1
-      if (a.priority === "emergency" && b.priority !== "emergency") return -1
-      if (a.priority !== "emergency" && b.priority === "emergency") return 1
-      if (a.priority === "urgent" && b.priority === "normal") return -1
-      if (a.priority === "normal" && b.priority === "urgent") return 1
-      return 0
-    })
-
-    if (filter === "active") return sorted.filter((p) => ["scheduled", "arrived", "waiting", "in-consultation"].includes(p.status))
-    if (filter === "scheduled") return sorted.filter((p) => p.status === "scheduled")
-    if (filter === "completed") return sorted.filter((p) => p.status === "completed")
-    if (filter === "no-show") return sorted.filter((p) => p.status === "no-show" || p.status === "cancelled")
-    return sorted
-  }, [queuePatients, filter])
-
-  const activeCount = queuePatients.filter((p) => ["arrived", "waiting", "in-consultation"].includes(p.status)).length
-  const scheduledCount = queuePatients.filter((p) => p.status === "scheduled").length
-  const completedCount = queuePatients.filter((p) => p.status === "completed").length
-  const noShowCount = queuePatients.filter((p) => p.status === "no-show" || p.status === "cancelled").length
 
   return (
     <main className="flex-1 overflow-y-auto bg-[#F9F8F5] p-3 sm:p-4 lg:p-5">
@@ -447,10 +411,10 @@ export function DoctorQueue({ patients, stats }: DoctorQueueProps) {
         <div className="overflow-x-auto">
           <div className="inline-flex w-full rounded-full border border-[#D6E6DF] bg-[#F8FCFA] p-0.5 sm:w-auto">
             {([
-              { key: "active" as const, label: "Active", shortLabel: "Active", count: activeCount },
-              { key: "scheduled" as const, label: "Not Yet Arrived", shortLabel: "Pending", count: scheduledCount },
-              { key: "completed" as const, label: "Completed", shortLabel: "Done", count: completedCount },
-              { key: "no-show" as const, label: "No Show / Cancelled", shortLabel: "No Show", count: noShowCount },
+              { key: "active" as const, label: "Active", shortLabel: "Active", count: tabCounts.active ?? 0 },
+              { key: "scheduled" as const, label: "Not Yet Arrived", shortLabel: "Pending", count: tabCounts.scheduled ?? 0 },
+              { key: "completed" as const, label: "Completed", shortLabel: "Done", count: tabCounts.completed ?? 0 },
+              { key: "no-show" as const, label: "No Show / Cancelled", shortLabel: "No Show", count: tabCounts["no-show"] ?? 0 },
             ]).map((tab) => (
               <button
                 key={tab.key}
@@ -475,17 +439,21 @@ export function DoctorQueue({ patients, stats }: DoctorQueueProps) {
           </div>
         </div>
 
-        {filteredPatients.length > 0 ? (
+        {patients.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-            {filteredPatients.map((patient, idx) => (
+            {patients.map((patient, idx) => (
               <QueuePatientCard
                 key={patient.queueEntryId}
                 patient={patient}
                 position={idx}
-                onMarkArrived={handleMarkArrived}
-                onStart={handleStart}
-                onComplete={handleComplete}
-                onNoShow={handleNoShow}
+                onMarkArrived={onMarkArrived}
+                onStart={(id) => {
+                  const p = patients.find((x) => x.queueEntryId === id)
+                  if (p?.status === "arrived") onMoveToWaiting(id)
+                  else if (p?.status === "waiting") onStartConsultation(id)
+                }}
+                onComplete={onComplete}
+                onNoShow={onNoShow}
               />
             ))}
           </div>

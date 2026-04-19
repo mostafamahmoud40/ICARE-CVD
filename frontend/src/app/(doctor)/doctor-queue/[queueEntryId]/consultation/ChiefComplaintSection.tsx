@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { MessageSquareTextIcon } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -30,6 +31,13 @@ const CVD_COMPLAINTS = [
   { value: "other", label: "Other" },
 ] as const
 
+const ONSET_OPTIONS = ["Sudden", "Gradual", "Intermittent"] as const
+const DURATION_OPTIONS = ["< 24 hours", "1-3 days", "1 week", "> 1 week", "Chronic"] as const
+const SEVERITY_OPTIONS = ["Mild", "Moderate", "Severe"] as const
+const CHARACTER_OPTIONS = ["Sharp", "Dull", "Pressure-like", "Burning", "Throbbing"] as const
+const AGGRAVATING_OPTIONS = ["Exertion", "Stress", "After meals", "Deep breathing", "Lying flat"] as const
+const RELIEVING_OPTIONS = ["Rest", "Medication", "Sitting upright", "Hydration", "None"] as const
+
 export type ChiefComplaintSectionProps = {
   complaint: string
   onComplaintChange: (value: string) => void
@@ -43,6 +51,48 @@ export function ChiefComplaintSection({
   structuredComplaint,
   onStructuredComplaintChange,
 }: ChiefComplaintSectionProps) {
+  const [onset, setOnset] = useState("")
+  const [duration, setDuration] = useState("")
+  const [severity, setSeverity] = useState("")
+  const [character, setCharacter] = useState("")
+  const [aggravating, setAggravating] = useState<string[]>([])
+  const [relieving, setRelieving] = useState<string[]>([])
+
+  const complaintLabel = useMemo(
+    () => CVD_COMPLAINTS.find((c) => c.value === structuredComplaint)?.label ?? "",
+    [structuredComplaint],
+  )
+
+  const generatedDescription = useMemo(() => {
+    if (!complaintLabel) return ""
+
+    const parts = [
+      `Patient presents with ${complaintLabel.toLowerCase()}.`,
+      onset ? `Onset: ${onset}.` : "",
+      duration ? `Duration: ${duration}.` : "",
+      severity ? `Severity: ${severity}.` : "",
+      character ? `Character: ${character}.` : "",
+      aggravating.length ? `Aggravating factors: ${aggravating.join(", ")}.` : "",
+      relieving.length ? `Relieving factors: ${relieving.join(", ")}.` : "",
+    ].filter(Boolean)
+
+    return parts.join(" ")
+  }, [aggravating, character, complaintLabel, duration, onset, relieving, severity])
+
+  useEffect(() => {
+    if (generatedDescription !== complaint) {
+      onComplaintChange(generatedDescription)
+    }
+  }, [generatedDescription, complaint, onComplaintChange])
+
+  const toggleMultiValue = (values: string[], value: string, setter: (next: string[]) => void) => {
+    if (values.includes(value)) {
+      setter(values.filter((item) => item !== value))
+      return
+    }
+    setter([...values, value])
+  }
+
   return (
     <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
       <div className="mb-4 flex items-center gap-2">
@@ -69,10 +119,110 @@ export function ChiefComplaintSection({
         </div>
         <div className="space-y-1">
           <label className="text-[11px] font-medium text-muted-foreground">Detailed Description</label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Select value={onset} onValueChange={setOnset}>
+              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[13px] text-[#152a24]">
+                <SelectValue placeholder="Onset" />
+              </SelectTrigger>
+              <SelectContent>
+                {ONSET_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={duration} onValueChange={setDuration}>
+              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[13px] text-[#152a24]">
+                <SelectValue placeholder="Duration" />
+              </SelectTrigger>
+              <SelectContent>
+                {DURATION_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={severity} onValueChange={setSeverity}>
+              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[13px] text-[#152a24]">
+                <SelectValue placeholder="Severity" />
+              </SelectTrigger>
+              <SelectContent>
+                {SEVERITY_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={character} onValueChange={setCharacter}>
+              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[13px] text-[#152a24]">
+                <SelectValue placeholder="Character" />
+              </SelectTrigger>
+              <SelectContent>
+                {CHARACTER_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5 rounded-lg border border-[#E8E6E0] bg-white p-2.5">
+            <p className="text-[11px] font-medium text-muted-foreground">Aggravating factors</p>
+            <div className="flex flex-wrap gap-1.5">
+              {AGGRAVATING_OPTIONS.map((option) => {
+                const active = aggravating.includes(option)
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => toggleMultiValue(aggravating, option, setAggravating)}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                      active
+                        ? "border-[#1A5345] bg-[#E8F0EE] text-[#1A5345]"
+                        : "border-[#E8E6E0] bg-[#FAFAF8] text-[#4B5563] hover:border-[#A8C4BC]"
+                    }`}
+                  >
+                    {option}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-1.5 rounded-lg border border-[#E8E6E0] bg-white p-2.5">
+            <p className="text-[11px] font-medium text-muted-foreground">Relieving factors</p>
+            <div className="flex flex-wrap gap-1.5">
+              {RELIEVING_OPTIONS.map((option) => {
+                const active = relieving.includes(option)
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => toggleMultiValue(relieving, option, setRelieving)}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                      active
+                        ? "border-[#1A5345] bg-[#E8F0EE] text-[#1A5345]"
+                        : "border-[#E8E6E0] bg-[#FAFAF8] text-[#4B5563] hover:border-[#A8C4BC]"
+                    }`}
+                  >
+                    {option}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           <Textarea
-            value={complaint}
-            onChange={(e) => onComplaintChange(e.target.value)}
-            placeholder="Describe the patient's chief complaint in detail — onset, duration, severity, character, aggravating/relieving factors..."
+            value={generatedDescription || complaint}
+            readOnly
+            placeholder="Select complaint options to generate the detailed description."
             className="min-h-[80px] resize-none border-[#E8E6E0] bg-[#FAFAF8] text-[13px] placeholder:text-[#9CA3AF]"
           />
         </div>

@@ -1,4 +1,3 @@
-
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { RegistrationAnalyzeDto } from './dto/registration-analyze.dto';
 
@@ -11,7 +10,8 @@ type OllamaGenerateResponse = {
 @Injectable()
 export class AiService {
   async analyzeRegistration(input: RegistrationAnalyzeDto) {
-    const ollamaBaseUrl = process.env.OLLAMA_BASE_URL?.trim() || 'http://127.0.0.1:11434';
+    const ollamaBaseUrl =
+      process.env.OLLAMA_BASE_URL?.trim() || 'http://127.0.0.1:11434';
     const ollamaModel = process.env.OLLAMA_MODEL?.trim();
 
     if (!ollamaModel) {
@@ -29,17 +29,17 @@ export class AiService {
     const systemPrompt = [
       'You are a clinical intake summarization assistant.',
       'Write output in English only.',
-      'Generate a concise registration analysis note from the provided JSON.',
-        'Do not include reasoning, hidden thoughts, or meta commentary.',
-        'Do not write phrases like "we are given" or "steps".',
-      'Output with exactly these sections and headings:',
-      '1) Patient Snapshot',
-      '2) Key Clinical Signals',
-      '3) Lifestyle & Risk Context',
-      '4) Clinical Impression (Risk Level: Low/Medium/High + 1 sentence justification)',
-      '5) Suggested Next Clinical Step',
-      'Do not mention missing uploaded files or images.',
-      'Do not fabricate values. If data is missing, state "Not provided".',
+      'Generate ONE concise clinical summary note (3-5 short sentences max).',
+      'The note must flow as a single paragraph that covers only factual registration details already provided by the patient: demographics, relevant history, lifestyle context, and the chief complaint.',
+      'Do NOT suggest symptoms, differential diagnoses, impressions, or likely conditions.',
+      'Do NOT include risk impression, risk stratification, or any risk level such as low, medium, or high.',
+      'Do NOT recommend next steps, physical examination, ECG, labs, imaging, procedures, referrals, operations, treatment, or management plans.',
+      'Do NOT use section headings, bullet points, or numbered lists.',
+      'Do NOT repeat the same information twice.',
+      'Do NOT include reasoning, hidden thoughts, or meta commentary.',
+      'Do NOT write phrases like "we are given" or "steps".',
+      'Do NOT mention missing uploaded files or images.',
+      'Do NOT fabricate values. If data is missing, omit it gracefully.',
       'This is not a diagnosis.',
     ].join('\n');
 
@@ -77,14 +77,39 @@ export class AiService {
 
       const data = (await response.json()) as OllamaGenerateResponse;
       const rawContent = data.response ?? '';
-      const cleanedContent = rawContent
-        .replace(/<think>[\s\S]*?<\/think>/g, '')
+      let cleanedContent = rawContent
+        .replace(/<think[\s\S]*?<\/think>/g, '')
         .trim();
-      const headingIndex = cleanedContent.indexOf('1) Patient Snapshot');
-      const analysis =
-        headingIndex >= 0
-          ? cleanedContent.slice(headingIndex).trim()
-          : cleanedContent;
+
+      // Strip model reasoning/self-talk before actual clinical content starts
+      const sentenceStart = cleanedContent.search(
+        /^[A-Z][a-z]+.*\b(presents?|reports?|is\s+a|,\s*a)\s/m,
+      );
+      if (sentenceStart > 0) {
+        cleanedContent = cleanedContent.slice(sentenceStart).trim();
+      }
+
+      cleanedContent = cleanedContent
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .filter(
+          (line) =>
+            !/^Risk Level:/i.test(line) &&
+            !/^(Suggested|Next step|Recommended):/i.test(line),
+        )
+        .join(' ');
+
+      cleanedContent = cleanedContent
+        .replace(/\bRisk Level:\s*(Low|Medium|High)\b\.?/gi, '')
+        .replace(
+          /\b(The suggested next step|Suggested next step|Next step|Recommended next step)\b[^.]*\.?/gi,
+          '',
+        )
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
+      const analysis = cleanedContent;
 
       if (!analysis) {
         console.error('Ollama returned empty analysis content', {

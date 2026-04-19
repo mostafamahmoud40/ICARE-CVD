@@ -58,6 +58,7 @@ export const mockConsultationData: ConsultationData = {
   },
 
   chiefComplaint: "",
+  structuredComplaint: "",
 
   physicalExam: {
     heartSounds: "",
