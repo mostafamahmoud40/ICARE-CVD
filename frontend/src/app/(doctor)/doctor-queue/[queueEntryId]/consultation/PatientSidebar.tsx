@@ -1,6 +1,7 @@
 "use client"
 
 import type { Allergy, ActiveMedication, FamilyHistoryItem, LifestyleFlag, ExistingCondition, PatientDemographics } from "./consultation.types"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import {
   AlertTriangleIcon,
@@ -25,15 +26,27 @@ function SectionTitle({ icon: Icon, title, className }: { icon: React.ElementTyp
   )
 }
 
-function PatientHeader({ name, age, gender, bloodType }: { name: string; age: number; gender: string; bloodType: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="flex size-11 items-center justify-center rounded-full bg-[#E8F0EE]">
+function PatientHeader({
+  name,
+  age,
+  gender,
+  bloodType,
+  profileHref,
+}: {
+  name: string
+  age: number
+  gender: string
+  bloodType: string
+  profileHref?: string
+}) {
+  const body = (
+    <>
+      <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#E8F0EE]">
         <UserRoundIcon className="size-5 text-[#1A5345]" />
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 text-left">
         <p className="truncate text-[14px] font-semibold text-[#102F27]">{name}</p>
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
           <span>{age} yrs</span>
           <span className="text-[#E8E6E0]">|</span>
           <span className="capitalize">{gender}</span>
@@ -41,8 +54,22 @@ function PatientHeader({ name, age, gender, bloodType }: { name: string; age: nu
           <span className="rounded-full bg-red-50 px-1.5 py-0.5 font-medium text-red-600">{bloodType}</span>
         </div>
       </div>
-    </div>
+    </>
   )
+
+  if (profileHref) {
+    return (
+      <Link
+        href={profileHref}
+        className="flex items-center gap-3 rounded-lg px-1 py-0.5 outline-none transition-colors hover:bg-[#F0F4F2] focus-visible:ring-2 focus-visible:ring-[#1A5345]/35"
+        aria-label={`Open full profile for ${name}`}
+      >
+        {body}
+      </Link>
+    )
+  }
+
+  return <div className="flex items-center gap-3">{body}</div>
 }
 
 function AllergiesList({ allergies }: { allergies: Allergy[] }) {
@@ -157,6 +184,8 @@ export type PatientSidebarProps = {
   familyHistory: FamilyHistoryItem[]
   lifestyleFlags: LifestyleFlag[]
   existingConditions: ExistingCondition[]
+  /** When set, the patient header row navigates to the doctor patient profile */
+  patientProfileHref?: string
   collapsed: boolean
   onToggle: () => void
   widthPx: number
@@ -170,6 +199,7 @@ export function PatientSidebar({
   familyHistory,
   lifestyleFlags,
   existingConditions,
+  patientProfileHref,
   collapsed,
   onToggle,
   widthPx,
@@ -177,7 +207,7 @@ export function PatientSidebar({
 }: PatientSidebarProps) {
   if (collapsed) {
     return (
-      <div className="flex w-11 shrink-0 flex-col items-center border-r border-[#E8E6E0] bg-white py-2">
+      <div className="flex w-11 shrink-0 flex-col items-center border-r border-white/20 bg-transparent py-2">
         <button
           type="button"
           onClick={onToggle}
@@ -192,10 +222,10 @@ export function PatientSidebar({
 
   return (
     <div
-      className="flex shrink-0 flex-col border-r border-[#E8E6E0] bg-white"
+      className="flex shrink-0 flex-col border-r border-white/20 bg-transparent"
       style={{ width: widthPx, minWidth: widthPx, maxWidth: widthPx }}
     >
-      <div className="flex items-center justify-between gap-1 border-b border-[#E8E6E0] bg-[#FAFAF8] px-2 py-2 sm:px-4 sm:py-3">
+      <div className="flex items-center justify-between gap-1 border-b border-white/10 bg-transparent px-2 py-2 backdrop-blur-sm sm:px-4 sm:py-3">
         <p className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-wider text-[#6B7870]">Patient Summary</p>
         <div className="flex shrink-0 items-center gap-0.5">
           {onNudgeWidth ? (
@@ -235,25 +265,26 @@ export function PatientSidebar({
           age={demographics.age}
           gender={demographics.gender}
           bloodType={demographics.bloodType}
+          profileHref={patientProfileHref}
         />
 
-        <Separator className="bg-[#E8E6E0]" />
+        <Separator className="bg-white/20" />
 
         <AllergiesList allergies={allergies} />
 
-        <Separator className="bg-[#E8E6E0]" />
+        <Separator className="bg-white/20" />
 
         <ConditionsList conditions={existingConditions} />
 
-        <Separator className="bg-[#E8E6E0]" />
+        <Separator className="bg-white/20" />
 
         <MedicationsList medications={activeMedications} />
 
-        <Separator className="bg-[#E8E6E0]" />
+        <Separator className="bg-white/20" />
 
         <FamilyHistoryList items={familyHistory} />
 
-        <Separator className="bg-[#E8E6E0]" />
+        <Separator className="bg-white/20" />
 
         <LifestyleFlagsList flags={lifestyleFlags} />
       </div>

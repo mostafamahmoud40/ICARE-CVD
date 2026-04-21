@@ -1,8 +1,13 @@
 "use client"
 
+import { useCallback } from "react"
 import type { PhysicalExamFindings } from "./consultation.types"
-import { StethoscopeIcon } from "lucide-react"
+import { useSpeechDictation } from "./useSpeechDictation"
+import { MicIcon, StethoscopeIcon, XIcon } from "lucide-react"
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 const EXAM_FIELDS = [
   { key: "heartSounds" as const, label: "Heart Sounds", placeholder: "e.g. Normal S1/S2, no gallop..." },
@@ -19,28 +24,98 @@ export type PhysicalExamSectionProps = {
 }
 
 export function PhysicalExamSection({ exam, onExamChange }: PhysicalExamSectionProps) {
+  const getText = useCallback((key: keyof PhysicalExamFindings) => exam[key], [exam])
+  const setText = useCallback(
+    (key: keyof PhysicalExamFindings, value: string) => onExamChange(key, value),
+    [onExamChange],
+  )
+
+  const { supported, activeKey, errorMessage, interimText, toggle, dismissError } = useSpeechDictation({
+    getText,
+    setText,
+  })
+
   return (
-    <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
-          <StethoscopeIcon className="size-4 text-[#1A5345]" />
-        </div>
-        <h3 className="text-[14px] font-semibold text-[#102F27]">Physical Examination</h3>
-        <span className="rounded-full bg-[#EEF5F3] px-2 py-0.5 text-[10px] font-medium text-[#2C6A5B]">Cardiovascular Focus</span>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        {EXAM_FIELDS.map((field) => (
-          <div key={field.key} className="space-y-1">
-            <label className="text-[11px] font-medium text-muted-foreground">{field.label}</label>
-            <Textarea
-              value={exam[field.key]}
-              onChange={(e) => onExamChange(field.key, e.target.value)}
-              placeholder={field.placeholder}
-              className="min-h-[56px] resize-none border-[#E8E6E0] bg-[#FAFAF8] text-[13px] placeholder:text-[#9CA3AF]"
-            />
+    <TooltipProvider delay={300}>
+      <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
+            <StethoscopeIcon className="size-4 text-[#1A5345]" />
           </div>
-        ))}
+          <h3 className="text-[14px] font-semibold text-[#102F27]">Physical Examination</h3>
+          <span className="rounded-full bg-[#EEF5F3] px-2 py-0.5 text-[10px] font-medium text-[#2C6A5B]">
+            Cardiovascular Focus
+          </span>
+          {supported ? (
+            <span className="text-[10px] text-muted-foreground">Type or use voice dictation</span>
+          ) : null}
+        </div>
+
+        {errorMessage ? (
+          <Alert variant="destructive" className="mb-3 py-2">
+            <AlertTitle className="text-xs">Voice input</AlertTitle>
+            <AlertDescription className="text-xs">{errorMessage}</AlertDescription>
+            <AlertAction>
+              <Button type="button" variant="ghost" size="icon-xs" onClick={dismissError} aria-label="Dismiss">
+                <XIcon className="size-3.5" />
+              </Button>
+            </AlertAction>
+          </Alert>
+        ) : null}
+
+        <div className="grid grid-cols-2 gap-3">
+          {EXAM_FIELDS.map((field) => {
+            const listening = activeKey === field.key
+            return (
+              <div key={field.key} className="space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-[11px] font-medium text-muted-foreground" htmlFor={`physical-exam-${field.key}`}>
+                    {field.label}
+                  </label>
+                  {supported ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          id={`physical-exam-${field.key}-mic`}
+                          variant={listening ? "secondary" : "ghost"}
+                          size="icon-xs"
+                          className={
+                            listening
+                              ? "shrink-0 text-[#B42318] ring-2 ring-[#B42318]/25"
+                              : "shrink-0 text-[#2C6A5B]"
+                          }
+                          aria-pressed={listening}
+                          aria-label={listening ? "Stop voice dictation" : "Start voice dictation"}
+                          onClick={() => toggle(field.key)}
+                        >
+                          <MicIcon className="size-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[220px] text-center">
+                        {listening ? "Stop dictation" : "Voice dictation"}
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : null}
+                </div>
+                <Textarea
+                  id={`physical-exam-${field.key}`}
+                  value={exam[field.key]}
+                  onChange={(e) => onExamChange(field.key, e.target.value)}
+                  placeholder={field.placeholder}
+                  className="min-h-[56px] resize-none border-[#E8E6E0] bg-[#FAFAF8] text-[13px] placeholder:text-[#9CA3AF]"
+                  aria-describedby={listening && interimText ? `${field.key}-interim` : undefined}
+                />
+                {listening && interimText ? (
+                  <p id={`${field.key}-interim`} className="text-[11px] leading-snug text-[#6B7280]">
+                    {interimText}
+                  </p>
+                ) : null}
+              </div>
+            )
+          })}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   )
 }

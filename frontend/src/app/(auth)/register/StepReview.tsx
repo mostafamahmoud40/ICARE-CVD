@@ -7,7 +7,6 @@ import { CHIEF_COMPLAINT_LABELS } from "./MedicalHpiBlocks";
 import { RegistrationAnalysisCard } from "./RegistrationAnalysisCard";
 import type { RegisterDocumentsValues, RegisterMedicalValues, RegisterProfileValues, RegisterValues } from "./register.types";
 import type { StepValuesMap } from "./useRegisterSteps";
-import { useRegistrationAnalysis } from "./useRegistrationAnalysis";
 
 type StepReviewProps = {
   accountValues: RegisterValues;
@@ -15,9 +14,15 @@ type StepReviewProps = {
   medicalValues: RegisterMedicalValues;
   documentsValues: RegisterDocumentsValues;
   allValues: StepValuesMap;
+  analysis?: string;
+  isAnalysisLoading: boolean;
+  isAnalysisFetching: boolean;
+  isAnalysisError: boolean;
+  canRefreshAnalysis: boolean;
+  onRefreshAnalysis: () => void;
 };
 
-export function StepReview({ accountValues, profileValues, medicalValues, documentsValues, allValues }: StepReviewProps) {
+export function StepReview({ accountValues, profileValues, medicalValues, documentsValues, allValues, analysis, isAnalysisLoading, isAnalysisFetching, isAnalysisError, canRefreshAnalysis, onRefreshAnalysis }: StepReviewProps) {
   const med = (medicalValues ?? {}) as Record<string, unknown>;
   const docs = (documentsValues ?? { files: [], notes: "" }) as RegisterDocumentsValues;
   const fileCount = Array.isArray(docs.files) ? docs.files.length : 0;
@@ -37,11 +42,6 @@ export function StepReview({ accountValues, profileValues, medicalValues, docume
     medical: allValues.medical,
     documents: allValues.documents,
   };
-  const analysisQuery = useRegistrationAnalysis({
-    accountValues,
-    profileValues,
-    medicalValues,
-  });
 
   return (
     <div className="space-y-4">
@@ -87,13 +87,12 @@ export function StepReview({ accountValues, profileValues, medicalValues, docume
       </div>
 
       <RegistrationAnalysisCard
-        analysis={analysisQuery.data?.analysis}
-        isLoading={analysisQuery.isLoading}
-        isFetching={analysisQuery.isFetching}
-        isError={analysisQuery.isError}
-        onRefresh={() => {
-          void analysisQuery.refetch();
-        }}
+        analysis={analysis}
+        isLoading={isAnalysisLoading}
+        isFetching={isAnalysisFetching}
+        isError={isAnalysisError}
+        canRefresh={canRefreshAnalysis}
+        onRefresh={onRefreshAnalysis}
       />
 
       <div className="rounded-xl border border-border/80 bg-muted/30 p-4">

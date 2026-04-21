@@ -15,6 +15,8 @@ import { ClinicalNotesSection } from "./ClinicalNotesSection"
 import { FollowUpSection } from "./FollowUpSection"
 import { TestsAndMeasurementsSection } from "./TestsAndMeasurementsSection"
 import { AIAssistantPanel } from "./AIAssistantPanel"
+import { ConsultationFloatingPatientQueryBar } from "./ConsultationFloatingPatientQueryBar"
+import { PatientBriefingAgent, BriefingAgentChip } from "./PatientBriefingAgent"
 import { Button } from "@/components/ui/button"
 import {
   CheckCircle2Icon,
@@ -26,6 +28,8 @@ export function ConsultationPage() {
   const [data, setData] = useState<ConsultationData>(mockConsultationData)
   const [isPatientSidebarCollapsed, setIsPatientSidebarCollapsed] = useState(false)
   const [isAiPanelCollapsed, setIsAiPanelCollapsed] = useState(false)
+  const [showBriefing, setShowBriefing] = useState(true)
+  const [showBriefingChip, setShowBriefingChip] = useState(false)
   const {
     patientSidebarWidth,
     aiPanelWidth,
@@ -93,36 +97,25 @@ export function ConsultationPage() {
     }))
   }
 
+  const dismissBriefing = () => {
+    setShowBriefing(false)
+    setShowBriefingChip(true)
+  }
+
+  const reopenBriefing = () => {
+    setShowBriefingChip(false)
+    setShowBriefing(true)
+  }
+
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col bg-[#F9F8F5]">
-      {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-[#E8E6E0] bg-white px-4 py-2">
-        <div className="flex items-center gap-3">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-[#1A5345]">
-            <StethoscopeIcon className="size-4 text-white" />
-          </div>
-          <div>
-            <h2 className="text-[14px] font-bold text-[#1A1F1E]">New Consultation</h2>
-            <p className="text-[11px] text-muted-foreground">
-              {data.patientSummary.demographics.fullName} &middot; {data.patientSummary.demographics.age} yrs &middot;{" "}
-              <span className="capitalize">{data.patientSummary.demographics.gender}</span>
-            </p>
-          </div>
-          <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-medium text-amber-600">
-            In Progress
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 text-[12px]">
-            <SaveIcon className="size-3.5" />
-            Save Draft
-          </Button>
-          <Button size="sm" className="gap-1.5 bg-[#1A5345] hover:bg-[#0F3D32] text-[12px]">
-            <CheckCircle2Icon className="size-3.5" />
-            Complete & Sign
-          </Button>
-        </div>
-      </div>
+    <div className="relative flex h-[calc(100vh-4rem)] flex-col bg-[#F9F8F5]">
+      {/* AI Patient Briefing Agent */}
+      <PatientBriefingAgent
+        summary={data.patientSummary}
+        visible={showBriefing}
+        onDismiss={dismissBriefing}
+      />
+      {showBriefingChip && <BriefingAgentChip onClick={reopenBriefing} />}
 
       {/* 3-column body */}
       <div className="flex flex-1 overflow-hidden">
@@ -133,6 +126,7 @@ export function ConsultationPage() {
           familyHistory={data.patientSummary.familyHistory}
           lifestyleFlags={data.patientSummary.lifestyleFlags}
           existingConditions={data.patientSummary.existingConditions}
+          patientProfileHref={`/doctor-patients/${data.patientId}`}
           collapsed={isPatientSidebarCollapsed}
           onToggle={() => setIsPatientSidebarCollapsed((prev) => !prev)}
           widthPx={patientSidebarWidth}
@@ -155,9 +149,32 @@ export function ConsultationPage() {
         ) : null}
 
         {/* Center: Consultation workflow */}
-        <div className="scrollbar-hide flex-1 overflow-y-auto p-5">
-          <div className="mx-auto max-w-[900px] space-y-5">
-            <VitalsSection vitals={data.vitals} onVitalChange={updateVitals} />
+        <div className="scrollbar-hide relative flex-1 overflow-y-auto">
+          {/* Top bar - sticky inside scrollable area */}
+          <div className="sticky top-0 z-20 flex items-center justify-between border-b border-white/10 bg-transparent px-4 py-2 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-[#1A5345]">
+                <StethoscopeIcon className="size-4 text-white" />
+              </div>
+              <div>
+                <h2 className="text-[14px] font-bold text-[#1A1F1E]">New Consultation</h2>
+                <p className="text-[11px] text-muted-foreground">
+                  {data.patientSummary.demographics.fullName} &middot; {data.patientSummary.demographics.age} yrs &middot;{" "}
+                  <span className="capitalize">{data.patientSummary.demographics.gender}</span>
+                </p>
+              </div>
+              <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-medium text-amber-600">
+                In Progress
+              </span>
+            </div>
+          </div>
+
+          <div className="mx-auto max-w-[900px] space-y-5 p-5 pb-28">
+            <VitalsSection 
+              vitals={data.vitals} 
+              onVitalChange={updateVitals} 
+              patientAge={data.patientSummary.demographics.age} 
+            />
 
             <ChiefComplaintSection
               complaint={data.chiefComplaint}
@@ -202,6 +219,25 @@ export function ConsultationPage() {
               followUpNotes={data.followUpNotes}
               onFollowUpNotesChange={(v) => setData((prev) => ({ ...prev, followUpNotes: v }))}
             />
+
+            {/* Action Buttons - Bottom of page */}
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-[#E8E6E0]">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 border border-[#E5EEEA] bg-white text-[12px] hover:bg-[#E8F0EE] hover:text-[#1A5345]"
+              >
+                <SaveIcon className="size-3.5" />
+                Save Draft
+              </Button>
+              <Button
+                size="sm"
+                className="gap-1.5 border border-white/20 bg-[#1A5345]/80 text-[12px] hover:bg-[#1A5345] backdrop-blur-sm"
+              >
+                <CheckCircle2Icon className="size-3.5" />
+                Complete & Sign
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -230,6 +266,8 @@ export function ConsultationPage() {
           onNudgeWidth={nudgeAi}
         />
       </div>
+
+      <ConsultationFloatingPatientQueryBar data={data} />
     </div>
   )
 }

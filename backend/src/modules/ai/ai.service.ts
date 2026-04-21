@@ -1,5 +1,17 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { and, eq, isNull } from 'drizzle-orm';
+import { DRIZZLE } from '../../database/drizzle.provider';
+import type { Database } from '../../database/drizzle.provider';
+import { patient } from '../../database/schema';
 import { RegistrationAnalyzeDto } from './dto/registration-analyze.dto';
+
+const REGISTRATION_SUMMARY_EMBEDDING_DIM = 384;
 
 type OllamaGenerateResponse = {
   response?: string;
@@ -9,6 +21,123 @@ type OllamaGenerateResponse = {
 
 @Injectable()
 export class AiService {
+  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+
+  async getRegistrationSummary(userId: number) {
+    const row = await this.db.query.patient.findFirst({
+      where: eq(patient.userId, userId),
+      columns: { aiRegistrationSummary: true },
+    });
+    return { summary: row?.aiRegistrationSummary ?? null };
+  }
+
+  /**
+   * Saves the first AI registration summary + embedding for this patient.
+   * If a summary already exists, returns it without updating (refresh / new AI text does not overwrite).
+   */
+  async persistRegistrationSummary(userId: number, analysis: string) {
+    const trimmed = analysis.trim();
+    if (!trimmed) {
+      throw new BadRequestException('analysis is empty');
+    }
+
+    const existing = await this.db.query.patient.findFirst({
+      where: eq(patient.userId, userId),
+      columns: { aiRegistrationSummary: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Patient not found');
+    }
+    if (existing.aiRegistrationSummary != null) {
+      return { saved: false as const, summary: existing.aiRegistrationSummary };
+    }
+
+    const embedding = await this.embedRegistrationSummary(trimmed);
+
+    const [updated] = await this.db
+      .update(patient)
+      .set({
+        aiRegistrationSummary: trimmed,
+        aiRegistrationSummaryEmbedding: embedding,
+      })
+      .where(and(eq(patient.userId, userId), isNull(patient.aiRegistrationSummary)))
+      .returning({ summary: patient.aiRegistrationSummary });
+
+    if (!updated?.summary) {
+      const again = await this.db.query.patient.findFirst({
+        where: eq(patient.userId, userId),
+        columns: { aiRegistrationSummary: true },
+      });
+      return {
+        saved: false as const,
+        summary: again?.aiRegistrationSummary ?? null,
+      };
+    }
+
+    return { saved: true as const, summary: updated.summary };
+  }
+
+  private async embedRegistrationSummary(text: string): Promise<number[] | null> {
+    const model = process.env.OLLAMA_EMBEDDING_MODEL?.trim();
+    if (!model) {
+      return null;
+    }
+
+    const ollamaBaseUrl =
+      process.env.OLLAMA_BASE_URL?.trim() || 'http://127.0.0.1:11434';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+
+    try {
+      const response = await fetch(`${ollamaBaseUrl}/api/embed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          input: text.slice(0, 8000),
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const raw = await response.text();
+        console.error('Ollama embed non-200', {
+          status: response.status,
+          body: raw,
+        });
+        return null;
+      }
+
+      const data = (await response.json()) as {
+        embedding?: number[];
+        embeddings?: number[][];
+      };
+
+      const raw =
+        Array.isArray(data.embeddings?.[0]) && data.embeddings[0].length > 0
+          ? data.embeddings[0]
+          : Array.isArray(data.embedding)
+            ? data.embedding
+            : null;
+
+      if (!raw || raw.length !== REGISTRATION_SUMMARY_EMBEDDING_DIM) {
+        console.error('Ollama embed unexpected dimension', {
+          got: raw?.length,
+          expected: REGISTRATION_SUMMARY_EMBEDDING_DIM,
+          model,
+        });
+        return null;
+      }
+
+      return raw;
+    } catch (error) {
+      console.error('Ollama embed failed', error);
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   async analyzeRegistration(input: RegistrationAnalyzeDto) {
     const ollamaBaseUrl =
       process.env.OLLAMA_BASE_URL?.trim() || 'http://127.0.0.1:11434';

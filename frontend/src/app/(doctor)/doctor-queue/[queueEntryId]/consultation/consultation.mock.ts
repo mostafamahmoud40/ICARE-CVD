@@ -1,6 +1,7 @@
 import type { ConsultationData } from "./consultation.types"
 
 export const mockConsultationData: ConsultationData = {
+  patientId: "p-001",
   patientSummary: {
     demographics: {
       fullName: "Ahmed Al-Rashid",

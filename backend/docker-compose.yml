@@ -45,6 +45,7 @@ services:
       S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
       S3_PRESIGN_TTL_SECONDS: ${S3_PRESIGN_TTL_SECONDS:-3600}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-all-minilm}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL_DOCKER:-http://host.docker.internal:11434}
     extra_hosts:
       - "host.docker.internal:host-gateway"

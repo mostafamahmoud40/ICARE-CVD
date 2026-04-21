@@ -9,9 +9,15 @@ import { useRegisterStore } from "./useRegisterStore";
 
 type StepRendererProps = {
   step: number;
+  analysis?: string;
+  isAnalysisLoading: boolean;
+  isAnalysisFetching: boolean;
+  isAnalysisError: boolean;
+  canRefreshAnalysis: boolean;
+  onRefreshAnalysis: () => void;
 };
 
-export function StepRenderer({ step }: StepRendererProps) {
+export function StepRenderer({ step, analysis, isAnalysisLoading, isAnalysisFetching, isAnalysisError, canRefreshAnalysis, onRefreshAnalysis }: StepRendererProps) {
   /* ── individual scalar selectors (SSR-safe) ── */
   const formValues = useRegisterStore((s) => s.formValues);
   const accountFieldErrors = useRegisterStore((s) => s.accountFieldErrors);
@@ -86,6 +92,12 @@ export function StepRenderer({ step }: StepRendererProps) {
       medicalValues={formValues.medical}
       documentsValues={formValues.documents}
       allValues={formValues}
+      analysis={analysis}
+      isAnalysisLoading={isAnalysisLoading}
+      isAnalysisFetching={isAnalysisFetching}
+      isAnalysisError={isAnalysisError}
+      canRefreshAnalysis={canRefreshAnalysis}
+      onRefreshAnalysis={onRefreshAnalysis}
     />
   );
 }

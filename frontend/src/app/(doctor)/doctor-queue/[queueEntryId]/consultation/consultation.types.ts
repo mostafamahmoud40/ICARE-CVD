@@ -129,6 +129,8 @@ export type HomeMeasurement = {
 }
 
 export type ConsultationData = {
+  /** Matches `doctor-patients` mock IDs (e.g. `p-001`) for profile navigation */
+  patientId: string
   patientSummary: PatientSummary
   vitals: VitalSigns
   chiefComplaint: string

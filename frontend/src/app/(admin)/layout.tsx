@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Lora } from "next/font/google"
 import { usePathname } from "next/navigation"
 import type { AuthUser } from "@/lib/auth-tokens"
@@ -13,7 +14,6 @@ import {
   CreditCardIcon,
   LayoutDashboardIcon,
   LogOutIcon,
-  ShieldIcon,
   SparklesIcon,
   User2Icon,
   UsersIcon,
@@ -125,8 +125,15 @@ function AdminLayoutContent({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/25">
-              <ShieldIcon className="size-4" />
+            <div className="flex size-8 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-primary/25">
+              <Image
+                src="/images/logo/logo.png"
+                alt="ICARE-CVD Logo"
+                width={32}
+                height={32}
+                className="size-8 object-cover"
+                priority
+              />
             </div>
 
             {isCollapsed ? null : (
