@@ -107,16 +107,44 @@ export function ConsultationPage() {
     setShowBriefing(true)
   }
 
+  const briefingTrendData = [
+    { visitLabel: "V1", systolic: 158, diastolic: 98, hba1c: 8.1 },
+    { visitLabel: "V2", systolic: 151, diastolic: 94, hba1c: 7.8 },
+    { visitLabel: "V3", systolic: 145, diastolic: 91, hba1c: 7.5 },
+    { visitLabel: "V4", systolic: 139, diastolic: 87, hba1c: 7.2 },
+  ] as const
+
+  const briefingVisitStats = {
+    totalVisitsLast6Months: 4,
+    followUpAdherencePercent: 88,
+    medicationAdherencePercent: 84,
+    adherenceNarrative:
+      "Medication adherence is moderate-to-good at 84%, but there has been a noticeable decline since the last 8 weeks. Main gaps are evening doses and weekend consistency, especially for antihypertensive and diabetes medications. Patient is generally compliant on weekdays but needs reinforcement for routine continuity.",
+  } as const
+
+  const briefingVitalProgressData = [
+    { visitLabel: "V1", sbp: 158, dbp: 98, hr: 88, spo2: 94 },
+    { visitLabel: "V2", sbp: 151, dbp: 94, hr: 84, spo2: 95 },
+    { visitLabel: "V3", sbp: 145, dbp: 91, hr: 81, spo2: 96 },
+    { visitLabel: "V4", sbp: 139, dbp: 87, hr: 78, spo2: 97 },
+  ] as const
+
+  const medicationAdherenceTrendData = [
+    { visitLabel: "V1", adherence: 74, target: 90 },
+    { visitLabel: "V2", adherence: 79, target: 90 },
+    { visitLabel: "V3", adherence: 82, target: 90 },
+    { visitLabel: "V4", adherence: 84, target: 90 },
+  ] as const
+
+  const medicationMissedBreakdownData = [
+    { medication: "Amlodipine", missedPercent: 18 },
+    { medication: "Metformin", missedPercent: 22 },
+    { medication: "Atorvastatin", missedPercent: 12 },
+    { medication: "Aspirin", missedPercent: 10 },
+  ] as const
+
   return (
     <div className="relative flex h-[calc(100vh-4rem)] flex-col bg-[#F9F8F5]">
-      {/* AI Patient Briefing Agent */}
-      <PatientBriefingAgent
-        summary={data.patientSummary}
-        visible={showBriefing}
-        onDismiss={dismissBriefing}
-      />
-      {showBriefingChip && <BriefingAgentChip onClick={reopenBriefing} />}
-
       {/* 3-column body */}
       <div className="flex flex-1 overflow-hidden">
         <PatientSidebar
@@ -167,6 +195,19 @@ export function ConsultationPage() {
                 In Progress
               </span>
             </div>
+            <div className="relative shrink-0">
+              {showBriefingChip && <BriefingAgentChip onClick={reopenBriefing} />}
+              <PatientBriefingAgent
+                summary={data.patientSummary}
+                visible={showBriefing}
+                onDismiss={dismissBriefing}
+                trendData={[...briefingTrendData]}
+                visitStats={briefingVisitStats}
+                vitalProgressData={[...briefingVitalProgressData]}
+                medicationAdherenceTrendData={[...medicationAdherenceTrendData]}
+                medicationMissedBreakdownData={[...medicationMissedBreakdownData]}
+              />
+            </div>
           </div>
 
           <div className="mx-auto max-w-[900px] space-y-5 p-5 pb-28">
@@ -195,6 +236,8 @@ export function ConsultationPage() {
               prescriptions={data.prescriptions}
               onAddPrescription={addPrescription}
               onRemovePrescription={removePrescription}
+              patientSummary={data.patientSummary}
+              structuredComplaint={data.structuredComplaint}
             />
 
             <TestsAndMeasurementsSection

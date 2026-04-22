@@ -1,14 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import type { PrescriptionEntry } from "./consultation.types"
+import type { PrescriptionEntry, PatientSummary } from "./consultation.types"
 import { cn } from "@/lib/utils"
 import {
   ClockIcon,
   PillIcon,
   PlusIcon,
+  SparklesIcon,
   Trash2Icon,
   XIcon,
+  AlertTriangleIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -57,6 +59,186 @@ const TYPE_COLORS: Record<string, string> = {
   antiarrhythmics: "bg-rose-50 text-rose-700",
   diuretics: "bg-teal-50 text-teal-700",
   diabetes_medications: "bg-emerald-50 text-emerald-700",
+}
+
+type MedicationSuggestion = {
+  id: string
+  name: string
+  dose: string
+  frequency: string
+  duration: string
+  type: string
+  instructions: string
+  rationale: string
+  caution?: string
+}
+
+function SuggestionCard({
+  suggestion,
+  onAccept,
+}: {
+  suggestion: MedicationSuggestion
+  onAccept: (entry: PrescriptionEntry) => void
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [dose, setDose] = useState(suggestion.dose)
+  const [frequency, setFrequency] = useState(suggestion.frequency)
+  const [duration, setDuration] = useState(suggestion.duration)
+  const [instructions, setInstructions] = useState(suggestion.instructions)
+
+  const handleAccept = () => {
+    onAccept({
+      id: `rx-ai-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      name: suggestion.name,
+      dose,
+      frequency,
+      duration,
+      type: suggestion.type,
+      instructions,
+    })
+    setIsEditing(false)
+  }
+
+  return (
+    <div className="rounded-md border border-[#E8E6E0] bg-white p-2.5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-[12px] font-semibold text-[#102F27]">
+            {suggestion.name} <span className="font-normal text-muted-foreground">{dose}</span>
+          </p>
+          <p className="text-[11px] text-muted-foreground">{frequency} • {duration}</p>
+          <p className="mt-1 text-[11px] text-[#102F27]">{suggestion.rationale}</p>
+          {suggestion.caution ? (
+            <p className="mt-1 flex items-start gap-1 text-[10px] text-amber-700">
+              <AlertTriangleIcon className="mt-0.5 size-3 shrink-0" />
+              <span>{suggestion.caution}</span>
+            </p>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 gap-1">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setIsEditing((prev) => !prev)}
+            className="h-7 border-[#cfd9d5] px-2.5 text-[10px]"
+          >
+            {isEditing ? "Close" : "Edit"}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleAccept}
+            className="h-7 bg-[#1A5345] px-2.5 text-[10px] hover:bg-[#0F3D32]"
+          >
+            Add
+          </Button>
+        </div>
+      </div>
+
+      {isEditing ? (
+        <div className="mt-2 grid gap-2 rounded-md border border-[#E5EEEA] bg-[#FBFDFC] p-2 sm:grid-cols-2">
+          <Input value={dose} onChange={(e) => setDose(e.target.value)} className="h-8 border-[#cfd9d5] bg-white text-[11px]" />
+          <Select value={frequency} onValueChange={setFrequency}>
+            <SelectTrigger className="h-8 rounded-lg border-[#cfd9d5] bg-white text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
+              {FREQUENCY_OPTIONS.map((f) => (
+                <SelectItem key={f.value} value={f.value} className="text-[11px]">{f.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={duration} onValueChange={setDuration}>
+            <SelectTrigger className="h-8 rounded-lg border-[#cfd9d5] bg-white text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
+              {DURATION_OPTIONS.map((d) => (
+                <SelectItem key={d.value} value={d.value} className="text-[11px]">{d.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="sm:col-span-2">
+            <Textarea
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              className="min-h-[56px] resize-none border-[#cfd9d5] bg-white text-[11px]"
+            />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function buildMedicationSuggestions(
+  patientSummary: PatientSummary,
+  structuredComplaint: string,
+  existingPrescriptions: PrescriptionEntry[],
+): MedicationSuggestion[] {
+  const existingLower = new Set(existingPrescriptions.map((rx) => rx.name.toLowerCase()))
+  const hasCondition = (needle: string) =>
+    patientSummary.existingConditions.some((c) => c.name.toLowerCase().includes(needle))
+  const hasAllergy = (needle: string) =>
+    patientSummary.allergies.some((a) => a.allergen.toLowerCase().includes(needle))
+
+  const suggestions: MedicationSuggestion[] = []
+
+  if (hasCondition("hypertension")) {
+    suggestions.push({
+      id: "rx-ai-lisinopril",
+      name: "Lisinopril",
+      dose: "10 mg",
+      frequency: "Once daily",
+      duration: "Ongoing",
+      type: "antihypertensives",
+      instructions: "Start low dose and titrate based on BP and renal function.",
+      rationale: "Supports BP control and provides renal/cardiovascular protection in high-risk patients.",
+    })
+  }
+
+  if (hasCondition("diabetes")) {
+    suggestions.push({
+      id: "rx-ai-empagliflozin",
+      name: "Empagliflozin",
+      dose: "10 mg",
+      frequency: "Once daily",
+      duration: "Ongoing",
+      type: "diabetes_medications",
+      instructions: "Ensure hydration and monitor renal function.",
+      rationale: "Improves glycemic profile with additional cardiovascular benefit in T2DM.",
+    })
+  }
+
+  if (hasCondition("dyslipidemia")) {
+    suggestions.push({
+      id: "rx-ai-atorvastatin-up",
+      name: "Atorvastatin",
+      dose: "40 mg",
+      frequency: "Once daily",
+      duration: "Ongoing",
+      type: "statins",
+      instructions: "Night dosing preferred; monitor liver enzymes and myalgia.",
+      rationale: "Intensified lipid lowering is appropriate with persistent CVD risk profile.",
+    })
+  }
+
+  if (structuredComplaint === "chest_pain" && !hasAllergy("aspirin")) {
+    suggestions.push({
+      id: "rx-ai-aspirin",
+      name: "Aspirin",
+      dose: "81 mg",
+      frequency: "Once daily",
+      duration: "Ongoing",
+      type: "antiplatelets",
+      instructions: "Use after food if gastritis risk; assess bleeding risk.",
+      rationale: "Antiplatelet support is considered in ischemic-symptom context and high ASCVD risk.",
+      caution: "Confirm no active bleeding risk or aspirin intolerance.",
+    })
+  }
+
+  return suggestions.filter((s) => !existingLower.has(s.name.toLowerCase()))
 }
 
 function PrescriptionCard({
@@ -222,22 +404,65 @@ export type PrescriptionsSectionProps = {
   prescriptions: PrescriptionEntry[]
   onAddPrescription: (entry: PrescriptionEntry) => void
   onRemovePrescription: (id: string) => void
+  patientSummary: PatientSummary
+  structuredComplaint: string
 }
 
-export function PrescriptionsSection({ prescriptions, onAddPrescription, onRemovePrescription }: PrescriptionsSectionProps) {
+export function PrescriptionsSection({
+  prescriptions,
+  onAddPrescription,
+  onRemovePrescription,
+  patientSummary,
+  structuredComplaint,
+}: PrescriptionsSectionProps) {
+  const [showAiSuggestions, setShowAiSuggestions] = useState(false)
+  const suggestions = buildMedicationSuggestions(patientSummary, structuredComplaint, prescriptions)
+
   return (
     <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
-          <PillIcon className="size-4 text-[#1A5345]" />
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
+            <PillIcon className="size-4 text-[#1A5345]" />
+          </div>
+          <h3 className="text-[14px] font-semibold text-[#102F27]">Prescriptions</h3>
+          {prescriptions.length > 0 && (
+            <span className="rounded-full bg-[#EEF5F3] px-2 py-0.5 text-[10px] font-medium text-[#2C6A5B]">
+              {prescriptions.length}
+            </span>
+          )}
         </div>
-        <h3 className="text-[14px] font-semibold text-[#102F27]">Prescriptions</h3>
-        {prescriptions.length > 0 && (
-          <span className="rounded-full bg-[#EEF5F3] px-2 py-0.5 text-[10px] font-medium text-[#2C6A5B]">
-            {prescriptions.length}
-          </span>
-        )}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => setShowAiSuggestions((prev) => !prev)}
+          className="h-8 gap-1.5 border-[#cfd9d5] bg-white text-[11px] text-[#1A5345] hover:bg-[#E8F0EE]"
+        >
+          <SparklesIcon className="size-3.5" />
+          AI Med Suggestions
+        </Button>
       </div>
+
+      {showAiSuggestions ? (
+        <div className="mb-3 space-y-2 rounded-lg border border-[#E5EEEA] bg-[#FBFDFC] p-3">
+          <p className="text-[11px] font-semibold text-[#102F27]">Suggested medications for this case</p>
+          {suggestions.length > 0 ? (
+            suggestions.map((suggestion) => (
+              <SuggestionCard
+                key={suggestion.id}
+                suggestion={suggestion}
+                onAccept={onAddPrescription}
+              />
+            ))
+          ) : (
+            <p className="text-[11px] text-muted-foreground">
+              No new medication suggestion right now based on current profile and existing prescriptions.
+            </p>
+          )}
+        </div>
+      ) : null}
+
       <div className="space-y-2">
         {prescriptions.map((rx) => (
           <PrescriptionCard key={rx.id} prescription={rx} onRemove={onRemovePrescription} />
