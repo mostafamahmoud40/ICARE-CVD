@@ -30,10 +30,17 @@ export function PhysicalExamSection({ exam, onExamChange }: PhysicalExamSectionP
     [onExamChange],
   )
 
-  const { supported, activeKey, errorMessage, interimText, toggle, dismissError } = useSpeechDictation({
+  const { supported, activeKey, errorMessage, interimText, audioLevel, elapsedSeconds, toggle, dismissError } =
+    useSpeechDictation({
     getText,
     setText,
-  })
+    })
+
+  const formatElapsedTime = useCallback((totalSeconds: number) => {
+    const mm = String(Math.floor(totalSeconds / 60)).padStart(2, "0")
+    const ss = String(totalSeconds % 60).padStart(2, "0")
+    return `${mm}:${ss}`
+  }, [])
 
   return (
     <TooltipProvider delay={300}>
@@ -106,6 +113,18 @@ export function PhysicalExamSection({ exam, onExamChange }: PhysicalExamSectionP
                   className="min-h-[56px] resize-none border-[#E8E6E0] bg-[#FAFAF8] text-[13px] placeholder:text-[#9CA3AF]"
                   aria-describedby={listening && interimText ? `${field.key}-interim` : undefined}
                 />
+                {listening ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-medium text-[#B42318]">{formatElapsedTime(elapsedSeconds)}</span>
+                    <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#EEF5F3]">
+                      <div
+                        className="h-full rounded-full bg-[#1A5345] transition-all duration-150"
+                        style={{ width: `${Math.max(6, audioLevel)}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">Voice level</span>
+                  </div>
+                ) : null}
                 {listening && interimText ? (
                   <p id={`${field.key}-interim`} className="text-[11px] leading-snug text-[#6B7280]">
                     {interimText}
