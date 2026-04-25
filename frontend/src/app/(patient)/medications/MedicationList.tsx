@@ -128,7 +128,7 @@ function getMedCardStyles(overdue: boolean, status: Medication["status"], lastTa
   }
   // Due
   return {
-    borderColor: "border-[#3577DA]",
+    borderColor: "border-[#E5EEEA]",
     iconBg: "bg-[#3577DA]/10",
     iconColor: "text-[#3577DA]",
     statusBadge: "bg-[#E8F2FF] text-[#3577DA]",
