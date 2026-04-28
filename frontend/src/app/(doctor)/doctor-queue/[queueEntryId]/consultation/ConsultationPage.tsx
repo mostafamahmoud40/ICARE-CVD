@@ -14,6 +14,11 @@ import { PrescriptionsSection } from "./PrescriptionsSection"
 import { ClinicalNotesSection } from "./ClinicalNotesSection"
 import { FollowUpSection } from "./FollowUpSection"
 import { TestsAndMeasurementsSection } from "./TestsAndMeasurementsSection"
+import { CTScanSection } from "./CTScanSection"
+import { XrayScanSection } from "./XrayScanSection"
+import { EchoVideoSection } from "./EchoVideoSection"
+import { LabMaterialsSection } from "./LabMaterialsSection"
+import type { LabMaterialFile } from "./consultation.types"
 import { AIAssistantPanel } from "./AIAssistantPanel"
 import { ConsultationFloatingPatientQueryBar } from "./ConsultationFloatingPatientQueryBar"
 import { PatientBriefingAgent, BriefingAgentChip } from "./PatientBriefingAgent"
@@ -26,6 +31,10 @@ import {
 
 export function ConsultationPage() {
   const [data, setData] = useState<ConsultationData>(mockConsultationData)
+  const [ctFile, setCtFile] = useState<File | null>(null)
+  const [xrayFile, setXrayFile] = useState<File | null>(null)
+  const [echoFile, setEchoFile] = useState<File | null>(null)
+  const [labMaterials, setLabMaterials] = useState<LabMaterialFile[]>([])
   const [isPatientSidebarCollapsed, setIsPatientSidebarCollapsed] = useState(false)
   const [isAiPanelCollapsed, setIsAiPanelCollapsed] = useState(false)
   const [showBriefing, setShowBriefing] = useState(true)
@@ -77,6 +86,17 @@ export function ConsultationPage() {
 
   const removeHomeMeasurement = (id: string) => {
     setData((prev) => ({ ...prev, homeMeasurements: prev.homeMeasurements.filter((m) => m.id !== id) }))
+  }
+
+  const addLabMaterials = (files: File[]) => {
+    setLabMaterials((prev) => [
+      ...prev,
+      ...files.map((file) => ({ id: crypto.randomUUID(), file })),
+    ])
+  }
+
+  const removeLabMaterial = (id: string) => {
+    setLabMaterials((prev) => prev.filter((item) => item.id !== id))
   }
 
   const acceptSuggestion = (id: string) => {
@@ -248,6 +268,18 @@ export function ConsultationPage() {
               onAddMeasurement={addHomeMeasurement}
               onRemoveMeasurement={removeHomeMeasurement}
             />
+
+            <LabMaterialsSection
+              items={labMaterials}
+              onAdd={addLabMaterials}
+              onRemove={removeLabMaterial}
+            />
+
+            <CTScanSection ctFile={ctFile} onCtFileChange={setCtFile} />
+
+            <XrayScanSection xrayFile={xrayFile} onXrayFileChange={setXrayFile} />
+
+            <EchoVideoSection echoFile={echoFile} onEchoFileChange={setEchoFile} />
 
             <ClinicalNotesSection
               clinicalNotes={data.clinicalNotes}
