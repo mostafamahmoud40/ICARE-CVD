@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { MessageSquareTextIcon } from "lucide-react"
+import { MessageSquareTextIcon, SparklesIcon, AlertTriangleIcon, ShieldAlertIcon, CheckCircle2Icon } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
 import {
   Select,
   SelectContent,
@@ -38,6 +39,67 @@ const CHARACTER_OPTIONS = ["Sharp", "Dull", "Pressure-like", "Burning", "Throbbi
 const AGGRAVATING_OPTIONS = ["Exertion", "Stress", "After meals", "Deep breathing", "Lying flat"] as const
 const RELIEVING_OPTIONS = ["Rest", "Medication", "Sitting upright", "Hydration", "None"] as const
 
+type AiOrderSuggestion = {
+  id: string
+  label: string
+  rationale: string
+}
+
+const COMPLAINT_FOLLOW_UPS: Record<string, string[]> = {
+  chest_pain: [
+    "Does pain radiate to jaw, left arm, or back?",
+    "Is pain associated with sweating, nausea, or shortness of breath?",
+    "Did the pain start with exertion or at rest?",
+    "How long does each episode last?",
+  ],
+  dyspnea: [
+    "Is dyspnea worse when lying flat (orthopnea)?",
+    "Any paroxysmal nocturnal dyspnea episodes?",
+    "Any recent leg swelling or weight gain?",
+    "Any cough, wheeze, or chest tightness?",
+  ],
+  palpitations: [
+    "Are palpitations regular or irregular?",
+    "Any associated syncope, dizziness, or chest pain?",
+    "Trigger: caffeine, stress, or exertion?",
+  ],
+  default: [
+    "What symptom is most bothersome right now?",
+    "What makes symptoms better or worse?",
+    "Any associated alarming symptoms?",
+  ],
+}
+
+const COMPLAINT_DIFFERENTIALS: Record<string, string[]> = {
+  chest_pain: ["Acute coronary syndrome", "Stable/unstable angina", "GERD or musculoskeletal chest pain"],
+  dyspnea: ["Heart failure exacerbation", "Pulmonary edema", "COPD/asthma exacerbation"],
+  palpitations: ["Atrial fibrillation", "Supraventricular tachycardia", "Anxiety-related tachycardia"],
+  default: ["Cardiovascular etiology", "Respiratory etiology", "Non-cardiac etiology"],
+}
+
+const COMPLAINT_ORDERS: Record<string, AiOrderSuggestion[]> = {
+  chest_pain: [
+    { id: "ecg", label: "12-lead ECG", rationale: "Early ischemia/arrhythmia screening" },
+    { id: "troponin", label: "Cardiac Troponin", rationale: "Rule in/out myocardial injury" },
+    { id: "cxr", label: "Chest X-ray", rationale: "Assess pulmonary/cardiac causes" },
+  ],
+  dyspnea: [
+    { id: "ecg", label: "12-lead ECG", rationale: "Detect cardiac rhythm/ischemia changes" },
+    { id: "bnp", label: "BNP / NT-proBNP", rationale: "Support heart failure assessment" },
+    { id: "echo", label: "Echocardiogram", rationale: "Evaluate ventricular/valvular function" },
+  ],
+  palpitations: [
+    { id: "ecg", label: "12-lead ECG", rationale: "Baseline rhythm analysis" },
+    { id: "holter", label: "24h Holter Monitor", rationale: "Capture intermittent rhythm events" },
+    { id: "tsh", label: "TSH", rationale: "Exclude thyroid-triggered arrhythmia" },
+  ],
+  default: [
+    { id: "ecg", label: "12-lead ECG", rationale: "Baseline cardiac assessment" },
+    { id: "cbc", label: "CBC", rationale: "Screen for infection/anemia contributors" },
+    { id: "cmp", label: "CMP", rationale: "Evaluate renal/electrolyte status" },
+  ],
+}
+
 export type ChiefComplaintSectionProps = {
   complaint: string
   onComplaintChange: (value: string) => void
@@ -57,6 +119,9 @@ export function ChiefComplaintSection({
   const [character, setCharacter] = useState("")
   const [aggravating, setAggravating] = useState<string[]>([])
   const [relieving, setRelieving] = useState<string[]>([])
+  const [showAiAssist, setShowAiAssist] = useState(false)
+  const [freeTextInput, setFreeTextInput] = useState("")
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([])
 
   const complaintLabel = useMemo(
     () => CVD_COMPLAINTS.find((c) => c.value === structuredComplaint)?.label ?? "",
@@ -79,6 +144,56 @@ export function ChiefComplaintSection({
     return parts.join(" ")
   }, [aggravating, character, complaintLabel, duration, onset, relieving, severity])
 
+  const completenessScore = useMemo(() => {
+    const fields = [
+      structuredComplaint,
+      onset,
+      duration,
+      severity,
+      character,
+      aggravating.length > 0 ? "1" : "",
+      relieving.length > 0 ? "1" : "",
+    ]
+    const filled = fields.filter(Boolean).length
+    return Math.round((filled / fields.length) * 100)
+  }, [structuredComplaint, onset, duration, severity, character, aggravating.length, relieving.length])
+
+  const complaintKey = structuredComplaint || "default"
+  const followUps = COMPLAINT_FOLLOW_UPS[complaintKey] ?? COMPLAINT_FOLLOW_UPS.default
+  const differentials = COMPLAINT_DIFFERENTIALS[complaintKey] ?? COMPLAINT_DIFFERENTIALS.default
+  const suggestedOrders = COMPLAINT_ORDERS[complaintKey] ?? COMPLAINT_ORDERS.default
+  const selectedOrders = suggestedOrders.filter((order) => selectedOrderIds.includes(order.id))
+
+  const redFlags = useMemo(() => {
+    const flags: string[] = []
+    const aggrSet = new Set(aggravating)
+    if (structuredComplaint === "chest_pain" && severity === "Severe") {
+      flags.push("Severe chest pain needs urgent ischemic risk exclusion.")
+    }
+    if (structuredComplaint === "chest_pain" && (aggrSet.has("Exertion") || aggrSet.has("Stress"))) {
+      flags.push("Exertional/stress-related chest pain pattern can suggest cardiac origin.")
+    }
+    if (structuredComplaint === "dyspnea" && aggrSet.has("Lying flat")) {
+      flags.push("Dyspnea worsening in supine position may indicate heart failure/volume overload.")
+    }
+    return flags
+  }, [structuredComplaint, severity, aggravating])
+
+  const hpiDraft = useMemo(() => {
+    if (!complaintLabel) return ""
+    const lines = [
+      `${complaintLabel} in a patient presenting for cardiovascular evaluation.`,
+      onset ? `Onset is ${onset.toLowerCase()}.` : "Onset timing not yet clarified.",
+      duration ? `Symptom duration: ${duration}.` : "Duration needs clarification.",
+      severity ? `Severity reported as ${severity.toLowerCase()}.` : "Severity not yet documented.",
+      character ? `Symptom character: ${character.toLowerCase()}.` : "Characterization pending.",
+      aggravating.length > 0 ? `Worsened by ${aggravating.join(", ").toLowerCase()}.` : "No aggravating factors documented.",
+      relieving.length > 0 ? `Partially relieved by ${relieving.join(", ").toLowerCase()}.` : "No relieving factors documented.",
+      redFlags.length > 0 ? `Red-flag context: ${redFlags.join(" ")}` : "No immediate red-flag pattern detected from available fields.",
+    ]
+    return lines.join(" ")
+  }, [complaintLabel, onset, duration, severity, character, aggravating, relieving, redFlags])
+
   useEffect(() => {
     if (generatedDescription !== complaint) {
       onComplaintChange(generatedDescription)
@@ -93,14 +208,191 @@ export function ChiefComplaintSection({
     setter([...values, value])
   }
 
+  const inferStructuredComplaintFromText = (text: string) => {
+    const normalized = text.toLowerCase()
+    if (normalized.includes("chest") || normalized.includes("angina")) return "chest_pain"
+    if (normalized.includes("dyspnea") || normalized.includes("shortness of breath") || normalized.includes("breath")) return "dyspnea"
+    if (normalized.includes("palpitation") || normalized.includes("racing heart")) return "palpitations"
+    if (normalized.includes("syncope") || normalized.includes("fainted")) return "syncope"
+    if (normalized.includes("edema") || normalized.includes("swelling")) return "edema"
+    return "other"
+  }
+
+  const runAiExtraction = () => {
+    if (!freeTextInput.trim()) return
+    const normalized = freeTextInput.toLowerCase()
+    onStructuredComplaintChange(inferStructuredComplaintFromText(freeTextInput))
+    if (normalized.includes("sudden")) setOnset("Sudden")
+    else if (normalized.includes("gradual")) setOnset("Gradual")
+    else setOnset("Intermittent")
+
+    if (normalized.includes("week")) setDuration("1 week")
+    else if (normalized.includes("day")) setDuration("1-3 days")
+    else if (normalized.includes("month") || normalized.includes("chronic")) setDuration("Chronic")
+    else setDuration("< 24 hours")
+
+    if (normalized.includes("severe")) setSeverity("Severe")
+    else if (normalized.includes("moderate")) setSeverity("Moderate")
+    else setSeverity("Mild")
+
+    if (normalized.includes("pressure")) setCharacter("Pressure-like")
+    else if (normalized.includes("burn")) setCharacter("Burning")
+    else if (normalized.includes("sharp")) setCharacter("Sharp")
+
+    const nextAggravating = AGGRAVATING_OPTIONS.filter((item) => normalized.includes(item.toLowerCase()))
+    const nextRelieving = RELIEVING_OPTIONS.filter((item) => normalized.includes(item.toLowerCase()))
+    setAggravating(nextAggravating)
+    setRelieving(nextRelieving.length > 0 ? nextRelieving : ["Rest"])
+  }
+
   return (
     <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
-          <MessageSquareTextIcon className="size-4 text-[#1A5345]" />
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
+            <MessageSquareTextIcon className="size-4 text-[#1A5345]" />
+          </div>
+          <h3 className="text-[14px] font-semibold text-[#102F27]">Chief Complaint</h3>
         </div>
-        <h3 className="text-[14px] font-semibold text-[#102F27]">Chief Complaint</h3>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => setShowAiAssist((prev) => !prev)}
+          className="h-8 gap-1.5 border-[#cfd9d5] bg-white text-[11px] text-[#1A5345] hover:bg-[#E8F0EE]"
+        >
+          <SparklesIcon className="size-3.5" />
+          AI Assist
+        </Button>
       </div>
+      {showAiAssist ? (
+        <div className="mb-4 space-y-3 rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-3">
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold text-[#102F27]">AI Smart Intake</p>
+            <Textarea
+              value={freeTextInput}
+              onChange={(e) => setFreeTextInput(e.target.value)}
+              placeholder="Paste patient wording or quick notes, then extract to structured fields..."
+              className="min-h-[70px] border-[#E5EEEA] bg-white text-[12px]"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" size="sm" onClick={runAiExtraction} className="h-7 bg-[#1A5345] px-2.5 text-[11px] hover:bg-[#0F3D32]">
+                Extract
+              </Button>
+              <span className="text-[10px] text-muted-foreground">Completeness: {completenessScore}%</span>
+            </div>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
+              <p className="mb-1 text-[11px] font-semibold text-[#102F27]">Follow-up Questions</p>
+              <ul className="space-y-1">
+                {followUps.map((q) => (
+                  <li key={q} className="text-[11px] text-[#102F27]">- {q}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
+              <p className="mb-1 text-[11px] font-semibold text-[#102F27]">Differential Starter</p>
+              <ul className="space-y-1">
+                {differentials.map((d) => (
+                  <li key={d} className="text-[11px] text-[#102F27]">- {d}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
+            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-[#102F27]">
+              <ShieldAlertIcon className="size-3.5 text-red-600" />
+              Red Flags
+            </div>
+            {redFlags.length > 0 ? (
+              <div className="space-y-1">
+                {redFlags.map((flag) => (
+                  <div key={flag} className="flex items-start gap-1.5 rounded-md bg-red-50 px-2 py-1.5 text-[11px] text-red-700">
+                    <AlertTriangleIcon className="mt-0.5 size-3 shrink-0" />
+                    <span>{flag}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">No urgent red-flag pattern detected from current inputs.</p>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
+            <p className="mb-2 text-[11px] font-semibold text-[#102F27]">Suggested Orders</p>
+            <div className="space-y-1.5">
+              {suggestedOrders.map((order) => {
+                const selected = selectedOrderIds.includes(order.id)
+                return (
+                  <div key={order.id} className="flex items-start justify-between gap-2 rounded-md border border-[#E8E6E0] px-2 py-1.5">
+                    <div>
+                      <p className="text-[11px] font-medium text-[#102F27]">{order.label}</p>
+                      <p className="text-[10px] text-muted-foreground">{order.rationale}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedOrderIds((prev) =>
+                          selected ? prev.filter((id) => id !== order.id) : [...prev, order.id]
+                        )
+                      }}
+                      className="h-7 border-[#cfd9d5] text-[10px]"
+                    >
+                      {selected ? "Dismiss" : "Accept"}
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+            {selectedOrders.length > 0 ? (
+              <p className="mt-2 text-[10px] text-[#1A5345]">
+                <CheckCircle2Icon className="mr-1 inline size-3" />
+                Added: {selectedOrders.map((order) => order.label).join(", ")}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
+            <p className="mb-1 text-[11px] font-semibold text-[#102F27]">HPI Draft</p>
+            <p className="text-[11px] leading-relaxed text-[#102F27]">{hpiDraft || "Select complaint details to generate an HPI draft."}</p>
+            <div className="mt-2 flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setFreeTextInput(hpiDraft)}
+                disabled={!hpiDraft}
+                className="h-7 bg-[#1A5345] px-2.5 text-[11px] hover:bg-[#0F3D32]"
+              >
+                Accept
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setFreeTextInput(hpiDraft)}
+                disabled={!hpiDraft}
+                className="h-7 border-[#cfd9d5] px-2.5 text-[11px]"
+              >
+                Edit
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setFreeTextInput("")}
+                className="h-7 border-[#cfd9d5] px-2.5 text-[11px]"
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="space-y-3">
         <div className="space-y-1">
           <label className="text-[11px] font-medium text-muted-foreground">Structured Complaint</label>

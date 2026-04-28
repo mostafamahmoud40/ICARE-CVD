@@ -13,6 +13,7 @@ import { StepNavigation } from "./StepNavigation";
 import { RegisterTestingActions } from "./RegisterTestingActions";
 import { StepRenderer } from "./StepRenderer";
 import { useRegisterStore } from "./useRegisterStore";
+import { useRegistrationAnalysis } from "./useRegistrationAnalysis";
 
 const STEP_BY_KEY = {
   account: 1,
@@ -45,6 +46,18 @@ export function RegisterForm() {
   const onNext = useRegisterStore((s) => s.nextStep);
   const onPrevious = useRegisterStore((s) => s.previousStep);
   const onSubmit = useRegisterStore((s) => s.submitForm);
+
+  const formValues = useRegisterStore((s) => s.formValues);
+  const isReviewStep = step === 5;
+  const analysisQuery = useRegistrationAnalysis(
+    {
+      accountValues: formValues.account,
+      profileValues: formValues.profile,
+      medicalValues: formValues.medical,
+    },
+    { persistToPatientRecord: isReviewStep },
+  );
+  const isAnalysisPending = isReviewStep && (analysisQuery.isLoading || analysisQuery.isFetching);
 
   const StepIcon =
     step === 1
@@ -87,6 +100,14 @@ export function RegisterForm() {
       goToStep(targetStep);
     }
   }, [goToStep, searchParams, step]);
+
+  useEffect(() => {
+    if (!isSuccess) return;
+    const timeout = setTimeout(() => {
+      router.push("/dashboard");
+    }, 1500);
+    return () => clearTimeout(timeout);
+  }, [isSuccess, router]);
 
   useEffect(() => {
     const stepKey = KEY_BY_STEP[step] ?? "account";
@@ -146,13 +167,23 @@ export function RegisterForm() {
         <CardContent className="space-y-5 px-8 pb-8 pt-5">
           <RegisterTestingActions />
 
-          <StepRenderer step={step} />
+          <StepRenderer
+            step={step}
+            analysis={analysisQuery.data?.analysis}
+            isAnalysisLoading={analysisQuery.isLoading}
+            isAnalysisFetching={analysisQuery.isFetching}
+            isAnalysisError={analysisQuery.isError}
+            canRefreshAnalysis={analysisQuery.canRefresh}
+            onRefreshAnalysis={() => {
+              void analysisQuery.refetch();
+            }}
+          />
 
           {isSuccess ? (
             <Alert className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/60 dark:bg-emerald-950/40 dark:text-emerald-200">
               <CheckCircle2 className="mt-0.5 size-4" />
               <AlertTitle>Account created</AlertTitle>
-              <AlertDescription>{successMessage}</AlertDescription>
+              <AlertDescription>{successMessage} Redirecting to your dashboard…</AlertDescription>
             </Alert>
           ) : null}
 
@@ -169,6 +200,7 @@ export function RegisterForm() {
           <StepNavigation
             step={step}
             isPending={isPending}
+            isAnalysisPending={isAnalysisPending}
             onNext={onNext}
             onPrevious={onPrevious}
             onSubmit={onSubmit}

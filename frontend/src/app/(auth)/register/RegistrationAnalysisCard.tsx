@@ -10,10 +10,19 @@ type RegistrationAnalysisCardProps = {
   isLoading: boolean;
   isFetching: boolean;
   isError: boolean;
+  /** False after the summary is persisted server-side (refresh cannot change stored text). */
+  canRefresh?: boolean;
   onRefresh: () => void;
 };
 
-export function RegistrationAnalysisCard({ analysis, isLoading, isFetching, isError, onRefresh }: RegistrationAnalysisCardProps) {
+export function RegistrationAnalysisCard({
+  analysis,
+  isLoading,
+  isFetching,
+  isError,
+  canRefresh = true,
+  onRefresh,
+}: RegistrationAnalysisCardProps) {
   const summary = (analysis ?? "").trim();
 
   return (
@@ -25,17 +34,21 @@ export function RegistrationAnalysisCard({ analysis, isLoading, isFetching, isEr
           </div>
           <p className="text-[12px] font-semibold text-[#102F27] sm:text-[14px]">AI Registration Summary</p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-7 gap-1 text-[10px] sm:h-8 sm:text-[11px]"
-          onClick={onRefresh}
-          disabled={isFetching}
-        >
-          <RefreshCw className={`size-3 ${isFetching ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        {canRefresh ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1 text-[10px] sm:h-8 sm:text-[11px]"
+            onClick={onRefresh}
+            disabled={isFetching}
+          >
+            <RefreshCw className={`size-3 ${isFetching ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        ) : (
+          <p className="text-[10px] text-muted-foreground sm:text-[11px]">Saved</p>
+        )}
       </div>
 
       {isLoading ? (

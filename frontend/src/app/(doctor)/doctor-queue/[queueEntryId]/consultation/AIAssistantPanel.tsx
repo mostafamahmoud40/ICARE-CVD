@@ -123,7 +123,7 @@ export function AIAssistantPanel({
 
   if (collapsed) {
     return (
-      <div className="flex w-11 shrink-0 flex-col items-center border-l border-[#E8E6E0] bg-white py-2">
+      <div className="flex w-11 shrink-0 flex-col items-center border-l border-white/20 bg-transparent py-2">
         <button
           type="button"
           onClick={onToggle}
@@ -138,10 +138,10 @@ export function AIAssistantPanel({
 
   return (
     <div
-      className="flex shrink-0 flex-col border-l border-[#E8E6E0] bg-white"
+      className="flex shrink-0 flex-col border-l border-white/20 bg-transparent"
       style={{ width: widthPx, minWidth: widthPx, maxWidth: widthPx }}
     >
-      <div className="border-b border-[#E8E6E0] bg-[#FAFAF8] px-2 py-2 sm:px-4 sm:py-3">
+      <div className="border-b border-white/10 bg-transparent px-2 py-2 backdrop-blur-sm sm:px-4 sm:py-3">
         <div className="flex items-center gap-1.5">
           <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-violet-100">
             <BotIcon className="size-4 text-violet-600" />

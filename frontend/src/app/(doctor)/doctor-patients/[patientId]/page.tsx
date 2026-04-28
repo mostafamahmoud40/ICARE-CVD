@@ -19,5 +19,5 @@ export default function PatientDetailPage({ params }: { params: Promise<{ patien
     )
   }
 
-  return <PatientProfile record={mockPatientFullRecord} />
+  return <PatientProfile record={{ ...mockPatientFullRecord, patient }} />
 }

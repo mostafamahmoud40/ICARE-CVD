@@ -45,7 +45,7 @@ export const vitalReading = pgTable(
     weight: decimal('weight', { precision: 5, scale: 1 }),
     bloodSugar: smallint('blood_sugar'),
     notes: text('notes'),
-    notesEmbedding: vector(384),
+    notesEmbedding: vector(384)('notes_embedding'),
     recordedByUserId: integer('recorded_by_user_id').references(() => user.id, {
       onDelete: 'set null',
     }),
