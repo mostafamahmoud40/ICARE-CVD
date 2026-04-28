@@ -128,6 +128,12 @@ export type HomeMeasurement = {
   instructions: string
 }
 
+/** Staged lab document uploads on the consultation form (browser `File` handles). */
+export type LabMaterialFile = {
+  id: string
+  file: File
+}
+
 export type ConsultationData = {
   /** Matches `doctor-patients` mock IDs (e.g. `p-001`) for profile navigation */
   patientId: string

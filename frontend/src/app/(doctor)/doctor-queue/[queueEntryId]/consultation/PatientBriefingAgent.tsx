@@ -1,10 +1,8 @@
 "use client"
 
-import { useRef, useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 import type { PatientSummary } from "./consultation.types"
-import { usePatientBriefing, type VisibleMessage } from "./usePatientBriefing"
-import { TypewriterText } from "./TypewriterText"
+import { usePatientBriefing } from "./usePatientBriefing"
 import {
   BotIcon,
   ChevronDownIcon,
@@ -23,11 +21,11 @@ import { Line, LineChart, CartesianGrid, XAxis, YAxis, Bar, BarChart } from "rec
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 
 type MessageIconProps = {
-  type: VisibleMessage["type"]
+  type: "greeting" | "demographics" | "conditions" | "medications" | "allergies" | "family" | "lifestyle" | "risk" | "complete"
 }
 
 function MessageIcon({ type }: MessageIconProps) {
-  const iconMap: Record<VisibleMessage["type"], { icon: React.ElementType; color: string; bg: string }> = {
+  const iconMap: Record<MessageIconProps["type"], { icon: React.ElementType; color: string; bg: string }> = {
     greeting: { icon: SparklesIcon, color: "text-[#1A5345]", bg: "bg-[#E8F0EE]" },
     demographics: { icon: UserRoundIcon, color: "text-[#1A5345]", bg: "bg-[#E8F0EE]" },
     conditions: { icon: ActivityIcon, color: "text-[#1A5345]", bg: "bg-[#E8F0EE]" },
@@ -43,28 +41,6 @@ function MessageIcon({ type }: MessageIconProps) {
   return (
     <div className={cn("flex size-7 shrink-0 items-center justify-center rounded-lg", config.bg)}>
       <Icon className={cn("size-3.5", config.color)} />
-    </div>
-  )
-}
-
-function ThinkingDots() {
-  return (
-    <div className="flex items-center gap-0.5">
-      <span className="size-1.5 rounded-full bg-[#1A5345] animate-[bounce_0.6s_infinite_0ms]" />
-      <span className="size-1.5 rounded-full bg-[#1A5345] animate-[bounce_0.6s_infinite_150ms]" />
-      <span className="size-1.5 rounded-full bg-[#1A5345] animate-[bounce_0.6s_infinite_300ms]" />
-    </div>
-  )
-}
-
-function ThinkingIndicator({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-xl border border-[#E5EEEA] bg-[#FAFAF8] px-3 py-2 animate-[fadeInUp_0.3s_ease-out]">
-      <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
-        <BotIcon className="size-3.5 text-[#1A5345] animate-pulse" />
-      </div>
-      <span className="text-[11px] font-medium text-[#1A5345]">{label}</span>
-      <ThinkingDots />
     </div>
   )
 }
@@ -152,24 +128,7 @@ export function PatientBriefingAgent({
   medicationAdherenceTrendData = [],
   medicationMissedBreakdownData = [],
 }: PatientBriefingAgentProps) {
-  const { visibleMessages, currentThinking, isComplete, markTypingDone } = usePatientBriefing(summary)
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [footerStage, setFooterStage] = useState(0)
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [visibleMessages, currentThinking])
-
-  useEffect(() => {
-    if (!isComplete || !visitStats) {
-      setFooterStage(0)
-      return
-    }
-
-    setFooterStage((prev) => (prev === 0 ? 1 : prev))
-  }, [isComplete, visitStats])
+  const { messages, isComplete } = usePatientBriefing(summary)
 
   if (!visible) return null
 
@@ -206,14 +165,14 @@ export function PatientBriefingAgent({
           )}
         </div>
 
-        <div ref={scrollRef} className="scrollbar-hide min-h-0 flex-1 overflow-y-auto">
+        <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto">
           {/* Messages */}
           <div className="space-y-2 p-4">
-            {visibleMessages.map((msg) => (
+            {messages.map((msg) => (
               <div
                 key={msg.id}
                 className={cn(
-                  "flex items-start gap-2.5 rounded-xl border-2 p-3 animate-[fadeInUp_0.3s_ease-out]",
+                  "flex items-start gap-2.5 rounded-xl border-2 p-3",
                   msg.type === "allergies"
                     ? "border-red-100 bg-red-50/30"
                     : msg.type === "risk"
@@ -224,17 +183,11 @@ export function PatientBriefingAgent({
                 <MessageIcon type={msg.type} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] leading-relaxed text-[#102F27]">
-                    <TypewriterText
-                      text={msg.text}
-                      speed={msg.type === "greeting" || msg.type === "complete" ? 10 : 8}
-                      onComplete={() => markTypingDone(msg.id)}
-                    />
+                    {msg.text}
                   </p>
                 </div>
               </div>
             ))}
-
-            {currentThinking && <ThinkingIndicator label={currentThinking} />}
           </div>
 
           {/* Footer */}
@@ -242,63 +195,41 @@ export function PatientBriefingAgent({
             <div className="space-y-3 border-t border-[#E5EEEA] px-4 py-3">
             {visitStats ? (
               <div className="grid gap-2 sm:grid-cols-3">
-                {footerStage >= 1 ? (
-                  <div className="rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-2.5">
+                <div className="rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-2.5">
                   <p className="text-[9px] uppercase tracking-wide text-muted-foreground">Visits (6 months)</p>
                   <p className="text-[15px] font-bold text-[#102F27]">
-                    <TypewriterText
-                      text={String(visitStats.totalVisitsLast6Months)}
-                      speed={35}
-                      onComplete={() => setFooterStage((prev) => (prev < 2 ? 2 : prev))}
-                    />
+                    {visitStats.totalVisitsLast6Months}
                   </p>
-                  </div>
-                ) : null}
-                {footerStage >= 2 ? (
-                  <div className="rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-2.5">
+                </div>
+                <div className="rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-2.5">
                   <p className="text-[9px] uppercase tracking-wide text-muted-foreground">Follow-up Regularity</p>
                   <p className="text-[15px] font-bold text-[#102F27]">
-                    <TypewriterText
-                      text={`${visitStats.followUpAdherencePercent}%`}
-                      speed={25}
-                      onComplete={() => setFooterStage((prev) => (prev < 3 ? 3 : prev))}
-                    />
+                    {visitStats.followUpAdherencePercent}%
                   </p>
-                  </div>
-                ) : null}
-                {footerStage >= 3 ? (
-                  <div className="rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-2.5">
+                </div>
+                <div className="rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-2.5">
                   <p className="text-[9px] uppercase tracking-wide text-muted-foreground">Medication Adherence</p>
                   <p className="text-[15px] font-bold text-[#102F27]">
-                    <TypewriterText
-                      text={`${visitStats.medicationAdherencePercent}%`}
-                      speed={25}
-                      onComplete={() => setFooterStage((prev) => (prev < 4 ? 4 : prev))}
-                    />
+                    {visitStats.medicationAdherencePercent}%
                   </p>
-                  </div>
-                ) : null}
+                </div>
               </div>
             ) : null}
 
-            {visitStats?.adherenceNarrative && footerStage >= 4 ? (
-              <div className="flex items-start gap-2.5 rounded-xl border-2 border-[#E5EEEA] bg-[#FBFDFC] p-3 animate-[fadeInUp_0.3s_ease-out]">
+            {visitStats?.adherenceNarrative ? (
+              <div className="flex items-start gap-2.5 rounded-xl border-2 border-[#E5EEEA] bg-[#FBFDFC] p-3">
                 <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
                   <PillIcon className="size-3.5 text-[#1A5345]" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] leading-relaxed text-[#102F27]">
-                    <TypewriterText
-                      text={visitStats.adherenceNarrative}
-                      speed={8}
-                      onComplete={() => setFooterStage((prev) => (prev < 5 ? 5 : prev))}
-                    />
+                    {visitStats.adherenceNarrative}
                   </p>
                 </div>
               </div>
             ) : null}
 
-            {footerStage >= 5 && (medicationAdherenceTrendData.length > 0 || medicationMissedBreakdownData.length > 0) ? (
+            {medicationAdherenceTrendData.length > 0 || medicationMissedBreakdownData.length > 0 ? (
               <div className="grid gap-2 sm:grid-cols-2">
                 {medicationAdherenceTrendData.length > 0 ? (
                   <div className="rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-2.5">
@@ -333,7 +264,7 @@ export function PatientBriefingAgent({
               </div>
             ) : null}
 
-            {trendData.length > 0 && footerStage >= 5 ? (
+            {trendData.length > 0 ? (
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-2.5">
                   <p className="mb-1 text-[10px] font-medium text-[#102F27]">Results Trend by Visit</p>
@@ -385,7 +316,7 @@ export function PatientBriefingAgent({
               </div>
             ) : null}
 
-            {vitalProgressData.length > 0 && footerStage >= 5 ? (
+            {vitalProgressData.length > 0 ? (
               <div className="rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-2.5">
                 <p className="mb-1 text-[10px] font-medium text-[#102F27]">Vitals Progress Across Visits</p>
                 <ChartContainer config={vitalProgressChartConfig} className="h-[140px] w-full">
@@ -403,7 +334,7 @@ export function PatientBriefingAgent({
               </div>
             ) : null}
 
-              <div className={cn("flex items-center justify-between", footerStage < 5 && "hidden")}>
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                   <SparklesIcon className="size-3 text-[#1A5345]" />
                   <span>Clinical suggestions available in the AI panel</span>
