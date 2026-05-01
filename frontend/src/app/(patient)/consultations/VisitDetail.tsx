@@ -10,7 +10,6 @@ import {
   Lock,
 } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -23,7 +22,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { cn } from "@/lib/utils"
 
-import type { VisitSummary, VitalMetric, Medication, FollowUpInstruction, DiagnosisTag } from "./consultations.types"
+import type { VisitSummary, VitalMetric, Medication, FollowUpInstruction } from "./consultations.types"
 
 const statusVariants = {
   normal: "text-[#1a5345]",
@@ -32,12 +31,6 @@ const statusVariants = {
   critical: "text-red-600",
 }
 
-const diagnosisVariantStyles = {
-  urgency: "bg-[#F5E8E5] text-[#c45d4b] border-[#E8D4CE]",
-  stable: "bg-[#E0EFF2] text-[#2d8a9e] border-[#C8E0E6]",
-  improving: "bg-[#E8F0ED] text-[#1a5345] border-[#C8D9D3]",
-  critical: "bg-red-100 text-red-700 border-red-300",
-}
 
 const iconBgColors = {
   blue: "bg-[#E0EFF2] text-[#2d8a9e] ring-1 ring-[#C8E0E6]",
@@ -91,14 +84,6 @@ function MedicationCard({ medication }: { medication: Medication }) {
         </div>
       </CardContent>
     </Card>
-  )
-}
-
-function DiagnosisTag({ tag }: { tag: DiagnosisTag }) {
-  return (
-    <Badge variant="outline" className={cn("cursor-default font-medium", diagnosisVariantStyles[tag.variant])}>
-      {tag.label}
-    </Badge>
   )
 }
 
@@ -177,35 +162,17 @@ export function VisitDetail({ visit }: VisitDetailProps) {
         ))}
       </div>
 
-      {/* Doctor Notes & Diagnosis */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-[#E7EFEB] transition-colors hover:border-[#1a5345]/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium uppercase tracking-wide text-[#6B7870]">
-              What the doctor noted
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-[#1A1F1E] leading-relaxed">{visit.doctorNotes}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-[#E7EFEB] transition-colors hover:border-[#1a5345]/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium uppercase tracking-wide text-[#6B7870]">
-              Diagnosis
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex flex-wrap gap-2">
-              {visit.diagnosis.tags.map((tag, index) => (
-                <DiagnosisTag key={index} tag={tag} />
-              ))}
-            </div>
-            <p className="text-[#1A1F1E] leading-relaxed">{visit.diagnosis.description}</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Doctor Notes */}
+      <Card className="border-[#E7EFEB] transition-colors hover:border-[#1a5345]/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium uppercase tracking-wide text-[#6B7870]">
+            What the doctor noted
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-[#1A1F1E] leading-relaxed">{visit.doctorNotes}</p>
+        </CardContent>
+      </Card>
 
       {/* Prescription & Follow-up - Side by Side */}
       <div className="grid gap-4 lg:grid-cols-2">

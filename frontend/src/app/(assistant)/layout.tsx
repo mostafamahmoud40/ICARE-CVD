@@ -8,13 +8,14 @@ import { usePathname } from "next/navigation"
 import type { AuthUser } from "@/lib/auth-tokens"
 import {
   BellIcon,
+  CalendarClockIcon,
+  ClipboardListIcon,
   CreditCardIcon,
+  HeartHandshakeIcon,
   LayoutDashboardIcon,
   LogOutIcon,
   SparklesIcon,
   User2Icon,
-  ClipboardListIcon,
-  CalendarClockIcon,
   UsersIcon,
 } from "lucide-react"
 
