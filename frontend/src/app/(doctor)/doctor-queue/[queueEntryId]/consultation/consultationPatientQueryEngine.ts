@@ -100,6 +100,23 @@ function formatTests(data: ConsultationData): string {
   )
 }
 
+function formatProcedures(data: ConsultationData): string {
+  const p = data.procedures
+  if (p.length === 0) return "No procedures added for this visit."
+  return (
+    "Procedures (this encounter):\n" +
+    p
+      .map((x) => {
+        const parts = [`• ${x.name} — ${x.urgency}`]
+        if (x.cptCode.trim()) parts.push(`CPT ${x.cptCode}`)
+        if (x.bodySite.trim()) parts.push(`site ${x.bodySite}`)
+        if (x.scheduledDate.trim()) parts.push(`scheduled ${x.scheduledDate}`)
+        return parts.join(", ")
+      })
+      .join("\n")
+  )
+}
+
 function formatHomeMeasurements(data: ConsultationData): string {
   const h = data.homeMeasurements
   if (h.length === 0) return "No home measurement plans added."
@@ -143,7 +160,7 @@ function formatHelp(): string {
     "Try asking about this patient, for example:",
     "• vitals, BP, heart rate, BMI",
     "• allergies, medications, conditions",
-    "• chief complaint, physical exam, tests",
+    "• chief complaint, physical exam, tests, procedures",
     "• demographics, family history, lifestyle",
     "• notes, diagnoses (this visit), home measurements",
     "• summary — short overview",
@@ -158,6 +175,7 @@ function formatSummary(data: ConsultationData): string {
     vitalsEntered ? "Vitals: partially or fully entered in this visit." : "Vitals: not yet entered in this visit.",
     `${data.patientSummary.allergies.length} allergies, ${data.patientSummary.activeMedications.length} active meds, ${data.patientSummary.existingConditions.length} conditions in chart summary.`,
     `${data.diagnoses.length} diagnosis(es) on this encounter so far.`,
+    `${data.procedures.length} procedure(s) recorded for this visit.`,
   ].join("\n")
 }
 
@@ -190,6 +208,8 @@ export function answerPatientConsultationQuery(query: string, data: Consultation
 
   if (/\b(test|lab|order|imaging|ecg)\b/.test(q)) return formatTests(data)
 
+  if (/\b(procedure|procedures|surgery|surgical|intervention)\b/.test(q)) return formatProcedures(data)
+
   if (/\b(home|measurement plan|self monitor)\b/.test(q)) return formatHomeMeasurements(data)
 
   if (/\b(note|plan|assessment|follow)\b/.test(q)) return formatNotes(data)
@@ -214,6 +234,9 @@ export function answerPatientConsultationQuery(query: string, data: Consultation
   push("Clinical notes", data.clinicalNotes)
   push("Assessment", data.assessmentAndPlan)
   data.diagnoses.forEach((d) => push("Diagnosis", `${d.description} ${d.notes ?? ""}`))
+  data.procedures.forEach((proc) =>
+    push("Procedure", `${proc.name} ${proc.notes ?? ""} ${proc.cptCode} ${proc.bodySite}`),
+  )
   data.patientSummary.existingConditions.forEach((c) => push("Condition", `${c.name} ${c.details}`))
 
   const matches = haystack.filter((line) => line.toLowerCase().includes(q))

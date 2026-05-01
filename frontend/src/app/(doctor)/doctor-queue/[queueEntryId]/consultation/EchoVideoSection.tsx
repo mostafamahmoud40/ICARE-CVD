@@ -775,7 +775,7 @@ export function EchoVideoSection({ echoFile, onEchoFileChange }: EchoVideoSectio
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
-            <HeartPulseIcon className="size-4 text-[#1A5345]" />
+            <ActivityIcon className="size-4 text-[#1A5345]" />
           </div>
           <h3 className="text-[14px] font-semibold text-[#102F27]">Echocardiogram Video</h3>
         </div>

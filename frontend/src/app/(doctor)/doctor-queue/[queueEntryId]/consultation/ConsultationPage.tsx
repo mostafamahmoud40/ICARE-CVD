@@ -3,7 +3,16 @@
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { useConsultationPanelWidths } from "./usePanelResize"
-import type { ConsultationData, DiagnosisEntry, PrescriptionEntry, TestOrder, HomeMeasurement, VitalSigns, PhysicalExamFindings, AISuggestion } from "./consultation.types"
+import type {
+  ConsultationData,
+  DiagnosisEntry,
+  PrescriptionEntry,
+  ProcedureEntry,
+  TestOrder,
+  HomeMeasurement,
+  VitalSigns,
+  PhysicalExamFindings,
+} from "./consultation.types"
 import { mockConsultationData } from "./consultation.mock"
 import { PatientSidebar } from "./PatientSidebar"
 import { VitalsSection } from "./VitalsSection"
@@ -11,18 +20,24 @@ import { ChiefComplaintSection } from "./ChiefComplaintSection"
 import { PhysicalExamSection } from "./PhysicalExamSection"
 import { DiagnosisSection } from "./DiagnosisSection"
 import { PrescriptionsSection } from "./PrescriptionsSection"
+import { ProceduresSection } from "./ProceduresSection"
 import { ClinicalNotesSection } from "./ClinicalNotesSection"
 import { FollowUpSection } from "./FollowUpSection"
 import { TestsAndMeasurementsSection } from "./TestsAndMeasurementsSection"
 import { CTScanSection } from "./CTScanSection"
 import { XrayScanSection } from "./XrayScanSection"
 import { EchoVideoSection } from "./EchoVideoSection"
+import { CineMRISection } from "./CineMRISection"
+import { EcgSection } from "./EcgSection"
+import { EcgRagSection } from "./EcgRagSection"
 import { LabMaterialsSection } from "./LabMaterialsSection"
 import type { LabMaterialFile } from "./consultation.types"
 import { AIAssistantPanel } from "./AIAssistantPanel"
 import { ConsultationFloatingPatientQueryBar } from "./ConsultationFloatingPatientQueryBar"
+import { ConsultationVoiceDictationErrorProvider } from "./ConsultationVoiceDictationErrorContext"
 import { PatientBriefingAgent, BriefingAgentChip } from "./PatientBriefingAgent"
 import { Button } from "@/components/ui/button"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import {
   CheckCircle2Icon,
   SaveIcon,
@@ -34,6 +49,11 @@ export function ConsultationPage() {
   const [ctFile, setCtFile] = useState<File | null>(null)
   const [xrayFile, setXrayFile] = useState<File | null>(null)
   const [echoFile, setEchoFile] = useState<File | null>(null)
+  const [mriEdFile, setMriEdFile] = useState<File | null>(null)
+  const [mriEsFile, setMriEsFile] = useState<File | null>(null)
+  const [ecgHeaFile, setEcgHeaFile] = useState<File | null>(null)
+  const [ecgDatFile, setEcgDatFile] = useState<File | null>(null)
+  // EcgRagSection manages its own file state independently
   const [labMaterials, setLabMaterials] = useState<LabMaterialFile[]>([])
   const [isPatientSidebarCollapsed, setIsPatientSidebarCollapsed] = useState(false)
   const [isAiPanelCollapsed, setIsAiPanelCollapsed] = useState(false)
@@ -70,6 +90,14 @@ export function ConsultationPage() {
 
   const removePrescription = (id: string) => {
     setData((prev) => ({ ...prev, prescriptions: prev.prescriptions.filter((p) => p.id !== id) }))
+  }
+
+  const addProcedure = (entry: ProcedureEntry) => {
+    setData((prev) => ({ ...prev, procedures: [...prev.procedures, entry] }))
+  }
+
+  const removeProcedure = (id: string) => {
+    setData((prev) => ({ ...prev, procedures: prev.procedures.filter((p) => p.id !== id) }))
   }
 
   const addTestOrder = (entry: TestOrder) => {
@@ -164,7 +192,9 @@ export function ConsultationPage() {
   ] as const
 
   return (
-    <div className="relative flex h-[calc(100vh-4rem)] flex-col bg-[#F9F8F5]">
+    <TooltipProvider delay={300}>
+      <ConsultationVoiceDictationErrorProvider>
+        <div className="relative flex h-[calc(100vh-4rem)] flex-col bg-[#F9F8F5]">
       {/* 3-column body */}
       <div className="flex flex-1 overflow-hidden">
         <PatientSidebar
@@ -260,6 +290,12 @@ export function ConsultationPage() {
               structuredComplaint={data.structuredComplaint}
             />
 
+            <ProceduresSection
+              procedures={data.procedures}
+              onAddProcedure={addProcedure}
+              onRemoveProcedure={removeProcedure}
+            />
+
             <TestsAndMeasurementsSection
               testOrders={data.testOrders}
               onAddTestOrder={addTestOrder}
@@ -280,6 +316,23 @@ export function ConsultationPage() {
             <XrayScanSection xrayFile={xrayFile} onXrayFileChange={setXrayFile} />
 
             <EchoVideoSection echoFile={echoFile} onEchoFileChange={setEchoFile} />
+
+            <CineMRISection
+              edFile={mriEdFile}
+              onEdFileChange={setMriEdFile}
+              esFile={mriEsFile}
+              onEsFileChange={setMriEsFile}
+            />
+
+            <EcgSection
+              heaFile={ecgHeaFile}
+              datFile={ecgDatFile}
+              onHeaFileChange={setEcgHeaFile}
+              onDatFileChange={setEcgDatFile}
+            />
+
+            {/* EcgRagSection is fully self-contained with its own file upload */}
+            <EcgRagSection />
 
             <ClinicalNotesSection
               clinicalNotes={data.clinicalNotes}
@@ -343,6 +396,8 @@ export function ConsultationPage() {
       </div>
 
       <ConsultationFloatingPatientQueryBar data={data} />
-    </div>
+        </div>
+      </ConsultationVoiceDictationErrorProvider>
+    </TooltipProvider>
   )
 }

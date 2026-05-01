@@ -46,12 +46,7 @@ const statusConfig = {
   },
 }
 
-const tagStyles = {
-  urgency: "bg-[#F5E8E5] text-[#c45d4b] border-[#E8D4CE]",
-  stable: "bg-[#E0EFF2] text-[#2d8a9e] border-[#C8E0E6]",
-  improving: "bg-[#E8F0ED] text-[#1a5345] border-[#C8D9D3]",
-  critical: "bg-red-100 text-red-700 border-red-300",
-}
+
 
 type ConsultationsListProps = {
   visits: VisitSummary[]
@@ -92,17 +87,14 @@ function VisitCard({ visit }: { visit: VisitSummary }) {
                 </div>
               </div>
 
-              {/* Diagnosis Tags */}
+              {/* Visit Type */}
               <div className="flex flex-wrap gap-1.5 sm:flex-1">
-                {visit.diagnosis.tags.map((tag, idx) => (
-                  <Badge
-                    key={idx}
-                    variant="outline"
-                    className={cn("text-xs font-medium", tagStyles[tag.variant])}
-                  >
-                    {tag.label}
-                  </Badge>
-                ))}
+                <Badge
+                  variant="outline"
+                  className="text-xs font-medium bg-[#E8F0ED] text-[#1a5345] border-[#C8D9D3]"
+                >
+                  Cardiology Visit
+                </Badge>
               </div>
 
               {/* Status Badge */}
@@ -158,7 +150,7 @@ export function ConsultationsList({ visits, stats }: ConsultationsListProps) {
         <div className="hidden sm:flex items-center gap-4 border-b border-[#E8E6E0] bg-[#F9F8F5] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-[#6B7870]">
           <div className="w-32 shrink-0">Date</div>
           <div className="w-44 shrink-0">Doctor</div>
-          <div className="flex-1 min-w-0">Diagnosis</div>
+          <div className="flex-1 min-w-0">Visit Type</div>
           <div className="w-28 shrink-0 text-center">Status</div>
           <div className="w-6 shrink-0"></div>
         </div>
