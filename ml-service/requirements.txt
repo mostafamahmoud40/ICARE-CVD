@@ -1,0 +1,25 @@
+# ML Service Dependencies — CT segmentation + Chest X-ray API (ml-main service)
+#
+# PyTorch + CUDA (cu126) are already provided by the official base image
+# `pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime`. The torch line below is kept
+# so that `pip install -r requirements.txt` also works outside Docker — pip
+# will skip torch if it is already installed.
+
+# ── Web framework ─────────────────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+python-dotenv>=1.0.0
+
+# ── Deep learning (CUDA wheel installed via Dockerfile; kept here for local use)
+torch>=2.0.0
+
+# ── Medical imaging ───────────────────────────────────────────────────────────
+monai>=1.3.0
+nibabel>=5.0.0
+torchxrayvision>=0.0.45
+scikit-image>=0.20.0
+
+# ── Scientific computing & visualization ─────────────────────────────────────
+numpy>=1.24.0
+matplotlib>=3.7.0

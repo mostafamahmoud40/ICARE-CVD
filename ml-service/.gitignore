@@ -1,0 +1,46 @@
+# Secrets
+.env
+.env.local
+**/.env
+
+# Python
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/
+
+# ── Hugging Face weights & derived assets (see scripts/hf_assets_manifest.py) ──
+# Restore: pip install -r scripts/requirements-download.txt && python scripts/download_hf_assets.py
+**/*.pt
+**/*.pth
+**/*.pkl
+**/*.model
+**/*.joblib
+**/*.nii.gz
+segmentation.nii.gz
+
+# RAG papers + ECG bundle paper (same paths as HF DEFAULT_FILES)
+app/ecg-rag/database/*.pdf
+app/ecg/ECGTransForm/misc/*.pdf
+
+# Optional echo demos (OPTIONAL_FILES); whole samples dir also listed below
+**/*.avi
+
+# Generated / runtime stores (OPTIONAL_FOLDER_PREFIXES + local dev)
+**/chroma_db/
+app/ecg/checkpoint_best/
+app/ecg/dataset/
+app/echo-dynamic/samples/
+app/echo-dynamic/output/
+app/medical_analyzer/uploads/
+
+# Local / scratch (do not commit)
+app/ecg-rag/claudeT.txt
+app/ecg-rag/architecture_diagram
+
+# Vendored duplicate tree (keep only app/cardiac-mri/ in Git; weights via HF)
+app/Diagnosis-of-Cardiovascular-Diseases-Cine-MRI-master/
+
+# Notebooks
+*.ipynb

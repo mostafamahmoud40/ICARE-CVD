@@ -1,0 +1,41 @@
+# ICARE-CVD — Echocardiogram EF analyzer (port 8080)
+#
+# Uses GPU when available; falls back to CPU if NVIDIA runtime is absent.
+# Model weights (deeplabv3 ~317 MB and r2plus1d ~250 MB) are bind-mounted at
+# runtime so the image stays small and weights can be swapped without rebuild.
+FROM pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DEFAULT_TIMEOUT=300 \
+    PIP_RETRIES=20 \
+    PIP_RESUME_RETRIES=10 \
+    PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+
+# OpenCV (headless) only needs libgomp1 + glib for video I/O.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgomp1 \
+        libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /service
+
+COPY app/ml_env.py ./ml_env.py
+
+# ── Layer 1: Python dependencies ─────────────────────────────────────────────
+COPY app/echo-dynamic/requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
+
+# ── Layer 2: application code (model .pt files excluded by .dockerignore) ────
+COPY app/echo-dynamic/app.py           ./app.py
+COPY app/echo-dynamic/config.py        ./config.py
+COPY app/echo-dynamic/models.py        ./models.py
+COPY app/echo-dynamic/ai_report.py     ./ai_report.py
+COPY app/echo-dynamic/pipeline.py      ./pipeline.py
+COPY app/echo-dynamic/preprocessor.py  ./preprocessor.py
+COPY app/echo-dynamic/visualizer.py    ./visualizer.py
+
+EXPOSE 8080
+
+CMD ["python", "app.py", "--port", "8080"]
