@@ -1,9 +1,4 @@
-import {
-  integer,
-  pgTable,
-  timestamp,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { integer, pgTable, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { medication } from './medication.schema';
 
 /** Tracks remaining refills per medication prescription. */

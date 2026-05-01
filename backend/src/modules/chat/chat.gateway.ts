@@ -61,13 +61,19 @@ export class ChatGateway implements OnGatewayConnection {
     const user = client.data.user;
     if (!user || !body?.conversationId || !body?.message) return { ok: false };
 
-    const created = await this.chatService.sendMessage(body.conversationId, user, {
-      message: body.message,
-    });
+    const created = await this.chatService.sendMessage(
+      body.conversationId,
+      user,
+      {
+        message: body.message,
+      },
+    );
 
     // One emit per participant (user room). Avoid also broadcasting to `conversation:` or clients get duplicate events.
     for (const recipientUserId of created.recipientUserIds) {
-      this.server.to(`user:${recipientUserId}`).emit('chat:newMessage', created);
+      this.server
+        .to(`user:${recipientUserId}`)
+        .emit('chat:newMessage', created);
     }
 
     return { ok: true, message: created };

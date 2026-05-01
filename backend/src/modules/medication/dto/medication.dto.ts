@@ -52,7 +52,9 @@ export class CreateMedicationDto {
 
   @IsOptional()
   @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.split(',').map((s: string) => s.trim()) : value,
+    typeof value === 'string'
+      ? value.split(',').map((s: string) => s.trim())
+      : value,
   )
   timeOfDay?: TimeOfDay[];
 
@@ -94,7 +96,9 @@ export class UpdateMedicationDto {
 
   @IsOptional()
   @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.split(',').map((s: string) => s.trim()) : value,
+    typeof value === 'string'
+      ? value.split(',').map((s: string) => s.trim())
+      : value,
   )
   timeOfDay?: TimeOfDay[];
 

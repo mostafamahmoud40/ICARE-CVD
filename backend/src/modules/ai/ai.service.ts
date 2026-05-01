@@ -60,7 +60,9 @@ export class AiService {
         aiRegistrationSummary: trimmed,
         aiRegistrationSummaryEmbedding: embedding,
       })
-      .where(and(eq(patient.userId, userId), isNull(patient.aiRegistrationSummary)))
+      .where(
+        and(eq(patient.userId, userId), isNull(patient.aiRegistrationSummary)),
+      )
       .returning({ summary: patient.aiRegistrationSummary });
 
     if (!updated?.summary) {
@@ -77,7 +79,9 @@ export class AiService {
     return { saved: true as const, summary: updated.summary };
   }
 
-  private async embedRegistrationSummary(text: string): Promise<number[] | null> {
+  private async embedRegistrationSummary(
+    text: string,
+  ): Promise<number[] | null> {
     const model = process.env.OLLAMA_EMBEDDING_MODEL?.trim();
     if (!model) {
       return null;

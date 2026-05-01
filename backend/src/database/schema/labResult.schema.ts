@@ -38,10 +38,11 @@ export const labResult = pgTable('lab_result', {
   unit: varchar('unit', { length: 50 }),
   referenceRange: varchar('reference_range', { length: 120 }),
   status: labResultStatusEnum('status').notNull().default('normal'),
-  resultAt: timestamp('result_at', { withTimezone: true }).defaultNow().notNull(),
+  resultAt: timestamp('result_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
   orderedBy: text('ordered_by'),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),
 });
-

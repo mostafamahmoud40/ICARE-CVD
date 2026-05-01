@@ -1,10 +1,4 @@
-import {
-  integer,
-  jsonb,
-  pgTable,
-  timestamp,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { integer, jsonb, pgTable, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { doctor } from './doctor.schema';
 
 export type TimeBlockRow = {

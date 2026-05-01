@@ -291,7 +291,7 @@ export class AuthService {
         // Drizzle enum column expects exact union literals.
         compliance:
           item.compliance === 'good' || item.compliance === 'poor'
-            ? (item.compliance as 'good' | 'poor')
+            ? item.compliance
             : null,
         userId,
         name: item.name.trim(),

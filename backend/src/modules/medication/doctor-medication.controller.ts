@@ -79,15 +79,16 @@ export class DoctorMedicationController {
     @Param('id') id: string,
     @Body() dto: ChangeMedicationStatusDto,
   ) {
-    return this.medicationService.changeMedicationStatus(user.sub, id, dto.status);
+    return this.medicationService.changeMedicationStatus(
+      user.sub,
+      id,
+      dto.status,
+    );
   }
 
   /** DELETE /doctor/medications/:id — delete a medication */
   @Delete(':id')
-  deleteMedication(
-    @CurrentUser() user: TokenPayload,
-    @Param('id') id: string,
-  ) {
+  deleteMedication(@CurrentUser() user: TokenPayload, @Param('id') id: string) {
     return this.medicationService.deleteMedication(user.sub, id);
   }
 }

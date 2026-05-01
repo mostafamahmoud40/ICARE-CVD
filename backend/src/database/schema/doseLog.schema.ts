@@ -17,9 +17,7 @@ export const doseLog = pgTable('dose_log', {
   patientId: integer('patient_id')
     .references(() => user.id, { onDelete: 'cascade' })
     .notNull(),
-  takenAt: timestamp('taken_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
+  takenAt: timestamp('taken_at', { withTimezone: true }).defaultNow().notNull(),
   skipped: boolean('skipped').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()

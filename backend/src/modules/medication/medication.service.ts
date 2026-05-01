@@ -17,7 +17,10 @@ import {
   user,
   doctor,
 } from '../../database/schema';
-import type { CreateMedicationDto, UpdateMedicationDto } from './dto/medication.dto';
+import type {
+  CreateMedicationDto,
+  UpdateMedicationDto,
+} from './dto/medication.dto';
 
 @Injectable()
 export class MedicationService {
@@ -64,7 +67,10 @@ export class MedicationService {
   /** Get a single medication for the authenticated patient. */
   async getPatientMedication(userId: number, medicationId: string) {
     const row = await this.db.query.medication.findFirst({
-      where: and(eq(medication.id, medicationId), eq(medication.userId, userId)),
+      where: and(
+        eq(medication.id, medicationId),
+        eq(medication.userId, userId),
+      ),
     });
 
     if (!row) {
@@ -77,7 +83,10 @@ export class MedicationService {
   /** Get dose log for a patient's medication (last 30 days). */
   async getPatientDoseLog(userId: number, medicationId: string) {
     const med = await this.db.query.medication.findFirst({
-      where: and(eq(medication.id, medicationId), eq(medication.userId, userId)),
+      where: and(
+        eq(medication.id, medicationId),
+        eq(medication.userId, userId),
+      ),
     });
 
     if (!med) {
@@ -99,7 +108,10 @@ export class MedicationService {
   /** Patient marks a medication as taken or skipped. */
   async logDose(userId: number, medicationId: string, skipped: boolean) {
     const med = await this.db.query.medication.findFirst({
-      where: and(eq(medication.id, medicationId), eq(medication.userId, userId)),
+      where: and(
+        eq(medication.id, medicationId),
+        eq(medication.userId, userId),
+      ),
     });
 
     if (!med) {
@@ -169,7 +181,9 @@ export class MedicationService {
 
     return patients.map((p) => {
       const userId = uuidToUserId.get(p.id);
-      const counts = userId ? countMap.get(userId) ?? { activeCount: 0, poorComplianceCount: 0 } : { activeCount: 0, poorComplianceCount: 0 };
+      const counts = userId
+        ? (countMap.get(userId) ?? { activeCount: 0, poorComplianceCount: 0 })
+        : { activeCount: 0, poorComplianceCount: 0 };
       return {
         patientId: p.id,
         fullName: p.fullName,
@@ -182,7 +196,10 @@ export class MedicationService {
   }
 
   /** List all medications for a specific patient (doctor view). */
-  async listPatientMedicationsForDoctor(doctorUserId: number, patientId: string) {
+  async listPatientMedicationsForDoctor(
+    doctorUserId: number,
+    patientId: string,
+  ) {
     await this.verifyDoctorExists(doctorUserId);
 
     // Resolve patient UUID to user ID
@@ -366,7 +383,13 @@ export class MedicationService {
       })
       .from(medication);
 
-    return stats[0] ?? { totalMedications: 0, activePrescriptions: 0, poorComplianceCount: 0 };
+    return (
+      stats[0] ?? {
+        totalMedications: 0,
+        activePrescriptions: 0,
+        poorComplianceCount: 0,
+      }
+    );
   }
 
   // ===================== HELPERS =====================

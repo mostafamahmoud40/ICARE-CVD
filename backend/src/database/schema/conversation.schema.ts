@@ -16,7 +16,12 @@ export const conversation = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => [unique('conversations_doctor_patient_unique').on(table.doctorId, table.patientId)],
+  (table) => [
+    unique('conversations_doctor_patient_unique').on(
+      table.doctorId,
+      table.patientId,
+    ),
+  ],
 );
 
 export type ConversationRow = typeof conversation.$inferSelect;

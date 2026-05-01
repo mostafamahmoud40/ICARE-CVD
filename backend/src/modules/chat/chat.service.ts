@@ -30,33 +30,34 @@ export class ChatService {
 
   async listConversations(currentUser: TokenPayload) {
     const actor = await this.resolveActor(currentUser);
-    const rows = actor.role === 'doctor'
-      ? await this.db
-          .select({
-            conversationId: conversation.id,
-            createdAt: conversation.createdAt,
-            participantName: user.name,
-            participantRole: user.role,
-            participantUserId: user.id,
-          })
-          .from(conversation)
-          .innerJoin(patient, eq(conversation.patientId, patient.id))
-          .innerJoin(user, eq(patient.userId, user.id))
-          .where(eq(conversation.doctorId, actor.profileId))
-          .orderBy(desc(conversation.createdAt))
-      : await this.db
-          .select({
-            conversationId: conversation.id,
-            createdAt: conversation.createdAt,
-            participantName: user.name,
-            participantRole: user.role,
-            participantUserId: user.id,
-          })
-          .from(conversation)
-          .innerJoin(doctor, eq(conversation.doctorId, doctor.id))
-          .innerJoin(user, eq(doctor.userId, user.id))
-          .where(eq(conversation.patientId, actor.profileId))
-          .orderBy(desc(conversation.createdAt));
+    const rows =
+      actor.role === 'doctor'
+        ? await this.db
+            .select({
+              conversationId: conversation.id,
+              createdAt: conversation.createdAt,
+              participantName: user.name,
+              participantRole: user.role,
+              participantUserId: user.id,
+            })
+            .from(conversation)
+            .innerJoin(patient, eq(conversation.patientId, patient.id))
+            .innerJoin(user, eq(patient.userId, user.id))
+            .where(eq(conversation.doctorId, actor.profileId))
+            .orderBy(desc(conversation.createdAt))
+        : await this.db
+            .select({
+              conversationId: conversation.id,
+              createdAt: conversation.createdAt,
+              participantName: user.name,
+              participantRole: user.role,
+              participantUserId: user.id,
+            })
+            .from(conversation)
+            .innerJoin(doctor, eq(conversation.doctorId, doctor.id))
+            .innerJoin(user, eq(doctor.userId, user.id))
+            .where(eq(conversation.patientId, actor.profileId))
+            .orderBy(desc(conversation.createdAt));
 
     if (!rows.length) return [];
 
@@ -73,7 +74,10 @@ export class ChatService {
       .where(inArray(message.conversationId, conversationIds))
       .orderBy(desc(message.sentAt));
 
-    const latestByConversation = new Map<number, (typeof messageRows)[number]>();
+    const latestByConversation = new Map<
+      number,
+      (typeof messageRows)[number]
+    >();
     const unreadCountByConversation = new Map<number, number>();
     for (const msg of messageRows) {
       if (!latestByConversation.has(msg.conversationId)) {
@@ -146,7 +150,10 @@ export class ChatService {
     return rows.map((r) => ({ profileId: r.id, name: r.name, role: r.role }));
   }
 
-  async createConversation(currentUser: TokenPayload, dto: CreateConversationDto) {
+  async createConversation(
+    currentUser: TokenPayload,
+    dto: CreateConversationDto,
+  ) {
     const actor = await this.resolveActor(currentUser);
 
     const pair =
@@ -257,7 +264,8 @@ export class ChatService {
       })
       .returning();
 
-    const recipients = await this.getConversationParticipantUserIds(conversationId);
+    const recipients =
+      await this.getConversationParticipantUserIds(conversationId);
 
     return {
       ...created,
@@ -266,7 +274,10 @@ export class ChatService {
     };
   }
 
-  async ensureConversationAccess(conversationId: number, currentUser: TokenPayload) {
+  async ensureConversationAccess(
+    conversationId: number,
+    currentUser: TokenPayload,
+  ) {
     const actor = await this.resolveActor(currentUser);
     await this.assertConversationAccess(conversationId, actor);
     return { ok: true };
@@ -286,13 +297,20 @@ export class ChatService {
         where: eq(patient.userId, currentUser.sub),
       });
       if (!profile) throw new NotFoundException('Patient profile not found');
-      return { userId: currentUser.sub, role: 'patient', profileId: profile.id };
+      return {
+        userId: currentUser.sub,
+        role: 'patient',
+        profileId: profile.id,
+      };
     }
 
     throw new ForbiddenException('Only doctor and patient can use chat');
   }
 
-  private async assertConversationAccess(conversationId: number, actor: ChatActor) {
+  private async assertConversationAccess(
+    conversationId: number,
+    actor: ChatActor,
+  ) {
     const row = await this.db.query.conversation.findFirst({
       where: eq(conversation.id, conversationId),
     });

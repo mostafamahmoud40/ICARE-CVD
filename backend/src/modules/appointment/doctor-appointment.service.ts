@@ -1,25 +1,17 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import {
-  and,
-  count,
-  desc,
-  eq,
-  gte,
-  lt,
-  ne,
-} from 'drizzle-orm';
+import { and, count, desc, eq, gte, lt, ne } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
-import {
-  appointment,
-  doctor,
-  patient,
-  user,
-} from '../../database/schema';
+import { appointment, doctor, patient, user } from '../../database/schema';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type { UpdateDoctorAppointmentDto } from './dto/doctor-appointment.dto';
 
-export type AppointmentFilter = 'all' | 'today' | 'upcoming' | 'completed' | 'cancelled';
+export type AppointmentFilter =
+  | 'all'
+  | 'today'
+  | 'upcoming'
+  | 'completed'
+  | 'cancelled';
 
 @Injectable()
 export class DoctorAppointmentService {
@@ -89,7 +81,10 @@ export class DoctorAppointmentService {
     };
   }
 
-  async listAppointments(doctorUserId: number, filter: AppointmentFilter = 'all') {
+  async listAppointments(
+    doctorUserId: number,
+    filter: AppointmentFilter = 'all',
+  ) {
     const doctorRow = await this.doctorVerifier.verify(doctorUserId);
 
     const conditions = [eq(appointment.doctorId, doctorRow.id)];

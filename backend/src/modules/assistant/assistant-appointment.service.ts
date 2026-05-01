@@ -4,23 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  count,
-  desc,
-  eq,
-  gte,
-  lt,
-  ne,
-  and,
-} from 'drizzle-orm';
+import { count, desc, eq, gte, lt, ne, and } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
-import {
-  appointment,
-  doctor,
-  patient,
-  user,
-} from '../../database/schema';
+import { appointment, doctor, patient, user } from '../../database/schema';
 import type { CreateAssistantAppointmentDto } from './dto/create-appointment.dto';
 import { AppointmentService } from '../appointment/appointment.service';
 
@@ -205,7 +192,10 @@ export class AssistantAppointmentService {
     }
     const requestedDate = this.toDateOnly(requestedAt);
     const requestedTime = this.toHHMM(requestedAt);
-    const availability = await this.getAvailableSlots(dto.doctorId, requestedDate);
+    const availability = await this.getAvailableSlots(
+      dto.doctorId,
+      requestedDate,
+    );
     const isAvailable = availability.slots.some(
       (slot) => slot.value === requestedTime,
     );
@@ -301,7 +291,9 @@ export class AssistantAppointmentService {
       .where(eq(user.role, 'patient'));
   }
 
-  private async batchDoctorNames(doctorIds: string[]): Promise<Map<string, string>> {
+  private async batchDoctorNames(
+    doctorIds: string[],
+  ): Promise<Map<string, string>> {
     const map = new Map<string, string>();
     if (doctorIds.length === 0) return map;
 

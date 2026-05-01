@@ -23,16 +23,7 @@ import { CreatePatientDto } from './dto/create-patient.dto';
 
 const CHIEF_SET = new Set<string>(chiefComplaints);
 
-const BLOOD_TYPES = new Set([
-  'A+',
-  'A-',
-  'B+',
-  'B-',
-  'AB+',
-  'AB-',
-  'O+',
-  'O-',
-]);
+const BLOOD_TYPES = new Set(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']);
 
 @Injectable()
 export class AssistantService {
@@ -99,7 +90,9 @@ export class AssistantService {
         : 'other';
 
     const bloodType =
-      dto.bloodType && BLOOD_TYPES.has(dto.bloodType) ? dto.bloodType : undefined;
+      dto.bloodType && BLOOD_TYPES.has(dto.bloodType)
+        ? dto.bloodType
+        : undefined;
 
     const insertedUser = await this.db
       .insert(user)
@@ -151,10 +144,7 @@ export class AssistantService {
     const medRows = (dto.medications ?? [])
       .filter(
         (m) =>
-          m.name?.trim() &&
-          m.dose?.trim() &&
-          m.frequency?.trim() &&
-          m.type,
+          m.name?.trim() && m.dose?.trim() && m.frequency?.trim() && m.type,
       )
       .map((m) => ({
         userId,
@@ -177,7 +167,7 @@ export class AssistantService {
       .filter((a) => a.allergen?.trim() && a.category)
       .map((a) => ({
         userId,
-        category: a.category as 'drug' | 'food' | 'other',
+        category: a.category,
         allergen: a.allergen.trim(),
         reaction: a.reaction?.trim() || null,
       }));
@@ -230,9 +220,7 @@ export class AssistantService {
     return undefined;
   }
 
-  private mapExercise(
-    raw?: string,
-  ): 'none' | '1-2' | '3-4' | '5+' | undefined {
+  private mapExercise(raw?: string): 'none' | '1-2' | '3-4' | '5+' | undefined {
     if (!raw) return undefined;
     if (raw === 'sedentary') return 'none';
     if (raw === 'light') return '1-2';
@@ -241,9 +229,7 @@ export class AssistantService {
     return undefined;
   }
 
-  private mapStress(
-    raw?: string,
-  ): 'low' | 'moderate' | 'high' | undefined {
+  private mapStress(raw?: string): 'low' | 'moderate' | 'high' | undefined {
     if (!raw) return undefined;
     if (raw === 'low' || raw === 'moderate' || raw === 'high') return raw;
     return undefined;

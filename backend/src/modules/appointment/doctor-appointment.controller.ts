@@ -30,7 +30,9 @@ export class DoctorAppointmentController {
     @Query('filter') filter?: string,
   ) {
     const validFilters = ['all', 'today', 'upcoming', 'completed', 'cancelled'];
-    const safeFilter = validFilters.includes(filter ?? '') ? filter as 'all' | 'today' | 'upcoming' | 'completed' | 'cancelled' : 'all';
+    const safeFilter = validFilters.includes(filter ?? '')
+      ? (filter as 'all' | 'today' | 'upcoming' | 'completed' | 'cancelled')
+      : 'all';
     return this.service.listAppointments(user.sub, safeFilter);
   }
 

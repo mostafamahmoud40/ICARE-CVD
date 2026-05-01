@@ -1,9 +1,4 @@
-import {
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { appointment } from './appointment.schema';
 import { patientDocument } from './document.schema';
 
@@ -21,5 +16,7 @@ export const appointmentAttachment = pgTable('appointment_attachment', {
     .notNull(),
 });
 
-export type AppointmentAttachmentRow = typeof appointmentAttachment.$inferSelect;
-export type NewAppointmentAttachmentRow = typeof appointmentAttachment.$inferInsert;
+export type AppointmentAttachmentRow =
+  typeof appointmentAttachment.$inferSelect;
+export type NewAppointmentAttachmentRow =
+  typeof appointmentAttachment.$inferInsert;

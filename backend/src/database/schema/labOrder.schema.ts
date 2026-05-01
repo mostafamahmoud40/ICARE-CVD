@@ -55,4 +55,3 @@ export const labOrder = pgTable('lab_order', {
     onDelete: 'set null',
   }),
 });
-
