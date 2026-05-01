@@ -1,4 +1,11 @@
-import { integer, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import { labOrder } from './labOrder.schema';
 
 /** One ordered test within a lab order. */
@@ -17,4 +24,3 @@ export const labOrderItem = pgTable('lab_order_item', {
     .defaultNow()
     .notNull(),
 });
-

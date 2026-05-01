@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, ParseIntPipe, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AddStaffDto } from './dto/add-staff.dto';
 import { AccessTokenGuard } from '../auth/access-token.guard';

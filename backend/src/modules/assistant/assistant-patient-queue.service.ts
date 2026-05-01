@@ -1,14 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import {
-  and,
-  count,
-  eq,
-  gte,
-  ne,
-  lte,
-  or,
-  sql,
-} from 'drizzle-orm';
+import { and, count, eq, gte, ne, lte, or, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import {
@@ -308,9 +299,7 @@ export class AssistantPatientQueueService {
     });
     if (!existing) throw new NotFoundException('Queue entry not found');
 
-    await this.db
-      .delete(patientQueue)
-      .where(eq(patientQueue.id, queueId));
+    await this.db.delete(patientQueue).where(eq(patientQueue.id, queueId));
 
     return { success: true };
   }
@@ -542,7 +531,7 @@ export class AssistantPatientQueueService {
               gte(vitalReading.heartRate, 100),
               lte(vitalReading.heartRate, 60),
               lte(vitalReading.oxygenSaturation, 94),
-            )!,
+            ),
           ),
         );
       map.set(pid, row.count);
@@ -569,7 +558,7 @@ export class AssistantPatientQueueService {
           or(
             eq(patientQueue.status, 'completed'),
             eq(patientQueue.status, 'in-consultation'),
-          )!,
+          ),
         ),
       );
 

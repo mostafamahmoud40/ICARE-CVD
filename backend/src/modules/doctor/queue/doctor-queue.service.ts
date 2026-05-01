@@ -1,14 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import {
-  and,
-  count,
-  eq,
-  gte,
-  ne,
-  lte,
-  or,
-  sql,
-} from 'drizzle-orm';
+import { and, count, eq, gte, ne, lte, or, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../../../database/drizzle.provider';
 import type { Database } from '../../../database/drizzle.provider';
 import {
@@ -61,8 +52,16 @@ export class DoctorQueueService {
       .innerJoin(appointment, eq(patientQueue.appointmentId, appointment.id))
       .where(baseFilter);
 
-    const avgWait = await this.computeAvgWaitTime(doctorId, todayStart, todayEnd);
-    const currentWait = await this.computeCurrentWait(doctorId, todayStart, todayEnd);
+    const avgWait = await this.computeAvgWaitTime(
+      doctorId,
+      todayStart,
+      todayEnd,
+    );
+    const currentWait = await this.computeCurrentWait(
+      doctorId,
+      todayStart,
+      todayEnd,
+    );
 
     return {
       totalToday: totalRow.count,
@@ -84,7 +83,12 @@ export class DoctorQueueService {
   async listQueueEntries(doctorId: string, filter?: QueueFilter) {
     const { todayStart, todayEnd } = this.todayBounds();
     await this.ensureTodayQueueEntries(doctorId, todayStart, todayEnd);
-    const conditions = this.buildFilterConditions(doctorId, filter, todayStart, todayEnd);
+    const conditions = this.buildFilterConditions(
+      doctorId,
+      filter,
+      todayStart,
+      todayEnd,
+    );
 
     const rows = await this.db
       .select({
@@ -129,7 +133,12 @@ export class DoctorQueueService {
     const vitalAlertCounts = await this.batchVitalAlertCounts(patientIds);
 
     return rows.map((row) =>
-      this.formatQueueEntry(row, allergyCounts, medicationCounts, vitalAlertCounts),
+      this.formatQueueEntry(
+        row,
+        allergyCounts,
+        medicationCounts,
+        vitalAlertCounts,
+      ),
     );
   }
 
@@ -162,10 +171,7 @@ export class DoctorQueueService {
       .innerJoin(patient, eq(appointment.patientId, patient.id))
       .innerJoin(user, eq(patient.userId, user.id))
       .where(
-        and(
-          eq(appointment.doctorId, doctorId),
-          eq(patientQueue.id, queueId),
-        ),
+        and(eq(appointment.doctorId, doctorId), eq(patientQueue.id, queueId)),
       )
       .limit(1);
 
@@ -173,10 +179,17 @@ export class DoctorQueueService {
 
     const row = rows[0];
     const allergyCounts = await this.batchAllergyCounts([row.patientId]);
-    const medicationCounts = await this.batchActiveMedicationCounts([row.patientId]);
+    const medicationCounts = await this.batchActiveMedicationCounts([
+      row.patientId,
+    ]);
     const vitalAlertCounts = await this.batchVitalAlertCounts([row.patientId]);
 
-    return this.formatQueueEntry(row, allergyCounts, medicationCounts, vitalAlertCounts);
+    return this.formatQueueEntry(
+      row,
+      allergyCounts,
+      medicationCounts,
+      vitalAlertCounts,
+    );
   }
 
   /* ------------------------------------------------------------------ */
@@ -189,10 +202,7 @@ export class DoctorQueueService {
       .from(patientQueue)
       .innerJoin(appointment, eq(patientQueue.appointmentId, appointment.id))
       .where(
-        and(
-          eq(appointment.doctorId, doctorId),
-          eq(patientQueue.id, queueId),
-        ),
+        and(eq(appointment.doctorId, doctorId), eq(patientQueue.id, queueId)),
       )
       .limit(1);
 
@@ -236,10 +246,7 @@ export class DoctorQueueService {
       .from(patientQueue)
       .innerJoin(appointment, eq(patientQueue.appointmentId, appointment.id))
       .where(
-        and(
-          eq(appointment.doctorId, doctorId),
-          eq(patientQueue.id, queueId),
-        ),
+        and(eq(appointment.doctorId, doctorId), eq(patientQueue.id, queueId)),
       )
       .limit(1);
 
@@ -272,7 +279,11 @@ export class DoctorQueueService {
     return { todayStart, todayEnd };
   }
 
-  private async ensureTodayQueueEntries(doctorId: string, todayStart: Date, todayEnd: Date) {
+  private async ensureTodayQueueEntries(
+    doctorId: string,
+    todayStart: Date,
+    todayEnd: Date,
+  ) {
     const todayAppointments = await this.db
       .select({ id: appointment.id })
       .from(appointment)
@@ -473,7 +484,7 @@ export class DoctorQueueService {
               gte(vitalReading.heartRate, 100),
               lte(vitalReading.heartRate, 60),
               lte(vitalReading.oxygenSaturation, 94),
-            )!,
+            ),
           ),
         );
       map.set(pid, row.count);
@@ -502,7 +513,7 @@ export class DoctorQueueService {
           or(
             eq(patientQueue.status, 'completed'),
             eq(patientQueue.status, 'in-consultation'),
-          )!,
+          ),
         ),
       );
 

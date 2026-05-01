@@ -68,7 +68,11 @@ export class AppointmentService {
     });
 
     if (!schedule) {
-      return { monthLabel: this.getMonthLabel(new Date()), days: [], timeSlotsByDate: {} };
+      return {
+        monthLabel: this.getMonthLabel(new Date()),
+        days: [],
+        timeSlotsByDate: {},
+      };
     }
 
     const start = from ? this.parseDateOnly(from) : this.startOfDay(new Date());
@@ -105,10 +109,16 @@ export class AppointmentService {
     for (const a of appts) {
       if (a.status === 'cancelled') continue;
       const key = this.toDateOnly(a.scheduledAt);
-      if (key < this.toDateOnly(start) || key >= this.toDateOnly(endExclusive)) {
+      if (
+        key < this.toDateOnly(start) ||
+        key >= this.toDateOnly(endExclusive)
+      ) {
         continue;
       }
-      appointmentCountByDate.set(key, (appointmentCountByDate.get(key) ?? 0) + 1);
+      appointmentCountByDate.set(
+        key,
+        (appointmentCountByDate.get(key) ?? 0) + 1,
+      );
       const time = this.toHHMM(a.scheduledAt);
       const set = bookedTimesByDate.get(key) ?? new Set<string>();
       set.add(time);
@@ -124,7 +134,12 @@ export class AppointmentService {
     }> = [];
     const timeSlotsByDate: Record<
       string,
-      Array<{ time: string; available: boolean; recommended?: boolean; label?: string }>
+      Array<{
+        time: string;
+        available: boolean;
+        recommended?: boolean;
+        label?: string;
+      }>
     > = {};
 
     for (let i = 0; i < safeDays; i += 1) {
@@ -153,18 +168,23 @@ export class AppointmentService {
 
       const unavailable = dayConfig.unavailableBlocks ?? [];
       const bookedSet = bookedTimesByDate.get(fullDate) ?? new Set<string>();
-      const slots = this.generateSlots(dayConfig.periods ?? [], unavailable, schedule.slotDurationMinutes, schedule.bufferBetweenSlotsMinutes)
-        .map((slotTime) => {
-          const booked = bookedSet.has(slotTime);
-          return {
-            time: this.toAmPm(slotTime),
-            available: !booked,
-            label: booked ? 'Booked' : undefined,
-          };
-        });
+      const slots = this.generateSlots(
+        dayConfig.periods ?? [],
+        unavailable,
+        schedule.slotDurationMinutes,
+        schedule.bufferBetweenSlotsMinutes,
+      ).map((slotTime) => {
+        const booked = bookedSet.has(slotTime);
+        return {
+          time: this.toAmPm(slotTime),
+          available: !booked,
+          label: booked ? 'Booked' : undefined,
+        };
+      });
 
       timeSlotsByDate[fullDate] = slots;
-      const isFullyBooked = slots.length > 0 && slots.every((slot) => !slot.available);
+      const isFullyBooked =
+        slots.length > 0 && slots.every((slot) => !slot.available);
       if (isFullyBooked) {
         const targetDay = daysPayload.find((d) => d.fullDate === fullDate);
         if (targetDay) {
@@ -230,7 +250,10 @@ export class AppointmentService {
       scheduledAt: row.scheduledAt.toISOString(),
       department: row.doctorSpecialty ?? 'Cardiology',
       clinician: row.doctorName,
-      location: row.visitType === 'virtual' ? 'Virtual Consultation' : 'ICARE-CVD Main Center',
+      location:
+        row.visitType === 'virtual'
+          ? 'Virtual Consultation'
+          : 'ICARE-CVD Main Center',
       status: row.status,
       notes: row.notes ?? undefined,
       symptoms: row.symptoms ?? undefined,
@@ -299,7 +322,11 @@ export class AppointmentService {
     };
   }
 
-  async update(userId: number, appointmentId: string, dto: UpdateAppointmentDto) {
+  async update(
+    userId: number,
+    appointmentId: string,
+    dto: UpdateAppointmentDto,
+  ) {
     const patientRow = await this.getOrCreatePatientProfile(userId);
 
     const existing = await this.db.query.appointment.findFirst({
@@ -315,7 +342,9 @@ export class AppointmentService {
     const [updated] = await this.db
       .update(appointment)
       .set({
-        scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : existing.scheduledAt,
+        scheduledAt: dto.scheduledAt
+          ? new Date(dto.scheduledAt)
+          : existing.scheduledAt,
         status: dto.status ?? existing.status,
         notes: dto.notes ?? existing.notes,
         cancelledAt:
@@ -463,7 +492,15 @@ export class AppointmentService {
   }
 
   private weekdayId(date: Date) {
-    const map = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+    const map = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+    ] as const;
     return map[date.getDay()];
   }
 

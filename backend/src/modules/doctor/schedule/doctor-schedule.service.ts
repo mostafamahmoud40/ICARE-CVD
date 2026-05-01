@@ -230,10 +230,7 @@ export class DoctorScheduleService {
 
     // Check if date is already blocked
     const existing = await this.db.query.blockedDates.findFirst({
-      where: (bd) => and(
-        eq(bd.doctorId, doctorRow.id),
-        eq(bd.date, dto.date),
-      ),
+      where: (bd) => and(eq(bd.doctorId, doctorRow.id), eq(bd.date, dto.date)),
     });
 
     if (existing) {
@@ -256,10 +253,7 @@ export class DoctorScheduleService {
     };
   }
 
-  async addBlockedDatesBatch(
-    userId: number,
-    dto: CreateBlockedDatesBatchDto,
-  ) {
+  async addBlockedDatesBatch(userId: number, dto: CreateBlockedDatesBatchDto) {
     const doctorRow = await this.db.query.doctor.findFirst({
       where: eq(doctor.userId, userId),
     });

@@ -15,6 +15,11 @@ import { DoctorScheduleService } from './doctor-schedule.service';
     }),
   ],
   controllers: [DoctorScheduleController],
-  providers: [DoctorScheduleService, DoctorGuard, AuthJwtService, AccessTokenGuard],
+  providers: [
+    DoctorScheduleService,
+    DoctorGuard,
+    AuthJwtService,
+    AccessTokenGuard,
+  ],
 })
 export class DoctorScheduleModule {}

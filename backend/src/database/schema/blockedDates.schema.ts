@@ -1,10 +1,4 @@
-import {
-  date,
-  pgTable,
-  timestamp,
-  uuid,
-  varchar,
-} from 'drizzle-orm/pg-core';
+import { date, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { doctor } from './doctor.schema';
 
 export const blockedDates = pgTable('blocked_dates', {

@@ -1,4 +1,9 @@
-import { Inject, Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
@@ -78,11 +83,13 @@ export class AdminService {
       .set({
         accessTokenHash,
         accessTokenExpiresAt: new Date(
-          Date.now() + this.parseDurationMs(process.env.JWT_ACCESS_TTL ?? '15m'),
+          Date.now() +
+            this.parseDurationMs(process.env.JWT_ACCESS_TTL ?? '15m'),
         ),
         refreshTokenHash,
         refreshTokenExpiresAt: new Date(
-          Date.now() + this.parseDurationMs(process.env.JWT_REFRESH_TTL ?? '7d'),
+          Date.now() +
+            this.parseDurationMs(process.env.JWT_REFRESH_TTL ?? '7d'),
         ),
       })
       .where(eq(user.id, createdUser.id));
@@ -153,8 +160,11 @@ export class AdminService {
         phone: u.phone,
         role: u.role as StaffRole,
         specialty: docDetail?.specialty ?? assDetail?.department ?? null,
-        experienceYears: docDetail?.experienceYears ?? assDetail?.experienceYears ?? 0,
-        createdAt: (docDetail?.createdAt ?? assDetail?.createdAt)?.toISOString() ?? new Date().toISOString(),
+        experienceYears:
+          docDetail?.experienceYears ?? assDetail?.experienceYears ?? 0,
+        createdAt:
+          (docDetail?.createdAt ?? assDetail?.createdAt)?.toISOString() ??
+          new Date().toISOString(),
       };
     });
 
@@ -228,7 +238,10 @@ export class AdminService {
     await this.createRoleSpecificProfile(newRole, userId, dto);
   }
 
-  private async deleteRoleSpecificProfile(role: string, userId: number): Promise<void> {
+  private async deleteRoleSpecificProfile(
+    role: string,
+    userId: number,
+  ): Promise<void> {
     if (role === StaffRole.Doctor) {
       await this.db.delete(doctor).where(eq(doctor.userId, userId));
     } else if (role === StaffRole.Assistant) {

@@ -1,16 +1,12 @@
-import {
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-  varchar,
-} from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { patient } from './patient.schema';
 import { doctor } from './doctor.schema';
 
 export const appointment = pgTable('appointment', {
   id: uuid('id').defaultRandom().primaryKey(),
-  confirmationCode: varchar('confirmation_code', { length: 20 }).notNull().unique(),
+  confirmationCode: varchar('confirmation_code', { length: 20 })
+    .notNull()
+    .unique(),
   patientId: uuid('patient_id')
     .references(() => patient.id, { onDelete: 'cascade' })
     .notNull(),

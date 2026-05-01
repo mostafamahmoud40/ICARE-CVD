@@ -15,6 +15,11 @@ import { DoctorQueueService } from './doctor-queue.service';
     }),
   ],
   controllers: [DoctorQueueController],
-  providers: [DoctorQueueService, DoctorGuard, AuthJwtService, AccessTokenGuard],
+  providers: [
+    DoctorQueueService,
+    DoctorGuard,
+    AuthJwtService,
+    AccessTokenGuard,
+  ],
 })
 export class DoctorQueueModule {}

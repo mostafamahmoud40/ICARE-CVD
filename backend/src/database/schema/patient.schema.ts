@@ -166,7 +166,9 @@ export const patient = pgTable('patient', {
   riskLevel: patientRiskLevelEnum('risk_level').notNull().default('low'),
   avatarUrl: varchar('avatar_url', { length: 500 }),
   aiRegistrationSummary: text('ai_registration_summary'),
-  aiRegistrationSummaryEmbedding: vector(384)('ai_registration_summary_embedding'),
+  aiRegistrationSummaryEmbedding: vector(384)(
+    'ai_registration_summary_embedding',
+  ),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),
