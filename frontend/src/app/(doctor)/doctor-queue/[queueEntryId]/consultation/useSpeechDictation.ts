@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useConsultationVoiceDictationError } from "./ConsultationVoiceDictationErrorContext"
 
 type SpeechRecResultLike = {
   isFinal: boolean
@@ -52,6 +53,7 @@ export type UseSpeechDictationOptions<K extends string> = {
 export function useSpeechDictation<K extends string>({ getText, setText }: UseSpeechDictationOptions<K>) {
   const getTextRef = useRef(getText)
   const setTextRef = useRef(setText)
+  const voiceErrorOutlet = useConsultationVoiceDictationError()
 
   useEffect(() => {
     getTextRef.current = getText
@@ -63,7 +65,19 @@ export function useSpeechDictation<K extends string>({ getText, setText }: UseSp
 
   const [supported, setSupported] = useState(false)
   const [activeKey, setActiveKey] = useState<K | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [errorMessage, setLocalErrorMessage] = useState<string | null>(null)
+
+  const publishError = useCallback(
+    (msg: string | null, opts?: { allowMicRetry?: boolean }) => {
+      setLocalErrorMessage(msg)
+      if (msg === null) {
+        voiceErrorOutlet?.setError(null)
+      } else {
+        voiceErrorOutlet?.setError({ message: msg, allowMicRetry: !!opts?.allowMicRetry })
+      }
+    },
+    [voiceErrorOutlet],
+  )
   const [interimText, setInterimText] = useState<string | null>(null)
   const [audioLevel, setAudioLevel] = useState(0)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
@@ -240,7 +254,7 @@ export function useSpeechDictation<K extends string>({ getText, setText }: UseSp
     (key: K) => {
       const Ctor = getSpeechRecognitionCtor()
       if (!Ctor) {
-        setErrorMessage("Voice input is not supported in this browser. Try Chrome or Edge.")
+        publishError("Voice input is not supported in this browser. Try Chrome or Edge.")
         return
       }
 
@@ -276,7 +290,7 @@ export function useSpeechDictation<K extends string>({ getText, setText }: UseSp
         setInterimText(null)
       }
 
-      setErrorMessage(null)
+      publishError(null)
       setInterimText(null)
 
       const recognition = new Ctor()
@@ -364,11 +378,13 @@ export function useSpeechDictation<K extends string>({ getText, setText }: UseSp
         if (ev.error === "aborted") return
         if (ev.error === "no-speech") return
 
-        const msg =
-          ev.error === "not-allowed"
-            ? "Microphone access was denied. Allow it from the browser address bar."
-            : ev.message || ev.error || "Voice input error"
-        setErrorMessage(msg)
+        if (ev.error === "not-allowed") {
+          publishError("Microphone access was denied. Allow it from the browser address bar.", {
+            allowMicRetry: true,
+          })
+          return
+        }
+        publishError(ev.message || ev.error || "Voice input error")
       }
 
       recognition.onend = () => {
@@ -402,14 +418,14 @@ export function useSpeechDictation<K extends string>({ getText, setText }: UseSp
           void startAudioMonitor()
         }, 1500)
       } catch {
-        setErrorMessage("Could not start the microphone. Check permissions.")
+        publishError("Could not start the microphone. Check permissions.")
         detachIfCurrent(recognition)
       }
     },
-    [detachIfCurrent, startAudioMonitor, stopAudioMonitor],
+    [detachIfCurrent, publishError, startAudioMonitor, stopAudioMonitor],
   )
 
-  const dismissError = useCallback(() => setErrorMessage(null), [])
+  const dismissError = useCallback(() => publishError(null), [publishError])
 
   return { supported, activeKey, errorMessage, interimText, audioLevel, elapsedSeconds, toggle, dismissError }
 }

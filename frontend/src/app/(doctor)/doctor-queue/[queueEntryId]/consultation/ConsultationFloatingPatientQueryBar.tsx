@@ -4,9 +4,13 @@ import type { ConsultationData } from "./consultation.types"
 import { answerPatientConsultationQuery } from "./consultationPatientQueryEngine"
 import { useCallback, useState } from "react"
 import { ChevronDownIcon, ChevronUpIcon, MessageCircleIcon, MicIcon, SendHorizontalIcon } from "lucide-react"
+import { useSpeechDictation } from "./useSpeechDictation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+
+type PatientQueryDraftKey = "patientQueryDraft"
 
 export type ConsultationFloatingPatientQueryBarProps = {
   data: ConsultationData
@@ -17,6 +21,27 @@ export function ConsultationFloatingPatientQueryBar({ data }: ConsultationFloati
   const [lastQuery, setLastQuery] = useState<string | null>(null)
   const [lastReply, setLastReply] = useState<string | null>(null)
   const [panelOpen, setPanelOpen] = useState(true)
+
+  const getText = useCallback(
+    (_key: PatientQueryDraftKey) => draft,
+    [draft],
+  )
+  const setText = useCallback((_key: PatientQueryDraftKey, value: string) => {
+    setDraft(value)
+  }, [])
+
+  const { supported, activeKey, interimText, audioLevel, elapsedSeconds, toggle } = useSpeechDictation({
+    getText,
+    setText,
+  })
+
+  const listening = activeKey === "patientQueryDraft"
+
+  const formatElapsedTime = useCallback((totalSeconds: number) => {
+    const mm = String(Math.floor(totalSeconds / 60)).padStart(2, "0")
+    const ss = String(totalSeconds % 60).padStart(2, "0")
+    return `${mm}:${ss}`
+  }, [])
 
   const submit = useCallback(() => {
     const q = draft.trim()
@@ -90,6 +115,26 @@ export function ConsultationFloatingPatientQueryBar({ data }: ConsultationFloati
           </div>
         ) : null}
 
+        {listening ? (
+          <div className="mb-2 rounded-2xl border border-white/10 bg-transparent px-3 py-2 shadow-none backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-medium text-[#B42318]">{formatElapsedTime(elapsedSeconds)}</span>
+              <div className="h-1.5 min-w-0 flex-1 max-w-[140px] overflow-hidden rounded-full bg-[#EEF5F3]">
+                <div
+                  className="h-full rounded-full bg-[#1A5345] transition-all duration-150"
+                  style={{ width: `${Math.max(6, audioLevel)}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-muted-foreground">Voice level</span>
+            </div>
+            {interimText ? (
+              <p id="patient-query-draft-interim" className="mt-1.5 text-[11px] leading-snug text-[#6B7280]">
+                {interimText}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-transparent p-1.5 pl-2 shadow-none backdrop-blur-sm">
           <MessageCircleIcon className="size-4 shrink-0 text-[#1A5345]/80" aria-hidden />
           <Input
@@ -99,16 +144,34 @@ export function ConsultationFloatingPatientQueryBar({ data }: ConsultationFloati
             placeholder="Ask about this patient (vitals, meds, allergies, compare…)"
             className="h-9 flex-1 border-0 bg-transparent text-[13px] shadow-none focus-visible:ring-0"
             aria-label="Ask about this patient"
+            aria-describedby={listening && interimText ? "patient-query-draft-interim" : undefined}
           />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="shrink-0 text-[#1A5345]/70 hover:text-[#1A5345] hover:bg-transparent"
-            aria-label="Voice input"
-          >
-            <MicIcon className="size-4" />
-          </Button>
+          {supported ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  id="patient-query-floating-mic"
+                  variant={listening ? "secondary" : "ghost"}
+                  size="icon-sm"
+                  className={cn(
+                    "shrink-0 hover:bg-transparent",
+                    listening
+                      ? "text-[#B42318] ring-2 ring-[#B42318]/25"
+                      : "text-[#1A5345]/70 hover:text-[#1A5345]",
+                  )}
+                  aria-pressed={listening}
+                  aria-label={listening ? "Stop voice dictation" : "Start voice dictation"}
+                  onClick={() => toggle("patientQueryDraft")}
+                >
+                  <MicIcon className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[220px] text-center">
+                {listening ? "Stop dictation" : "Voice dictation"}
+              </TooltipContent>
+            </Tooltip>
+          ) : null}
           <Button
             type="button"
             size="icon-sm"

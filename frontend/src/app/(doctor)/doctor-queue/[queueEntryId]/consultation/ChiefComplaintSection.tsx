@@ -1,7 +1,15 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { MessageSquareTextIcon, SparklesIcon, AlertTriangleIcon, ShieldAlertIcon, CheckCircle2Icon } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import {
+  MessageSquareTextIcon,
+  SparklesIcon,
+  AlertTriangleIcon,
+  ShieldAlertIcon,
+  CheckCircle2Icon,
+  MicIcon,
+} from "lucide-react"
+import { useSpeechDictation } from "./useSpeechDictation"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 const CVD_COMPLAINTS = [
   { value: "chest_pain", label: "Chest Pain" },
@@ -245,43 +254,140 @@ export function ChiefComplaintSection({
     setRelieving(nextRelieving.length > 0 ? nextRelieving : ["Rest"])
   }
 
+  const getFreeText = useCallback(() => freeTextInput, [freeTextInput])
+  const setFreeText = useCallback(
+    (_key: "freeTextInput", value: string) => setFreeTextInput(value),
+    [],
+  )
+
+  const getDetailedDesc = useCallback(() => generatedDescription || complaint, [generatedDescription, complaint])
+  const setDetailedDesc = useCallback(
+    (_key: "detailedDescription", value: string) => onComplaintChange(value),
+    [onComplaintChange],
+  )
+
+  const {
+    supported,
+    activeKey,
+    interimText,
+    audioLevel,
+    elapsedSeconds,
+    toggle,
+  } = useSpeechDictation({
+    getText: getFreeText,
+    setText: setFreeText,
+  })
+
+  const {
+    supported: detailedDescSupported,
+    activeKey: detailedDescActiveKey,
+    interimText: detailedDescInterimText,
+    audioLevel: detailedDescAudioLevel,
+    elapsedSeconds: detailedDescElapsedSeconds,
+    toggle: detailedDescToggle,
+  } = useSpeechDictation({
+    getText: getDetailedDesc,
+    setText: setDetailedDesc,
+  })
+
+  const formatElapsedTime = useCallback((totalSeconds: number) => {
+    const mm = String(Math.floor(totalSeconds / 60)).padStart(2, "0")
+    const ss = String(totalSeconds % 60).padStart(2, "0")
+    return `${mm}:${ss}`
+  }, [])
+
+  const freeTextListening = activeKey === "freeTextInput"
+  const detailedDescListening = detailedDescActiveKey === "detailedDescription"
+
   return (
     <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
-            <MessageSquareTextIcon className="size-4 text-[#1A5345]" />
-          </div>
-          <h3 className="text-[14px] font-semibold text-[#102F27]">Chief Complaint</h3>
-        </div>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => setShowAiAssist((prev) => !prev)}
-          className="h-8 gap-1.5 border-[#cfd9d5] bg-white text-[11px] text-[#1A5345] hover:bg-[#E8F0EE]"
-        >
-          <SparklesIcon className="size-3.5" />
-          AI Assist
-        </Button>
-      </div>
-      {showAiAssist ? (
-        <div className="mb-4 space-y-3 rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-3">
-          <div className="space-y-1">
-            <p className="text-[11px] font-semibold text-[#102F27]">AI Smart Intake</p>
-            <Textarea
-              value={freeTextInput}
-              onChange={(e) => setFreeTextInput(e.target.value)}
-              placeholder="Paste patient wording or quick notes, then extract to structured fields..."
-              className="min-h-[70px] border-[#E5EEEA] bg-white text-[12px]"
-            />
-            <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" size="sm" onClick={runAiExtraction} className="h-7 bg-[#1A5345] px-2.5 text-[11px] hover:bg-[#0F3D32]">
-                Extract
-              </Button>
-              <span className="text-[10px] text-muted-foreground">Completeness: {completenessScore}%</span>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
+              <MessageSquareTextIcon className="size-4 text-[#1A5345]" />
             </div>
+            <h3 className="text-[14px] font-semibold text-[#102F27]">Chief Complaint</h3>
           </div>
+          <div className="flex items-center gap-2">
+            {supported ? (
+              <span className="text-[10px] text-muted-foreground">Type or use voice dictation</span>
+            ) : null}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setShowAiAssist((prev) => !prev)}
+              className="h-8 gap-1.5 border-[#cfd9d5] bg-white text-[11px] text-[#1A5345] hover:bg-[#E8F0EE]"
+            >
+              <SparklesIcon className="size-3.5" />
+              AI Assist
+            </Button>
+          </div>
+        </div>
+
+        {showAiAssist ? (
+          <div className="mb-4 space-y-3 rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-3">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold text-[#102F27]">AI Smart Intake</p>
+                {supported ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        id="chief-complaint-free-text-mic"
+                        variant={freeTextListening ? "secondary" : "ghost"}
+                        size="icon-xs"
+                        className={
+                          freeTextListening
+                            ? "shrink-0 text-[#B42318] ring-2 ring-[#B42318]/25"
+                            : "shrink-0 text-[#2C6A5B]"
+                        }
+                        aria-pressed={freeTextListening}
+                        aria-label={freeTextListening ? "Stop voice dictation" : "Start voice dictation"}
+                        onClick={() => toggle("freeTextInput")}
+                      >
+                        <MicIcon className="size-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[220px] text-center">
+                      {freeTextListening ? "Stop dictation" : "Voice dictation"}
+                    </TooltipContent>
+                  </Tooltip>
+                ) : null}
+              </div>
+              <Textarea
+                id="chief-complaint-free-text"
+                value={freeTextInput}
+                onChange={(e) => setFreeTextInput(e.target.value)}
+                placeholder="Paste patient wording or quick notes, then extract to structured fields..."
+                className="min-h-[70px] border-[#E5EEEA] bg-white text-[12px]"
+                aria-describedby={freeTextListening && interimText ? "chief-complaint-free-text-interim" : undefined}
+              />
+              {freeTextListening ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-medium text-[#B42318]">{formatElapsedTime(elapsedSeconds)}</span>
+                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#EEF5F3]">
+                    <div
+                      className="h-full rounded-full bg-[#1A5345] transition-all duration-150"
+                      style={{ width: `${Math.max(6, audioLevel)}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">Voice level</span>
+                </div>
+              ) : null}
+              {freeTextListening && interimText ? (
+                <p id="chief-complaint-free-text-interim" className="text-[11px] leading-snug text-[#6B7280]">
+                  {interimText}
+                </p>
+              ) : null}
+              <div className="flex flex-wrap items-center gap-2">
+                <Button type="button" size="sm" onClick={runAiExtraction} className="h-7 bg-[#1A5345] px-2.5 text-[11px] hover:bg-[#0F3D32]">
+                  Extract
+                </Button>
+                <span className="text-[10px] text-muted-foreground">Completeness: {completenessScore}%</span>
+              </div>
+            </div>
 
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
@@ -511,12 +617,63 @@ export function ChiefComplaintSection({
             </div>
           </div>
 
-          <Textarea
-            value={generatedDescription || complaint}
-            readOnly
-            placeholder="Select complaint options to generate the detailed description."
-            className="min-h-[80px] resize-none border-[#E8E6E0] bg-[#FAFAF8] text-[13px] placeholder:text-[#9CA3AF]"
-          />
+          <div className="space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-[11px] font-medium text-muted-foreground" htmlFor="detailed-description">
+                Detailed Description
+              </label>
+              {detailedDescSupported ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      id="detailed-description-mic"
+                      variant={detailedDescListening ? "secondary" : "ghost"}
+                      size="icon-xs"
+                      className={
+                        detailedDescListening
+                          ? "shrink-0 text-[#B42318] ring-2 ring-[#B42318]/25"
+                          : "shrink-0 text-[#2C6A5B]"
+                      }
+                      aria-pressed={detailedDescListening}
+                      aria-label={detailedDescListening ? "Stop voice dictation" : "Start voice dictation"}
+                      onClick={() => detailedDescToggle("detailedDescription")}
+                    >
+                      <MicIcon className="size-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[220px] text-center">
+                    {detailedDescListening ? "Stop dictation" : "Voice dictation"}
+                  </TooltipContent>
+                </Tooltip>
+              ) : null}
+            </div>
+            <Textarea
+              id="detailed-description"
+              value={generatedDescription || complaint}
+              onChange={(e) => onComplaintChange(e.target.value)}
+              placeholder="Select complaint options to generate the detailed description."
+              className="min-h-[80px] resize-none border-[#E8E6E0] bg-[#FAFAF8] text-[13px] placeholder:text-[#9CA3AF]"
+              aria-describedby={detailedDescListening && detailedDescInterimText ? "detailed-description-interim" : undefined}
+            />
+            {detailedDescListening ? (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-medium text-[#B42318]">{formatElapsedTime(detailedDescElapsedSeconds)}</span>
+                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#EEF5F3]">
+                  <div
+                    className="h-full rounded-full bg-[#1A5345] transition-all duration-150"
+                    style={{ width: `${Math.max(6, detailedDescAudioLevel)}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-muted-foreground">Voice level</span>
+              </div>
+            ) : null}
+            {detailedDescListening && detailedDescInterimText ? (
+              <p id="detailed-description-interim" className="text-[11px] leading-snug text-[#6B7280]">
+                {detailedDescInterimText}
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

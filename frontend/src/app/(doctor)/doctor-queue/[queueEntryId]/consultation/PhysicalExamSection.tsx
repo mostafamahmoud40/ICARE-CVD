@@ -3,11 +3,10 @@
 import { useCallback } from "react"
 import type { PhysicalExamFindings } from "./consultation.types"
 import { useSpeechDictation } from "./useSpeechDictation"
-import { MicIcon, StethoscopeIcon, XIcon } from "lucide-react"
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { MicIcon, StethoscopeIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 const EXAM_FIELDS = [
   { key: "heartSounds" as const, label: "Heart Sounds", placeholder: "e.g. Normal S1/S2, no gallop..." },
@@ -30,11 +29,10 @@ export function PhysicalExamSection({ exam, onExamChange }: PhysicalExamSectionP
     [onExamChange],
   )
 
-  const { supported, activeKey, errorMessage, interimText, audioLevel, elapsedSeconds, toggle, dismissError } =
-    useSpeechDictation({
+  const { supported, activeKey, interimText, audioLevel, elapsedSeconds, toggle } = useSpeechDictation({
     getText,
     setText,
-    })
+  })
 
   const formatElapsedTime = useCallback((totalSeconds: number) => {
     const mm = String(Math.floor(totalSeconds / 60)).padStart(2, "0")
@@ -43,8 +41,7 @@ export function PhysicalExamSection({ exam, onExamChange }: PhysicalExamSectionP
   }, [])
 
   return (
-    <TooltipProvider delay={300}>
-      <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
+    <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
             <StethoscopeIcon className="size-4 text-[#1A5345]" />
@@ -57,18 +54,6 @@ export function PhysicalExamSection({ exam, onExamChange }: PhysicalExamSectionP
             <span className="text-[10px] text-muted-foreground">Type or use voice dictation</span>
           ) : null}
         </div>
-
-        {errorMessage ? (
-          <Alert variant="destructive" className="mb-3 py-2">
-            <AlertTitle className="text-xs">Voice input</AlertTitle>
-            <AlertDescription className="text-xs">{errorMessage}</AlertDescription>
-            <AlertAction>
-              <Button type="button" variant="ghost" size="icon-xs" onClick={dismissError} aria-label="Dismiss">
-                <XIcon className="size-3.5" />
-              </Button>
-            </AlertAction>
-          </Alert>
-        ) : null}
 
         <div className="grid grid-cols-2 gap-3">
           {EXAM_FIELDS.map((field) => {
@@ -135,6 +120,5 @@ export function PhysicalExamSection({ exam, onExamChange }: PhysicalExamSectionP
           })}
         </div>
       </div>
-    </TooltipProvider>
   )
 }

@@ -74,6 +74,8 @@ export const mockConsultationData: ConsultationData = {
 
   prescriptions: [],
 
+  procedures: [],
+
   testOrders: [],
 
   homeMeasurements: [],
