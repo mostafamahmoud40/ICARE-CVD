@@ -1,0 +1,77 @@
+# ICARE-CVD — ECG Diagnosis with LLM + RAG  (FastAPI API, port 8502)
+#
+# Pipeline:
+#   Raw ECG (.dat / .hea)
+#     → NeuroKit2 feature extraction  (rhythm, HRV, intervals, amplitudes, ST, MI localisation …)
+#     → ChromaDB RAG retrieval        (semantic search over baked-in medical literature)
+#     → Groq LLM llama-3.3-70b        (structured cardiac diagnosis table)
+#
+# Reuse the same PyTorch base image used by other ML services.
+# This avoids downloading a huge torch wheel during pip install.
+#
+# Runtime env vars (pass via docker-compose env_file or -e flag):
+#   GROQ_API_KEY  — required; Groq cloud API key used by llm_service.py
+# ─────────────────────────────────────────────────────────────────────────────
+FROM pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DEFAULT_TIMEOUT=300 \
+    PIP_RETRIES=20 \
+    PIP_RESUME_RETRIES=10 \
+    PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ \
+    HF_HOME=/root/.cache/huggingface
+
+# gcc/g++ are needed to compile chromadb's hnswlib C++ extension at install
+# time if a pre-built wheel isn't available for this platform.
+# libgomp1 is the OpenMP runtime required by scipy/numpy kernels.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc \
+        g++ \
+        libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /service
+
+# ── Layer 1: Python dependencies ─────────────────────────────────────────────
+# pandas is used in app.py (DataFrames for feature tables).
+# fastapi/uvicorn/python-multipart are needed for the REST wrapper (api.py).
+COPY app/ECG-Diagnosis-with-LLM-and-RAG-main/requirements.txt ./requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt pandas fastapi uvicorn python-multipart
+
+# ── Layer 2: Pre-download the sentence-transformers embedding model ───────────
+# Baking all-MiniLM-L6-v2 (~22 MB) into the image means the container reaches
+# the "Knowledge base ready" state instantly without hitting HuggingFace at
+# runtime.  The model is cached in the default HF_HOME (/root/.cache/huggingface).
+RUN python -c \
+    "from sentence_transformers import SentenceTransformer; \
+     SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
+
+# ── Layer 3: Application source ───────────────────────────────────────────────
+COPY app/ECG-Diagnosis-with-LLM-and-RAG-main/__init__.py       ./__init__.py
+COPY app/ECG-Diagnosis-with-LLM-and-RAG-main/api.py            ./api.py
+COPY app/ECG-Diagnosis-with-LLM-and-RAG-main/app.py            ./app.py
+COPY app/ECG-Diagnosis-with-LLM-and-RAG-main/config.py         ./config.py
+COPY app/ECG-Diagnosis-with-LLM-and-RAG-main/features.py       ./features.py
+COPY app/ECG-Diagnosis-with-LLM-and-RAG-main/initialize.py     ./initialize.py
+COPY app/ECG-Diagnosis-with-LLM-and-RAG-main/llm_service.py    ./llm_service.py
+COPY app/ECG-Diagnosis-with-LLM-and-RAG-main/preprocessing.py  ./preprocessing.py
+COPY app/ECG-Diagnosis-with-LLM-and-RAG-main/rag_impl.py       ./rag_impl.py
+
+# ── Layer 4: Pre-built knowledge base ────────────────────────────────────────
+# Contains:
+#   database/chroma_db/   — persisted ChromaDB vector store (seeded from
+#                           paper03.pdf + paper04.pdf on a dev machine).
+#                           Baking it in skips the expensive embedding build
+#                           step that would otherwise run on first container start.
+#   database/*.pdf        — the source medical papers (kept for re-seeding if needed)
+#   database/*.dat / .hea — WFDB sample records used for testing
+#
+# Note: .dockerignore excludes *.pkl but NOT *.pickle, so chroma's
+#       index_metadata.pickle is copied correctly.
+COPY app/ECG-Diagnosis-with-LLM-and-RAG-main/database/         ./database/
+
+EXPOSE 8502
+
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8502", "--workers", "1"]

@@ -1,0 +1,65 @@
+# ICARE-CVD — Unified ECG image:
+#   - Arrhythmia classifier service      (Flask, :5050)
+#   - ECG LLM + RAG diagnosis service    (FastAPI, :8502)
+#
+# The ECG model is small (~2.5 MB) and the existing app loads it on CPU
+# (`map_location="cpu"`), so we still base on the PyTorch image for binary
+# compatibility but do not require GPU at runtime.
+FROM pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DEFAULT_TIMEOUT=300 \
+    PIP_RETRIES=20 \
+    PIP_RESUME_RETRIES=10 \
+    PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /service
+
+COPY app/ml_env.py ./ml_env.py
+
+# ── Layer 1: Python dependencies (shared by both ECG services) ──────────────
+# Torch is in the base image; pip should not download torch again.
+COPY app/ecg-rag/requirements.txt ./ecg-rag-requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install \
+        flask>=3.0 \
+        flask-cors>=4.0 \
+        wfdb>=4.1 \
+        scipy>=1.11 \
+        numpy>=1.24 \
+        groq>=0.11 \
+        python-dotenv>=1.0 \
+        fastapi \
+        uvicorn \
+        python-multipart \
+        pandas \
+    && pip install -r ecg-rag-requirements.txt
+
+# ── Layer 2: arrhythmia application code (ml-ecg) ───────────────────────────
+# The model checkpoint is bind-mounted at runtime via docker-compose;
+# .dockerignore excludes *.pt so it is never copied into the image.
+COPY app/ecg/app.py            ./app.py
+COPY app/ecg/ECGTransForm/     ./ECGTransForm/
+
+# ── Layer 3: LLM+RAG ECG application code (ml-ecg-rag) ─────────────────────
+# database/ must contain chroma_db/ + literature PDFs for RAG; do not bake patient .dat/.hea.
+COPY app/ecg-rag/__init__.py       ./ecg_rag/__init__.py
+COPY app/ecg-rag/api.py            ./ecg_rag/api.py
+COPY app/ecg-rag/app.py            ./ecg_rag/app.py
+COPY app/ecg-rag/config.py         ./ecg_rag/config.py
+COPY app/ecg-rag/features.py       ./ecg_rag/features.py
+COPY app/ecg-rag/initialize.py     ./ecg_rag/initialize.py
+COPY app/ecg-rag/llm_service.py    ./ecg_rag/llm_service.py
+COPY app/ecg-rag/preprocessing.py  ./ecg_rag/preprocessing.py
+COPY app/ecg-rag/rag_impl.py       ./ecg_rag/rag_impl.py
+COPY app/ecg-rag/database/         ./ecg_rag/database/
+
+EXPOSE 5050
+EXPOSE 8502
+
+CMD ["python", "app.py"]
