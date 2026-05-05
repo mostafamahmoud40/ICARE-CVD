@@ -16,7 +16,7 @@ for _root in (_here, _here.parent):
         if _s not in sys.path:
             sys.path.insert(0, _s)
         break
-from ml_env import load_ml_service_dotenv
+from ml_env import load_ml_service_dotenioioioiooiioioioiov
 
 load_ml_service_dotenv()
 
