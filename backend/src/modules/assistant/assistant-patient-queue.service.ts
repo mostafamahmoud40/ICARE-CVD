@@ -1,5 +1,10 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, count, eq, gte, ne, lte, or, sql } from 'drizzle-orm';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { and, count, desc, eq, gte, lte, ne, or, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import {
@@ -8,6 +13,7 @@ import {
   doctor,
   medication,
   patient,
+  patientDocument,
   patientQueue,
   user,
   vitalReading,
@@ -18,6 +24,14 @@ import type {
   QueuePriority,
   QueueStatus,
 } from './dto/patient-queue.dto';
+
+export type QueuePatientDocumentCategory =
+  | 'lab_report'
+  | 'imaging'
+  | 'ecg'
+  | 'prescription'
+  | 'referral'
+  | 'other';
 
 @Injectable()
 export class AssistantPatientQueueService {
@@ -131,6 +145,74 @@ export class AssistantPatientQueueService {
         vitalAlertCounts,
       ),
     );
+  }
+
+  async listQueuePatientDocuments(queueId: string) {
+    const row = await this.db
+      .select({ patientId: appointment.patientId })
+      .from(patientQueue)
+      .innerJoin(appointment, eq(patientQueue.appointmentId, appointment.id))
+      .where(eq(patientQueue.id, queueId))
+      .limit(1);
+
+    if (!row.length) throw new NotFoundException('Queue entry not found');
+
+    const patientId = row[0].patientId;
+
+    return this.db.query.patientDocument.findMany({
+      where: eq(patientDocument.patientId, patientId),
+      orderBy: desc(patientDocument.createdAt),
+    });
+  }
+
+  async registerQueuePatientDocument(
+    queueId: string,
+    assistantUserId: number,
+    dto: {
+      fileName: string;
+      contentType: string;
+      category: QueuePatientDocumentCategory;
+      title?: string;
+      s3Key: string;
+      fileSize?: number;
+    },
+  ) {
+    if (!dto.s3Key?.trim()) {
+      throw new BadRequestException('s3Key is required');
+    }
+
+    const row = await this.db
+      .select({ patientId: appointment.patientId })
+      .from(patientQueue)
+      .innerJoin(appointment, eq(patientQueue.appointmentId, appointment.id))
+      .where(eq(patientQueue.id, queueId))
+      .limit(1);
+
+    if (!row.length) throw new NotFoundException('Queue entry not found');
+
+    const patientId = row[0].patientId;
+
+    const patientRow = await this.db.query.patient.findFirst({
+      where: eq(patient.id, patientId),
+    });
+    if (!patientRow) throw new NotFoundException('Patient not found');
+
+    const [doc] = await this.db
+      .insert(patientDocument)
+      .values({
+        userId: patientRow.userId,
+        patientId,
+        fileName: dto.fileName,
+        contentType: dto.contentType,
+        sizeBytes: dto.fileSize ?? null,
+        category: dto.category,
+        title: dto.title ?? null,
+        uploadedByUserId: assistantUserId,
+        s3Key: dto.s3Key,
+      })
+      .returning();
+
+    return doc;
   }
 
   async getQueueEntry(queueId: string) {

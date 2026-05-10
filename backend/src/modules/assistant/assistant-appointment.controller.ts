@@ -15,6 +15,7 @@ import { AssistantGuard } from './assistant.guard';
 import { AssistantAppointmentService } from './assistant-appointment.service';
 import {
   CreateAssistantAppointmentDto,
+  PatchAssistantAppointmentDto,
   UpdateAppointmentStatusDto,
 } from './dto/create-appointment.dto';
 
@@ -67,5 +68,13 @@ export class AssistantAppointmentController {
     @Body() dto: UpdateAppointmentStatusDto,
   ) {
     return this.service.updateStatus(appointmentId, dto.status);
+  }
+
+  @Patch(':appointmentId')
+  patchAppointment(
+    @Param('appointmentId') appointmentId: string,
+    @Body() dto: PatchAssistantAppointmentDto,
+  ) {
+    return this.service.patchAppointment(appointmentId, dto);
   }
 }
