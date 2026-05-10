@@ -1,37 +1,52 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Lora } from "next/font/google"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import type { AuthUser } from "@/lib/auth-tokens"
 import {
   BellIcon,
   CalendarClockIcon,
+  CalendarDaysIcon,
+  ChevronDownIcon,
+  MessageCircleIcon,
   ClipboardListIcon,
+  ClipboardPlusIcon,
   CreditCardIcon,
   HeartHandshakeIcon,
+  HistoryIcon,
+  InboxIcon,
   LayoutDashboardIcon,
   LogOutIcon,
+  PillIcon,
+  PlayCircleIcon,
+  Settings2Icon,
+  ShieldCheckIcon,
+  SlidersHorizontalIcon,
   SparklesIcon,
+  StethoscopeIcon,
   User2Icon,
   UsersIcon,
 } from "lucide-react"
 
 import { useRequireRole } from "@/hooks/use-require-role"
+import { cn } from "@/lib/utils"
 
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
@@ -82,6 +97,10 @@ function AssistantLayoutContent({
 }) {
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
+  const searchParams = useSearchParams()
+  const [isQueueOpen, setIsQueueOpen] = useState(() => pathname.startsWith("/assistant-queue"))
+  const [isProceduresOpen, setIsProceduresOpen] = useState(() => pathname.startsWith("/assistant-procedures"))
+  const viewParam = searchParams.get("view")
 
   const navItems = [
     {
@@ -89,6 +108,18 @@ function AssistantLayoutContent({
       label: "Dashboard",
       icon: LayoutDashboardIcon,
       isActive: pathname === "/assistant-dashboard",
+    },
+    {
+      href: "/assistant-inbox",
+      label: "Inbox",
+      icon: InboxIcon,
+      isActive: pathname === "/assistant-inbox",
+    },
+    {
+      href: "/assistant-chats",
+      label: "Chats",
+      icon: MessageCircleIcon,
+      isActive: pathname === "/assistant-chats",
     },
     {
       href: "/assistant-patients",
@@ -106,7 +137,19 @@ function AssistantLayoutContent({
       href: "/assistant-queue",
       label: "Queue",
       icon: UsersIcon,
-      isActive: pathname === "/assistant-queue",
+      isActive: pathname.startsWith("/assistant-queue"),
+    },
+    {
+      href: "/assistant-procedures",
+      label: "Procedures",
+      icon: ClipboardPlusIcon,
+      isActive: pathname.startsWith("/assistant-procedures"),
+    },
+    {
+      href: "/assistant-medications",
+      label: "Medications",
+      icon: PillIcon,
+      isActive: pathname.startsWith("/assistant-medications"),
     },
     {
       href: "/assistant-dashboard",
@@ -116,43 +159,80 @@ function AssistantLayoutContent({
     },
   ] as const
 
+  const accountNavItems = [
+    {
+      href: "/assistant-account",
+      label: "Settings",
+      icon: Settings2Icon,
+      isActive:
+        (pathname === "/assistant-account" ||
+          pathname === "/assistant/assistant-account") &&
+        !pathname.includes("/notifications") &&
+        !pathname.includes("/preferences") &&
+        !pathname.includes("/security"),
+    },
+    {
+      href: "/assistant-account/security",
+      label: "Security",
+      icon: ShieldCheckIcon,
+      isActive:
+        pathname.includes("/assistant-account/security") ||
+        pathname.includes("/assistant/assistant-account/security"),
+    },
+    {
+      href: "/assistant-account/notifications",
+      label: "Notifications",
+      icon: BellIcon,
+      isActive:
+        pathname.includes("/assistant-account/notifications") ||
+        pathname.includes("/assistant/assistant-account/notifications"),
+    },
+    {
+      href: "/assistant-account/preferences",
+      label: "Preferences",
+      icon: SlidersHorizontalIcon,
+      isActive:
+        pathname.includes("/assistant-account/preferences") ||
+        pathname.includes("/assistant/assistant-account/preferences"),
+    },
+  ] as const
+
   return (
     <>
       <Sidebar side="left" collapsible="icon" variant="sidebar">
-        <SidebarHeader className="group-data-[collapsible=icon]:p-1">
+        <SidebarHeader className="group-data-[collapsible=icon]:p-1 border-b border-[#E8E6E0]/60 pb-4 pt-4 px-4">
           <div
-            className="flex items-center gap-2 px-1"
+            className="flex items-center gap-3"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex size-8 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-primary/25">
+            <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm border border-[#E8E6E0]">
               <Image
                 src="/images/logo/logo.png"
                 alt="ICARE-CVD Logo"
-                width={32}
-                height={32}
-                className="size-8 object-cover"
+                width={44}
+                height={44}
+                className="size-11 object-cover"
                 priority
               />
             </div>
 
             {isCollapsed ? null : (
-              <div className="leading-tight">
-                <div className="text-sm font-semibold">ICARE-CVD</div>
-                <div className="text-xs text-muted-foreground">Assistant Portal</div>
+              <div className="flex flex-col gap-0.5 leading-tight">
+                <div className="text-[17px] font-bold text-[#6B7870]">ICARE-CVD</div>
+                <div className="text-[13px] font-medium text-muted-foreground">Assistant Portal</div>
               </div>
             )}
           </div>
         </SidebarHeader>
 
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Overview</SidebarGroupLabel>
+          <SidebarGroup className="p-2 pb-0">
             <SidebarMenu>
               {navItems.slice(0, 1).map((item) => {
                 const Icon = item.icon
                 return (
-                  <SidebarMenuItem key={item.href}>
+                  <SidebarMenuItem key={`${item.href}-${item.label}`}>
                     <SidebarMenuButton
                       isActive={item.isActive}
                       render={
@@ -168,13 +248,188 @@ function AssistantLayoutContent({
             </SidebarMenu>
           </SidebarGroup>
 
-          <SidebarGroup>
-            <SidebarGroupLabel>Activities</SidebarGroupLabel>
+          <SidebarGroup className="p-2 py-0">
             <SidebarMenu>
               {navItems.slice(1).map((item) => {
                 const Icon = item.icon
+
+                if (item.label === "Queue") {
+                  return (
+                    <SidebarMenuItem key={`${item.href}-${item.label}`}>
+                      <SidebarMenuButton
+                        isActive={false}
+                        render={
+                          <button
+                            type="button"
+                            aria-label={item.label}
+                            onClick={() => !isCollapsed && setIsQueueOpen((prev) => !prev)}
+                          >
+                            <Icon className="size-4" aria-hidden="true" />
+                            {isCollapsed ? null : (
+                              <>
+                                <span>{item.label}</span>
+                                <ChevronDownIcon
+                                  className={cn(
+                                    "ml-auto size-4 transition-transform duration-200",
+                                    isQueueOpen && "rotate-180"
+                                  )}
+                                />
+                              </>
+                            )}
+                          </button>
+                        }
+                      />
+                      {isQueueOpen && !isCollapsed && (
+                        <SidebarMenuSub>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              isActive={pathname.startsWith("/assistant-queue") && (!viewParam || viewParam === "operations")}
+                              render={
+                                <Link href="/assistant-queue?view=operations">
+                                  <PlayCircleIcon className="size-3.5" />
+                                  Live Desk
+                                </Link>
+                              }
+                            />
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              isActive={pathname.startsWith("/assistant-queue") && viewParam === "schedule"}
+                              render={
+                                <Link href="/assistant-queue?view=schedule">
+                                  <CalendarDaysIcon className="size-3.5" />
+                                  Expected Today
+                                </Link>
+                              }
+                            />
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              isActive={pathname.startsWith("/assistant-queue") && viewParam === "history"}
+                              render={
+                                <Link href="/assistant-queue?view=history">
+                                  <HistoryIcon className="size-3.5" />
+                                  Past Visits
+                                </Link>
+                              }
+                            />
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              isActive={pathname.startsWith("/assistant-queue") && viewParam === "doctors"}
+                              render={
+                                <Link href="/assistant-queue?view=doctors">
+                                  <StethoscopeIcon className="size-3.5" />
+                                  Doctors
+                                </Link>
+                              }
+                            />
+                          </SidebarMenuSubItem>
+                        </SidebarMenuSub>
+                      )}
+                    </SidebarMenuItem>
+                  )
+                }
+
+                if (item.label === "Procedures") {
+                  return (
+                    <SidebarMenuItem key={`${item.href}-${item.label}`}>
+                      <SidebarMenuButton
+                        isActive={false}
+                        render={
+                          <button
+                            type="button"
+                            aria-label={item.label}
+                            onClick={() => !isCollapsed && setIsProceduresOpen((prev) => !prev)}
+                          >
+                            <Icon className="size-4" aria-hidden="true" />
+                            {isCollapsed ? null : (
+                              <>
+                                <span>{item.label}</span>
+                                <ChevronDownIcon
+                                  className={cn(
+                                    "ml-auto size-4 transition-transform duration-200",
+                                    isProceduresOpen && "rotate-180"
+                                  )}
+                                />
+                              </>
+                            )}
+                          </button>
+                        }
+                      />
+                      {isProceduresOpen && !isCollapsed && (
+                        <SidebarMenuSub>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              isActive={pathname.startsWith("/assistant-procedures") && (!viewParam || viewParam === "operations")}
+                              render={
+                                <Link href="/assistant-procedures?view=operations">
+                                  <StethoscopeIcon className="size-3.5" />
+                                  Doctor Operations
+                                </Link>
+                              }
+                            />
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              isActive={pathname.startsWith("/assistant-procedures") && viewParam === "current"}
+                              render={
+                                <Link href="/assistant-procedures?view=current">
+                                  <CalendarDaysIcon className="size-3.5" />
+                                  Current Schedule
+                                </Link>
+                              }
+                            />
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              isActive={pathname.startsWith("/assistant-procedures") && viewParam === "history"}
+                              render={
+                                <Link href="/assistant-procedures?view=history">
+                                  <HistoryIcon className="size-3.5" />
+                                  History Records
+                                </Link>
+                              }
+                            />
+                          </SidebarMenuSubItem>
+                        </SidebarMenuSub>
+                      )}
+                    </SidebarMenuItem>
+                  )
+                }
+
                 return (
-                  <SidebarMenuItem key={item.label}>
+                  <SidebarMenuItem key={`${item.href}-${item.label}`}>
+                    <SidebarMenuButton
+                      isActive={item.isActive}
+                      render={
+                        <Link href={item.href} aria-label={item.label}>
+                          <Icon className="size-4" />
+                          {isCollapsed ? null : (
+                            <>
+                              <span>{item.label}</span>
+                              {item.label === "Inbox" ? (
+                                <span className="ml-auto rounded-full bg-[#6D5DD3] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                                  3
+                                </span>
+                              ) : null}
+                            </>
+                          )}
+                        </Link>
+                      }
+                    />
+                  </SidebarMenuItem>
+                )
+              })}
+            </SidebarMenu>
+          </SidebarGroup>
+
+          <SidebarGroup className="p-2 pt-0">
+            <SidebarMenu>
+              {accountNavItems.map((item) => {
+                const Icon = item.icon
+                return (
+                  <SidebarMenuItem key={`${item.href}-${item.label}`}>
                     <SidebarMenuButton
                       isActive={item.isActive}
                       render={
@@ -193,26 +448,32 @@ function AssistantLayoutContent({
 
         <SidebarRail />
 
-        <SidebarFooter className="group-data-[collapsible=icon]:p-1">
+        <SidebarFooter className="group-data-[collapsible=icon]:p-1 border-t border-[#E8E6E0]/60 p-4">
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton
-                    isActive={false}
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                     render={
                       <button type="button" aria-label="Assistant profile">
-                        <div
-                          className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/25"
-                          aria-hidden="true"
-                        >
-                          <User2Icon className="size-4" />
+                        <div className="relative">
+                          <div
+                            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#E15C5C] text-white text-[17px] font-bold shadow-sm"
+                            aria-hidden="true"
+                          >
+                            {mounted && user ? user.name[0].toUpperCase() : "A"}
+                          </div>
+                          <span className="absolute -top-0.5 -right-0.5 size-3.5 rounded-full bg-white border-2 border-white ring-1 ring-slate-200" />
                         </div>
 
                         {isCollapsed ? null : (
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-medium">{mounted && user ? user.name : "Assistant"}</div>
-                            <div className="truncate text-xs text-muted-foreground">
+                          <div className="flex flex-col gap-0.5 min-w-0 text-left">
+                            <div className="truncate text-[15px] font-bold text-[#6B7870]">
+                              {mounted && user ? user.name : "ASSISTANT"}
+                            </div>
+                            <div className="truncate text-[13px] font-medium text-muted-foreground">
                               Care Assistant
                             </div>
                           </div>
@@ -222,56 +483,69 @@ function AssistantLayoutContent({
                   />
                 </DropdownMenuTrigger>
 
-                <DropdownMenuContent align="end" side="right" className="w-56">
-                  <div className="flex items-start gap-3 px-2 py-2">
+                <DropdownMenuContent
+                  align="end"
+                  side="right"
+                  sideOffset={8}
+                  className="w-[260px] rounded-xl border-[#E8E6E0]/60 bg-white p-0 shadow-[0_8px_30px_rgb(0,0,0,0.08)]"
+                >
+                  <div className="flex items-center gap-3 p-4">
                     <div
-                      className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/25"
+                      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1A5345] text-white shadow-sm"
                       aria-hidden="true"
                     >
-                      <User2Icon className="size-4" />
+                      <User2Icon className="size-5" />
                     </div>
-
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">{mounted && user ? user.name : "Assistant"}</div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {mounted && user ? user.email : ""}
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <div className="truncate text-[15px] font-bold text-[#6B7870]">
+                        {mounted && user ? user.name : "ASSISTANT"}
+                      </div>
+                      <div className="truncate text-[13px] text-muted-foreground">
+                        {mounted && user ? user.email : "assistant@gmail.com"}
                       </div>
                     </div>
                   </div>
 
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-[#E8E6E0]/60 m-0" />
 
-                  <DropdownMenuItem>
-                    <SparklesIcon className="size-4" />
+                  <DropdownMenuItem className="flex items-center gap-3 p-4 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
+                    <SparklesIcon className="size-5" />
                     <span>Upgrade to Pro</span>
                   </DropdownMenuItem>
 
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-[#E8E6E0]/60 m-0" />
 
-                  <DropdownMenuItem>
-                    <User2Icon className="size-4" />
-                    <span>Account</span>
-                  </DropdownMenuItem>
+                  <div className="flex flex-col py-1">
+                    <DropdownMenuItem asChild className="flex items-center gap-3 px-4 py-3 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
+                      <Link href="/assistant-account">
+                        <User2Icon className="size-5" />
+                        <span>Account</span>
+                      </Link>
+                    </DropdownMenuItem>
 
-                  <DropdownMenuItem>
-                    <CreditCardIcon className="size-4" />
-                    <span>Billing</span>
-                  </DropdownMenuItem>
+                    <DropdownMenuItem className="flex items-center gap-3 px-4 py-3 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
+                      <CreditCardIcon className="size-5" />
+                      <span>Billing</span>
+                    </DropdownMenuItem>
 
-                  <DropdownMenuItem>
-                    <BellIcon className="size-4" />
-                    <span>Notifications</span>
-                  </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="flex items-center gap-3 px-4 py-3 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
+                      <Link href="/assistant-account/notifications">
+                        <BellIcon className="size-5" />
+                        <span>Notifications</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </div>
 
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-[#E8E6E0]/60 m-0" />
 
                   <DropdownMenuItem
+                    className="flex items-center gap-3 p-4 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-b-xl rounded-t-none"
                     onSelect={(e) => {
                       e.preventDefault()
                       logout()
                     }}
                   >
-                    <LogOutIcon className="size-4" />
+                    <LogOutIcon className="size-5" />
                     <span>Log out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -282,12 +556,17 @@ function AssistantLayoutContent({
       </Sidebar>
 
       <SidebarInset>
-        <div className="flex h-16 items-center gap-3 border-b border-black/5 px-4 dark:border-white/10">
-          <SidebarTrigger />
-          <div className="flex flex-col">
-            <div className="text-base font-semibold">Assistant Dashboard</div>
-            <div className="text-sm text-muted-foreground">
-              Tasks, cases & patient support
+        <div className="flex h-16 items-center justify-between gap-4 border-b border-[#E8E6E0] bg-[#FAFAF8] px-4">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger className="text-[#1A5345] hover:bg-[#E8F0EE]" />
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-[#1A5345]">
+                <LayoutDashboardIcon className="size-4 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <div className="text-[13px] font-bold text-[#102F27]">Assistant Dashboard</div>
+                <div className="text-[10px] text-[#6B7870]">Manage procedures & patient tasks</div>
+              </div>
             </div>
           </div>
         </div>
