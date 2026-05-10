@@ -32,6 +32,7 @@ const LEGACY_TO_CANONICAL: Record<string, string> = {
   "/admin-dashboard": "/admin/admin-dashboard",
   "/doctor-dashboard": "/doctor/doctor-dashboard",
   "/assistant-dashboard": "/assistant/assistant-dashboard",
+  "/assistant-account": "/assistant/assistant-account",
 };
 
 const PREFIX_ALLOWED_ROUTES: Record<string, string[]> = {
@@ -50,7 +51,7 @@ const PREFIX_ALLOWED_ROUTES: Record<string, string[]> = {
   patient: ["/dashboard"],
   doctor: ["/doctor-dashboard"],
   admin: ["/add-staff", "/addstaff", "/admin-dashboard"],
-  assistant: ["/assistant-dashboard", "/assistant-patients"],
+  assistant: ["/assistant-dashboard", "/assistant-patients", "/assistant-account"],
 };
 
 const DEFAULT_REDIRECT: Record<string, string> = {
@@ -210,6 +211,7 @@ export const config = {
     "/dashboard/:path*",
     "/doctor-dashboard/:path*",
     "/assistant-dashboard/:path*",
+    "/assistant-account/:path*",
     "/add-staff/:path*",
     "/admin-dashboard/:path*",
     "/login",

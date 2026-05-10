@@ -14,6 +14,7 @@ import {
   FileTextIcon,
   HeartPulseIcon,
   LayoutDashboardIcon,
+  ListOrderedIcon,
   LogOutIcon,
   MessageCircleIcon,
   PillIcon,
@@ -97,6 +98,12 @@ function PatientLayoutContent({
       label: "Appointments",
       icon: CalendarDaysIcon,
       isActive: pathname === "/appointments",
+    },
+    {
+      href: "/queue",
+      label: "Queue",
+      icon: ListOrderedIcon,
+      isActive: pathname === "/queue",
     },
     {
       href: "/consultations",
@@ -304,7 +311,9 @@ function PatientLayoutContent({
                 ? "Medications"
                 : pathname === "/appointments"
                   ? "Appointments"
-                  : pathname === "/ai-chat"
+                  : pathname === "/queue"
+                    ? "Clinic queue"
+                    : pathname === "/ai-chat"
                     ? "AI assistant"
                     : pathname === "/chat"
                       ? "Chats"
@@ -317,7 +326,9 @@ function PatientLayoutContent({
                 ? "Manage your prescriptions & doses"
                 : pathname === "/appointments"
                   ? "View and manage your appointments"
-                  : pathname === "/ai-chat"
+                  : pathname === "/queue"
+                    ? "Your wait status for today's visit"
+                    : pathname === "/ai-chat"
                     ? "Ask questions — demo replies only"
                     : pathname === "/chat"
                       ? "Messages & conversations"

@@ -1,17 +1,21 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
+import { appointmentMatchesAdvancedFilters } from "./appointment-filter-helpers"
 import type {
   AssistantAppointment,
+  AssistantAppointmentAdvancedFilters,
   AssistantAppointmentStatus,
   AvailableSlotOption,
   AppointmentStats,
   DoctorOption,
   PatientOption,
   CreateAppointmentPayload,
+  PatchAssistantAppointmentPayload,
 } from "./assistantAppointments.types"
+import { defaultAssistantAppointmentAdvancedFilters } from "./assistantAppointments.types"
 
 async function fetchAppointments(): Promise<AssistantAppointment[]> {
   const { data } = await apiClient.get<AssistantAppointment[]>("/assistant/appointments")
@@ -36,16 +40,32 @@ async function fetchPatients(): Promise<PatientOption[]> {
 async function updateAppointmentStatus(payload: {
   appointmentId: string
   status: AssistantAppointmentStatus
+  cancellationReason?: string
 }) {
+  const body: { status: AssistantAppointmentStatus; cancellationReason?: string } = { status: payload.status }
+  if (payload.cancellationReason) {
+    body.cancellationReason = payload.cancellationReason
+  }
   const { data } = await apiClient.patch(
     `/assistant/appointments/${payload.appointmentId}/status`,
-    { status: payload.status },
+    body,
   )
   return data
 }
 
 async function createAppointment(payload: CreateAppointmentPayload) {
   const { data } = await apiClient.post("/assistant/appointments", payload)
+  return data
+}
+
+async function patchAppointment(
+  appointmentId: string,
+  payload: PatchAssistantAppointmentPayload,
+): Promise<AssistantAppointment> {
+  const { data } = await apiClient.patch<AssistantAppointment>(
+    `/assistant/appointments/${appointmentId}`,
+    payload,
+  )
   return data
 }
 
@@ -66,6 +86,9 @@ export function useAssistantAppointments() {
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<AssistantAppointmentStatus | "all">("all")
+  const [advancedFilters, setAdvancedFilters] = useState<AssistantAppointmentAdvancedFilters>(
+    () => ({ ...defaultAssistantAppointmentAdvancedFilters }),
+  )
 
   const appointmentsQuery = useQuery<AssistantAppointment[], Error>({
     queryKey: appointmentsKey,
@@ -111,8 +134,52 @@ export function useAssistantAppointments() {
     },
   })
 
-  const appointments = appointmentsQuery.data ?? []
+  const patchMutation = useMutation({
+    mutationFn: (args: { appointmentId: string; payload: PatchAssistantAppointmentPayload }) =>
+      patchAppointment(args.appointmentId, args.payload),
+    onSuccess: async () => {
+      await invalidateAll()
+      await queryClient.invalidateQueries({ queryKey: ["assistant-appointments-available-slots"] })
+    },
+  })
+
+  const appointments = useMemo(() => appointmentsQuery.data ?? [], [appointmentsQuery.data])
   const stats = statsQuery.data ?? { total: 0, scheduled: 0, confirmed: 0, completed: 0, cancelled: 0 }
+
+  const doctorFilterOptions = useMemo(() => {
+    const names = new Set<string>()
+    for (const a of appointments) {
+      const n = a.doctorName?.trim()
+      if (n) names.add(n)
+    }
+    for (const d of doctorsQuery.data ?? []) {
+      const n = d.name?.trim()
+      if (n) names.add(n)
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b))
+  }, [appointments, doctorsQuery.data])
+
+  const departmentOptions = useMemo(() => {
+    const set = new Set<string>()
+    for (const a of appointments) {
+      const d = a.department?.trim()
+      if (d) set.add(d)
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [appointments])
+
+  const hasActiveAdvancedFilters = useMemo(
+    () =>
+      advancedFilters.visitType !== "all" ||
+      advancedFilters.doctorName.trim() !== "" ||
+      advancedFilters.department.trim() !== "" ||
+      advancedFilters.dateScope !== "all",
+    [advancedFilters],
+  )
+
+  const resetAdvancedFilters = useCallback(() => {
+    setAdvancedFilters({ ...defaultAssistantAppointmentAdvancedFilters })
+  }, [])
 
   const filteredAppointments = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
@@ -120,13 +187,21 @@ export function useAssistantAppointments() {
       const matchesStatus = statusFilter === "all" || appointment.status === statusFilter
       const matchesSearch =
         normalizedSearch.length === 0 ||
-        appointment.patientName.toLowerCase().includes(normalizedSearch) ||
-        appointment.doctorName.toLowerCase().includes(normalizedSearch) ||
-        appointment.id.toLowerCase().includes(normalizedSearch)
+        [
+          appointment.patientName,
+          appointment.doctorName,
+          appointment.id,
+          appointment.reason,
+          appointment.department,
+          appointment.patientEmail,
+          appointment.patientPhone ?? "",
+        ].some((field) => field.toLowerCase().includes(normalizedSearch))
 
-      return matchesStatus && matchesSearch
+      const matchesAdv = appointmentMatchesAdvancedFilters(appointment, advancedFilters)
+
+      return matchesStatus && matchesSearch && matchesAdv
     })
-  }, [appointments, searchTerm, statusFilter])
+  }, [appointments, searchTerm, statusFilter, advancedFilters])
 
   return {
     appointments: filteredAppointments,
@@ -136,6 +211,12 @@ export function useAssistantAppointments() {
     setSearchTerm,
     statusFilter,
     setStatusFilter,
+    advancedFilters,
+    setAdvancedFilters,
+    resetAdvancedFilters,
+    hasActiveAdvancedFilters,
+    doctorFilterOptions,
+    departmentOptions,
     isLoading: appointmentsQuery.isLoading || statsQuery.isLoading,
     isError: appointmentsQuery.isError || statsQuery.isError,
     error: appointmentsQuery.error ?? statsQuery.error ?? null,
@@ -143,6 +224,8 @@ export function useAssistantAppointments() {
     isUpdatingStatus: statusMutation.isPending,
     createAppointment: createMutation.mutateAsync,
     isCreating: createMutation.isPending,
+    updateAppointment: patchMutation.mutateAsync,
+    isUpdatingAppointment: patchMutation.isPending,
     doctors: doctorsQuery.data ?? [],
     patients: patientsQuery.data ?? [],
   }

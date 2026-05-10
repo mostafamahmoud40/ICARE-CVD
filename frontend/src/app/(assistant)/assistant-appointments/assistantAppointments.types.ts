@@ -2,8 +2,27 @@ export type AssistantAppointmentStatus = "scheduled" | "confirmed" | "completed"
 
 export type AssistantAppointmentVisitType = "clinic" | "virtual"
 
+export type AppointmentDateScopeFilter = "all" | "today" | "upcoming" | "past"
+
+export type AssistantAppointmentAdvancedFilters = {
+  visitType: "all" | AssistantAppointmentVisitType
+  doctorName: string
+  department: string
+  dateScope: AppointmentDateScopeFilter
+}
+
+export const defaultAssistantAppointmentAdvancedFilters: AssistantAppointmentAdvancedFilters = {
+  visitType: "all",
+  doctorName: "",
+  department: "",
+  dateScope: "all",
+}
+
 export type AssistantAppointment = {
   id: string
+  /** Present when loaded from API list/detail */
+  patientId?: string
+  doctorId?: string
   patientName: string
   patientPhone: string | null
   patientEmail: string
@@ -12,8 +31,21 @@ export type AssistantAppointment = {
   scheduledAt: string
   visitType: AssistantAppointmentVisitType
   reason: string
+  notes?: string | null
   status: AssistantAppointmentStatus
   createdAt: string
+  /** Signed-off visit narrative when backend provides it */
+  visitSummary?: string | null
+  /** External PDF/portal link for the full visit report */
+  visitReportUrl?: string | null
+}
+
+export type PatchAssistantAppointmentPayload = {
+  scheduledAt?: string
+  doctorId?: string
+  visitType?: AssistantAppointmentVisitType
+  reason?: string
+  notes?: string
 }
 
 export type AppointmentStats = {
