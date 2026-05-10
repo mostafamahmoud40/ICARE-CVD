@@ -7,20 +7,20 @@ import type {
   ConsultationData,
   DiagnosisEntry,
   PrescriptionEntry,
-  ProcedureEntry,
   TestOrder,
   HomeMeasurement,
   VitalSigns,
   PhysicalExamFindings,
+  ProcedureDetails,
 } from "./consultation.types"
 import { mockConsultationData } from "./consultation.mock"
 import { PatientSidebar } from "./PatientSidebar"
 import { VitalsSection } from "./VitalsSection"
+import { ProceduresSection } from "./ProceduresSection"
 import { ChiefComplaintSection } from "./ChiefComplaintSection"
 import { PhysicalExamSection } from "./PhysicalExamSection"
 import { DiagnosisSection } from "./DiagnosisSection"
 import { PrescriptionsSection } from "./PrescriptionsSection"
-import { ProceduresSection } from "./ProceduresSection"
 import { ClinicalNotesSection } from "./ClinicalNotesSection"
 import { FollowUpSection } from "./FollowUpSection"
 import { TestsAndMeasurementsSection } from "./TestsAndMeasurementsSection"
@@ -35,6 +35,7 @@ import type { LabMaterialFile } from "./consultation.types"
 import { AIAssistantPanel } from "./AIAssistantPanel"
 import { ConsultationFloatingPatientQueryBar } from "./ConsultationFloatingPatientQueryBar"
 import { ConsultationVoiceDictationErrorProvider } from "./ConsultationVoiceDictationErrorContext"
+import { useLocalStorageState } from "./useLocalStorageState"
 import { PatientBriefingAgent, BriefingAgentChip } from "./PatientBriefingAgent"
 import { Button } from "@/components/ui/button"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -55,8 +56,8 @@ export function ConsultationPage() {
   const [ecgDatFile, setEcgDatFile] = useState<File | null>(null)
   // EcgRagSection manages its own file state independently
   const [labMaterials, setLabMaterials] = useState<LabMaterialFile[]>([])
-  const [isPatientSidebarCollapsed, setIsPatientSidebarCollapsed] = useState(false)
-  const [isAiPanelCollapsed, setIsAiPanelCollapsed] = useState(false)
+  const [isPatientSidebarCollapsed, setIsPatientSidebarCollapsed] = useLocalStorageState("consultation-patient-sidebar-collapsed", false)
+  const [isAiPanelCollapsed, setIsAiPanelCollapsed] = useLocalStorageState("consultation-ai-panel-collapsed", false)
   const [showBriefing, setShowBriefing] = useState(true)
   const [showBriefingChip, setShowBriefingChip] = useState(false)
   const {
@@ -76,6 +77,16 @@ export function ConsultationPage() {
     setData((prev) => ({ ...prev, physicalExam: { ...prev.physicalExam, [key]: value } as PhysicalExamFindings }))
   }
 
+  const updateProcedureDetails = <K extends keyof ProcedureDetails>(
+    key: K,
+    value: ProcedureDetails[K],
+  ) => {
+    setData((prev) => ({
+      ...prev,
+      procedureDetails: { ...prev.procedureDetails, [key]: value },
+    }))
+  }
+
   const addDiagnosis = (entry: DiagnosisEntry) => {
     setData((prev) => ({ ...prev, diagnoses: [...prev.diagnoses, entry] }))
   }
@@ -90,14 +101,6 @@ export function ConsultationPage() {
 
   const removePrescription = (id: string) => {
     setData((prev) => ({ ...prev, prescriptions: prev.prescriptions.filter((p) => p.id !== id) }))
-  }
-
-  const addProcedure = (entry: ProcedureEntry) => {
-    setData((prev) => ({ ...prev, procedures: [...prev.procedures, entry] }))
-  }
-
-  const removeProcedure = (id: string) => {
-    setData((prev) => ({ ...prev, procedures: prev.procedures.filter((p) => p.id !== id) }))
   }
 
   const addTestOrder = (entry: TestOrder) => {
@@ -290,12 +293,6 @@ export function ConsultationPage() {
               structuredComplaint={data.structuredComplaint}
             />
 
-            <ProceduresSection
-              procedures={data.procedures}
-              onAddProcedure={addProcedure}
-              onRemoveProcedure={removeProcedure}
-            />
-
             <TestsAndMeasurementsSection
               testOrders={data.testOrders}
               onAddTestOrder={addTestOrder}
@@ -346,6 +343,11 @@ export function ConsultationPage() {
               onFollowUpDateChange={(v) => setData((prev) => ({ ...prev, followUpDate: v }))}
               followUpNotes={data.followUpNotes}
               onFollowUpNotesChange={(v) => setData((prev) => ({ ...prev, followUpNotes: v }))}
+            />
+
+            <ProceduresSection
+              details={data.procedureDetails}
+              onDetailsChange={updateProcedureDetails}
             />
 
             {/* Action Buttons - Bottom of page */}

@@ -107,7 +107,7 @@ function FilePreviewDialog({
                   rel="noopener noreferrer"
                   className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-[#1A5345] px-4 py-2 text-[11px] font-medium text-white hover:bg-[#0F3D32]"
                 >
-                  فتح الملف
+                  Open file
                 </a>
               )}
             </div>
