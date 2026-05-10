@@ -62,7 +62,7 @@ export function useAddPatient() {
   const [values, setValues] = useState<AddPatientFormValues>(defaultValues)
   const [fieldErrors, setFieldErrors] = useState<AddPatientFieldErrors>({})
 
-  const { data: patientsFromDb } = useQuery({
+  const { data: patientsFromDb, isLoading: isLoadingPatients } = useQuery({
     queryKey: ["assistant-patients"],
     queryFn: async () => {
       const { data } = await apiClient.get<CreatedPatient[]>("/assistant/patients")
@@ -204,6 +204,7 @@ export function useAddPatient() {
     values,
     fieldErrors,
     patients: patientsFromDb ?? [],
+    isLoadingPatients,
     isSubmitting: createMutation.isPending,
     isSuccess: createMutation.isSuccess,
     submitError: serverErrorMessage,
