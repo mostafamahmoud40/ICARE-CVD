@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import { ArrowLeftIcon, BellIcon, PlusIcon, StethoscopeIcon, UserRoundIcon } from "lucide-react"
+import { ArrowLeftIcon, BellIcon, CalendarDaysIcon, ClipboardListIcon, ClockIcon, PlusIcon, StethoscopeIcon, UserRoundIcon } from "lucide-react"
 import { StatusBadge } from "./StatusBadge"
 import { RequirementItem } from "./RequirementItem"
 import { RequirementForm } from "./RequirementForm"
@@ -81,7 +81,6 @@ export function ProcedureDetailPanel({
             {order.procedureName}
           </p>
         </div>
-        <StatusBadge status={order.status} />
         <button
           type="button"
           onClick={() => setNotifyOpen(true)}
@@ -102,112 +101,128 @@ export function ProcedureDetailPanel({
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 space-y-4 overflow-y-auto p-3 sm:p-4">
-        {/* Patient info */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-full bg-[#E8F0EE] sm:size-14">
-              <UserRoundIcon className="size-6 text-[#1A5345] sm:size-7" />
+      <div className="flex-1 space-y-3 overflow-y-auto p-3 sm:p-4">
+
+        {/* ── Hero patient card ── */}
+        <div className="overflow-hidden rounded-2xl border border-[#E5EEEA] bg-white shadow-sm">
+          <div className="h-1 w-full bg-[#1A5345]" />
+          <div className="flex items-center justify-between gap-3 p-3 sm:p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E8F0EE] sm:size-14">
+                <UserRoundIcon className="size-6 text-[#1A5345] sm:size-7" />
+              </div>
+              <div>
+                <p className="text-[14px] font-bold text-[#102F27]">{order.patientName}</p>
+                <p className="text-[11px] text-muted-foreground">{order.patientAge} years old</p>
+                {order.patientPhone && (
+                  <p className="text-[10px] text-muted-foreground">{order.patientPhone}</p>
+                )}
+              </div>
             </div>
-            <div>
-              <p className="text-[12px] font-semibold text-[#102F27] sm:text-[13px]">
-                {order.patientName}
-              </p>
-              <p className="text-[10px] text-muted-foreground sm:text-[11px]">
-                {order.patientAge} years old
-              </p>
-              {order.patientPhone && (
-                <p className="text-[10px] text-muted-foreground sm:text-[11px]">{order.patientPhone}</p>
-              )}
-            </div>
-          </div>
-          {order.priority !== "normal" && (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] sm:text-[11px]",
-                PRIORITY_CONFIG[order.priority].style,
-              )}
-            >
-              {PRIORITY_CONFIG[order.priority].dot ? (
-                <span
-                  className={cn(
-                    "inline-block size-1.5 shrink-0 rounded-full",
-                    PRIORITY_CONFIG[order.priority].dot,
+            <div className="flex flex-col items-end gap-1.5">
+              <StatusBadge status={order.status} />
+              {order.priority !== "normal" && (
+                <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-medium", PRIORITY_CONFIG[order.priority].style)}>
+                  {PRIORITY_CONFIG[order.priority].dot && (
+                    <span className={cn("inline-block size-1.5 shrink-0 rounded-full", PRIORITY_CONFIG[order.priority].dot)} aria-hidden />
                   )}
-                  aria-hidden
-                />
-              ) : null}
-              {PRIORITY_CONFIG[order.priority].label}
-            </span>
-          )}
+                  {PRIORITY_CONFIG[order.priority].label}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
-        
-        {/* Procedure details grid */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className="col-span-2 rounded-lg border border-[#E8E6E0] p-2 sm:p-2.5">
-            <p className="text-[9px] text-muted-foreground sm:text-[10px]">Procedure</p>
-            <p className="mt-0.5 text-[11px] font-medium text-[#102F27] sm:text-[12px]">
-              {order.procedureName}
-            </p>
+        {/* ── Info rows ── */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-3 rounded-xl border border-[#E5EEEA] bg-white px-3 py-2.5">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
+              <StethoscopeIcon className="size-4 text-[#1A5345]" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[9px] text-muted-foreground">Procedure</p>
+              <p className="text-[12px] font-semibold text-[#102F27]">{order.procedureName}</p>
+            </div>
           </div>
+
           {order.scheduledAt && (
-            <div className="col-span-2 rounded-lg border border-[#E8E6E0] p-2 sm:p-2.5">
-              <p className="text-[9px] text-muted-foreground sm:text-[10px]">Scheduled</p>
-              <p className="mt-0.5 text-[11px] font-medium text-[#102F27] sm:text-[12px]">
-                {new Intl.DateTimeFormat("en-GB", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                }).format(new Date(order.scheduledAt))}
-              </p>
+            <div className="flex items-center gap-3 rounded-xl border border-[#E5EEEA] bg-white px-3 py-2.5">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-50">
+                <CalendarDaysIcon className="size-4 text-amber-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[9px] text-muted-foreground">Scheduled</p>
+                <p className="text-[12px] font-semibold text-[#102F27]">
+                  {new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(order.scheduledAt))}
+                </p>
+              </div>
             </div>
           )}
-          <div className="rounded-lg border border-[#E8E6E0] p-2 sm:p-2.5">
-            <p className="text-[9px] text-muted-foreground sm:text-[10px]">Requested</p>
-            <p className="mt-0.5 text-[11px] font-medium text-[#102F27] sm:text-[12px]">
-              {new Intl.DateTimeFormat("en-GB", { dateStyle: "short" }).format(
-                new Date(order.createdAt),
-              )}
-            </p>
-          </div>
-          <div className="rounded-lg border border-[#E8E6E0] p-2 sm:p-2.5">
-            <p className="text-[9px] text-muted-foreground sm:text-[10px]">Progress</p>
-            <p
-              className={cn(
-                "mt-0.5 text-[11px] font-medium sm:text-[12px]",
-                allDone ? "text-emerald-600" : "text-[#102F27]",
-              )}
-            >
-              {doneCount}/{totalCount} done
-            </p>
+
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="flex items-center gap-2.5 rounded-xl border border-[#E5EEEA] bg-white px-3 py-2.5">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#F5F5F3]">
+                <ClockIcon className="size-3.5 text-[#6B7870]" />
+              </div>
+              <div>
+                <p className="text-[9px] text-muted-foreground">Requested</p>
+                <p className="text-[11px] font-semibold text-[#102F27]">
+                  {new Intl.DateTimeFormat("en-GB", { dateStyle: "short" }).format(new Date(order.createdAt))}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 rounded-xl border border-[#E5EEEA] bg-white px-3 py-2.5">
+              <div className={cn("flex size-7 shrink-0 items-center justify-center rounded-lg", allDone ? "bg-emerald-50" : "bg-[#F5F5F3]")}>
+                <ClipboardListIcon className={cn("size-3.5", allDone ? "text-emerald-600" : "text-[#6B7870]")} />
+              </div>
+              <div>
+                <p className="text-[9px] text-muted-foreground">Progress</p>
+                <p className={cn("text-[11px] font-semibold", allDone ? "text-emerald-600" : "text-[#102F27]")}>
+                  {doneCount}/{totalCount} done
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Doctor notes */}
+        {/* ── Doctor notes ── */}
         {order.notes && (
-          <div className="rounded-lg bg-[#FAFAF8] p-2.5 sm:p-3">
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground sm:text-[10px]">
-              Doctor Notes
-            </p>
-            <p className="mt-1 text-[10px] text-[#1A1F1E] sm:text-[11px]">{order.notes}</p>
+          <div className="rounded-xl border border-[#E5EEEA] bg-[#FAFAF8] p-3">
+            <p className="mb-1 text-[9px] font-medium uppercase tracking-wider text-muted-foreground">Doctor Notes</p>
+            <p className="text-[11px] leading-relaxed text-[#1A1F1E]">{order.notes}</p>
           </div>
         )}
 
-        {/* Requirements checklist */}
+        {/* ── Requirements checklist ── */}
         <div>
-          <div className="mb-2.5 flex items-center justify-between sm:mb-3">
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground sm:text-[10px]">
-              Requirements — {doneCount}/{totalCount} Done
-            </p>
+          {/* Header */}
+          <div className="mb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <p className="text-[11px] font-semibold text-[#102F27]">Requirements</p>
+              <span className={cn("rounded-full px-2 py-0.5 text-[9px] font-medium", allDone ? "bg-emerald-50 text-emerald-700" : "bg-[#F5F5F3] text-[#6B7870]")}>
+                {doneCount}/{totalCount}
+              </span>
+            </div>
             <button
               type="button"
               onClick={() => { setShowAddForm(true); setEditingReq(null) }}
-              className="flex items-center gap-1 rounded-lg border border-[#E5EEEA] px-2 py-1 text-[10px] text-[#1A5345] transition-colors hover:bg-[#E8F0EE] sm:text-[11px]"
+              className="flex items-center gap-1 rounded-lg bg-[#1A5345] px-2.5 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[#0F3D32]"
             >
               <PlusIcon className="size-3" />
               Add
             </button>
           </div>
+
+          {/* Progress bar */}
+          {totalCount > 0 && (
+            <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-[#E8E6E0]">
+              <div
+                className={cn("h-full rounded-full transition-all", allDone ? "bg-emerald-500" : "bg-[#1A5345]")}
+                style={{ width: `${(doneCount / totalCount) * 100}%` }}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             {order.requirements.map((req) => (
