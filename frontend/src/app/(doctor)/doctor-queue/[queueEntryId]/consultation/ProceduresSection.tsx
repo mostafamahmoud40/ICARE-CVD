@@ -1,452 +1,317 @@
 "use client"
 
-import { useCallback, useState } from "react"
-import type { ProcedureEntry } from "./consultation.types"
-import { useSpeechDictation } from "./useSpeechDictation"
-import { cn } from "@/lib/utils"
-import { MicIcon, PlusIcon, SyringeIcon, Trash2Icon, XIcon } from "lucide-react"
+import { useState } from "react"
+import { ScissorsIcon, ChevronDownIcon, ChevronUpIcon, PlusIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import type { ProcedureDetails, ProcedurePriority } from "./consultation.types"
 
-const URGENCY_OPTIONS = [
+const PROCEDURE_TYPES = [
+  { value: "coronary_artery_bypass", label: "Coronary Artery Bypass Graft (CABG)" },
+  { value: "valve_replacement", label: "Valve Replacement" },
+  { value: "valve_repair", label: "Valve Repair" },
+  { value: "pacemaker_implant", label: "Pacemaker Implantation" },
+  { value: "icd_implant", label: "ICD Implantation" },
+  { value: "cardiac_catheterization", label: "Cardiac Catheterization" },
+  { value: "angioplasty", label: "Percutaneous Coronary Intervention (PCI)" },
+  { value: "aortic_repair", label: "Aortic Repair / Replacement" },
+  { value: "pericardiectomy", label: "Pericardiectomy" },
+  { value: "other", label: "Other" },
+]
+
+const SURGICAL_SPECIALTIES = [
+  { value: "general_surgery", label: "General surgery" },
+  { value: "cardiac_surgery", label: "Cardiac surgery" },
+  { value: "vascular_surgery", label: "Vascular surgery" },
+  { value: "thoracic_surgery", label: "Thoracic surgery" },
+  { value: "neurosurgery", label: "Neurosurgery" },
+  { value: "orthopedic", label: "Orthopedic surgery" },
+  { value: "urology", label: "Urology" },
+  { value: "gynecology", label: "Gynecology" },
+]
+
+const OPERATING_ROOMS = [
+  { value: "OR-1", label: "OR-1" },
+  { value: "OR-2", label: "OR-2" },
+  { value: "OR-3", label: "OR-3" },
+  { value: "OR-4", label: "OR-4" },
+  { value: "Cath-Lab-1", label: "Cath Lab 1" },
+  { value: "Cath-Lab-2", label: "Cath Lab 2" },
+]
+
+const ANESTHESIA_TYPES = [
+  { value: "general", label: "General" },
+  { value: "regional", label: "Regional" },
+  { value: "local", label: "Local" },
+  { value: "sedation", label: "Sedation / MAC" },
+  { value: "spinal", label: "Spinal" },
+  { value: "epidural", label: "Epidural" },
+]
+
+const ASA_CLASSIFICATIONS = [
+  { value: "ASA_I", label: "ASA I" },
+  { value: "ASA_II", label: "ASA II" },
+  { value: "ASA_III", label: "ASA III" },
+  { value: "ASA_IV", label: "ASA IV" },
+  { value: "ASA_V", label: "ASA V" },
+]
+
+const PRIORITY_OPTIONS: { value: ProcedurePriority; label: string }[] = [
   { value: "elective", label: "Elective" },
   { value: "urgent", label: "Urgent" },
-  { value: "stat", label: "STAT" },
-] as const
+  { value: "emergency", label: "Emergency" },
+]
 
-/** Cardiology procedures — value is stable id; label is stored on the chart entry. */
-const CARDIAC_PROCEDURES = [
-  { value: "coronary_angiography", label: "Coronary angiography (diagnostic cath)", cpt: "93458" },
-  { value: "pci", label: "PCI — percutaneous coronary intervention", cpt: "92928" },
-  { value: "ffr_ifr", label: "FFR / iFR physiologic assessment", cpt: "92925" },
-  { value: "ivus_oct", label: "Intravascular imaging (IVUS / OCT)", cpt: "92978" },
-  { value: "cabg", label: "CABG — coronary artery bypass graft", cpt: "33533" },
-  { value: "tavr", label: "TAVR — transcatheter aortic valve replacement", cpt: "33361" },
-  { value: "savr", label: "SAVR — surgical aortic valve replacement", cpt: "33405" },
-  { value: "mitral_valve", label: "Mitral valve repair / replacement", cpt: "33418" },
-  { value: "tricuspid_valve", label: "Tricuspid valve intervention", cpt: "33430" },
-  { value: "icd", label: "ICD implantation", cpt: "33249" },
-  { value: "pacemaker", label: "Pacemaker implantation", cpt: "33208" },
-  { value: "crt", label: "CRT — cardiac resynchronization therapy", cpt: "33224" },
-  { value: "ep_ablation", label: "EP study / catheter ablation (AF, SVT, VT)", cpt: "93650" },
-  { value: "cardioversion", label: "Electrical cardioversion", cpt: "92960" },
-  { value: "tee", label: "TEE — transesophageal echocardiography", cpt: "93312" },
-  { value: "cardiac_mri", label: "Cardiac MRI (stress or viability)", cpt: "75561" },
-  { value: "stress_test", label: "Exercise or pharmacologic stress test", cpt: "93015" },
-  { value: "myocardial_biopsy", label: "Myocardial biopsy", cpt: "93505" },
-  { value: "balloon_valvuloplasty", label: "Balloon valvuloplasty", cpt: "92990" },
-  { value: "laac", label: "LAAC / LAA occlusion (e.g. Watchman)", cpt: "33340" },
-  { value: "other", label: "Other procedure…", cpt: "" },
-] as const
+const DURATION_MIN = 15
+const DURATION_MAX = 480
+const DURATION_STEP = 15
 
-const CARDIAC_BODY_SITES = [
-  { value: "unspecified", label: "Not specified" },
-  { value: "lad", label: "LAD" },
-  { value: "lcx", label: "LCx" },
-  { value: "rca", label: "RCA" },
-  { value: "lmca", label: "Left main (LMCA)" },
-  { value: "multivessel", label: "Multivessel" },
-  { value: "aortic_valve", label: "Aortic valve" },
-  { value: "mitral_valve", label: "Mitral valve" },
-  { value: "tricuspid_valve", label: "Tricuspid valve" },
-  { value: "pulmonary_valve", label: "Pulmonary valve" },
-  { value: "lv", label: "Left ventricle (LV)" },
-  { value: "rv", label: "Right ventricle (RV)" },
-  { value: "la", label: "Left atrium (LA)" },
-  { value: "ra", label: "Right atrium (RA)" },
-  { value: "coronary_sinus", label: "Coronary sinus" },
-  { value: "pericardium", label: "Pericardium" },
-  { value: "other_site", label: "Other site…" },
-] as const
-
-const urgencyStyles: Record<ProcedureEntry["urgency"], string> = {
-  elective: "bg-[#E8F0EE] text-[#1A5345]",
-  urgent: "bg-amber-50 text-amber-700",
-  stat: "bg-red-50 text-red-700",
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return m === 0 ? `${h} hr` : `${h} hr ${m} min`
 }
 
-function ProcedureCard({
-  procedure,
-  onRemove,
-}: {
-  procedure: ProcedureEntry
-  onRemove: (id: string) => void
-}) {
+type SelectFieldProps = {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  options: { value: string; label: string }[]
+  placeholder?: string
+}
+
+function SelectField({ label, value, onChange, options, placeholder }: SelectFieldProps) {
   return (
-    <div className="rounded-lg border-2 border-[#E5EEEA] bg-white p-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span
-              className={cn(
-                "rounded-full px-1.5 py-0.5 text-[10px] font-medium capitalize",
-                urgencyStyles[procedure.urgency],
-              )}
-            >
-              {procedure.urgency}
-            </span>
-          </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <span className="text-[13px] font-semibold text-[#102F27]">{procedure.name}</span>
-            {procedure.cptCode.trim() ? (
-              <span className="rounded bg-[#F5F5F3] px-1 py-0.5 text-[10px] font-mono text-[#6B7870]">
-                CPT {procedure.cptCode}
-              </span>
-            ) : null}
-          </div>
-          {procedure.bodySite.trim() ? (
-            <p className="mt-1 text-[11px] text-muted-foreground">Cardiac site: {procedure.bodySite}</p>
-          ) : null}
-          {procedure.scheduledDate.trim() ? (
-            <p className="mt-0.5 text-[11px] text-muted-foreground">Scheduled: {procedure.scheduledDate}</p>
-          ) : null}
-          {procedure.notes.trim() ? (
-            <p className="mt-1 text-[11px] text-muted-foreground">{procedure.notes}</p>
-          ) : null}
-        </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-6 w-6 shrink-0 p-0 text-[#6B7870] hover:bg-red-50 hover:text-red-500"
-          onClick={() => onRemove(procedure.id)}
-        >
-          <Trash2Icon className="size-3.5" />
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-function AddProcedureForm({ onAdd }: { onAdd: (entry: ProcedureEntry) => void }) {
-  const [procedureKey, setProcedureKey] = useState("")
-  const [customProcedureName, setCustomProcedureName] = useState("")
-  const [bodySiteKey, setBodySiteKey] = useState("unspecified")
-  const [customBodySite, setCustomBodySite] = useState("")
-  const [cptCode, setCptCode] = useState("")
-  const [urgency, setUrgency] = useState<ProcedureEntry["urgency"]>("elective")
-  const [scheduledDate, setScheduledDate] = useState("")
-  const [notes, setNotes] = useState("")
-  const [isOpen, setIsOpen] = useState(false)
-
-  const getNotesText = useCallback(() => notes, [notes])
-  const setNotesText = useCallback((_key: "procedureNotes", value: string) => setNotes(value), [])
-
-  const {
-    supported: notesDictationSupported,
-    activeKey: notesDictationKey,
-    interimText: notesInterimText,
-    audioLevel: notesAudioLevel,
-    elapsedSeconds: notesElapsedSeconds,
-    toggle: toggleNotesDictation,
-  } = useSpeechDictation({
-    getText: getNotesText,
-    setText: setNotesText,
-  })
-
-  const formatNotesElapsed = useCallback((totalSeconds: number) => {
-    const mm = String(Math.floor(totalSeconds / 60)).padStart(2, "0")
-    const ss = String(totalSeconds % 60).padStart(2, "0")
-    return `${mm}:${ss}`
-  }, [])
-
-  const notesListening = notesDictationKey === "procedureNotes"
-
-  const resetFields = () => {
-    setProcedureKey("")
-    setCustomProcedureName("")
-    setBodySiteKey("unspecified")
-    setCustomBodySite("")
-    setCptCode("")
-    setUrgency("elective")
-    setScheduledDate("")
-    setNotes("")
-  }
-
-  const handleProcedureSelect = (v: string) => {
-    setProcedureKey(v)
-    if (v === "other") return
-    const meta = CARDIAC_PROCEDURES.find((p) => p.value === v)
-    setCptCode(meta?.cpt ?? "")
-  }
-
-  const resolvedProcedureName =
-    procedureKey === "other"
-      ? customProcedureName.trim()
-      : procedureKey !== ""
-        ? (CARDIAC_PROCEDURES.find((p) => p.value === procedureKey)?.label ?? "").trim()
-        : ""
-
-  const resolvedBodySite =
-    bodySiteKey === "other_site"
-      ? customBodySite.trim()
-      : bodySiteKey === "unspecified"
-        ? ""
-        : (CARDIAC_BODY_SITES.find((b) => b.value === bodySiteKey)?.label ?? "").trim()
-
-  const canSubmit =
-    procedureKey === "other" ? customProcedureName.trim().length > 0 : procedureKey !== ""
-
-  if (!isOpen) {
-    return (
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-[#E5EEEA] py-2.5 text-[12px] font-medium text-[#6B7870] transition-colors hover:border-[#1A5345]/30 hover:bg-[#F6FBF9] hover:text-[#1A5345]"
+    <div className="space-y-1.5">
+      <label className="text-[11px] font-medium text-muted-foreground">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn(
+          "h-9 w-full rounded-lg border border-[#E8E6E0] bg-[#FAFAF8] px-3 text-[13px] text-[#102F27]",
+          "focus:outline-none focus:ring-2 focus:ring-[#1A5345]/25 focus:border-[#1A5345]/40",
+          !value && "text-muted-foreground",
+        )}
       >
-        <PlusIcon className="size-3.5" />
-        Add cardiac procedure
-      </button>
-    )
-  }
-
-  const handleSubmit = () => {
-    if (!resolvedProcedureName) return
-    onAdd({
-      id: crypto.randomUUID(),
-      name: resolvedProcedureName,
-      cptCode: cptCode.trim(),
-      bodySite: resolvedBodySite,
-      urgency,
-      scheduledDate: scheduledDate.trim(),
-      notes: notes.trim(),
-    })
-    resetFields()
-    setIsOpen(false)
-  }
-
-  return (
-    <div className="space-y-3 rounded-lg border-2 border-[#1A5345]/20 bg-[#F6FBF9] p-3">
-      <div className="flex items-center justify-between">
-          <div>
-            <span className="text-[12px] font-semibold text-[#1A5345]">New cardiac procedure</span>
-            <p className="text-[10px] text-muted-foreground">Choose from the list (like chief complaint) or Other to type a custom procedure.</p>
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="h-6 w-6 p-0"
-            onClick={() => {
-              resetFields()
-              setIsOpen(false)
-            }}
-          >
-            <XIcon className="size-3.5" />
-          </Button>
-      </div>
-      <div className="space-y-1">
-        <label className="text-[11px] font-medium text-muted-foreground">Cardiac procedure *</label>
-        <Select value={procedureKey === "" ? undefined : procedureKey} onValueChange={handleProcedureSelect}>
-          <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[13px] text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
-            <SelectValue placeholder="Select cardiac procedure…" />
-          </SelectTrigger>
-          <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
-            {CARDIAC_PROCEDURES.map((p) => (
-              <SelectItem
-                key={p.value}
-                value={p.value}
-                className="h-10 cursor-pointer text-[13px] text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345]"
-              >
-                {p.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {procedureKey === "other" ? (
-          <Input
-            value={customProcedureName}
-            onChange={(e) => setCustomProcedureName(e.target.value)}
-            placeholder="Type procedure name…"
-            className="h-8 border-[#E8E6E0] bg-white text-[12px]"
-          />
-        ) : null}
-      </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <div className="space-y-1">
-          <label className="text-[10px] font-medium text-muted-foreground">CPT code</label>
-          <Input
-            value={cptCode}
-            onChange={(e) => setCptCode(e.target.value)}
-            placeholder="e.g. 92928 (PCI)"
-            className="h-8 border-[#E8E6E0] bg-white text-[12px] font-mono"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-[10px] font-medium text-muted-foreground">Urgency</label>
-          <Select value={urgency} onValueChange={(v) => setUrgency(v as ProcedureEntry["urgency"])}>
-            <SelectTrigger className="h-8 w-full rounded-lg border-[#cfd9d5] bg-white text-[12px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
-              {URGENCY_OPTIONS.map((u) => (
-                <SelectItem key={u.value} value={u.value} className="text-[12px]">
-                  {u.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground">Cardiac / vascular site</label>
-          <Select value={bodySiteKey} onValueChange={setBodySiteKey}>
-            <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[13px] text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
-              <SelectValue placeholder="Site (optional)" />
-            </SelectTrigger>
-            <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
-              {CARDIAC_BODY_SITES.map((s) => (
-                <SelectItem
-                  key={s.value}
-                  value={s.value}
-                  className="h-10 cursor-pointer text-[13px] text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345]"
-                >
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {bodySiteKey === "other_site" ? (
-            <Input
-              value={customBodySite}
-              onChange={(e) => setCustomBodySite(e.target.value)}
-              placeholder="Type site…"
-              className="h-8 border-[#E8E6E0] bg-white text-[12px]"
-            />
-          ) : null}
-        </div>
-        <div className="space-y-1">
-          <label className="text-[10px] font-medium text-muted-foreground">Scheduled date</label>
-          <Input
-            type="date"
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
-            className="h-8 border-[#E8E6E0] bg-white text-[12px]"
-          />
-        </div>
-      </div>
-        <div className="space-y-1">
-          <div className="flex items-center justify-between gap-2">
-            <label className="text-[10px] font-medium text-muted-foreground" htmlFor="procedure-notes">
-              Notes
-            </label>
-            {notesDictationSupported ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    id="procedure-notes-mic"
-                    variant={notesListening ? "secondary" : "ghost"}
-                    size="icon-xs"
-                    className={
-                      notesListening
-                        ? "shrink-0 text-[#B42318] ring-2 ring-[#B42318]/25"
-                        : "shrink-0 text-[#2C6A5B]"
-                    }
-                    aria-pressed={notesListening}
-                    aria-label={notesListening ? "Stop voice dictation" : "Start voice dictation"}
-                    onClick={() => toggleNotesDictation("procedureNotes")}
-                  >
-                    <MicIcon className="size-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[220px] text-center">
-                  {notesListening ? "Stop dictation" : "Voice dictation"}
-                </TooltipContent>
-              </Tooltip>
-            ) : null}
-          </div>
-          <Textarea
-            id="procedure-notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="CAD class, LVEF, anticoagulation, contrast allergy, informed consent…"
-            className="min-h-[40px] resize-none border-[#E8E6E0] bg-white text-[12px] placeholder:text-[#9CA3AF]"
-            aria-describedby={notesListening && notesInterimText ? "procedure-notes-interim" : undefined}
-          />
-          {notesListening ? (
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-medium text-[#B42318]">{formatNotesElapsed(notesElapsedSeconds)}</span>
-              <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#EEF5F3]">
-                <div
-                  className="h-full rounded-full bg-[#1A5345] transition-all duration-150"
-                  style={{ width: `${Math.max(6, notesAudioLevel)}%` }}
-                />
-              </div>
-              <span className="text-[10px] text-muted-foreground">Voice level</span>
-            </div>
-          ) : null}
-          {notesListening && notesInterimText ? (
-            <p id="procedure-notes-interim" className="text-[11px] leading-snug text-[#6B7280]">
-              {notesInterimText}
-            </p>
-          ) : null}
-        </div>
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="flex-1 text-[11px]"
-          onClick={() => {
-            resetFields()
-            setIsOpen(false)
-          }}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          className="flex-1 bg-[#1A5345] text-[11px] hover:bg-[#0F3D32]"
-          disabled={!canSubmit}
-          onClick={handleSubmit}
-        >
-          Add cardiac procedure
-        </Button>
-      </div>
+        {placeholder && (
+          <option value="" disabled>
+            {placeholder}
+          </option>
+        )}
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
     </div>
   )
 }
 
 export type ProceduresSectionProps = {
-  procedures: ProcedureEntry[]
-  onAddProcedure: (entry: ProcedureEntry) => void
-  onRemoveProcedure: (id: string) => void
+  details: ProcedureDetails
+  onDetailsChange: <K extends keyof ProcedureDetails>(key: K, value: ProcedureDetails[K]) => void
 }
 
-export function ProceduresSection({ procedures, onAddProcedure, onRemoveProcedure }: ProceduresSectionProps) {
+export function ProceduresSection({ details, onDetailsChange }: ProceduresSectionProps) {
+  const [isOpen, setIsOpen] = useState(false)
+
   return (
-    <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-3 sm:p-5">
-      <div className="mb-4 flex items-start gap-2">
-        <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
-          <SyringeIcon className="size-4 text-[#1A5345]" />
+    <div className="rounded-xl border-2 border-[#E5EEEA] bg-white">
+      {/* Header — always visible */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between px-5 py-4 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
+            <ScissorsIcon className="size-4 text-[#1A5345]" />
+          </div>
+          <h3 className="text-[14px] font-semibold text-[#102F27]">Surgical Procedure</h3>
+          {!isOpen && (
+            <span className="rounded-full bg-[#F6FBF9] px-2.5 py-0.5 text-[10px] font-medium text-[#1A5345] border border-[#E5EEEA]">
+              Click to add
+            </span>
+          )}
         </div>
-        <div>
-          <h3 className="text-[12px] font-semibold text-[#102F27] sm:text-[14px]">Cardiac procedures</h3>
-          <p className="text-[10px] text-muted-foreground sm:text-[11px]">Planned or ordered cardiology interventions for this patient.</p>
+        <div className="flex items-center gap-2">
+          {!isOpen && (
+            <div className="flex items-center gap-1 rounded-lg bg-[#1A5345]/8 px-2.5 py-1.5">
+              <PlusIcon className="size-3.5 text-[#1A5345]" />
+              <span className="text-[12px] font-medium text-[#1A5345]">Add Procedure</span>
+            </div>
+          )}
+          {isOpen ? (
+            <ChevronUpIcon className="size-4 text-muted-foreground" />
+          ) : (
+            <ChevronDownIcon className="size-4 text-muted-foreground" />
+          )}
         </div>
-        {procedures.length > 0 ? (
-          <span className="rounded-full bg-[#EEF5F3] px-2 py-0.5 text-[9px] font-medium text-[#2C6A5B] sm:text-[10px]">
-            {procedures.length}
-          </span>
-        ) : null}
-      </div>
-      <div className="space-y-2">
-        {procedures.map((p) => (
-          <ProcedureCard key={p.id} procedure={p} onRemove={onRemoveProcedure} />
-        ))}
-        <AddProcedureForm onAdd={onAddProcedure} />
-      </div>
+      </button>
+
+      {/* Collapsible body */}
+      {isOpen && (
+        <div className="border-t border-[#E8E6E0] px-5 pb-5 pt-4 space-y-5">
+          {/* PROCEDURE DETAILS */}
+          <div className="space-y-4">
+            <p className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
+              Procedure Details
+            </p>
+
+            {/* Row 1: Procedure type + Surgical specialty */}
+            <div className="grid grid-cols-2 gap-3">
+              <SelectField
+                label="Procedure type"
+                value={details.procedureType}
+                onChange={(v) => onDetailsChange("procedureType", v)}
+                options={PROCEDURE_TYPES}
+                placeholder="Select procedure..."
+              />
+              <SelectField
+                label="Surgical specialty"
+                value={details.surgicalSpecialty}
+                onChange={(v) => onDetailsChange("surgicalSpecialty", v)}
+                options={SURGICAL_SPECIALTIES}
+              />
+            </div>
+
+            {/* Row 2: Surgery date + Start time */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-muted-foreground">Surgery date</label>
+                <input
+                  type="date"
+                  value={details.surgeryDate}
+                  onChange={(e) => onDetailsChange("surgeryDate", e.target.value)}
+                  className={cn(
+                    "h-9 w-full rounded-lg border border-[#E8E6E0] bg-[#FAFAF8] px-3 text-[13px] text-[#102F27]",
+                    "focus:outline-none focus:ring-2 focus:ring-[#1A5345]/25 focus:border-[#1A5345]/40",
+                  )}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-muted-foreground">Start time</label>
+                <input
+                  type="time"
+                  value={details.startTime}
+                  onChange={(e) => onDetailsChange("startTime", e.target.value)}
+                  className={cn(
+                    "h-9 w-full rounded-lg border border-[#E8E6E0] bg-[#FAFAF8] px-3 text-[13px] text-[#102F27]",
+                    "focus:outline-none focus:ring-2 focus:ring-[#1A5345]/25 focus:border-[#1A5345]/40",
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Row 3: OR + Anesthesia + ASA */}
+            <div className="grid grid-cols-3 gap-3">
+              <SelectField
+                label="Operating room"
+                value={details.operatingRoom}
+                onChange={(v) => onDetailsChange("operatingRoom", v)}
+                options={OPERATING_ROOMS}
+              />
+              <SelectField
+                label="Anesthesia type"
+                value={details.anesthesiaType}
+                onChange={(v) => onDetailsChange("anesthesiaType", v)}
+                options={ANESTHESIA_TYPES}
+              />
+              <SelectField
+                label="ASA classification"
+                value={details.asaClassification}
+                onChange={(v) => onDetailsChange("asaClassification", v)}
+                options={ASA_CLASSIFICATIONS}
+              />
+            </div>
+
+            {/* Row 4: Estimated duration slider */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-medium text-muted-foreground">Estimated duration</label>
+                <span className="text-[12px] font-semibold text-[#1A5345]">
+                  {formatDuration(details.estimatedDurationMin)}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={DURATION_MIN}
+                max={DURATION_MAX}
+                step={DURATION_STEP}
+                value={details.estimatedDurationMin}
+                onChange={(e) => onDetailsChange("estimatedDurationMin", Number(e.target.value))}
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[#E8E6E0] accent-[#1A5345]"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>15 min</span>
+                <span>8 hr</span>
+              </div>
+            </div>
+          </div>
+
+          {/* PRIORITY & CLINICAL NOTES */}
+          <div className="space-y-4">
+            <p className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
+              Priority &amp; Clinical Notes
+            </p>
+
+            {/* Priority toggle */}
+            <div className="space-y-1.5">
+              <div className="flex gap-2">
+                {PRIORITY_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onDetailsChange("priority", opt.value)}
+                    className={cn(
+                      "flex-1 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors",
+                      details.priority === opt.value
+                        ? opt.value === "emergency"
+                          ? "border-red-300 bg-red-50 text-red-700"
+                          : opt.value === "urgent"
+                            ? "border-amber-300 bg-amber-50 text-amber-700"
+                            : "border-[#1A5345]/30 bg-[#E8F0EE] text-[#1A5345]"
+                        : "border-[#E8E6E0] bg-[#FAFAF8] text-[#102F27] hover:bg-[#F0F5F3]",
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Clinical notes textarea */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-medium text-muted-foreground">
+                Clinical indication &amp; surgeon&apos;s notes
+              </label>
+              <Textarea
+                value={details.clinicalNotes}
+                onChange={(e) => onDetailsChange("clinicalNotes", e.target.value)}
+                placeholder="Enter clinical justification, relevant findings, or operative plan..."
+                rows={4}
+                className="resize-none border-[#E8E6E0] bg-[#FAFAF8] text-[13px] placeholder:text-muted-foreground focus-visible:ring-[#1A5345]/25"
+              />
+            </div>
+          </div>
+
+          {/* Cancel button */}
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsOpen(false)}
+              className="text-[12px] text-muted-foreground hover:text-[#102F27]"
+            >
+              Collapse
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

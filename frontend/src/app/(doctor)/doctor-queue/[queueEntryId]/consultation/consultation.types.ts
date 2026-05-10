@@ -128,20 +128,25 @@ export type HomeMeasurement = {
   instructions: string
 }
 
-export type ProcedureEntry = {
-  id: string
-  name: string
-  cptCode: string
-  bodySite: string
-  urgency: "elective" | "urgent" | "stat"
-  scheduledDate: string
-  notes: string
-}
-
 /** Staged lab document uploads on the consultation form (browser `File` handles). */
 export type LabMaterialFile = {
   id: string
   file: File
+}
+
+export type ProcedurePriority = "elective" | "urgent" | "emergency"
+
+export type ProcedureDetails = {
+  procedureType: string
+  surgicalSpecialty: string
+  surgeryDate: string
+  startTime: string
+  operatingRoom: string
+  anesthesiaType: string
+  asaClassification: string
+  estimatedDurationMin: number
+  priority: ProcedurePriority
+  clinicalNotes: string
 }
 
 export type ConsultationData = {
@@ -149,12 +154,12 @@ export type ConsultationData = {
   patientId: string
   patientSummary: PatientSummary
   vitals: VitalSigns
+  procedureDetails: ProcedureDetails
   chiefComplaint: string
   structuredComplaint: string
   physicalExam: PhysicalExamFindings
   diagnoses: DiagnosisEntry[]
   prescriptions: PrescriptionEntry[]
-  procedures: ProcedureEntry[]
   testOrders: TestOrder[]
   homeMeasurements: HomeMeasurement[]
   clinicalNotes: string

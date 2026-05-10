@@ -47,6 +47,19 @@ export const mockConsultationData: ConsultationData = {
     ],
   },
 
+  procedureDetails: {
+    procedureType: "",
+    surgicalSpecialty: "general_surgery",
+    surgeryDate: "",
+    startTime: "09:00",
+    operatingRoom: "OR-1",
+    anesthesiaType: "general",
+    asaClassification: "ASA_I",
+    estimatedDurationMin: 90,
+    priority: "elective",
+    clinicalNotes: "",
+  },
+
   vitals: {
     systolicBP: "",
     diastolicBP: "",
@@ -73,8 +86,6 @@ export const mockConsultationData: ConsultationData = {
   diagnoses: [],
 
   prescriptions: [],
-
-  procedures: [],
 
   testOrders: [],
 
