@@ -36,3 +36,28 @@ export class UpdateAppointmentStatusDto {
   @IsIn(['scheduled', 'confirmed', 'completed', 'cancelled'])
   status!: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
 }
+
+/** Partial update for reschedule, clinician/visit edits, reason, and assistant notes. */
+export class PatchAssistantAppointmentDto {
+  @IsOptional()
+  @IsDateString()
+  scheduledAt?: string;
+
+  @IsOptional()
+  @IsUUID()
+  doctorId?: string;
+
+  @IsOptional()
+  @IsIn(['clinic', 'virtual'])
+  visitType?: 'clinic' | 'virtual';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1500)
+  reason?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
+}

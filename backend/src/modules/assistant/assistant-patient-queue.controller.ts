@@ -12,6 +12,7 @@ import {
 import { AccessTokenGuard } from '../auth/access-token.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { TokenPayload } from '../auth/jwt';
+import { CreateDocumentDto } from '../documents/dto/documents.dto';
 import { AssistantGuard } from './assistant.guard';
 import { AssistantPatientQueueService } from './assistant-patient-queue.service';
 import {
@@ -34,6 +35,27 @@ export class AssistantPatientQueueController {
   @Get()
   listQueueEntries(@Query('filter') filter?: QueueFilter) {
     return this.service.listQueueEntries(filter);
+  }
+
+  @Get(':queueId/documents')
+  listQueuePatientDocuments(@Param('queueId') queueId: string) {
+    return this.service.listQueuePatientDocuments(queueId);
+  }
+
+  @Post(':queueId/documents')
+  registerQueuePatientDocument(
+    @Param('queueId') queueId: string,
+    @Body() dto: CreateDocumentDto,
+    @CurrentUser() user: TokenPayload,
+  ) {
+    return this.service.registerQueuePatientDocument(queueId, user.sub, {
+      fileName: dto.fileName,
+      contentType: dto.contentType,
+      category: dto.category,
+      title: dto.title,
+      s3Key: dto.s3Key ?? '',
+      fileSize: dto.fileSize,
+    });
   }
 
   @Get(':queueId')

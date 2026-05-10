@@ -8,7 +8,10 @@ import { count, desc, eq, gte, lt, ne, and } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import { appointment, doctor, patient, user } from '../../database/schema';
-import type { CreateAssistantAppointmentDto } from './dto/create-appointment.dto';
+import type {
+  CreateAssistantAppointmentDto,
+  PatchAssistantAppointmentDto,
+} from './dto/create-appointment.dto';
 import { AppointmentService } from '../appointment/appointment.service';
 
 type DoctorRow = { id: string; name: string; specialty: string | null };
@@ -63,7 +66,9 @@ export class AssistantAppointmentService {
         visitType: appointment.visitType,
         status: appointment.status,
         reason: appointment.reason,
+        notes: appointment.notes,
         createdAt: appointment.createdAt,
+        patientId: appointment.patientId,
         patientName: user.name,
         patientPhone: user.phone,
         patientEmail: user.email,
@@ -81,14 +86,17 @@ export class AssistantAppointmentService {
 
     return rows.map((row) => ({
       id: row.id,
+      patientId: row.patientId,
       patientName: row.patientName,
       patientPhone: row.patientPhone,
       patientEmail: row.patientEmail,
+      doctorId: row.doctorId,
       doctorName: doctorNames.get(row.doctorId) ?? 'Unknown',
       department: row.doctorSpecialty ?? 'Cardiology',
       scheduledAt: row.scheduledAt.toISOString(),
       visitType: row.visitType,
       reason: row.reason,
+      notes: row.notes ?? null,
       status: row.status,
       createdAt: row.createdAt.toISOString(),
     }));
@@ -98,6 +106,7 @@ export class AssistantAppointmentService {
     const rows = await this.db
       .select({
         id: appointment.id,
+        patientId: appointment.patientId,
         confirmationCode: appointment.confirmationCode,
         scheduledAt: appointment.scheduledAt,
         visitType: appointment.visitType,
@@ -127,6 +136,8 @@ export class AssistantAppointmentService {
 
     return {
       id: a.id,
+      patientId: a.patientId,
+      doctorId: a.doctorId,
       confirmationCode: a.confirmationCode,
       patientName: a.patientName,
       patientPhone: a.patientPhone,
@@ -142,6 +153,109 @@ export class AssistantAppointmentService {
       cancelledAt: a.cancelledAt?.toISOString() ?? null,
       createdAt: a.createdAt.toISOString(),
     };
+  }
+
+  async patchAppointment(
+    appointmentId: string,
+    dto: PatchAssistantAppointmentDto,
+  ) {
+    const existing = await this.db.query.appointment.findFirst({
+      where: eq(appointment.id, appointmentId),
+    });
+    if (!existing) throw new NotFoundException('Appointment not found');
+
+    const hasAny =
+      dto.scheduledAt !== undefined ||
+      dto.doctorId !== undefined ||
+      dto.visitType !== undefined ||
+      dto.reason !== undefined ||
+      dto.notes !== undefined;
+    if (!hasAny) {
+      throw new BadRequestException('No fields to update');
+    }
+
+    const nextDoctorId = dto.doctorId ?? existing.doctorId;
+    const nextScheduledAt =
+      dto.scheduledAt !== undefined
+        ? new Date(dto.scheduledAt)
+        : existing.scheduledAt;
+
+    const schedulingChanged =
+      dto.scheduledAt !== undefined || dto.doctorId !== undefined;
+
+    if (schedulingChanged && existing.status === 'cancelled') {
+      throw new BadRequestException(
+        'Cannot reschedule or reassign a cancelled appointment',
+      );
+    }
+
+    if (schedulingChanged) {
+      if (Number.isNaN(nextScheduledAt.getTime())) {
+        throw new BadRequestException('Invalid scheduledAt');
+      }
+      const requestedDate = this.toDateOnly(nextScheduledAt);
+      const requestedTime = this.toHHMM(nextScheduledAt);
+      const availability = await this.getAvailableSlots(
+        nextDoctorId,
+        requestedDate,
+      );
+      const isAvailable = availability.slots.some(
+        (slot) => slot.value === requestedTime,
+      );
+      if (!isAvailable) {
+        throw new BadRequestException('This slot is not available');
+      }
+
+      const dayStart = new Date(`${requestedDate}T00:00:00`);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+      const queryStart = new Date(dayStart);
+      queryStart.setDate(queryStart.getDate() - 1);
+      const queryEnd = new Date(dayEnd);
+      queryEnd.setDate(queryEnd.getDate() + 1);
+      const sameDayAppointments = await this.db.query.appointment.findMany({
+        where: and(
+          eq(appointment.doctorId, nextDoctorId),
+          gte(appointment.scheduledAt, queryStart),
+          lt(appointment.scheduledAt, queryEnd),
+          ne(appointment.status, 'cancelled'),
+        ),
+      });
+      const hasExactConflict = sameDayAppointments.some(
+        (item) =>
+          item.id !== appointmentId &&
+          this.toDateOnly(item.scheduledAt) === requestedDate &&
+          this.toHHMM(item.scheduledAt) === requestedTime,
+      );
+      if (hasExactConflict) {
+        throw new BadRequestException('This slot is already booked');
+      }
+    }
+
+    if (dto.doctorId !== undefined) {
+      const doctorRow = await this.db.query.doctor.findFirst({
+        where: eq(doctor.id, dto.doctorId),
+      });
+      if (!doctorRow) throw new NotFoundException('Doctor not found');
+    }
+
+    const updates: Record<string, unknown> = {
+      updatedAt: new Date(),
+    };
+    if (dto.scheduledAt !== undefined)
+      updates.scheduledAt = nextScheduledAt;
+    if (dto.doctorId !== undefined) updates.doctorId = nextDoctorId;
+    if (dto.visitType !== undefined) updates.visitType = dto.visitType;
+    if (dto.reason !== undefined) updates.reason = dto.reason;
+    if (dto.notes !== undefined)
+      updates.notes = dto.notes.trim() === '' ? null : dto.notes;
+
+    await this.db
+      .update(appointment)
+      .set(updates)
+      .where(eq(appointment.id, appointmentId));
+
+    return this.getAppointment(appointmentId);
   }
 
   async updateStatus(appointmentId: string, status: string) {
