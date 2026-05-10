@@ -707,65 +707,68 @@ export function AddPatient({
   }, [submitError])
 
   return (
-    <Card
-      className={cn(
-        "max-h-[min(90vh,900px)] min-h-0 overflow-hidden rounded-3xl border-0 py-0",
-        "shadow-[0_4px_30px_-4px_rgba(26,83,69,0.10)]"
-      )}
-    >
-      <CardContent className="flex-1 min-h-0 overflow-y-auto bg-[#F3F5F4] p-6 md:p-8">
+    <div className="flex h-full flex-col bg-[#F9F8F5]">
+      {/* Sticky Header */}
+      <div className="flex-none border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/95 px-8 pt-8 pb-5 backdrop-blur-md z-20">
+        <h2 className="text-[28px] font-bold tracking-tight text-[#1A1F1E] font-serif pr-8">Register New Patient</h2>
+        <p className="mt-1.5 text-[14px] font-medium text-muted-foreground">
+          Enter the patient's personal and medical details to create a new record.
+        </p>
+      </div>
+
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
         <form
-          className="space-y-8"
+          id="add-patient-form"
+          className="space-y-8 max-w-4xl mx-auto"
           onSubmit={(event) => {
             event.preventDefault()
             submit()
           }}
         >
-          <div className={cn("rounded-2xl bg-white p-6", "shadow-[0_4px_20px_-2px_rgba(26,83,69,0.05)]")}>
+          <div className="rounded-2xl bg-white p-6 md:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-[#E8E6E0]/60 transition-all hover:shadow-md hover:border-[#1A5345]/10">
             <PersonalInfoSection vm={vm} />
           </div>
 
-          <div className={cn("rounded-2xl bg-white p-6", "shadow-[0_4px_20px_-2px_rgba(26,83,69,0.05)]")}>
+          <div className="rounded-2xl bg-white p-6 md:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-[#E8E6E0]/60 transition-all hover:shadow-md hover:border-[#1A5345]/10">
             <PhysicalDetailsSection vm={vm} />
           </div>
 
-          <div className={cn("rounded-2xl bg-white p-6", "shadow-[0_4px_20px_-2px_rgba(26,83,69,0.05)]")}>
+          <div className="rounded-2xl bg-white p-6 md:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-[#E8E6E0]/60 transition-all hover:shadow-md hover:border-[#1A5345]/10">
             <LifestyleSection vm={vm} />
           </div>
 
-          <div className={cn("rounded-2xl bg-white p-6", "shadow-[0_4px_20px_-2px_rgba(26,83,69,0.05)]")}>
+          <div className="rounded-2xl bg-white p-6 md:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-[#E8E6E0]/60 transition-all hover:shadow-md hover:border-[#1A5345]/10">
             <MedicalInfoSection vm={vm} />
           </div>
-
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-400">
-              Fields with labels are validated on submission.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-xl border-gray-200 px-6 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-                onClick={() => reset()}
-              >
-                Clear
-              </Button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-all disabled:opacity-60"
-                style={{
-                  background: "#1A5345",
-                  boxShadow: "0 8px 20px rgba(26,83,69,0.30)",
-                }}
-              >
-                <PlusIcon className="size-4" />
-                {isSubmitting ? "Registering..." : "Register Patient"}
-              </button>
-            </div>
-          </div>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Sticky Footer */}
+      <div className="flex-none border-t border-[#E8E6E0]/60 bg-white px-8 py-5 z-20 flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+        <p className="text-[13px] font-medium text-muted-foreground hidden sm:block">
+          Fields with labels are validated on submission.
+        </p>
+        <div className="flex gap-3 w-full sm:w-auto justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-full border-[#E8E6E0]/80 h-10 px-6 text-[14px] font-semibold text-[#1A1F1E] hover:bg-slate-50 transition-all shadow-sm"
+            onClick={() => reset()}
+          >
+            Clear Form
+          </Button>
+          <Button
+            type="submit"
+            form="add-patient-form"
+            disabled={isSubmitting}
+            className="h-10 gap-2 rounded-full bg-[#1A5345] px-6 text-[14px] font-bold text-white shadow-[0_4px_14px_rgba(26,83,69,0.2)] transition-all hover:-translate-y-0.5 hover:bg-[#133F34] hover:shadow-[0_6px_20px_rgba(26,83,69,0.25)] border-0 disabled:opacity-60 disabled:hover:translate-y-0"
+          >
+            <PlusIcon className="size-4" strokeWidth={2.5} />
+            {isSubmitting ? "Registering..." : "Register Patient"}
+          </Button>
+        </div>
+      </div>
+    </div>
   )
 }
