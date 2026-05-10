@@ -1,46 +1,107 @@
 "use client"
 
+import { useMemo, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { AssistantQueue } from "./AssistantQueue"
+import type { QueueNavMode } from "./AssistantQueue"
 import { useAssistantQueue } from "./useAssistantQueue"
+import { MOCK_QUEUE_PATIENTS, MOCK_QUEUE_STATS } from "./assistantQueue.mock"
+import {
+  buildDoctorLiveSnapshots,
+  buildWaitingTurnMap,
+} from "./assistantQueue.liveBoard"
+
+/** When the active floor has fewer than this many patients, prefer rich demo data (dev only). */
+const MOCK_FALLBACK_MIN_LIVE_FLOOR = 3
 
 export function AssistantQueuePageContainer() {
-  const {
-    patients,
-    stats,
-    filter,
-    setFilter,
-    searchTerm,
-    setSearchTerm,
-    tabCounts,
-    markArrived,
-    moveToWaiting,
-    markNoShow,
-    selectedPatient,
-    selectPatient,
-    clearSelection,
-    inClinicPatients,
-    isLoading,
-    isError,
-  } = useAssistantQueue()
+  const searchParams = useSearchParams()
+  const rawView = searchParams.get("view")
+  const queueNavMode: QueueNavMode =
+    rawView === "schedule" || rawView === "history" || rawView === "doctors"
+      ? rawView
+      : "operations"
+
+  const api = useAssistantQueue()
+
+  useEffect(() => {
+    api.clearSelection()
+    if (queueNavMode === "operations") api.setFilter("active")
+    else if (queueNavMode === "schedule") api.setFilter("scheduled")
+    else if (queueNavMode === "doctors") api.setFilter("scheduled")
+    else api.setFilter("completed")
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queueNavMode])
+
+  const liveBoardFloorTotal = useMemo(
+    () =>
+      api.doctorLiveSnapshots.reduce(
+        (acc, s) =>
+          acc +
+          s.inConsultation.length +
+          s.waitingOrdered.length +
+          s.arrivedOrdered.length +
+          s.scheduledOrdered.length,
+        0,
+      ),
+    [api.doctorLiveSnapshots],
+  )
+
+  const isDev = process.env.NODE_ENV === "development"
+
+  /* ── Mock fallback: empty API, or sparse active floor in dev (richer Live desk demo) ── */
+  const useMock =
+    !api.isLoading &&
+    !api.liveBoardLoading &&
+    !api.isError &&
+    (api.allPatients.length === 0 ||
+      (isDev &&
+        api.filter === "active" &&
+        liveBoardFloorTotal < MOCK_FALLBACK_MIN_LIVE_FLOOR))
+
+  const selectedPatient = useMemo(() => {
+    if (!api.selectedPatientId) return null
+    if (useMock) {
+      return MOCK_QUEUE_PATIENTS.find((p) => p.queueEntryId === api.selectedPatientId) ?? null
+    }
+    return api.selectedPatient
+  }, [api.selectedPatient, api.selectedPatientId, useMock])
+
+  const mockSnapshots = useMemo(() => buildDoctorLiveSnapshots(MOCK_QUEUE_PATIENTS), [])
+  const mockTurnMap   = useMemo(() => buildWaitingTurnMap(mockSnapshots), [mockSnapshots])
+
+  const mockTabCounts = useMemo(() => {
+    const s = MOCK_QUEUE_STATS
+    return {
+      active: s.scheduled + s.arrived + s.inWaiting + s.inConsultation,
+      scheduled: s.scheduled,
+      completed: s.completed,
+      "no-show": s.noShow,
+    }
+  }, [])
 
   return (
     <AssistantQueue
-      patients={patients}
-      stats={stats}
-      filter={filter}
-      setFilter={setFilter}
-      searchTerm={searchTerm}
-      setSearchTerm={setSearchTerm}
-      tabCounts={tabCounts}
-      onMarkArrived={markArrived}
-      onMoveToWaiting={moveToWaiting}
-      onNoShow={markNoShow}
+      patients={useMock ? MOCK_QUEUE_PATIENTS : api.patients}
+      stats={useMock ? MOCK_QUEUE_STATS : api.stats}
+      filter={api.filter}
+      setFilter={api.setFilter}
+      searchTerm={api.searchTerm}
+      setSearchTerm={api.setSearchTerm}
+      tabCounts={useMock ? mockTabCounts : api.tabCounts}
+      onMarkArrived={api.markArrived}
+      onMoveToWaiting={api.moveToWaiting}
+      onNoShow={api.markNoShow}
       selectedPatient={selectedPatient}
-      selectPatient={selectPatient}
-      clearSelection={clearSelection}
-      inClinicPatients={inClinicPatients}
-      isLoading={isLoading}
-      isError={isError}
+      selectPatient={api.selectPatient}
+      clearSelection={api.clearSelection}
+      inClinicPatients={api.inClinicPatients}
+      doctorLiveSnapshots={useMock ? mockSnapshots : api.doctorLiveSnapshots}
+      waitingTurnByQueueId={useMock ? mockTurnMap : api.waitingTurnByQueueId}
+      liveBoardLoading={api.liveBoardLoading}
+      isLoading={api.isLoading}
+      isError={api.isError}
+      queueNavMode={queueNavMode}
     />
   )
 }

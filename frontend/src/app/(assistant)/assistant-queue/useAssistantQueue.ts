@@ -4,6 +4,12 @@ import { useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
 import type { QueuePatient, QueueStats, QueueFilter, QueueStatus } from "./assistantQueue.types"
+import {
+  buildDoctorLiveSnapshots,
+  buildWaitingTurnMap,
+  getClinicNextPatient,
+  type DoctorLiveSnapshot,
+} from "./assistantQueue.liveBoard"
 
 /* ---------- API helpers ---------- */
 
@@ -42,6 +48,13 @@ export function useAssistantQueue() {
   const queueQuery = useQuery<QueuePatient[], Error>({
     queryKey: queueKey(filter),
     queryFn: () => fetchQueueEntries(filter),
+    staleTime: 30 * 1000,
+  })
+
+  /** Always-on snapshot for live floor (deduped with queueQuery when filter is `active`). */
+  const activeSnapshotQuery = useQuery<QueuePatient[], Error>({
+    queryKey: queueKey("active"),
+    queryFn: () => fetchQueueEntries("active"),
     staleTime: 30 * 1000,
   })
 
@@ -100,10 +113,29 @@ export function useAssistantQueue() {
     [patients],
   )
 
-  const selectedPatient = useMemo(
-    () => patients.find((p) => p.queueEntryId === selectedPatientId) ?? null,
-    [patients, selectedPatientId],
+  const liveBoardPatients = activeSnapshotQuery.data ?? []
+
+  const doctorLiveSnapshots = useMemo(
+    (): DoctorLiveSnapshot[] => buildDoctorLiveSnapshots(liveBoardPatients),
+    [liveBoardPatients],
   )
+
+  const waitingTurnByQueueId = useMemo(
+    () => buildWaitingTurnMap(doctorLiveSnapshots),
+    [doctorLiveSnapshots],
+  )
+
+  const clinicNextPatient = useMemo(
+    () => getClinicNextPatient(liveBoardPatients),
+    [liveBoardPatients],
+  )
+
+  const selectedPatient = useMemo(() => {
+    if (!selectedPatientId) return null
+    const fromCurrentFilter = patients.find((p) => p.queueEntryId === selectedPatientId)
+    if (fromCurrentFilter) return fromCurrentFilter
+    return liveBoardPatients.find((p) => p.queueEntryId === selectedPatientId) ?? null
+  }, [patients, liveBoardPatients, selectedPatientId])
 
   const tabCounts = useMemo(() => ({
     active: stats.scheduled + stats.arrived + stats.inWaiting + stats.inConsultation,
@@ -137,9 +169,14 @@ export function useAssistantQueue() {
     moveToWaiting,
     markNoShow,
     selectedPatient,
+    selectedPatientId,
     selectPatient: setSelectedPatientId,
     clearSelection: () => setSelectedPatientId(null),
     inClinicPatients,
+    doctorLiveSnapshots,
+    waitingTurnByQueueId,
+    clinicNextPatient,
+    liveBoardLoading: activeSnapshotQuery.isLoading,
     isLoading: queueQuery.isLoading || statsQuery.isLoading,
     isError: queueQuery.isError || statsQuery.isError,
     isUpdating: statusMutation.isPending,
