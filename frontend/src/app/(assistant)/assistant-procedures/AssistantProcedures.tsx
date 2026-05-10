@@ -17,7 +17,6 @@ import {
   ListIcon,
   MapPinIcon,
   SearchIcon,
-  StethoscopeIcon,
   UserIcon,
   XIcon,
 } from "lucide-react"
@@ -81,7 +80,7 @@ type ScheduledOperation = {
 
 /* ---------- Types ---------- */
 
-type ViewMode = "current" | "operations" | "history"
+export type ViewMode = "current" | "operations" | "history"
 
 type AssistantProceduresProps = {
   orders: ProcedureOrder[]
@@ -117,6 +116,7 @@ type AssistantProceduresProps = {
   isUploadingAttachment: boolean
   isLoading: boolean
   isError: boolean
+  viewMode: ViewMode
 }
 
 /* ---------- Empty Detail Placeholder ---------- */
@@ -135,61 +135,6 @@ function DetailPlaceholder() {
   )
 }
 
-/* ---------- Floating Pill Navigation ---------- */
-
-function FloatingPillNav({
-  activeView,
-  onViewChange,
-}: {
-  activeView: ViewMode
-  onViewChange: (view: ViewMode) => void
-}) {
-  return (
-    <div className="sticky top-0 z-50 flex justify-center bg-[#F9F8F5]/80 px-4 py-3 backdrop-blur-sm">
-      <nav className="flex items-center gap-1 rounded-full border border-[#E8E6E0] bg-white px-2 py-2 shadow-sm">
-        <button
-          onClick={() => onViewChange("operations")}
-          className={cn(
-            "flex items-center gap-2 rounded-full px-3.5 py-2 text-[11px] font-medium transition-all",
-            activeView === "operations"
-              ? "bg-[#E8F0EE] text-[#1A5345] shadow-sm"
-              : "text-[#6B7870] hover:bg-[#E8F0EE]",
-          )}
-        >
-          <StethoscopeIcon className="size-3.5" />
-          <span className="hidden sm:inline">Doctor Operations</span>
-          <span className="sm:hidden">Operations</span>
-        </button>
-        <button
-          onClick={() => onViewChange("current")}
-          className={cn(
-            "flex items-center gap-2 rounded-full px-3.5 py-2 text-[11px] font-medium transition-all",
-            activeView === "current"
-              ? "bg-[#E8F0EE] text-[#1A5345] shadow-sm"
-              : "text-[#6B7870] hover:bg-[#E8F0EE]",
-          )}
-        >
-          <CalendarDaysIcon className="size-3.5" />
-          <span className="hidden sm:inline">Current Schedule</span>
-          <span className="sm:hidden">Current</span>
-        </button>
-        <button
-          onClick={() => onViewChange("history")}
-          className={cn(
-            "flex items-center gap-2 rounded-full px-3.5 py-2 text-[11px] font-medium transition-all",
-            activeView === "history"
-              ? "bg-[#E8F0EE] text-[#1A5345] shadow-sm"
-              : "text-[#6B7870] hover:bg-[#E8F0EE]",
-          )}
-        >
-          <HistoryIcon className="size-3.5" />
-          <span className="hidden sm:inline">History Records</span>
-          <span className="sm:hidden">History</span>
-        </button>
-      </nav>
-    </div>
-  )
-}
 
 /* ---------- Schedule View Component ---------- */
 
@@ -988,8 +933,8 @@ export function AssistantProcedures({
   isUploadingAttachment,
   isLoading,
   isError,
+  viewMode,
 }: AssistantProceduresProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>("operations")
 
   if (isLoading) {
     return (
@@ -1011,8 +956,6 @@ export function AssistantProcedures({
 
   return (
     <main className="flex h-full flex-1 flex-col overflow-hidden bg-[#F9F8F5]">
-      {/* Floating Pill Navigation */}
-      <FloatingPillNav activeView={viewMode} onViewChange={setViewMode} />
 
       {/* Error banner */}
       {isError && (

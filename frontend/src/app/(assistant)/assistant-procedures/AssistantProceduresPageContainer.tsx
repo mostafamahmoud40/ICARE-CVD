@@ -1,9 +1,15 @@
 "use client"
 
+import { useSearchParams } from "next/navigation"
 import { AssistantProcedures } from "./AssistantProcedures"
 import { useAssistantProcedures } from "./useAssistantProcedures"
+import type { ViewMode } from "./AssistantProcedures"
 
 export function AssistantProceduresPageContainer() {
+  const searchParams = useSearchParams()
+  const rawView = searchParams.get("view")
+  const viewMode: ViewMode = rawView === "current" || rawView === "history" ? rawView : "operations"
+
   const {
     orders,
     stats,
@@ -49,6 +55,7 @@ export function AssistantProceduresPageContainer() {
       isUploadingAttachment={isUploadingAttachment}
       isLoading={isLoading}
       isError={isError}
+      viewMode={viewMode}
     />
   )
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { UserRoundIcon } from "lucide-react"
+import { UserRoundIcon, CalendarDaysIcon } from "lucide-react"
 import { PRIORITY_CONFIG } from "./assistantProcedures.config"
 import type { ProcedureOrder } from "./assistantProcedures.types"
 
@@ -12,48 +12,50 @@ type ProcedureOrderRowProps = {
 }
 
 export function ProcedureOrderRow({ order, isSelected, onSelect }: ProcedureOrderRowProps) {
+  const priority = order.priority
+  const pCfg = PRIORITY_CONFIG[priority]
+
   return (
     <button
       type="button"
       onClick={onSelect}
       className={cn(
-        "flex w-full items-center gap-2 rounded-xl border-2 p-2.5 text-left transition-all",
+        "relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border p-3 text-left transition-all sm:p-4",
         isSelected
-          ? "border-[#1A5345]/40 bg-[#F6FBF9] ring-1 ring-[#1A5345]/10"
-          : "border-[#E5EEEA] bg-white hover:border-[#A8C4BC]",
+          ? "border-[#1A5345]/30 bg-[#F6FBF9] shadow-sm"
+          : "border-[#E5EEEA] bg-white hover:border-[#A8C4BC] hover:shadow-sm",
       )}
     >
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#E8F0EE]">
-        <UserRoundIcon className="size-4 text-[#1A5345]" />
+      {/* Clean avatar */}
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#E8F0EE]">
+        <UserRoundIcon className="size-5 text-[#1A5345]" />
       </div>
 
+      {/* Content */}
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-1">
-            <span className="truncate text-[11px] font-semibold text-[#102F27]">{order.patientName}</span>
-            <span className="shrink-0 text-[9px] text-muted-foreground">{order.patientAge}y</span>
-          </div>
-          {order.priority !== "normal" && (
-            <span
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px]",
-                PRIORITY_CONFIG[order.priority].style,
-              )}
-            >
-              {PRIORITY_CONFIG[order.priority].dot ? (
-                <span
-                  className={cn("inline-block size-1.5 shrink-0 rounded-full", PRIORITY_CONFIG[order.priority].dot)}
-                  aria-hidden
-                />
-              ) : null}
-              {PRIORITY_CONFIG[order.priority].label}
+        {/* Name + procedure */}
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-[13px] font-semibold text-[#102F27]">{order.patientName}</span>
+          <span className="shrink-0 text-[10px] text-[#9CA3AF]">{order.patientAge}y</span>
+        </div>
+
+        {/* Bottom: procedure + priority + date */}
+        <div className="mt-0.5 flex items-center gap-2">
+          <span className="truncate text-[10px] font-medium text-[#4F6D64]">{order.procedureName}</span>
+
+          {priority !== "normal" && pCfg && (
+            <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0 text-[9px] font-medium", pCfg.style)}>
+              {pCfg.dot && <span className={cn("size-1 rounded-full", pCfg.dot)} />}
+              {pCfg.label}
             </span>
           )}
-        </div>
-        <div className="mt-0.5 min-w-0">
-          <span className="inline-block w-fit max-w-full truncate rounded-full bg-[#EEF5F3] px-1.5 py-0.5 text-[9px] font-medium text-[#2C6A5B]">
-            {order.procedureName}
-          </span>
+
+          {order.scheduledAt && (
+            <span className="inline-flex shrink-0 items-center gap-1 text-[9px] text-[#9CA3AF]">
+              <CalendarDaysIcon className="size-3" />
+              {new Date(order.scheduledAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            </span>
+          )}
         </div>
       </div>
     </button>
