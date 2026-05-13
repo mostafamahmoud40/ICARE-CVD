@@ -4,38 +4,37 @@ import type { ProcedureOrderStatus, ProcedurePriority } from "./assistantProcedu
 export const STATUS_CONFIG: Record<ProcedureOrderStatus, { label: string; style: string; dot: string }> = {
   pending: {
     label: "Pending",
-    /** Gold fill; label matches dot hue (#C98810) */
-    style: "bg-[#F4E8CD] text-[#C98810] font-semibold ring-1 ring-[#E2CFA0]/70",
-    dot: "bg-[#C98810]",
+    style: "bg-[#FFF8E7] text-[#B8860B] border-[#B8860B]/20 shadow-sm",
+    dot: "bg-[#B8860B]",
   },
   "in-progress": {
-    label: "In Progress",
-    /** Light mint wash; label matches dot (#1A5345), same pattern as Pending / Completed */
-    style: "bg-[#EFF6F3] text-[#1A5345] font-semibold ring-1 ring-[#BFD9CC]/75",
+    label: "Active",
+    style: "bg-[#E8F0EE] text-[#1A5345] border-[#1A5345]/20 shadow-sm",
     dot: "bg-[#1A5345] animate-pulse",
   },
   completed: {
-    label: "Completed",
-    /** Light sage wash; label matches dot (#5E8F7B), same pattern as Pending */
-    style: "bg-[#F2FAF7] text-[#5E8F7B] font-semibold ring-1 ring-[#C5D9D0]/70",
-    dot: "bg-[#5E8F7B]",
+    label: "Verified",
+    style: "bg-[#F0FDF4] text-[#166534] border-[#166534]/20 shadow-sm",
+    dot: "bg-[#166534]",
   },
 }
 
-/** Optional `dot` classes — label text should match dot fill (same pattern as StatusBadge Pending). */
 export const PRIORITY_CONFIG: Record<
   ProcedurePriority,
   { label: string; style: string; dot?: string }
 > = {
-  normal: { label: "Normal", style: "bg-[#E8F0EE] text-[#1A5345]" },
+  normal: { 
+    label: "Normal", 
+    style: "bg-[#F9F8F5] text-[#6B7870] border-[#E8E6E0]" 
+  },
   urgent: {
     label: "Urgent",
-    style: "bg-[#FDF6EA] text-[#C07818] font-semibold ring-1 ring-[#E8CFAC]/75",
-    dot: "bg-[#C07818]",
+    style: "bg-[#FFF8E7] text-[#B8860B] border-[#B8860B]/20",
+    dot: "bg-[#B8860B]",
   },
   emergency: {
     label: "Emergency",
-    style: "bg-[#FCEAE9] text-[#D94848] font-semibold ring-1 ring-[#ECB8B8]/75",
-    dot: "bg-[#D94848]",
+    style: "bg-[#FEF2F2] text-[#991B1B] border-[#991B1B]/20",
+    dot: "bg-[#991B1B]",
   },
 }

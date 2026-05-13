@@ -21,10 +21,14 @@ async function toggleRequirement(payload: {
   requirementId: string
   isDone: boolean
 }) {
-  await apiClient.patch(
-    `/assistant/procedures/${payload.orderId}/requirements/${payload.requirementId}`,
-    { isDone: payload.isDone },
-  )
+  try {
+    await apiClient.patch(
+      `/assistant/procedures/${payload.orderId}/requirements/${payload.requirementId}`,
+      { isDone: payload.isDone },
+    )
+  } catch {
+    /* Local-first until assistant procedures API exists */
+  }
 }
 
 async function uploadRequirementAttachment(payload: {
@@ -34,11 +38,15 @@ async function uploadRequirementAttachment(payload: {
 }) {
   const form = new FormData()
   form.append("file", payload.file)
-  await apiClient.post(
-    `/assistant/procedures/${payload.orderId}/requirements/${payload.requirementId}/attachment`,
-    form,
-    { headers: { "Content-Type": "multipart/form-data" } },
-  )
+  try {
+    await apiClient.post(
+      `/assistant/procedures/${payload.orderId}/requirements/${payload.requirementId}/attachment`,
+      form,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    )
+  } catch {
+    /* Backend optional — optimistic attachment stays in React Query cache */
+  }
 }
 
 async function addRequirement(payload: {
@@ -125,12 +133,55 @@ export function useAssistantProcedures() {
 
   const toggleMutation = useMutation({
     mutationFn: toggleRequirement,
-    onSuccess: invalidateAll,
+    onMutate: async ({ orderId, requirementId, isDone }) => {
+      await queryClient.cancelQueries({ queryKey: ordersKey })
+      const completedAt = isDone ? new Date().toISOString() : null
+      patchLocalOrders((orders) =>
+        orders.map((o) =>
+          o.id === orderId
+            ? {
+                ...o,
+                requirements: o.requirements.map((r) =>
+                  r.id === requirementId ? { ...r, isDone, completedAt } : r,
+                ),
+              }
+            : o,
+        ),
+      )
+    },
+    onError: invalidateAll,
   })
 
   const uploadMutation = useMutation({
     mutationFn: uploadRequirementAttachment,
-    onSuccess: invalidateAll,
+    onMutate: async ({ orderId, requirementId, file }) => {
+      await queryClient.cancelQueries({ queryKey: ordersKey })
+      const blobUrl = URL.createObjectURL(file)
+      patchLocalOrders((orders) =>
+        orders.map((o) =>
+          o.id === orderId
+            ? {
+                ...o,
+                requirements: o.requirements.map((r) =>
+                  r.id === requirementId
+                    ? {
+                        ...r,
+                        attachmentUrl: blobUrl,
+                        attachmentName: file.name,
+                      }
+                    : r,
+                ),
+              }
+            : o,
+        ),
+      )
+      return { blobUrl }
+    },
+    onError: (_err, variables, ctx) => {
+      if (ctx?.blobUrl) URL.revokeObjectURL(ctx.blobUrl)
+      void invalidateAll()
+    },
+    /* Do not invalidate on success — mock refetch would drop blob URLs */
   })
 
   /* Optimistic local helpers (UI-only until backend exists) */
@@ -255,7 +306,7 @@ export function useAssistantProcedures() {
     onToggleRequirement: (orderId: string, requirementId: string, isDone: boolean) =>
       toggleMutation.mutate({ orderId, requirementId, isDone }),
     onUploadAttachment: (orderId: string, requirementId: string, file: File) =>
-      uploadMutation.mutate({ orderId, requirementId, file }),
+      uploadMutation.mutateAsync({ orderId, requirementId, file }),
     onAddRequirement: (
       orderId: string,
       title: string,

@@ -9,7 +9,7 @@ import {
   Trash2Icon,
   UserIcon,
 } from "lucide-react"
-import { toast } from "sonner"
+import { showIcareErrorToast, showIcareSuccessToast } from "@/components/shared/icare-toast"
 
 import type { useAddPatient } from "./useAddPatient"
 import type { AllergyItem, MedicationItem } from "./addPatient.types"
@@ -689,9 +689,10 @@ export function AddPatient({
 
   useEffect(() => {
     if (isSuccess && !hadSuccess.current) {
-      toast.success("Patient registered", {
-        description: "The patient record has been created successfully.",
-      })
+      showIcareSuccessToast(
+        "Patient registered",
+        "The patient record has been created successfully."
+      )
       onSuccess?.()
     }
     hadSuccess.current = isSuccess
@@ -699,9 +700,7 @@ export function AddPatient({
 
   useEffect(() => {
     if (submitError && submitError !== lastErrorMessage.current) {
-      toast.error("Could not register patient", {
-        description: submitError,
-      })
+      showIcareErrorToast("Could not register patient", submitError)
     }
     lastErrorMessage.current = submitError
   }, [submitError])

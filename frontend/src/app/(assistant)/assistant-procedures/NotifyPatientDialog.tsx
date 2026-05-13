@@ -4,17 +4,22 @@ import { useEffect, useMemo, useState } from "react"
 import {
   BellIcon,
   CheckCircle2Icon,
+  MessageSquareTextIcon,
   SendIcon,
   SparklesIcon,
-  UserRoundIcon,
+  XIcon,
 } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { ProcedureOrder } from "./assistantProcedures.types"
 
@@ -37,17 +42,51 @@ export function NotifyPatientDialog({
   const [messageDraft, setMessageDraft] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
 
-  const handleConfirm = async () => {
-    await onConfirm()
-    setSent(true)
-  }
+  const requirementsFingerprint = useMemo(
+    () =>
+      order.requirements
+        .map((r) => `${r.id}:${r.isDone}:${r.description ?? r.title}`)
+        .join("|"),
+    [order.requirements],
+  )
 
-  const handleClose = (v: boolean) => {
-    if (!isSending) {
-      onOpenChange(v)
-      if (!v) setSent(false)
+  const defaultMessage = useMemo(() => {
+    const pend = order.requirements.filter((r) => !r.isDone)
+    const done = order.requirements.filter((r) => r.isDone)
+
+    const lines: string[] = [
+      `Dear ${order.patientName},`,
+      "",
+      `This is a reminder from ICARE Clinic regarding your upcoming ${order.procedureName}.`,
+    ]
+
+    if (order.scheduledAt) {
+      lines.push(
+        `Scheduled: ${new Intl.DateTimeFormat("en-GB", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(new Date(order.scheduledAt))}`,
+      )
     }
-  }
+
+    if (pend.length > 0) {
+      lines.push("")
+      lines.push(`Pending requirements (${pend.length}):`)
+      pend.forEach((r) => lines.push(`- ${r.description ?? r.title}`))
+    }
+
+    if (done.length > 0) {
+      lines.push("")
+      lines.push(`Already completed (${done.length}):`)
+      done.forEach((r) => lines.push(`- ${r.description ?? r.title}`))
+    }
+
+    lines.push("")
+    lines.push("Please contact us if you have any questions.")
+    lines.push("ICARE Cardiology Clinic")
+
+    return lines.join("\n")
+  }, [order.patientName, order.procedureName, order.scheduledAt, requirementsFingerprint])
 
   const handleGenerateAiMessage = () => {
     setIsGenerating(true)
@@ -67,16 +106,19 @@ export function NotifyPatientDialog({
       )
     }
 
-    if (pendingReqs.length > 0) {
+    const pend = order.requirements.filter((r) => !r.isDone)
+    const done = order.requirements.filter((r) => r.isDone)
+
+    if (pend.length > 0) {
       lines.push("")
-      lines.push(`Please complete the following before your visit (${pendingReqs.length}):`)
-      pendingReqs.forEach((r) => lines.push(`- ${r.description ?? r.title}`))
+      lines.push(`Please complete the following before your visit (${pend.length}):`)
+      pend.forEach((r) => lines.push(`- ${r.description ?? r.title}`))
     }
 
-    if (doneReqs.length > 0) {
+    if (done.length > 0) {
       lines.push("")
-      lines.push(`Already completed (${doneReqs.length}):`)
-      doneReqs.forEach((r) => lines.push(`- ${r.description ?? r.title}`))
+      lines.push(`Already completed (${done.length}):`)
+      done.forEach((r) => lines.push(`- ${r.description ?? r.title}`))
     }
 
     lines.push("")
@@ -87,42 +129,17 @@ export function NotifyPatientDialog({
     setIsGenerating(false)
   }
 
-  const pendingReqs = order.requirements.filter((r) => !r.isDone)
-  const doneReqs = order.requirements.filter((r) => r.isDone)
-  const defaultMessage = useMemo(() => {
-    const lines: string[] = [
-      `Dear ${order.patientName},`,
-      "",
-      `This is a reminder from ICARE Clinic regarding your upcoming ${order.procedureName}.`,
-    ]
+  const handleConfirm = async () => {
+    await onConfirm()
+    setSent(true)
+  }
 
-    if (order.scheduledAt) {
-      lines.push(
-        `Scheduled: ${new Intl.DateTimeFormat("en-GB", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(new Date(order.scheduledAt))}`,
-      )
+  const handleClose = (v: boolean) => {
+    if (!isSending) {
+      onOpenChange(v)
+      if (!v) setSent(false)
     }
-
-    if (pendingReqs.length > 0) {
-      lines.push("")
-      lines.push(`Pending requirements (${pendingReqs.length}):`)
-      pendingReqs.forEach((r) => lines.push(`- ${r.description ?? r.title}`))
-    }
-
-    if (doneReqs.length > 0) {
-      lines.push("")
-      lines.push(`Already completed (${doneReqs.length}):`)
-      doneReqs.forEach((r) => lines.push(`- ${r.description ?? r.title}`))
-    }
-
-    lines.push("")
-    lines.push("Please contact us if you have any questions.")
-    lines.push("ICARE Cardiology Clinic")
-
-    return lines.join("\n")
-  }, [doneReqs, order.patientName, order.procedureName, order.scheduledAt, pendingReqs])
+  }
 
   useEffect(() => {
     if (open) {
@@ -132,99 +149,137 @@ export function NotifyPatientDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md border-[#E8E6E0] bg-white p-0">
-        <DialogHeader className="border-b border-[#E8E6E0] px-4 py-3">
-          <DialogTitle className="flex items-center gap-2 text-[13px] font-bold text-[#102F27]">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-[#1A5345]">
-              <BellIcon className="size-3.5 text-white" />
+      <DialogContent
+        showCloseButton={false}
+        className={cn(
+          "max-w-[calc(100%-2rem)] gap-0 overflow-hidden rounded-[32px] border-0 bg-white p-0 shadow-2xl sm:max-w-lg",
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => handleClose(false)}
+          disabled={isSending}
+          className="absolute right-3 top-3 z-10 flex size-8 items-center justify-center rounded-lg border border-[#E8E6E0]/60 bg-white/90 text-muted-foreground shadow-sm transition-colors hover:bg-[#F9F8F5] hover:text-[#102F27] disabled:pointer-events-none disabled:opacity-40 sm:right-4 sm:top-4"
+          aria-label="Close"
+        >
+          <XIcon className="size-3.5" />
+        </button>
+
+        {/* Header Section */}
+        <div className="relative border-b border-[#E8E6E0]/50 bg-[#F9F8F5]/60 px-4 pb-3 pt-4 pr-12 text-left sm:px-5 sm:pb-3.5 sm:pt-4 sm:pr-14">
+          <DialogHeader className="gap-0 space-y-0">
+            <div className="flex items-center gap-3 sm:gap-3.5">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1A5345] text-white shadow-sm shadow-[#1A5345]/15">
+                <BellIcon className="size-[18px]" aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <DialogTitle className="font-serif text-[15px] font-semibold leading-tight tracking-tight text-[#1A1F1E] sm:text-[16px]">
+                  Clinical dispatch
+                </DialogTitle>
+                <DialogDescription className="text-[11px] font-normal leading-snug text-muted-foreground sm:text-[12px]">
+                  Notification summary
+                </DialogDescription>
+              </div>
             </div>
-            Notify Patient
-          </DialogTitle>
-        </DialogHeader>
+          </DialogHeader>
+        </div>
 
         {sent ? (
-          <div className="flex flex-col items-center gap-3 px-4 py-8">
-            <div className="flex size-12 items-center justify-center rounded-full bg-emerald-50">
-              <CheckCircle2Icon className="size-6 text-emerald-500" />
+          <div className="flex flex-col items-center gap-6 px-8 py-14 text-center">
+            <div className="relative">
+              <div className="absolute inset-0 animate-ping rounded-full bg-emerald-100/50" />
+              <div className="relative flex size-20 items-center justify-center rounded-full bg-emerald-50 ring-8 ring-emerald-50/50">
+                <CheckCircle2Icon className="size-10 text-emerald-600" aria-hidden />
+              </div>
             </div>
-            <p className="text-center text-[12px] font-semibold text-[#102F27] sm:text-[13px]">
-              Notification sent!
-            </p>
-            <p className="text-center text-[10px] text-muted-foreground sm:text-[11px]">
-              {order.patientName} received an SMS and an in-app notification with the requirements list.
-            </p>
-            <button
+            <div className="space-y-2">
+              <p className="font-serif text-[22px] font-bold text-[#102F27]">Message dispatched</p>
+              <p className="max-w-xs text-[14px] leading-relaxed text-muted-foreground font-medium">
+                The checklist summary has been sent to <span className="text-[#1A5345] font-bold">{order.patientName}</span> via SMS and in-app alert.
+              </p>
+            </div>
+            <Button
               type="button"
               onClick={() => handleClose(false)}
-              className="mt-1 rounded-lg bg-[#1A5345] px-5 py-2 text-[11px] font-medium text-white transition-colors hover:bg-[#0F3D32]"
+              className="mt-2 h-12 w-full max-w-[200px] rounded-2xl bg-[#1A5345] px-8 text-[14px] font-bold text-white shadow-xl shadow-[#1A5345]/10 transition-all hover:bg-[#133F34] active:scale-95"
             >
               Done
-            </button>
+            </Button>
           </div>
         ) : (
           <>
-            <div className="space-y-3 px-4 py-3">
-              <div className="flex items-center gap-2 rounded-lg border border-[#E5EEEA] bg-[#F6FBF9] px-3 py-2">
-                <UserRoundIcon className="size-4 shrink-0 text-[#1A5345]" />
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold text-[#102F27]">{order.patientName}</p>
-                  {order.patientPhone && (
-                    <p className="text-[10px] text-muted-foreground">{order.patientPhone}</p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-1.5 flex items-center justify-between gap-2">
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground sm:text-[10px]">
-                    Edit message
-                  </p>
+            <div className="space-y-6 px-6 py-6 sm:px-8 sm:py-8">
+              {/* Message Composer */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="notify-message" className="text-[12px] font-semibold text-[#102F27]/80">
+                    Message content
+                  </Label>
                   <button
                     type="button"
                     onClick={handleGenerateAiMessage}
                     disabled={isSending || isGenerating}
-                    className="inline-flex items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-[9px] font-medium text-violet-700 transition-colors hover:bg-violet-100 disabled:opacity-40 sm:text-[10px]"
+                    className="flex items-center gap-1.5 rounded-xl border border-violet-100 bg-violet-50/50 px-3 py-1.5 text-[11px] font-bold text-violet-700 transition-all hover:bg-violet-100 hover:text-violet-800 active:scale-95 disabled:opacity-40"
                   >
-                    <SparklesIcon className="size-3" />
-                    {isGenerating ? "Writing..." : "AI Assist"}
+                    <SparklesIcon className="size-3.5" aria-hidden />
+                    {isGenerating ? "Refining..." : "AI Enhancement"}
                   </button>
                 </div>
                 <Textarea
+                  id="notify-message"
                   value={messageDraft}
                   onChange={(e) => setMessageDraft(e.target.value)}
-                  className="min-h-[140px] resize-y border-[#E5EEEA] bg-white text-[11px] leading-relaxed text-[#1A1F1E] sm:text-[12px]"
+                  placeholder="Draft your clinical update here..."
+                  className="min-h-[160px] resize-none rounded-[24px] border-[#E8E6E0] bg-[#F9F8F5]/30 p-5 text-[14px] font-medium leading-relaxed text-[#1A1F1E] placeholder:text-muted-foreground/40 focus-visible:ring-[#1A5345]/10 sm:min-h-[180px]"
                 />
               </div>
 
-              <div className="flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-2.5 py-2 text-[10px] text-blue-700 sm:text-[11px]">
-                <BellIcon className="size-3 shrink-0" />
-                Will send: SMS to {order.patientPhone ?? "registered number"} + in-app notification
+              {/* Delivery Info */}
+              <div className="flex items-start gap-2.5 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 px-3 py-2 sm:gap-3 sm:px-3.5 sm:py-2.5">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white text-[#1A5345] shadow-sm ring-1 ring-[#E8E6E0]/50">
+                  <MessageSquareTextIcon className="size-3.5" aria-hidden />
+                </div>
+                <div className="min-w-0 space-y-0.5 pt-0.5">
+                  <p className="text-[11px] font-semibold leading-none text-[#102F27] sm:text-[12px]">
+                    Multi-channel delivery
+                  </p>
+                  <p className="text-[10px] font-medium leading-snug text-muted-foreground sm:text-[11px]">
+                    Sent by{" "}
+                    <span className="font-semibold text-[#1A5345]">secure SMS</span>
+                    {" "}and{" "}
+                    <span className="font-semibold text-[#1A5345]">in-app notification</span>.
+                  </p>
+                </div>
               </div>
             </div>
 
-            <DialogFooter className="border-t border-[#E8E6E0] px-4 py-3">
-              <button
+            {/* Footer Actions */}
+            <div className="flex items-center justify-end gap-2 border-t border-[#E8E6E0]/60 bg-[#F9F8F5]/50 px-4 py-3 sm:gap-2.5 sm:px-5 sm:py-3">
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => handleClose(false)}
                 disabled={isSending}
-                className="rounded-lg border border-[#E5EEEA] px-4 py-2 text-[11px] text-muted-foreground transition-colors hover:bg-[#F5F5F3] disabled:opacity-40"
+                className="h-9 rounded-lg border-[#E8E6E0] bg-white px-3 text-[12px] font-semibold text-muted-foreground hover:bg-[#FAFAF9] hover:text-[#102F27]"
               >
-                Cancel
-              </button>
-              <button
+                Discard
+              </Button>
+              <Button
                 type="button"
+                size="sm"
                 onClick={handleConfirm}
-                disabled={isSending}
-                className="flex items-center gap-1.5 rounded-lg bg-[#1A5345] px-4 py-2 text-[11px] font-medium text-white transition-colors hover:bg-[#0F3D32] disabled:opacity-40"
+                disabled={isSending || !messageDraft.trim()}
+                className="h-9 gap-1.5 rounded-lg bg-[#1A5345] px-4 text-[12px] font-semibold text-white shadow-sm shadow-[#1A5345]/15 hover:bg-[#133F34] disabled:opacity-40"
               >
                 {isSending ? (
-                  <div className="size-3.5 animate-spin rounded-full border border-white border-t-transparent" />
+                  <span className="size-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 ) : (
-                  <SendIcon className="size-3.5" />
+                  <SendIcon className="size-3.5 shrink-0" aria-hidden />
                 )}
-                Send Notification
-              </button>
-            </DialogFooter>
+                Dispatch
+              </Button>
+            </div>
           </>
         )}
       </DialogContent>
