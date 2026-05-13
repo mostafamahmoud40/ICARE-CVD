@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react"
 import { FileIcon, Loader2Icon, RadiationIcon, UploadIcon } from "lucide-react"
-import { toast } from "sonner"
+import { showIcareErrorToast, showIcareSuccessToast } from "@/components/shared/icare-toast"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -53,13 +53,9 @@ export function PatientStudiesUploadSection({ queueEntryId }: PatientStudiesUplo
 
       try {
         await uploadStudyFile({ file, studyKind })
-        toast.success("File saved to the patient chart", {
-          description: file.name,
-        })
+        showIcareSuccessToast("File saved to the patient chart", file.name)
       } catch (err) {
-        toast.error("Could not upload file", {
-          description: formatQueueDocumentUploadError(err),
-        })
+        showIcareErrorToast("Could not upload file", formatQueueDocumentUploadError(err))
       } finally {
         if (inputRef.current) inputRef.current.value = ""
       }

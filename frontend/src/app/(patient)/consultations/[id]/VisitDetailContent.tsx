@@ -1,16 +1,16 @@
 "use client"
 
-import { useParams } from "next/navigation"
 import { notFound } from "next/navigation"
 
 import { VisitDetail } from "../VisitDetail"
 import { getVisitById } from "../consultations.mock"
 
-export function VisitDetailContent() {
-  const params = useParams()
-  const id = params.id as string
+type VisitDetailContentProps = {
+  visitId: string
+}
 
-  const visit = getVisitById(id)
+export function VisitDetailContent({ visitId }: VisitDetailContentProps) {
+  const visit = getVisitById(visitId)
 
   if (!visit) {
     notFound()

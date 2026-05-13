@@ -7,7 +7,12 @@ export const metadata: Metadata = {
   description: "View detailed consultation summary.",
 }
 
-export default function VisitDetailPage() {
-  return <VisitDetailContent />
+type PageProps = {
+  params: Promise<{ id: string }>
+}
+
+export default async function VisitDetailPage({ params }: PageProps) {
+  const { id } = await params
+  return <VisitDetailContent visitId={id} />
 }
 
