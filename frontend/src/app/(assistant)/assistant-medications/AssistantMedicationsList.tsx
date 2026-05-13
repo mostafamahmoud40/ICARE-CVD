@@ -36,8 +36,8 @@ export function AssistantMedicationsList() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
       <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-white">
-        <div className="flex flex-col px-6 pb-4 pt-6 sm:px-8 sm:pb-5 sm:pt-8">
-          <div className="mb-4 flex items-center gap-3">
+        <div className="flex flex-col px-5 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5">
+          <div className="mb-2 flex items-center gap-2 sm:mb-2.5">
             <Breadcrumb>
               <BreadcrumbList className="text-[10px] sm:text-[11px]">
                 <BreadcrumbItem>
@@ -55,27 +55,29 @@ export function AssistantMedicationsList() {
             </Breadcrumb>
           </div>
 
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
-            <div className="space-y-1">
-              <h1 className="font-serif text-[28px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[30px] lg:text-[32px]">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+            <div className="min-w-0 space-y-0.5">
+              <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px] lg:text-[26px]">
                 Medication adherence
               </h1>
-              <p className="text-[14px] font-medium text-muted-foreground sm:text-[15px]">
+              <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
                 AI-assisted monitoring and clinical follow-up for patient adherence.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="hidden flex-col items-end gap-1 xl:flex">
-                <span className="text-[11px] font-bold text-muted-foreground">Active flags</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-[18px] font-bold leading-none text-rose-600 tabular-nums">{totalOpenFlags}</span>
-                  <FlagIcon className="size-6 shrink-0 text-rose-600" aria-hidden />
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <div className="hidden flex-col items-end gap-0.5 xl:flex">
+                <span className="text-[10px] font-bold text-muted-foreground sm:text-[11px]">Active flags</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[16px] font-bold leading-none text-rose-600 tabular-nums sm:text-[17px]">
+                    {totalOpenFlags}
+                  </span>
+                  <FlagIcon className="size-5 shrink-0 text-rose-600" aria-hidden />
                 </div>
               </div>
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 gap-2 rounded-xl border-[#E8E6E0] bg-white px-5 text-[14px] font-bold text-[#1A1F1E] shadow-sm transition-all hover:bg-[#F9F8F5]"
+                className="h-9 gap-2 rounded-xl border-[#E8E6E0] bg-white px-4 text-[13px] font-bold text-[#1A1F1E] shadow-sm transition-all hover:bg-[#F9F8F5] sm:h-10 sm:px-5 sm:text-[14px]"
               >
                 <FilterIcon className="size-4 text-muted-foreground" />
                 Filter view
@@ -83,17 +85,17 @@ export function AssistantMedicationsList() {
             </div>
           </div>
 
-          <div className="mt-5 flex flex-col gap-3 pt-2 sm:mt-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-            <div className="relative w-full sm:w-[min(100%,320px)] lg:w-[380px]">
-              <SearchIcon className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <div className="mt-3 flex flex-col gap-2 pt-1 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
+            <div className="relative w-full sm:w-[min(100%,300px)] lg:w-[340px]">
+              <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search patient or medication…"
                 value={vm.searchTerm}
                 onChange={(e) => vm.setSearchTerm(e.target.value)}
-                className="h-11 rounded-2xl border-[#E8E6E0] bg-white pl-10 text-[14px] shadow-sm focus-visible:border-[#1A5345]/40 focus-visible:ring-[#1A5345]/20"
+                className="h-9 rounded-xl border-[#E8E6E0] bg-white pl-9 text-[13px] shadow-sm focus-visible:border-[#1A5345]/40 focus-visible:ring-[#1A5345]/20 sm:h-10 sm:rounded-2xl sm:pl-10 sm:text-[14px]"
               />
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
               <label className="flex cursor-pointer items-center gap-2.5 px-1">
                 <Checkbox
                   checked={vm.flaggedOnly}

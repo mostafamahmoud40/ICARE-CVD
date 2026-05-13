@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2Icon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { InfoIcon, Loader2Icon, StethoscopeIcon } from "lucide-react";
+
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
-  DialogHeader,
+  DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,9 @@ import type {
 } from "./assistantMedications.types";
 
 const PATIENT_LEVEL_VALUE = "__patient__";
+
+const DEFAULT_ASSISTANT_NOTE =
+  "Please review this medication issue and advise the assistant follow-up plan.";
 
 type EscalateMedicationDialogProps = {
   open: boolean;
@@ -56,12 +59,17 @@ export function EscalateMedicationDialog({
   );
   const [priority, setPriority] = useState<DoctorEscalationPriority>("urgent");
   const [reason, setReason] = useState(suggestedReason ?? "");
-  const [note, setNote] = useState(
-    suggestedReason
-      ? "Please review this medication issue and advise the assistant follow-up plan."
-      : ""
-  );
+  const [note, setNote] = useState(suggestedReason ? DEFAULT_ASSISTANT_NOTE : "");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setError(null);
+    setMedicationValue(initialMedicationLineId ?? PATIENT_LEVEL_VALUE);
+    setPriority("urgent");
+    setReason(suggestedReason ?? "");
+    setNote(suggestedReason ? DEFAULT_ASSISTANT_NOTE : "");
+  }, [open, initialMedicationLineId, suggestedReason]);
 
   const handleSubmit = async () => {
     const parsed = escalateMedicationSchema.safeParse({
@@ -82,29 +90,61 @@ export function EscalateMedicationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-[#E8E6E0] sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-[15px] text-[#102F27]">Escalate to doctor</DialogTitle>
-          {profile ? (
-            <p className="text-[11px] text-muted-foreground">
-              {profile.fullName} · medication workflow review
-            </p>
-          ) : null}
-        </DialogHeader>
+      <DialogContent className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[480px]">
+        <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-3.5 sm:px-6 sm:py-4">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#E8E6E0] bg-white text-[#1A5345] shadow-sm sm:size-10">
+              <StethoscopeIcon className="size-[18px] sm:size-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <DialogTitle className="text-left text-[17px] font-bold font-serif leading-tight text-[#1A1F1E]">
+                Escalate to doctor
+              </DialogTitle>
+              {profile ? (
+                <DialogDescription className="text-left text-[12px] font-medium leading-snug text-muted-foreground sm:text-[13px]">
+                  <span className="font-bold text-[#1A1F1E]">{profile.fullName}</span>
+                  <span className="text-muted-foreground"> · </span>
+                  Medication workflow review
+                  {profile.phone ? (
+                    <>
+                      <span className="text-[#D4D1C9]" aria-hidden>
+                        {" "}
+                        ·{" "}
+                      </span>
+                      <span className="tabular-nums">{profile.phone}</span>
+                    </>
+                  ) : null}
+                </DialogDescription>
+              ) : (
+                <DialogDescription className="text-left text-[12px] font-medium text-muted-foreground sm:text-[13px]">
+                  Select a patient record to queue an escalation.
+                </DialogDescription>
+              )}
+            </div>
+          </div>
+        </div>
 
-        <div className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] text-[#4F6D64]">Medication</Label>
+        <div className="flex flex-col gap-4 p-5 sm:p-6">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="escalate-medication" className="text-[12px] font-bold text-[#1A1F1E]">
+                Medication
+              </Label>
               <Select
                 value={medicationValue}
                 onValueChange={setMedicationValue}
                 disabled={!profile}
               >
-                <SelectTrigger className="h-9 border-[#E8E6E0] text-[12px]">
-                  <SelectValue />
+                <SelectTrigger
+                  id="escalate-medication"
+                  className="h-10 w-full min-w-0 rounded-xl border-[#E8E6E0] bg-white text-[13px] shadow-sm focus-visible:ring-[#1A5345]"
+                >
+                  <SelectValue placeholder="Choose scope" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent
+                  alignItemWithTrigger={false}
+                  className="rounded-xl border-[#E8E6E0]/60 shadow-lg"
+                >
                   <SelectItem value={PATIENT_LEVEL_VALUE}>Patient-level issue</SelectItem>
                   {profile?.medications.map((med) => (
                     <SelectItem key={med.id} value={med.id}>
@@ -115,58 +155,80 @@ export function EscalateMedicationDialog({
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[11px] text-[#4F6D64]">Priority</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="escalate-priority" className="text-[12px] font-bold text-[#1A1F1E]">
+                Priority
+              </Label>
               <Select
                 value={priority}
                 onValueChange={(v) => setPriority(v as DoctorEscalationPriority)}
               >
-                <SelectTrigger className="h-9 border-[#E8E6E0] text-[12px]">
+                <SelectTrigger
+                  id="escalate-priority"
+                  className="h-10 w-full min-w-0 rounded-xl border-[#E8E6E0] bg-white text-[13px] shadow-sm focus-visible:ring-[#1A5345]"
+                >
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="routine">Routine</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
+                <SelectContent
+                  alignItemWithTrigger={false}
+                  className="rounded-xl border-[#E8E6E0]/60 shadow-lg"
+                >
+                  <SelectItem value="routine">Routine — review within routine cadence</SelectItem>
+                  <SelectItem value="urgent">Urgent — needs attention soon</SelectItem>
+                  <SelectItem value="critical">Critical — potential safety risk</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-[11px] text-[#4F6D64]">Reason</Label>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="escalate-reason" className="text-[12px] font-bold text-[#1A1F1E]">
+              Reason for review
+            </Label>
             <Textarea
+              id="escalate-reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={3}
-              className="resize-none border-[#E8E6E0] text-[12px]"
-              placeholder="What should the doctor review?"
+              className="min-h-[88px] resize-none rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/50 text-[13px] leading-relaxed shadow-sm focus-visible:bg-white focus-visible:ring-[#1A5345]"
+              placeholder="What should the cardiologist review? Be specific (symptoms, adherence, labs, interactions…)."
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-[11px] text-[#4F6D64]">Assistant note</Label>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="escalate-note" className="text-[12px] font-bold text-[#1A1F1E]">
+              Assistant note
+            </Label>
             <Textarea
+              id="escalate-note"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={4}
-              className="resize-none border-[#E8E6E0] text-[12px]"
-              placeholder="Context, contact attempts, or patient response."
+              className="min-h-[104px] resize-none rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/50 text-[13px] leading-relaxed shadow-sm focus-visible:bg-white focus-visible:ring-[#1A5345]"
+              placeholder="Context for the doctor: contact attempts, patient quotes, dates, or next steps you suggest."
             />
           </div>
 
-          <p className="text-[10px] text-muted-foreground">
-            Escalations are review requests; medication changes remain with the prescribing
-            clinician.
-          </p>
-          {error ? <p className="text-[11px] text-red-600">{error}</p> : null}
+          <div className="flex items-start gap-2 rounded-xl border border-dashed border-[#E8E6E0] bg-[#F9F8F5]/50 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground sm:text-[12px]">
+            <InfoIcon className="mt-0.5 size-3.5 shrink-0 text-[#1A5345]/70 sm:size-4" aria-hidden />
+            <p>
+              Escalations are <span className="font-semibold text-[#1A1F1E]">review requests</span> only.
+              Prescribing and med changes stay with the clinician — do not imply a dose change was made.
+            </p>
+          </div>
+
+          {error ? (
+            <p className="text-[12px] font-medium text-red-600 sm:text-[13px]" role="alert">
+              {error}
+            </p>
+          ) : null}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <div className="flex justify-end gap-2.5 border-t border-[#E8E6E0]/60 bg-[#F9F8F5]/50 px-5 py-3 sm:px-6">
           <Button
             type="button"
             variant="outline"
-            className="border-[#E8E6E0]"
+            className="h-10 rounded-xl border-[#E8E6E0]/80 px-4 text-[13px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-white"
             onClick={() => onOpenChange(false)}
             disabled={isPending}
           >
@@ -174,20 +236,20 @@ export function EscalateMedicationDialog({
           </Button>
           <Button
             type="button"
-            className="bg-[#1A5345] hover:bg-[#143f34]"
+            className="h-10 rounded-xl border-0 bg-[#1A5345] px-5 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(26,83,69,0.2)] transition-all hover:bg-[#133F34] hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none"
             onClick={() => void handleSubmit()}
             disabled={isPending || !profile}
           >
             {isPending ? (
               <>
-                <Loader2Icon className="mr-1 size-3.5 animate-spin" />
-                Queuing...
+                <Loader2Icon className="mr-2 size-4 animate-spin" aria-hidden />
+                Queuing…
               </>
             ) : (
               "Queue escalation"
             )}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

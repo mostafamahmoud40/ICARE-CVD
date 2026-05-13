@@ -7,6 +7,11 @@ export const metadata: Metadata = {
   description: "Medication adherence, flags, and follow-up for this patient.",
 };
 
-export default function AssistantMedicationsPatientPage() {
-  return <AssistantMedicationsPatientDetail />;
+type PageProps = {
+  params: Promise<{ patientId: string }>
+}
+
+export default async function AssistantMedicationsPatientPage({ params }: PageProps) {
+  const { patientId } = await params
+  return <AssistantMedicationsPatientDetail patientId={patientId} />
 }
