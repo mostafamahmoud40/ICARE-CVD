@@ -65,6 +65,19 @@ const assistantSerif = Lora({
   display: "swap",
 })
 
+/** Title-case when the stored name is ALL CAPS; otherwise leave as-is. */
+function formatDisplayLabel(raw: string | null | undefined, fallback: string): string {
+  const t = (raw ?? "").trim()
+  if (!t) return fallback
+  if (t === t.toUpperCase() && /[A-Z]/.test(t)) {
+    return t
+      .split(/\s+/)
+      .map((w) => (w ? w.charAt(0) + w.slice(1).toLowerCase() : w))
+      .join(" ")
+  }
+  return t
+}
+
 export default function AssistantLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
@@ -73,7 +86,7 @@ export default function AssistantLayout({
 
   return (
     <div
-      className={`${assistantSerif.className} min-h-screen bg-background text-foreground dark:bg-background`}
+      className={`${assistantSerif.className} min-h-screen bg-sidebar text-foreground dark:bg-sidebar`}
     >
       <SidebarProvider defaultOpen>
         <AssistantLayoutContent pathname={pathname} logout={logout} user={user} mounted={mounted}>{children}</AssistantLayoutContent>
@@ -140,6 +153,12 @@ function AssistantLayoutContent({
       isActive: pathname.startsWith("/assistant-queue"),
     },
     {
+      href: "/assistant-doctors",
+      label: "Doctor Directory",
+      icon: StethoscopeIcon,
+      isActive: pathname.startsWith("/assistant-doctors"),
+    },
+    {
       href: "/assistant-procedures",
       label: "Procedures",
       icon: ClipboardPlusIcon,
@@ -200,7 +219,7 @@ function AssistantLayoutContent({
   return (
     <>
       <Sidebar side="left" collapsible="icon" variant="sidebar">
-        <SidebarHeader className="group-data-[collapsible=icon]:p-1 border-b border-[#E8E6E0]/60 pb-4 pt-4 px-4">
+        <SidebarHeader className="group-data-[collapsible=icon]:p-1 pb-4 pt-4 px-4">
           <div
             className="flex items-center gap-3"
             onPointerDown={(e) => e.stopPropagation()}
@@ -220,7 +239,7 @@ function AssistantLayoutContent({
             {isCollapsed ? null : (
               <div className="flex flex-col gap-0.5 leading-tight">
                 <div className="text-[17px] font-bold text-[#6B7870]">ICARE-CVD</div>
-                <div className="text-[13px] font-medium text-muted-foreground">Assistant Portal</div>
+                <div className="font-sans text-[13px] font-medium text-muted-foreground">Assistant Portal</div>
               </div>
             )}
           </div>
@@ -457,26 +476,37 @@ function AssistantLayoutContent({
                     size="lg"
                     className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                     render={
-                      <button type="button" aria-label="Assistant profile">
-                        <div className="relative">
-                          <div
-                            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#E15C5C] text-white text-[17px] font-bold shadow-sm"
-                            aria-hidden="true"
-                          >
-                            {mounted && user ? user.name[0].toUpperCase() : "A"}
+                      <button 
+                        type="button" 
+                        aria-label="Assistant profile"
+                        className="flex w-full items-center gap-3 p-1 transition-all hover:bg-[#F9F8F5] rounded-[20px] group relative"
+                      >
+                        <div className="relative shrink-0">
+                          <div className="size-11 rounded-[16px] bg-white p-0.5 shadow-sm border border-[#E8E6E0]/60 overflow-hidden group-hover:scale-105 transition-transform duration-300">
+                             <img 
+                               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${mounted && user ? encodeURIComponent(formatDisplayLabel(user.name, "Assistant")) : "Assistant"}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
+                               alt="Avatar" 
+                               className="size-full object-cover rounded-[14px]"
+                             />
                           </div>
-                          <span className="absolute -top-0.5 -right-0.5 size-3.5 rounded-full bg-white border-2 border-white ring-1 ring-slate-200" />
+                          <span className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full bg-[#22C55E] border-2 border-white shadow-sm z-10" />
                         </div>
 
                         {isCollapsed ? null : (
-                          <div className="flex flex-col gap-0.5 min-w-0 text-left">
-                            <div className="truncate text-[15px] font-bold text-[#6B7870]">
-                              {mounted && user ? user.name : "ASSISTANT"}
-                            </div>
-                            <div className="truncate text-[13px] font-medium text-muted-foreground">
-                              Care Assistant
+                          <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 text-left">
+                            <span className="truncate font-sans text-[15px] font-bold text-[#1A1F1E]">
+                              {mounted && user ? formatDisplayLabel(user.name, "Assistant") : "Assistant"}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                               <span className="size-1 rounded-full bg-[#1A5345]/30" />
+                               <span className="truncate font-sans text-[11px] font-medium text-muted-foreground">
+                                 Clinical assistant
+                               </span>
                             </div>
                           </div>
+                        )}
+                        {!isCollapsed && (
+                           <ChevronDownIcon className="ml-auto size-4 text-muted-foreground/30 group-hover:text-[#1A5345] group-hover:translate-y-0.5 transition-all" />
                         )}
                       </button>
                     }
@@ -487,22 +517,28 @@ function AssistantLayoutContent({
                   align="end"
                   side="right"
                   sideOffset={8}
-                  className="w-[260px] rounded-xl border-[#E8E6E0]/60 bg-white p-0 shadow-[0_8px_30px_rgb(0,0,0,0.08)]"
+                  className="w-[248px] rounded-xl border-[#E8E6E0]/60 bg-white p-0 shadow-[0_8px_30px_rgb(0,0,0,0.08)]"
                 >
-                  <div className="flex items-center gap-3 p-4">
-                    <div
-                      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1A5345] text-white shadow-sm"
-                      aria-hidden="true"
-                    >
-                      <User2Icon className="size-5" />
+                  <div className="flex items-center gap-2.5 border-b border-[#E8E6E0]/40 bg-[#F9F8F5]/80 px-3 py-2 backdrop-blur-md">
+                    <div className="size-9 shrink-0 overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-white p-px shadow-sm">
+                       <img 
+                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${mounted && user ? encodeURIComponent(formatDisplayLabel(user.name, "Assistant")) : "Assistant"}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
+                         alt="Avatar" 
+                         className="size-full object-cover rounded-[10px]"
+                       />
                     </div>
-                    <div className="flex flex-col gap-0.5 min-w-0">
-                      <div className="truncate text-[15px] font-bold text-[#6B7870]">
-                        {mounted && user ? user.name : "ASSISTANT"}
-                      </div>
-                      <div className="truncate text-[13px] text-muted-foreground">
-                        {mounted && user ? user.email : "assistant@gmail.com"}
-                      </div>
+                    <div className="flex min-w-0 flex-1 flex-col gap-0">
+                      <span className="truncate font-sans text-[14px] font-bold leading-tight text-[#1A1F1E]">
+                        {mounted && user ? formatDisplayLabel(user.name, "Assistant") : "Assistant"}
+                      </span>
+                      <p className="mt-0.5 truncate font-sans text-[10px] font-medium leading-snug text-muted-foreground">
+                        Clinical assistant
+                        <span className="text-muted-foreground/50" aria-hidden>
+                          {" "}
+                          ·{" "}
+                        </span>
+                        <span className="text-muted-foreground/80">{mounted && user ? user.email : "assistant@icare.com"}</span>
+                      </p>
                     </div>
                   </div>
 
@@ -555,8 +591,8 @@ function AssistantLayoutContent({
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset>
-        <div className="flex h-16 items-center justify-between gap-4 border-b border-[#E8E6E0] bg-[#FAFAF8] px-4">
+      <SidebarInset className="bg-sidebar">
+        <div className="flex h-16 items-center justify-between gap-4 border-b border-sidebar-border/40 bg-sidebar px-4">
           <div className="flex items-center gap-3">
             <SidebarTrigger className="text-[#1A5345] hover:bg-[#E8F0EE]" />
             <div className="flex items-center gap-2.5">
@@ -564,8 +600,8 @@ function AssistantLayoutContent({
                 <LayoutDashboardIcon className="size-4 text-white" />
               </div>
               <div className="flex flex-col">
-                <div className="text-[13px] font-bold text-[#102F27]">Assistant Dashboard</div>
-                <div className="text-[10px] text-[#6B7870]">Manage procedures & patient tasks</div>
+                <div className="font-sans text-[13px] font-bold text-[#102F27]">Assistant Dashboard</div>
+                <div className="font-sans text-[10px] text-[#6B7870]">Manage procedures & patient tasks</div>
               </div>
             </div>
           </div>

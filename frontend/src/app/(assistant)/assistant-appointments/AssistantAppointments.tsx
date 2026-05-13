@@ -8,6 +8,7 @@ import {
   CalendarPlus2Icon,
   BanIcon,
   Building2Icon,
+  ClipboardListIcon,
   CalendarCheck2Icon,
   CalendarClockIcon,
   CalendarDaysIcon,
@@ -29,7 +30,26 @@ import {
   CalendarIcon,
   ClockIcon,
   PencilLineIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  LayoutGridIcon,
+  ListIcon,
+  Trash2Icon,
+  User2Icon,
 } from "lucide-react"
+import { 
+  format, 
+  startOfMonth, 
+  endOfMonth, 
+  startOfWeek, 
+  endOfWeek, 
+  eachDayOfInterval, 
+  isSameMonth, 
+  isSameDay, 
+  addMonths, 
+  subMonths,
+  isToday 
+} from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -51,6 +71,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { PopoverClose } from "@radix-ui/react-popover"
 import {
   Popover,
   PopoverContent,
@@ -66,6 +87,7 @@ import type {
   AssistantAppointment,
   AssistantAppointmentAdvancedFilters,
   AssistantAppointmentStatus,
+  AssistantAppointmentVisitType,
   AppointmentStats,
   DoctorOption,
   PatientOption,
@@ -119,7 +141,6 @@ const statusLabel: Record<AssistantAppointmentStatus, string> = {
   cancelled: "Cancelled",
 }
 
-/** Matches patient profile appointment row badges (compact pill + shadow), wording stays via `statusLabel`. */
 const appointmentStatusBadgeClass: Record<AssistantAppointmentStatus, string> = {
   scheduled:
     "w-fit border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-amber-800 shadow-sm hover:bg-amber-50",
@@ -131,7 +152,6 @@ const appointmentStatusBadgeClass: Record<AssistantAppointmentStatus, string> = 
     "w-fit border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-red-700 shadow-sm hover:bg-red-50",
 }
 
-/** Preset clinical reasons; stored in `bookingDraft.reason` and sent to the API. */
 const VISIT_REASON_OPTIONS: readonly string[] = [
   "Follow-up visit",
   "Routine cardiovascular check-up",
@@ -144,6 +164,14 @@ const VISIT_REASON_OPTIONS: readonly string[] = [
   "Anticoagulation clinic",
   "Risk assessment / prevention",
   "Pre-operative evaluation",
+]
+
+const BOOKING_TYPE_OPTIONS: readonly {
+  value: AssistantAppointmentVisitType
+  label: string
+}[] = [
+  { value: "clinic", label: "Clinic visit (in-person)" },
+  { value: "virtual", label: "Virtual visit (telehealth)" },
 ]
 
 function formatLocalDateInput(iso: string): string {
@@ -159,367 +187,44 @@ function formatLocalTimeHHMM(iso: string): string {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
 }
 
-function escapeCsvCell(value: string): string {
-  if (/[",\n\r]/.test(value)) return `"${value.replace(/"/g, '""')}"`
-  return value
-}
+/** e.g. "10:00 AM to 11:00 AM". Rows have no end time yet; duration defaults to 60 minutes. */
+const DEFAULT_APPOINTMENT_DISPLAY_DURATION_MINUTES = 60
 
-function exportAppointmentsToCsv(rows: AssistantAppointment[]) {
-  const header = [
-    "Booking ID",
-    "Patient",
-    "Doctor",
-    "Department",
-    "Scheduled",
-    "Visit type",
-    "Status",
-    "Reason",
-    "Notes",
-  ]
-  const lines = [
-    header.join(","),
-    ...rows.map((a) =>
-      [
-        escapeCsvCell(a.id),
-        escapeCsvCell(String(a.patientName ?? "")),
-        escapeCsvCell(String(a.doctorName ?? "")),
-        escapeCsvCell(String(a.department ?? "")),
-        escapeCsvCell(a.scheduledAt),
-        escapeCsvCell(a.visitType),
-        escapeCsvCell(a.status),
-        escapeCsvCell(String(a.reason ?? "")),
-        escapeCsvCell(String(a.notes ?? "")),
-      ].join(","),
-    ),
-  ]
-  const blob = new Blob(["\uFEFF" + lines.join("\n")], {
-    type: "text/csv;charset=utf-8;",
+function formatLocalTimeRangeAmPm(
+  iso: string,
+  durationMinutes = DEFAULT_APPOINTMENT_DISPLAY_DURATION_MINUTES,
+): string {
+  const start = new Date(iso)
+  if (Number.isNaN(start.getTime())) return "—"
+  const end = new Date(start.getTime() + durationMinutes * 60 * 1000)
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
   })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement("a")
-  link.href = url
-  link.download = `icare-appointments-${new Date().toISOString().slice(0, 10)}.csv`
-  link.click()
-  URL.revokeObjectURL(url)
+  return `${fmt.format(start)} to ${fmt.format(end)}`
 }
 
-function downloadVisitBookingFile(a: AssistantAppointment) {
-  const scheduled = new Intl.DateTimeFormat("en-US", {
-    dateStyle: "full",
-    timeStyle: "short",
-  }).format(new Date(a.scheduledAt))
-  const summary =
-    a.visitSummary?.trim() ||
-    "No clinical summary attached yet — this file contains booking metadata only."
-  const body =
-    `ICARE-CVD — Visit booking record\r\n` +
-    `========================================\r\n` +
-    `Booking ID: ${a.id}\r\n` +
-    `Status: ${a.status}\r\n` +
-    `Patient: ${a.patientName}\r\n` +
-    `Doctor: ${a.doctorName}\r\n` +
-    `Department: ${a.department}\r\n` +
-    `Scheduled: ${scheduled}\r\n` +
-    `Visit type: ${a.visitType}\r\n` +
-    `Reason: ${a.reason || "—"}\r\n` +
-    `Assistant notes: ${a.notes?.trim() || "—"}\r\n\r\n` +
-    `Clinical summary:\r\n${summary}\r\n\r\n` +
-    `---\r\nGenerated ${new Date().toISOString()}\r\n`
-
-  const blob = new Blob([body], { type: "text/plain;charset=utf-8" })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement("a")
-  link.href = url
-  link.download = `visit-booking-${String(a.id).slice(0, 12)}.txt`
-  link.click()
-  URL.revokeObjectURL(url)
+function formatAppointmentDate(value: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value))
 }
 
-function startOfLocalDayMs(d: Date): number {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+function dicebearAvatarUrl(name: unknown, idFallback: unknown): string {
+  const fromName =
+    typeof name === "string" ? name.trim() : name != null ? String(name).trim() : ""
+  const fromId = idFallback != null && idFallback !== "" ? String(idFallback) : ""
+  const raw = (fromName || fromId || "x").replace(/\s+/g, "")
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(raw)}`
 }
 
-function appointmentLocalDayMs(iso: string): number {
-  return startOfLocalDayMs(new Date(iso))
-}
-
-/** Match list doctor names to row labels (handles "Dr.", spacing, case). */
-function normalizeDoctorNameForMatch(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/\bdr\.?\s*/gi, "")
-    .replace(/\s+/g, " ")
-    .trim()
-}
-
-function enrichAppointmentsWithDoctorId(
-  rows: AssistantAppointment[],
-  doctors: DoctorOption[],
-): AssistantAppointment[] {
-  if (!doctors.length) return rows
-  const idByNormalizedName = new Map<string, string>()
-  for (const d of doctors) {
-    const key = normalizeDoctorNameForMatch(String(d.name ?? ""))
-    const id = String(d.id ?? "").trim()
-    if (key && id && !idByNormalizedName.has(key)) idByNormalizedName.set(key, id)
-  }
-  return rows.map((a) => {
-    const existing = String(a.doctorId ?? "").trim()
-    if (existing) return a
-    const key = normalizeDoctorNameForMatch(String(a.doctorName ?? ""))
-    const resolved = key ? idByNormalizedName.get(key) : undefined
-    if (!resolved) return a
-    return { ...a, doctorId: resolved }
-  })
-}
-
-function partitionAppointmentsByDay(appointments: AssistantAppointment[]) {
-  const todayStart = startOfLocalDayMs(new Date())
-  const today: AssistantAppointment[] = []
-  const upcoming: AssistantAppointment[] = []
-  const past: AssistantAppointment[] = []
-
-  for (const a of appointments) {
-    const day = appointmentLocalDayMs(a.scheduledAt)
-    if (day === todayStart) today.push(a)
-    else if (day > todayStart) upcoming.push(a)
-    else past.push(a)
-  }
-
-  const byTime = (x: AssistantAppointment, y: AssistantAppointment) =>
-    new Date(x.scheduledAt).getTime() - new Date(y.scheduledAt).getTime()
-  const byTimeDesc = (x: AssistantAppointment, y: AssistantAppointment) =>
-    new Date(y.scheduledAt).getTime() - new Date(x.scheduledAt).getTime()
-
-  today.sort(byTime)
-  upcoming.sort(byTime)
-  past.sort(byTimeDesc)
-
-  return { today, upcoming, past }
-}
-
-type AppointmentTableRowProps = {
-  appointment: AssistantAppointment
-  onViewDetails: (a: AssistantAppointment) => void
-  isUpdatingStatus: boolean
-  isUpdatingAppointment: boolean
-  onReschedule: (a: AssistantAppointment) => void
-  onEditBooking: (a: AssistantAppointment) => void
-  onCancelClick: (a: AssistantAppointment) => void
-  onOpenVisitReport: (a: AssistantAppointment) => void
-}
-
-/** Dicebear style aligned with patient profile lists (`notionists` + neutral background). */
-function clinicianDicebearAvatarSrc(seed: string): string {
-  return `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(seed)}&backgroundColor=e8e6e0`
-}
-
-function VisitTypeBadge({ visitType }: { visitType: AssistantAppointment["visitType"] }) {
-  if (visitType === "virtual") {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-md border border-violet-200/90 bg-violet-50/80 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-violet-900 normal-case">
-        <VideoIcon className="size-3 shrink-0" strokeWidth={2} aria-hidden />
-        Virtual
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center gap-1 rounded-md border border-[#E8E6E0] bg-[#FAFAF8] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#1A1F1E]">
-      <Building2Icon className="size-3 shrink-0 text-[#1A5345]/80" strokeWidth={2} aria-hidden />
-      In clinic
-    </span>
-  )
-}
-
-function AssistantAppointmentTableRow({
-  appointment,
-  onViewDetails,
-  isUpdatingStatus,
-  isUpdatingAppointment,
-  onReschedule,
-  onEditBooking,
-  onCancelClick,
-  onOpenVisitReport,
-}: AppointmentTableRowProps) {
-  const patientName = String(appointment.patientName ?? "").trim() || "Unnamed patient"
-  const doctorName = String(appointment.doctorName ?? "").trim() || "Unnamed clinician"
-  const patientAvatarSeed = String(appointment.patientName ?? appointment.id ?? "patient").replace(/\s+/g, "")
-  const doctorAvatarSeed = String(appointment.doctorName ?? appointment.id ?? "doctor").replace(/\s+/g, "")
-  const idPrefix = String(appointment.id ?? "").slice(0, 8).toUpperCase()
-  const canReschedule =
-    Boolean(appointment.doctorId) &&
-    appointment.status !== "cancelled" &&
-    appointment.status !== "completed"
-  const canEditBooking =
-    Boolean(appointment.doctorId) &&
-    appointment.status !== "cancelled" &&
-    appointment.status !== "completed"
-
-  return (
-    <tr className="group hover:bg-[#F9F8F5]/50 transition-colors border-t border-[#E8E6E0]/40 cursor-pointer">
-      <td className="py-4 pr-4 pl-4">
-        <div className="flex items-center gap-3">
-          <div className="size-10 shrink-0 overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F3F4F6]">
-            <img
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(patientAvatarSeed)}`}
-              alt=""
-              className="size-full object-cover"
-            />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-[14px] font-bold text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">
-              {patientName}
-            </p>
-            <p className="mt-0.5 text-[11px] font-bold tracking-tight text-muted-foreground">
-              #{idPrefix || "—"}
-            </p>
-          </div>
-        </div>
-      </td>
-      <td className="py-4 px-4">
-        <VisitTypeBadge visitType={appointment.visitType} />
-      </td>
-      <td className="py-4 px-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F3F2F0]">
-            <img
-              src={clinicianDicebearAvatarSrc(doctorAvatarSeed)}
-              alt=""
-              className="size-full object-cover"
-            />
-          </div>
-          <p className="truncate text-[14px] font-bold text-[#1A1F1E]">{doctorName}</p>
-        </div>
-      </td>
-      <td className="py-4 px-4 text-[14px] font-medium text-[#1A1F1E]/70">37 / m</td>
-      <td className="py-4 px-4">
-        <p className="text-[14px] font-medium text-[#1A1F1E]/80">{appointment.reason || "General checkup"}</p>
-      </td>
-      <td className="py-4 px-4">
-        <Badge variant="default" className={cn("rounded-full", appointmentStatusBadgeClass[appointment.status])}>
-          {statusLabel[appointment.status]}
-        </Badge>
-      </td>
-      <td className="py-4 pl-4 pr-4 text-right">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-9 rounded-xl text-muted-foreground opacity-0 transition-all hover:bg-[#F9F8F5] group-hover:opacity-100"
-            >
-              <MoreVerticalIcon className="size-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 rounded-2xl border-[#E8E6E0]/60 p-1.5 shadow-xl">
-            <DropdownMenuItem onSelect={() => onViewDetails(appointment)}>
-              <UserCircle2Icon className="mr-2.5 size-4" />
-              View details
-            </DropdownMenuItem>
-            {appointment.status === "completed" ? (
-              <DropdownMenuItem onSelect={() => onOpenVisitReport(appointment)}>
-                <FileTextIcon className="mr-2.5 size-4 text-[#1A5345]" />
-                Visit report
-              </DropdownMenuItem>
-            ) : null}
-            <DropdownMenuSeparator className="my-1 bg-[#E8E6E0]/60" />
-            <DropdownMenuItem
-              onSelect={() => onReschedule(appointment)}
-              disabled={!canReschedule || isUpdatingStatus || isUpdatingAppointment}
-            >
-              <CalendarClockIcon className="mr-2.5 size-4 text-[#1A5345]" />
-              Reschedule
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() => onEditBooking(appointment)}
-              disabled={!canEditBooking || isUpdatingStatus || isUpdatingAppointment}
-            >
-              <PencilLineIcon className="mr-2.5 size-4 text-[#1A5345]" />
-              Edit booking
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-1 bg-[#E8E6E0]/60" />
-            <DropdownMenuItem
-              onSelect={() => onCancelClick(appointment)}
-              disabled={
-                appointment.status === "cancelled" ||
-                appointment.status === "completed" ||
-                isUpdatingStatus
-              }
-              className="text-red-600"
-            >
-              <XIcon className="mr-2.5 size-4" />
-              Cancel appointment
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </td>
-    </tr>
-  )
-}
-
-const APPOINTMENT_SECTION_STYLES = {
-  today: {
-    row: "border-y border-[#E8E6E0]/45 bg-[#F9F8F5]/45",
-    iconWrap: "text-[#1A5345]",
-    title: "text-[#1A1F1E]",
-    badge: "rounded-md bg-[#E8E6E0]/35 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground",
-    Icon: CalendarClockIcon,
-  },
-  upcoming: {
-    row: "border-y border-[#E8E6E0]/45 bg-[#F9F8F5]/45",
-    iconWrap: "text-sky-700",
-    title: "text-[#1A1F1E]",
-    badge: "rounded-md bg-[#E8E6E0]/35 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground",
-    Icon: CalendarDaysIcon,
-  },
-  earlier: {
-    row: "border-y border-[#E8E6E0]/45 bg-[#F9F8F5]/45",
-    iconWrap: "text-slate-600",
-    title: "text-[#1A1F1E]",
-    badge: "rounded-md bg-[#E8E6E0]/35 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground",
-    Icon: HistoryIcon,
-  },
-} as const
-
-function AppointmentSectionHeaderRow({
-  title,
-  count,
-  variant,
-}: {
-  title: string
-  count: number
-  variant: keyof typeof APPOINTMENT_SECTION_STYLES
-}) {
-  const cfg = APPOINTMENT_SECTION_STYLES[variant]
-  const Icon = cfg.Icon
-
-  return (
-    <tr className={cfg.row}>
-      <td colSpan={7} className="py-2.5 pl-4 pr-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div
-            className={cn(
-              "flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#E8E6E0] bg-[#F9F8F5]",
-              cfg.iconWrap,
-            )}
-          >
-            <Icon className="size-5" strokeWidth={2} aria-hidden />
-          </div>
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className={cn("text-[13px] font-semibold sm:text-[14px]", cfg.title)}>{title}</span>
-            <span
-              className={cn(
-                "inline-flex min-w-[1.5rem] items-center justify-center tabular-nums",
-                cfg.badge,
-              )}
-            >
-              {count}
-            </span>
-          </div>
-        </div>
-      </td>
-    </tr>
-  )
+function pickerDisplayName(name: unknown, fallback: string): string {
+  const s =
+    typeof name === "string" ? name.trim() : name != null ? String(name).trim() : ""
+  return s || fallback
 }
 
 export function AssistantAppointments({
@@ -547,19 +252,15 @@ export function AssistantAppointments({
   doctors,
   patients,
 }: AssistantAppointmentsProps) {
-  const [selectedPatient, setSelectedPatient] = useState<AssistantAppointment | null>(null)
-  const [visitReportTarget, setVisitReportTarget] = useState<AssistantAppointment | null>(null)
-  const [detailNotesDraft, setDetailNotesDraft] = useState("")
-  const [rescheduleTarget, setRescheduleTarget] = useState<AssistantAppointment | null>(null)
-  const [rescheduleDate, setRescheduleDate] = useState("")
-  const [rescheduleTimeSlot, setRescheduleTimeSlot] = useState("")
-  const [editTarget, setEditTarget] = useState<AssistantAppointment | null>(null)
-  const [editDoctorId, setEditDoctorId] = useState("")
-  const [editVisitType, setEditVisitType] = useState<"clinic" | "virtual">("clinic")
-  const [editReason, setEditReason] = useState("")
+  const [selectedAppointment, setSelectedAppointment] = useState<AssistantAppointment | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [cancellingAppointment, setCancellingAppointment] = useState<AssistantAppointment | null>(null)
   const [cancellationReason, setCancellationReason] = useState("")
+  
+  // View mode state
+  const [viewMode, setViewMode] = useState<"table" | "calendar">("table")
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+
   const [bookingDraft, setBookingDraft] = useState({
     patientId: "",
     doctorId: "",
@@ -569,982 +270,872 @@ export function AssistantAppointments({
     reason: "",
   })
 
+  // Edit State
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editDraft, setEditDraft] = useState({
+    patientId: "",
+    doctorId: "",
+    visitType: "clinic" as "clinic" | "virtual",
+    date: "",
+    timeSlot: "",
+    reason: "",
+  })
+
   const availableSlotsQuery = useAssistantAppointmentAvailableSlots(bookingDraft.doctorId, bookingDraft.date)
-  const rescheduleSlotsQuery = useAssistantAppointmentAvailableSlots(
-    rescheduleTarget?.doctorId ?? "",
-    rescheduleDate,
-  )
+  const editAvailableSlotsQuery = useAssistantAppointmentAvailableSlots(editDraft.doctorId, editDraft.date)
 
-  const rescheduleSlotItems = useMemo(() => {
-    const slots = rescheduleSlotsQuery.data ?? []
-    if (!rescheduleTimeSlot) return slots
-    if (slots.some((s) => s.value === rescheduleTimeSlot)) return slots
-    return [
-      {
-        value: rescheduleTimeSlot,
-        label: `Keep current (${rescheduleTimeSlot})`,
-      },
-      ...slots,
-    ]
-  }, [rescheduleSlotsQuery.data, rescheduleTimeSlot])
-
-  useEffect(() => {
-    if (selectedPatient) {
-      setDetailNotesDraft(selectedPatient.notes ?? "")
-    }
-  }, [selectedPatient])
-
+  // Map doctors and patients to the format expected by AppointmentPersonPicker
   const patientPickerItems = useMemo(
     () =>
-      patients.map((p) => {
-        const displayName = String(p.name ?? "").trim() || "Unnamed patient"
-        const seed = String(p.name ?? p.id ?? "patient").replace(/\s+/g, "")
-        return {
-          id: String(p.id ?? ""),
-          name: displayName,
-          subtitle: null,
-          searchMatch: String(p.phone ?? "").trim(),
-          avatarSrc: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`,
-        }
-      }),
+      patients.map((p) => ({
+        id: String(p.id),
+        name: pickerDisplayName(p.name, "Unnamed patient"),
+        subtitle: p.phone != null ? String(p.phone) : null,
+        avatarSrc: dicebearAvatarUrl(p.name, p.id),
+      })),
     [patients],
   )
 
   const doctorPickerItems = useMemo(
     () =>
-      doctors.map((d) => {
-        const displayName = String(d.name ?? "").trim() || "Unnamed clinician"
-        const seed = String(d.name ?? d.id ?? "doctor").replace(/\s+/g, "")
-        return {
-          id: String(d.id ?? ""),
-          name: displayName,
-          subtitle: String(d.specialty ?? "").trim() || "Clinician",
-          avatarSrc: clinicianDicebearAvatarSrc(seed),
-        }
-      }),
+      doctors.map((d) => ({
+        id: String(d.id),
+        name: pickerDisplayName(d.name, "Unnamed doctor"),
+        subtitle: d.specialty != null ? String(d.specialty) : null,
+        avatarSrc: dicebearAvatarUrl(d.name, d.id),
+      })),
     [doctors],
-  )
-
-  const appointmentsForUi = useMemo(
-    () => enrichAppointmentsWithDoctorId(appointments, doctors),
-    [appointments, doctors],
-  )
-
-  const { today: todayAppointments, upcoming: upcomingAppointments, past: pastAppointments } = useMemo(
-    () => partitionAppointmentsByDay(appointmentsForUi),
-    [appointmentsForUi],
   )
 
   const handleCancelConfirm = async () => {
     if (!cancellingAppointment || !cancellationReason.trim()) return
-    await updateStatus({
-      appointmentId: cancellingAppointment.id,
-      status: "cancelled",
-      cancellationReason: cancellationReason.trim(),
-    })
-    setCancellingAppointment(null)
-    setCancellationReason("")
+    try {
+      await updateStatus({
+        appointmentId: cancellingAppointment.id,
+        status: "cancelled",
+        cancellationReason: cancellationReason.trim(),
+      })
+      showIcareToast({ title: "Success", description: "Appointment cancelled successfully.", variant: "success" })
+      setCancellingAppointment(null)
+      setCancellationReason("")
+    } catch (err) {
+      showIcareToast({ title: "Error", description: "Failed to cancel appointment.", variant: "destructive" })
+    }
   }
 
   const handleCreate = async () => {
     if (!bookingDraft.patientId || !bookingDraft.doctorId || !bookingDraft.date || !bookingDraft.timeSlot || !bookingDraft.reason) return
-    const [year, month, day] = bookingDraft.date.split("-").map(Number)
-    const [hours, minutes] = bookingDraft.timeSlot.split(":").map(Number)
-    const scheduledAt = new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString()
-
-    await createAppointment({
-      patientId: bookingDraft.patientId,
-      doctorId: bookingDraft.doctorId,
-      scheduledAt,
-      visitType: bookingDraft.visitType,
-      reason: bookingDraft.reason,
-    })
-
-    setBookingDraft({
-      patientId: "", doctorId: "", visitType: "clinic", date: "", timeSlot: "", reason: "",
-    })
-    setIsCreateDialogOpen(false)
-  }
-
-  const openReschedule = (a: AssistantAppointment) => {
-    if (!a.doctorId) {
-      showIcareToast({
-        title: "Cannot reschedule",
-        description: "This booking is missing clinician data. Refresh the page or contact support.",
-      })
-      return
-    }
-    setRescheduleTarget(a)
-    setRescheduleDate(formatLocalDateInput(a.scheduledAt))
-    setRescheduleTimeSlot(formatLocalTimeHHMM(a.scheduledAt))
-  }
-
-  const openEditBooking = (a: AssistantAppointment) => {
-    if (!a.doctorId) {
-      showIcareToast({
-        title: "Cannot edit booking",
-        description: "Clinician ID is missing for this row.",
-      })
-      return
-    }
-    setEditTarget(a)
-    setEditDoctorId(a.doctorId)
-    setEditVisitType(a.visitType)
-    setEditReason(a.reason?.trim() ? a.reason : VISIT_REASON_OPTIONS[0])
-  }
-
-  const handleRescheduleSave = async () => {
-    if (!rescheduleTarget || !rescheduleDate || !rescheduleTimeSlot) return
     try {
-      const [year, month, day] = rescheduleDate.split("-").map(Number)
-      const [hours, minutes] = rescheduleTimeSlot.split(":").map(Number)
+      const [year, month, day] = bookingDraft.date.split("-").map(Number)
+      const [hours, minutes] = bookingDraft.timeSlot.split(":").map(Number)
       const scheduledAt = new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString()
-      await updateAppointment({
-        appointmentId: rescheduleTarget.id,
-        payload: { scheduledAt },
+
+      await createAppointment({
+        patientId: bookingDraft.patientId,
+        doctorId: bookingDraft.doctorId,
+        scheduledAt,
+        visitType: bookingDraft.visitType,
+        reason: bookingDraft.reason,
       })
-      setRescheduleTarget(null)
-      showIcareToast({
-        title: "Appointment rescheduled",
-        icon: CalendarCheck2Icon,
-      })
-    } catch {
-      showIcareToast({
-        title: "Could not reschedule",
-        description: "Pick another slot or try again.",
-      })
+      showIcareToast({ title: "Success", description: "New appointment created.", variant: "success" })
+      setBookingDraft({ patientId: "", doctorId: "", visitType: "clinic", date: "", timeSlot: "", reason: "" })
+      setIsCreateDialogOpen(false)
+    } catch (err) {
+      showIcareToast({ title: "Error", description: "Failed to create appointment.", variant: "destructive" })
     }
   }
 
-  const handleEditBookingSave = async () => {
-    if (!editTarget || !editDoctorId || !editReason.trim()) return
+  const openEditDialog = (app: AssistantAppointment) => {
+    setSelectedAppointment(app)
+    setEditDraft({
+      patientId: app.patientId,
+      doctorId: app.doctorId,
+      visitType: app.visitType,
+      date: formatLocalDateInput(app.scheduledAt),
+      timeSlot: formatLocalTimeHHMM(app.scheduledAt),
+      reason: app.reason || "",
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const handleUpdate = async () => {
+    if (!selectedAppointment || !editDraft.patientId || !editDraft.doctorId || !editDraft.date || !editDraft.timeSlot) return
     try {
+      const [year, month, day] = editDraft.date.split("-").map(Number)
+      const [hours, minutes] = editDraft.timeSlot.split(":").map(Number)
+      const scheduledAt = new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString()
+
       await updateAppointment({
-        appointmentId: editTarget.id,
+        appointmentId: selectedAppointment.id,
         payload: {
-          doctorId: editDoctorId,
-          visitType: editVisitType,
-          reason: editReason.trim(),
-        },
+          patientId: editDraft.patientId,
+          doctorId: editDraft.doctorId,
+          scheduledAt,
+          visitType: editDraft.visitType,
+          reason: editDraft.reason,
+        }
       })
-      setEditTarget(null)
-      showIcareToast({
-        title: "Booking updated",
-        icon: CheckCircle2Icon,
-      })
-    } catch {
-      showIcareToast({
-        title: "Update failed",
-        description: "Check availability and try again.",
-      })
+      showIcareToast({ title: "Success", description: "Appointment updated.", variant: "success" })
+      setIsEditDialogOpen(false)
+      setSelectedAppointment(null)
+    } catch (err) {
+      showIcareToast({ title: "Error", description: "Failed to update appointment.", variant: "destructive" })
     }
   }
 
-  const handleSaveDetailNotes = async () => {
-    if (!selectedPatient) return
-    try {
-      await updateAppointment({
-        appointmentId: selectedPatient.id,
-        payload: { notes: detailNotesDraft },
-      })
-      setSelectedPatient({ ...selectedPatient, notes: detailNotesDraft })
-      showIcareToast({
-        title: "Notes saved",
-        icon: CheckCircle2Icon,
-      })
-    } catch {
-      showIcareToast({
-        title: "Could not save notes",
-        description: "Try again in a moment.",
-      })
-    }
-  }
+  // --- Calendar Logic ---
+  const calendarDays = useMemo(() => {
+    const start = startOfWeek(startOfMonth(currentMonth))
+    const end = endOfWeek(endOfMonth(currentMonth))
+    return eachDayOfInterval({ start, end })
+  }, [currentMonth])
 
-  const detailNotesDirty =
-    selectedPatient != null && detailNotesDraft !== (selectedPatient.notes ?? "")
-
-  const editReasonOptions = useMemo(() => {
-    const base = [...VISIT_REASON_OPTIONS]
-    if (editReason && !base.includes(editReason)) {
-      return [editReason, ...base]
-    }
-    return base
-  }, [editReason])
+  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1))
+  const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1))
 
   return (
-    <div className="flex h-full flex-col bg-[#F9F8F5] overflow-hidden animate-in fade-in duration-500">
-      {/* Top Header & Toolbar Area */}
-      <div className="shrink-0 bg-white border-b border-[#E8E6E0]/60 relative z-20">
-        <div className="flex flex-col px-6 pt-6 pb-4 sm:px-8 sm:pt-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-5">
-            <div className="space-y-1">
-              <h1 className="text-[28px] font-bold leading-tight tracking-tight text-[#1A1F1E] font-serif sm:text-[30px] lg:text-[32px]">
-                Appointments management
-              </h1>
-              <p className="text-[14px] font-medium text-muted-foreground sm:text-[15px]">
-                Monitor and manage all patient clinical bookings and schedules.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-               <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 gap-2 rounded-xl border-[#E8E6E0] bg-white px-5 text-[14px] font-bold text-[#1A1F1E] hover:bg-slate-50 shadow-sm transition-all"
-                  onClick={() => {
-                    exportAppointmentsToCsv(appointmentsForUi)
-                    showIcareToast({
-                      title: "Export ready",
-                      description: `${appointmentsForUi.length} row(s) — check your downloads.`,
-                      icon: DownloadIcon,
-                    })
-                  }}
-               >
-                  <DownloadIcon className="size-4 text-muted-foreground" />
-                  Export data
-               </Button>
-               <Button
-                  onClick={() => setIsCreateDialogOpen(true)}
-                  className="h-11 gap-2 rounded-full bg-[#1A5345] px-6 text-[15px] font-bold text-white hover:bg-[#133F34] shadow-[0_4px_14px_rgba(26,83,69,0.2)] hover:shadow-[0_6px_20px_rgba(26,83,69,0.25)] border-0 transition-colors"
-               >
-                  <PlusIcon className="size-4.5" strokeWidth={2.5} />
-                  New appointment
-               </Button>
-            </div>
+    <div className="flex h-full min-h-0 flex-col animate-in fade-in duration-700">
+      {/* Premium Header — compact */}
+      <div className="bg-transparent px-6 pb-3 pt-4 sm:px-8">
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+          <div className="space-y-0.5">
+            <h1 className="font-serif text-[22px] font-bold tracking-tight text-[#102F27] sm:text-[26px]">
+              Appointments management
+            </h1>
+            <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
+              Monitor and manage all patient clinical bookings and schedules.
+            </p>
           </div>
-
-          {/* Filters and Stats Summary */}
-          <div className="mt-5 flex flex-col items-center justify-between gap-3 pt-2 sm:mt-6 sm:flex-row sm:gap-4">
-             <div className="inline-flex max-w-full overflow-x-auto pb-1 sm:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div
-                  className="inline-flex shrink-0 divide-x divide-[#E8E6E0] overflow-hidden rounded-xl border border-[#E8E6E0]/80 bg-white shadow-sm"
-                  role="tablist"
-                  aria-label="Filter by booking status"
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+             {/* View Mode Toggle */}
+             <div className="mr-1 flex items-center rounded-xl border border-[#E8E6E0] bg-white p-0.5 shadow-sm sm:mr-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode("table")}
+                  className={cn(
+                    "h-8 gap-1.5 rounded-lg px-2.5 text-[12px] font-bold transition-all sm:h-9 sm:gap-2 sm:px-3 sm:text-[13px]",
+                    viewMode === "table" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-[#F9F8F5]"
+                  )}
                 >
-                {[
-                  { id: "all", label: "All bookings" },
-                  { id: "scheduled", label: "Scheduled" },
-                  { id: "confirmed", label: "Confirmed" },
-                  { id: "completed", label: "Completed" },
-                  { id: "cancelled", label: "Cancelled" },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={statusFilter === tab.id}
-                    onClick={() => setStatusFilter(tab.id as typeof statusFilter)}
-                    className={cn(
-                      "flex shrink-0 items-center gap-1 px-2.5 py-1.5 text-[12px] font-bold whitespace-nowrap transition-colors sm:px-3 sm:py-2 sm:text-[13px]",
-                      statusFilter === tab.id
-                        ? "bg-[#1A5345] text-white"
-                        : "text-muted-foreground hover:bg-[#F9F8F5] hover:text-[#1A1F1E]"
-                    )}
-                  >
-                    <span>{tab.label}</span>
-                    <span
-                      className={cn(
-                        "inline-flex min-w-[1.125rem] items-center justify-center rounded px-1 py-px text-[10px] font-semibold tabular-nums sm:text-[11px]",
-                        statusFilter === tab.id
-                          ? "bg-white/15 text-white"
-                          : "bg-black/[0.06] text-muted-foreground"
-                      )}
-                    >
-                      {tab.id === "all" ? counts.total : counts[tab.id as keyof AppointmentStats]}
-                    </span>
-                  </button>
-                ))}
-              </div>
+                   <ListIcon className="size-3.5 sm:size-4" />
+                   List
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode("calendar")}
+                  className={cn(
+                    "h-8 gap-1.5 rounded-lg px-2.5 text-[12px] font-bold transition-all sm:h-9 sm:gap-2 sm:px-3 sm:text-[13px]",
+                    viewMode === "calendar" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-[#F9F8F5]"
+                  )}
+                >
+                   <LayoutGridIcon className="size-3.5 sm:size-4" />
+                   Calendar
+                </Button>
+             </div>
+
+             <Button
+                variant="outline"
+                className="h-9 gap-2 rounded-xl border-[#E8E6E0] bg-white px-4 text-[13px] font-bold text-[#1A1F1E] shadow-sm transition-all hover:bg-[#F9F8F5] sm:h-10 sm:px-5 sm:text-[14px]"
+             >
+                <DownloadIcon className="size-4 text-muted-foreground" />
+                Export data
+             </Button>
+             <Button
+                onClick={() => setIsCreateDialogOpen(true)}
+                className="h-9 gap-2 rounded-full border-0 bg-[#1A5345] px-4 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(26,83,69,0.2)] transition-all hover:-translate-y-0.5 hover:bg-[#133F34] hover:shadow-[0_6px_20px_rgba(26,83,69,0.25)] sm:h-10 sm:px-6 sm:text-[14px]"
+             >
+                <PlusIcon className="size-4 sm:size-[18px]" strokeWidth={2.5} />
+                New appointment
+             </Button>
+          </div>
+        </div>
+
+        {/* Filters and Stats Summary */}
+        <div className="mt-4 flex flex-col items-center justify-between gap-3 border-b border-[#E8E6E0]/60 pb-3 sm:flex-row">
+           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:gap-2 sm:pb-0">
+              {[
+                { id: "all", label: "All bookings" },
+                { id: "scheduled", label: "Scheduled" },
+                { id: "confirmed", label: "Confirmed" },
+                { id: "completed", label: "Completed" },
+                { id: "cancelled", label: "Cancelled" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setStatusFilter(tab.id as any)}
+                  className={cn(
+                    "whitespace-nowrap rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all sm:rounded-xl sm:px-4 sm:py-2 sm:text-[13px]",
+                    statusFilter === tab.id 
+                      ? "bg-[#1A5345] text-white shadow-md shadow-[#1A5345]/10" 
+                      : "text-muted-foreground hover:bg-white hover:text-[#1A1F1E] hover:shadow-sm"
+                  )}
+                >
+                  {tab.label}
+                  <span className={cn(
+                    "ml-1.5 rounded-md bg-black/5 px-1 py-0.5 text-[10px] font-medium opacity-70 sm:ml-2 sm:text-[11px]",
+                    statusFilter === tab.id ? "bg-white/10 text-white/80" : "text-muted-foreground"
+                  )}>
+                    {tab.id === 'all' ? counts.total : counts[tab.id as keyof AppointmentStats]}
+                  </span>
+                </button>
+              ))}
            </div>
            
            <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
-              <div className="relative flex-1 sm:flex-none sm:w-[280px]">
-                <SearchIcon className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search name, doctor, ID, reason, department…"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="h-11 w-full rounded-2xl border-[#E8E6E0] bg-white pl-10 text-[14px] shadow-sm focus-visible:ring-[#1A5345]/20 focus-visible:border-[#1A5345]/40"
-                />
-              </div>
+              {viewMode === "calendar" ? (
+                <div className="flex items-center gap-1 rounded-xl border border-[#E8E6E0] bg-white p-0.5 shadow-sm sm:gap-2">
+                   <Button variant="ghost" size="icon" className="size-8 rounded-lg sm:size-9" onClick={prevMonth}>
+                      <ChevronLeftIcon className="size-4" />
+                   </Button>
+                   <span className="min-w-[108px] px-2 text-center text-[13px] font-bold sm:min-w-[120px] sm:px-3 sm:text-[14px]">
+                      {format(currentMonth, "MMMM yyyy")}
+                   </span>
+                   <Button variant="ghost" size="icon" className="size-8 rounded-lg sm:size-9" onClick={nextMonth}>
+                      <ChevronRightIcon className="size-4" />
+                   </Button>
+                </div>
+              ) : (
+                <div className="relative flex-1 sm:flex-none sm:w-[260px] lg:w-[280px]">
+                  <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name or id..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="h-9 w-full rounded-xl border-[#E8E6E0] bg-white pl-9 text-[13px] shadow-sm focus-visible:border-[#1A5345]/40 focus-visible:ring-[#1A5345]/20 sm:h-10 sm:rounded-2xl sm:pl-10 sm:text-[14px]"
+                  />
+                </div>
+              )}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    aria-label="More filters: visit type, clinician, department, date"
-                    className="relative size-11 shrink-0 rounded-2xl border-[#E8E6E0] bg-white text-muted-foreground shadow-sm hover:text-[#1A1F1E]"
-                  >
-                    <FilterIcon className="size-4.5" />
-                    {hasActiveAdvancedFilters ? (
-                      <span
-                        className="absolute right-1.5 top-1.5 size-2.5 rounded-full bg-[#1A5345] ring-2 ring-white"
-                        aria-hidden
-                      />
-                    ) : null}
+                  <Button variant="outline" size="icon" className={cn(
+                    "size-9 shrink-0 rounded-xl border-[#E8E6E0] bg-white text-muted-foreground shadow-sm hover:text-[#1A1F1E] sm:size-10 sm:rounded-2xl",
+                    hasActiveAdvancedFilters && "border-[#1A5345] bg-[#E8F0EE] text-[#1A5345]"
+                  )}>
+                    <FilterIcon className="size-4 sm:size-[18px]" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[min(100vw-2rem,22rem)] space-y-4 p-5 rounded-2xl border-[#E8E6E0]/60 shadow-xl" align="end">
-                  <div>
-                    <h3 className="text-[16px] font-bold text-[#1A1F1E] font-serif">Advanced filters</h3>
-                    <p className="mt-1 text-[13px] text-muted-foreground">
-                      Narrow the list without changing status tabs.
-                    </p>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-[13px] font-semibold text-[#1A1F1E]">Visit type</Label>
-                      <Select
-                        value={advancedFilters.visitType}
-                        onValueChange={(v) =>
-                          setAdvancedFilters((prev) => ({
-                            ...prev,
-                            visitType: v as AssistantAppointmentAdvancedFilters["visitType"],
-                          }))
-                        }
-                      >
-                        <SelectTrigger className="h-11 rounded-xl border-[#E8E6E0] bg-white text-[14px]">
-                          <SelectValue placeholder="All visit types" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="all">All visit types</SelectItem>
-                          <SelectItem value="clinic">In clinic</SelectItem>
-                          <SelectItem value="virtual">Virtual</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[13px] font-semibold text-[#1A1F1E]">Clinician</Label>
-                      <Select
-                        value={
-                          advancedFilters.doctorName.trim()
-                            ? advancedFilters.doctorName
-                            : FILTER_SELECT_ALL
-                        }
-                        onValueChange={(v) =>
-                          setAdvancedFilters((prev) => ({
-                            ...prev,
-                            doctorName: v === FILTER_SELECT_ALL ? "" : v,
-                          }))
-                        }
-                      >
-                        <SelectTrigger className="h-11 rounded-xl border-[#E8E6E0] bg-white text-[14px]">
-                          <SelectValue placeholder="All clinicians" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value={FILTER_SELECT_ALL}>All clinicians</SelectItem>
-                          {doctorFilterOptions.map((name) => (
-                            <SelectItem key={name} value={name}>
-                              {name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[13px] font-semibold text-[#1A1F1E]">Department</Label>
-                      <Select
-                        value={
-                          advancedFilters.department.trim()
-                            ? advancedFilters.department
-                            : FILTER_SELECT_ALL
-                        }
-                        onValueChange={(v) =>
-                          setAdvancedFilters((prev) => ({
-                            ...prev,
-                            department: v === FILTER_SELECT_ALL ? "" : v,
-                          }))
-                        }
-                      >
-                        <SelectTrigger className="h-11 rounded-xl border-[#E8E6E0] bg-white text-[14px]">
-                          <SelectValue placeholder="All departments" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value={FILTER_SELECT_ALL}>All departments</SelectItem>
-                          {departmentOptions.map((dept) => (
-                            <SelectItem key={dept} value={dept}>
-                              {dept}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[13px] font-semibold text-[#1A1F1E]">Scheduled date</Label>
-                      <Select
-                        value={advancedFilters.dateScope}
-                        onValueChange={(v) =>
-                          setAdvancedFilters((prev) => ({
-                            ...prev,
-                            dateScope: v as AssistantAppointmentAdvancedFilters["dateScope"],
-                          }))
-                        }
-                      >
-                        <SelectTrigger className="h-11 rounded-xl border-[#E8E6E0] bg-white text-[14px]">
-                          <SelectValue placeholder="All dates" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="all">All dates</SelectItem>
-                          <SelectItem value="today">Today</SelectItem>
-                          <SelectItem value="upcoming">Upcoming</SelectItem>
-                          <SelectItem value="past">Earlier</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="pt-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-11 w-full rounded-xl border-[#E8E6E0] text-[14px] font-bold text-[#1A1F1E] hover:bg-[#F9F8F5]"
-                      onClick={resetAdvancedFilters}
-                    >
-                      Clear filters
-                    </Button>
-                  </div>
+                <PopoverContent className="w-[340px] p-0 rounded-3xl border-0 shadow-2xl overflow-hidden" align="end">
+                   <div className="bg-[#1A5345] p-5 text-white">
+                      <div className="flex items-center justify-between">
+                         <h4 className="text-[16px] font-bold font-serif">Advanced filters</h4>
+                         <Button 
+                           variant="ghost" 
+                           size="sm" 
+                           className="h-7 text-[11px] font-bold text-white/70 hover:text-white hover:bg-white/10 px-2"
+                           onClick={resetAdvancedFilters}
+                         >
+                            Reset all
+                         </Button>
+                      </div>
+                   </div>
+                   <div className="p-6 space-y-6 bg-white">
+                      <div className="space-y-2">
+                        <Label className="text-[12px] font-bold text-[#102F27]">Department</Label>
+                        <Select 
+                          value={advancedFilters.department || FILTER_SELECT_ALL} 
+                          onValueChange={(v) => setAdvancedFilters(f => ({ ...f, department: v === FILTER_SELECT_ALL ? "" : v }))}
+                        >
+                          <SelectTrigger className="h-10 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/50">
+                            <SelectValue placeholder="All departments" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                             <SelectItem value={FILTER_SELECT_ALL}>All departments</SelectItem>
+                             {departmentOptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-[12px] font-bold text-[#102F27]">Doctor</Label>
+                        <Select 
+                          value={advancedFilters.doctorName || FILTER_SELECT_ALL} 
+                          onValueChange={(v) => setAdvancedFilters(f => ({ ...f, doctorName: v === FILTER_SELECT_ALL ? "" : v }))}
+                        >
+                          <SelectTrigger className="h-10 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/50">
+                            <SelectValue placeholder="All doctors" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                             <SelectItem value={FILTER_SELECT_ALL}>All doctors</SelectItem>
+                             {doctorFilterOptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 pt-2">
+                         <div className="space-y-2">
+                            <Label className="text-[12px] font-bold text-[#102F27]">From date</Label>
+                            <Input 
+                              type="date" 
+                              value={advancedFilters.dateFrom} 
+                              onChange={(e) => setAdvancedFilters(f => ({ ...f, dateFrom: e.target.value }))}
+                              className="h-10 rounded-xl" 
+                            />
+                         </div>
+                         <div className="space-y-2">
+                            <Label className="text-[12px] font-bold text-[#102F27]">To date</Label>
+                            <Input 
+                              type="date" 
+                              value={advancedFilters.dateTo} 
+                              onChange={(e) => setAdvancedFilters(f => ({ ...f, dateTo: e.target.value }))}
+                              className="h-10 rounded-xl" 
+                            />
+                         </div>
+                      </div>
+                   </div>
                 </PopoverContent>
               </Popover>
            </div>
         </div>
-        </div>
       </div>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-auto bg-[#F9F8F5] px-6 sm:px-8 relative">
-        <div className="w-full h-full pb-6 pt-4">
-          <div className="rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)] overflow-hidden">
+      {/* Main Content Area */}
+      <div className="flex-1 px-8 pb-10">
+        {viewMode === "table" ? (
+          <div className="overflow-hidden rounded-3xl border border-[#E8E6E0]/80 bg-white shadow-[0_8px_40px_rgba(0,0,0,0.02)]">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[1000px] bg-white">
+              <table className="w-full min-w-[1200px] border-collapse bg-white text-left">
                 <thead className="sticky top-0 z-10">
-                  <tr className="text-[15px] font-serif font-bold text-[#1A5345]/90 bg-[#F4F3ED]/90 backdrop-blur-md shadow-[0_1px_0_0_#E8E6E0] transition-colors">
-                  <th className="py-4 pr-4 pl-4">Patient Name</th>
-                  <th className="py-4 px-4">Visit type</th>
-                  <th className="py-4 px-4">Doctor</th>
-                  <th className="py-4 px-4">Age / Sex</th>
-                  <th className="py-4 px-4">Condition</th>
-                  <th className="py-4 px-4">Status</th>
-                  <th className="py-4 pl-4 pr-4 text-right"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E8E6E0]/40">
-                {isLoading ? (
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <tr key={i}>
-                      {Array.from({ length: 7 }).map((_, j) => (
-                        <td key={j} className="py-4 px-4">
-                          <Skeleton className="h-5 w-full rounded-md" />
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                ) : appointmentsForUi.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-20 text-center">
-                       <div className="flex flex-col items-center justify-center opacity-40">
-                          <CalendarClockIcon className="size-12 mb-4" strokeWidth={1.5} />
-                          <p className="text-[16px] font-bold">No appointments found</p>
-                       </div>
-                    </td>
+                  <tr className="border-b border-[#E8E6E0]/60 bg-white text-[15px] font-serif font-bold text-[#1A1F1E] transition-colors">
+                    <th className="py-4 pr-4 pl-4">Patient Name</th>
+                    <th className="py-4 px-4">Condition</th>
+                    <th className="py-4 px-4">Doctor</th>
+                    <th className="py-4 px-4">Age / Sex</th>
+                    <th className="py-4 px-4">Last Visit</th>
+                    <th className="py-4 px-4">Status</th>
+                    <th className="py-4 px-4">Risk Level</th>
+                    <th className="py-4 pl-4 pr-4 text-right"></th>
                   </tr>
-                ) : (
-                  <>
-                    {todayAppointments.length > 0 ? (
-                      <>
-                        <AppointmentSectionHeaderRow
-                          title="Today's appointments"
-                          count={todayAppointments.length}
-                          variant="today"
-                        />
-                        {todayAppointments.map((appointment) => (
-                          <AssistantAppointmentTableRow
-                            key={appointment.id}
-                            appointment={appointment}
-                            onViewDetails={setSelectedPatient}
-                            isUpdatingStatus={isUpdatingStatus}
-                            isUpdatingAppointment={isUpdatingAppointment}
-                            onReschedule={openReschedule}
-                            onEditBooking={openEditBooking}
-                            onCancelClick={setCancellingAppointment}
-                            onOpenVisitReport={setVisitReportTarget}
-                          />
+                </thead>
+                <tbody className="divide-y divide-[#E8E6E0]/40">
+                  {isLoading ? (
+                    Array.from({ length: 6 }).map((_, i) => (
+                      <tr key={i}>
+                        {Array.from({ length: 8 }).map((_, j) => (
+                          <td key={j} className="py-4 px-4">
+                            <Skeleton className="h-5 w-full rounded-md" />
+                          </td>
                         ))}
-                      </>
-                    ) : null}
-                    {upcomingAppointments.length > 0 ? (
-                      <>
-                        <AppointmentSectionHeaderRow
-                          title="Upcoming appointments"
-                          count={upcomingAppointments.length}
-                          variant="upcoming"
-                        />
-                        {upcomingAppointments.map((appointment) => (
-                          <AssistantAppointmentTableRow
-                            key={appointment.id}
-                            appointment={appointment}
-                            onViewDetails={setSelectedPatient}
-                            isUpdatingStatus={isUpdatingStatus}
-                            isUpdatingAppointment={isUpdatingAppointment}
-                            onReschedule={openReschedule}
-                            onEditBooking={openEditBooking}
-                            onCancelClick={setCancellingAppointment}
-                            onOpenVisitReport={setVisitReportTarget}
-                          />
-                        ))}
-                      </>
-                    ) : null}
-                    {pastAppointments.length > 0 ? (
-                      <>
-                        <AppointmentSectionHeaderRow
-                          title="Earlier"
-                          count={pastAppointments.length}
-                          variant="earlier"
-                        />
-                        {pastAppointments.map((appointment) => (
-                          <AssistantAppointmentTableRow
-                            key={appointment.id}
-                            appointment={appointment}
-                            onViewDetails={setSelectedPatient}
-                            isUpdatingStatus={isUpdatingStatus}
-                            isUpdatingAppointment={isUpdatingAppointment}
-                            onReschedule={openReschedule}
-                            onEditBooking={openEditBooking}
-                            onCancelClick={setCancellingAppointment}
-                            onOpenVisitReport={setVisitReportTarget}
-                          />
-                        ))}
-                      </>
-                    ) : null}
-                  </>
-                )}
-              </tbody>
-            </table>
+                      </tr>
+                    ))
+                  ) : appointments.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-20 text-center">
+                         <div className="flex flex-col items-center justify-center opacity-40">
+                            <CalendarClockIcon className="size-12 mb-4" strokeWidth={1.5} />
+                            <p className="text-[16px] font-bold">No appointments found</p>
+                         </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    appointments.map((appointment) => (
+                      <tr key={appointment.id} className="group hover:bg-[#F9F8F5]/30 transition-colors">
+                        <td className="py-4 pr-4 pl-4">
+                          <div className="flex items-center gap-3">
+                             <div className="size-10 rounded-full bg-[#F3F4F6] border border-[#E8E6E0]/60 overflow-hidden shrink-0">
+                                <img 
+                                  src={dicebearAvatarUrl(appointment.patientName, appointment.id)} 
+                                  alt="" 
+                                  className="size-full object-cover"
+                                />
+                             </div>
+                             <div className="min-w-0">
+                                <p className="text-[14px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors truncate">{appointment.patientName}</p>
+                                <p className="text-[11px] font-bold text-muted-foreground mt-0.5 tracking-tight">#{appointment.id.slice(0, 8).toUpperCase()}</p>
+                             </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                           <p className="text-[14px] font-medium text-[#1A1F1E]/80">{appointment.reason || "General checkup"}</p>
+                        </td>
+                        <td className="py-4 px-4">
+                           <div className="flex items-center gap-2.5">
+                              <div className="size-8 rounded-full bg-[#E5EEEA] border border-[#1A5345]/10 overflow-hidden shrink-0">
+                                 <img 
+                                   src={dicebearAvatarUrl(appointment.doctorName, appointment.doctorId ?? appointment.id)} 
+                                   alt="" 
+                                   className="size-full object-cover"
+                                 />
+                              </div>
+                              <p className="text-[14px] font-bold text-[#1A1F1E] truncate">{appointment.doctorName}</p>
+                           </div>
+                        </td>
+                        <td className="py-4 px-4 text-[14px] font-medium text-[#1A1F1E]/70">
+                           37 / m
+                        </td>
+                        <td className="py-4 px-4 text-[14px] font-bold text-[#1A1F1E]">
+                           {formatAppointmentDate(appointment.scheduledAt)}
+                        </td>
+                        <td className="py-4 px-4">
+                           <Badge variant="outline" className={cn(
+                             "rounded-full px-3 py-1 text-[11px] font-bold",
+                             appointmentStatusBadgeClass[appointment.status]
+                           )}>
+                              {statusLabel[appointment.status]}
+                           </Badge>
+                        </td>
+                        <td className="py-4 px-4">
+                           <Badge variant="outline" className={cn(
+                             "rounded-lg border-[#E8E6E0] bg-white px-2.5 py-1 text-[11px] font-bold",
+                             appointment.visitType === "virtual" ? "text-amber-600" : "text-red-600"
+                           )}>
+                              {appointment.visitType === "virtual" ? "Moderate risk" : "High risk"}
+                           </Badge>
+                        </td>
+                        <td className="py-4 pl-4 pr-4 text-right">
+                           <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                 <Button variant="ghost" size="icon" className="size-9 rounded-xl text-muted-foreground hover:bg-[#F9F8F5] transition-all opacity-0 group-hover:opacity-100">
+                                    <MoreVerticalIcon className="size-5" />
+                                 </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-56 rounded-2xl border-[#E8E6E0]/60 p-1.5 shadow-xl">
+                                 <DropdownMenuItem onSelect={() => setSelectedAppointment(appointment)}>
+                                    <UserCircle2Icon className="size-4 mr-2.5" />
+                                    View details
+                                 </DropdownMenuItem>
+                                 <DropdownMenuItem onSelect={() => openEditDialog(appointment)}>
+                                    <PencilLineIcon className="size-4 mr-2.5" />
+                                    Edit schedule
+                                 </DropdownMenuItem>
+                                 <DropdownMenuSeparator className="bg-[#E8E6E0]/60 my-1" />
+                                 <DropdownMenuItem onSelect={() => updateStatus({ appointmentId: appointment.id, status: "confirmed" })} disabled={appointment.status === 'confirmed' || isUpdatingStatus}>
+                                    <CheckCircle2Icon className="size-4 mr-2.5 text-blue-600" />
+                                    Confirm booking
+                                 </DropdownMenuItem>
+                                 <DropdownMenuItem onSelect={() => updateStatus({ appointmentId: appointment.id, status: "completed" })} disabled={appointment.status === 'completed' || isUpdatingStatus}>
+                                    <CalendarCheck2Icon className="size-4 mr-2.5 text-emerald-600" />
+                                    Mark as completed
+                                 </DropdownMenuItem>
+                                 <DropdownMenuSeparator className="bg-[#E8E6E0]/60 my-1" />
+                                 <DropdownMenuItem onSelect={() => setCancellingAppointment(appointment)} disabled={appointment.status === 'cancelled' || isUpdatingStatus} className="text-red-600">
+                                    <XIcon className="size-4 mr-2.5" />
+                                    Cancel appointment
+                                 </DropdownMenuItem>
+                              </DropdownMenuContent>
+                           </DropdownMenu>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-        </div>
+        ) : (
+          /* Calendar View */
+          <div className="h-full flex flex-col rounded-3xl border border-[#E8E6E0]/80 bg-white shadow-[0_8px_40px_rgba(0,0,0,0.02)] overflow-hidden animate-in zoom-in-95 duration-500">
+             {/* Days of week header */}
+             <div className="grid grid-cols-7 border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/50">
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+                   <div key={day} className="px-4 py-3 text-center text-[12px] font-bold text-muted-foreground uppercase tracking-widest border-r last:border-0 border-[#E8E6E0]/40">
+                      {day}
+                   </div>
+                ))}
+             </div>
+             
+             {/* Calendar Grid */}
+             <div className="flex-1 grid grid-cols-7 grid-rows-5">
+                {calendarDays.map((day, idx) => {
+                   const dayAppointments = appointments.filter(app => isSameDay(new Date(app.scheduledAt), day))
+                   const isCurrentMonth = isSameMonth(day, currentMonth)
+                   const isTodayDay = isToday(day)
+                   
+                   return (
+                      <Popover key={day.toISOString()}>
+                         <PopoverTrigger asChild>
+                            <div 
+                              className={cn(
+                                "min-h-[120px] p-2 border-r border-b border-[#E8E6E0]/40 transition-colors flex flex-col group cursor-pointer",
+                                !isCurrentMonth && "bg-[#F9F8F5]/30 opacity-40",
+                                isCurrentMonth && "hover:bg-[#1A5345]/[0.02]",
+                                idx % 7 === 6 && "border-r-0"
+                              )}
+                            >
+                               <div className="flex items-center justify-between mb-2">
+                                  <span className={cn(
+                                    "size-7 flex items-center justify-center rounded-full text-[13px] font-bold",
+                                    isTodayDay ? "bg-[#1A5345] text-white" : "text-[#102F27]"
+                                  )}>
+                                     {format(day, "d")}
+                                  </span>
+                                  {dayAppointments.length > 0 && (
+                                     <span className="text-[10px] font-bold text-muted-foreground bg-[#F3F4F6] px-1.5 py-0.5 rounded-md">
+                                        {dayAppointments.length}
+                                     </span>
+                                  )}
+                               </div>
+                               
+                               <div className="flex-1 flex flex-wrap content-start gap-1">
+                                  {dayAppointments.slice(0, 8).map(app => (
+                                     <Popover key={app.id}>
+                                        <PopoverTrigger asChild>
+                                           <button 
+                                             onClick={(e) => e.stopPropagation()} 
+                                             className="relative transition-transform hover:scale-110 active:scale-95"
+                                           >
+                                              <div className={cn(
+                                                "size-8 rounded-full border-2 border-white ring-1 ring-black/5 overflow-hidden shadow-sm",
+                                                app.status === 'confirmed' ? "ring-[#1A5345]/30" : 
+                                                app.status === 'cancelled' ? "ring-red-300" : "ring-amber-200"
+                                              )}>
+                                                <img
+                                                  src={dicebearAvatarUrl(app.patientName, app.id)}
+                                                  alt={app.patientName ?? ""}
+                                                  className="size-full object-cover"
+                                                />
+                                              </div>
+                                           </button>
+                                        </PopoverTrigger>
+                                        <PopoverContent 
+                                          className="w-[240px] p-4 rounded-2xl border-0 shadow-2xl bg-white z-[60]"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                           <div className="flex items-start gap-3">
+                                              <div className="size-10 rounded-full bg-[#F3F4F6] overflow-hidden shrink-0">
+                                                 <img
+                                                   src={dicebearAvatarUrl(app.patientName, app.id)}
+                                                   alt=""
+                                                   className="size-full"
+                                                 />
+                                              </div>
+                                              <div className="min-w-0">
+                                                 <p className="text-[14px] font-bold text-[#1A1F1E] truncate">{app.patientName}</p>
+                                                 <p className="text-[11px] font-bold text-muted-foreground mt-0.5">{formatLocalTimeRangeAmPm(app.scheduledAt)} · {app.doctorName}</p>
+                                                 <Badge variant="outline" className={cn("mt-2 rounded-lg text-[10px]", appointmentStatusBadgeClass[app.status])}>
+                                                    {statusLabel[app.status]}
+                                                 </Badge>
+                                              </div>
+                                           </div>
+                                           <div className="mt-4 flex gap-2">
+                                              <Button variant="outline" size="sm" className="flex-1 h-8 text-[11px] rounded-lg" onClick={() => setSelectedAppointment(app)}>
+                                                 Details
+                                              </Button>
+                                              <div
+                                                 className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-input bg-background text-muted-foreground shadow-xs pointer-events-none select-none"
+                                                 aria-hidden="true"
+                                              >
+                                                 <PencilLineIcon className="size-3.5" />
+                                              </div>
+                                              <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                className="h-8 size-8 p-0 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 border-red-100" 
+                                                onClick={(e) => { e.stopPropagation(); setCancellingAppointment(app); }}
+                                              >
+                                                 <Trash2Icon className="size-3.5" />
+                                              </Button>
+                                           </div>
+                                        </PopoverContent>
+                                     </Popover>
+                                  ))}
+                                  {dayAppointments.length > 8 && (
+                                     <div className="size-8 rounded-full bg-[#F3F4F6] border-2 border-white ring-1 ring-black/5 flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                                        +{dayAppointments.length - 8}
+                                     </div>
+                                  )}
+                               </div>
+                               
+                               {isCurrentMonth && (
+                                 <button 
+                                   onClick={(e) => {
+                                     e.stopPropagation()
+                                     setBookingDraft(prev => ({ ...prev, date: formatLocalDateInput(day.toISOString()) }))
+                                     setIsCreateDialogOpen(true)
+                                   }}
+                                   className="opacity-0 group-hover:opacity-100 transition-opacity mt-auto flex items-center gap-1.5 text-[11px] font-bold text-[#1A5345] hover:underline"
+                                 >
+                                    <PlusIcon className="size-3" />
+                                    Book
+                                 </button>
+                               )}
+                            </div>
+                         </PopoverTrigger>
+                         {dayAppointments.length > 0 && (
+                            <PopoverContent
+                              side={idx % 7 > 3 ? "left" : "right"}
+                              align="start"
+                              className="w-[300px] p-0 rounded-xl border border-[#E8E6E0] bg-white shadow-lg z-50"
+                            >
+                               <div className="flex items-center justify-between gap-2 border-b border-[#E8E6E0] px-3 py-2.5 sm:px-4 sm:py-3">
+                                  <p className="text-[13px] font-semibold text-[#1A1F1E] sm:text-sm">
+                                     {format(day, "d EEEE")}
+                                  </p>
+                                  <PopoverClose asChild>
+                                     <button
+                                       type="button"
+                                       className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-[#F3F4F6] hover:text-[#1A1F1E]"
+                                       aria-label="Close"
+                                     >
+                                        <XIcon className="size-4" />
+                                     </button>
+                                  </PopoverClose>
+                               </div>
+                               <div className="max-h-[320px] space-y-2 overflow-y-auto p-2 sm:max-h-[400px]">
+                                  {dayAppointments.map((app) => (
+                                     <button
+                                        key={app.id}
+                                        type="button"
+                                        onClick={() => setSelectedAppointment(app)}
+                                        className="flex w-full items-center gap-3 rounded-lg border border-[#E8E6E0] bg-white p-2.5 text-left transition-colors hover:bg-[#FAFAF9]"
+                                     >
+                                        <div className="relative shrink-0">
+                                           <div className="size-10 overflow-hidden rounded-md border border-[#E8E6E0] bg-[#F9F8F5]">
+                                              <img
+                                                 src={dicebearAvatarUrl(app.patientName, app.id)}
+                                                 alt=""
+                                                 className="size-full object-cover"
+                                              />
+                                           </div>
+                                           <span
+                                              className="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-[#1A1F1E] text-white ring-2 ring-white"
+                                              title={
+                                                 app.visitType === "virtual"
+                                                    ? "Virtual visit"
+                                                    : "Clinic visit"
+                                              }
+                                           >
+                                              {app.visitType === "virtual" ? (
+                                                 <VideoIcon className="size-2.5" aria-hidden />
+                                              ) : (
+                                                 <Building2Icon className="size-2.5" aria-hidden />
+                                              )}
+                                           </span>
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                           <div className="flex items-start justify-between gap-2">
+                                              <p className="min-w-0 truncate text-[12px] font-semibold text-[#1A1F1E] sm:text-[13px]">
+                                                 {app.patientName?.trim() || "Patient"}
+                                              </p>
+                                              <p className="shrink-0 text-right text-xs font-medium text-[#1A1F1E] sm:text-[13px] leading-snug">
+                                                 {formatLocalTimeRangeAmPm(app.scheduledAt)}
+                                              </p>
+                                           </div>
+                                           <p className="truncate text-[10px] text-muted-foreground sm:text-[11px]">
+                                              {app.doctorName}
+                                           </p>
+                                        </div>
+                                     </button>
+                                  ))}
+                               </div>
+                            </PopoverContent>
+                         )}
+                      </Popover>
+                   )
+                })}
+             </div>
+          </div>
+        )}
       </div>
 
-      {/* Dialogs and Modals - Keep functionality but style like premium */}
-      <Dialog open={Boolean(selectedPatient)} onOpenChange={(open) => !open && setSelectedPatient(null)}>
-        <DialogContent className="sm:max-w-xl rounded-3xl p-0 overflow-hidden border-0 shadow-2xl">
-           {selectedPatient && (
-             <>
-               <div className="bg-[#1A5345] p-8 text-white">
-                  <div className="flex items-center gap-4">
-                     <div className="size-14 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20">
-                        <UserIcon className="size-8 text-white" />
+      {/* Appointment Details Dialog - Modern Clinical Dashboard Design */}
+      <Dialog open={Boolean(selectedAppointment && !isEditDialogOpen)} onOpenChange={(open) => !open && setSelectedAppointment(null)}>
+        <DialogContent className="sm:max-w-md rounded-[32px] border-0 bg-white p-0 shadow-2xl overflow-hidden">
+           {selectedAppointment && (
+             <div className="flex flex-col animate-in fade-in zoom-in-95 duration-400">
+               {/* Elegant Soft Header — compact */}
+               <div className="relative overflow-hidden bg-[#F0F5F3] px-5 py-4 sm:px-6 sm:py-5">
+                  <div className="absolute -right-14 -top-14 size-28 rounded-full bg-[#1A5345]/5 blur-3xl" />
+                  <div className="relative flex items-center justify-between gap-3 sm:gap-4">
+                     <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+                        <div className="size-12 shrink-0 overflow-hidden rounded-2xl border border-white bg-white p-0.5 shadow-md shadow-[#1A5345]/10 sm:size-14">
+                           <img
+                              src={dicebearAvatarUrl(selectedAppointment.patientName, selectedAppointment.id)}
+                              alt=""
+                              className="size-full object-cover"
+                           />
+                        </div>
+                        <div className="min-w-0">
+                           <DialogTitle className="font-serif text-[18px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[20px]">
+                              {selectedAppointment.patientName}
+                           </DialogTitle>
+                           <p className="mt-0.5 text-[11px] font-bold tracking-tight text-[#1A5345]/60 sm:text-[12px]">
+                              #{selectedAppointment.id.slice(0, 8)}
+                           </p>
+                        </div>
                      </div>
-                     <div>
-                        <DialogTitle className="text-[24px] font-bold font-serif">{selectedPatient.patientName}</DialogTitle>
-                        <p className="text-white/70 text-[14px]">Patient booking details</p>
-                     </div>
-                  </div>
-               </div>
-               <div className="p-8 grid grid-cols-2 gap-6 bg-white">
-                  <div className="space-y-1">
-                     <p className="text-[11px] font-bold text-muted-foreground">Booking ID</p>
-                     <p className="text-[15px] font-bold text-[#1A1F1E] font-mono">{selectedPatient.id.slice(0, 12).toUpperCase()}</p>
-                  </div>
-                  <div className="space-y-1">
-                     <p className="text-[11px] font-bold text-muted-foreground">Status</p>
-                     <Badge variant="default" className={cn("rounded-full", appointmentStatusBadgeClass[selectedPatient.status])}>
-                       {statusLabel[selectedPatient.status]}
+                     <Badge
+                        variant="outline"
+                        className={cn(
+                           "shrink-0 rounded-full border-0 bg-white/80 px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm sm:text-[11px]",
+                           appointmentStatusBadgeClass[selectedAppointment.status],
+                        )}
+                     >
+                        {statusLabel[selectedAppointment.status]}
                      </Badge>
                   </div>
-                  <div className="space-y-1">
-                     <p className="text-[11px] font-bold text-muted-foreground">Doctor</p>
-                     <p className="text-[15px] font-bold text-[#1A1F1E]">{selectedPatient.doctorName}</p>
+               </div>
+
+               {/* Content Sections — compact */}
+               <div className="space-y-5 px-5 py-5 sm:space-y-6 sm:px-6 sm:py-6">
+                  {/* Section 1: Timeline & Physician */}
+                  <div className="grid grid-cols-2 gap-x-5 sm:gap-x-8">
+                     <div className="relative space-y-0.5 border-l-2 border-[#1A5345]/10 pl-4">
+                        <div className="absolute -left-[7px] top-0 size-3 rounded-full border-2 border-[#1A5345] bg-white shadow-sm" />
+                        <p className="text-[10px] font-bold tracking-tight text-muted-foreground sm:text-[11px]">
+                           Schedule
+                        </p>
+                        <p className="text-[14px] font-bold text-[#102F27] sm:text-[15px]">
+                           {formatAppointmentDate(selectedAppointment.scheduledAt)}
+                        </p>
+                        <p className="text-[12px] font-bold text-[#1A5345] sm:text-[13px]">
+                           {formatLocalTimeRangeAmPm(selectedAppointment.scheduledAt)}
+                        </p>
+                     </div>
+
+                     <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold tracking-tight text-muted-foreground sm:text-[11px]">
+                           Practitioner
+                        </p>
+                        <div className="flex items-center gap-2 pt-0.5">
+                           <div className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#E8E6E0] bg-[#F9F8F5] sm:size-8">
+                              <UserIcon className="size-3.5 text-[#1A5345]/40 sm:size-4" />
+                           </div>
+                           <div className="min-w-0">
+                              <p className="truncate text-[13px] font-bold leading-tight text-[#102F27] sm:text-[14px]">
+                                 {selectedAppointment.doctorName}
+                              </p>
+                              <p className="mt-0.5 truncate text-[10px] font-bold text-muted-foreground sm:text-[11px]">
+                                 {selectedAppointment.department}
+                              </p>
+                           </div>
+                        </div>
+                     </div>
                   </div>
-                  <div className="space-y-1">
-                     <p className="text-[11px] font-bold text-muted-foreground">Specialty</p>
-                     <p className="text-[15px] font-bold text-[#1A1F1E]">{selectedPatient.department}</p>
+
+                  {/* Section 2: Clinical Context */}
+                  <div className="space-y-2">
+                     <div className="flex items-center gap-2">
+                        <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#E8E6E0]/60" />
+                        <span className="shrink-0 text-[10px] font-bold tracking-tight text-muted-foreground sm:text-[11px]">
+                           Clinical context
+                        </span>
+                        <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#E8E6E0]/60" />
+                     </div>
+                     <div className="group relative rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/70 p-4 sm:rounded-2xl">
+                        <ActivityIcon className="absolute right-3 top-3 size-4 text-[#1A5345]/5 transition-colors group-hover:text-[#1A5345]/10 sm:right-4 sm:top-4 sm:size-5" />
+                        <p className="mb-1 text-[10px] font-bold text-[#1A5345]/50 sm:text-[11px]">Visit Reason</p>
+                        <p className="text-[13px] font-medium leading-snug text-[#102F27] sm:text-[14px] sm:leading-relaxed">
+                           {selectedAppointment.reason ||
+                              "General cardiovascular health assessment and vital signs monitoring."}
+                        </p>
+                     </div>
                   </div>
-                  <div className="col-span-2 space-y-1">
-                     <p className="text-[11px] font-bold text-muted-foreground">Scheduled</p>
-                     <p className="text-[15px] font-bold text-[#1A1F1E]">
-                       {new Intl.DateTimeFormat("en-US", {
-                         dateStyle: "medium",
-                         timeStyle: "short",
-                       }).format(new Date(selectedPatient.scheduledAt))}
-                     </p>
-                  </div>
-                  <div className="col-span-2 space-y-1 pt-2">
-                     <p className="text-[11px] font-bold text-muted-foreground">Visit reason</p>
-                     <p className="text-[14px] leading-relaxed text-[#1A1F1E] bg-[#F9F8F5] p-4 rounded-xl border border-[#E8E6E0]/60">{selectedPatient.reason || "No reason provided."}</p>
-                  </div>
-                  <div className="col-span-2 space-y-2 pt-2">
-                     <Label htmlFor="appointment-detail-notes" className="text-[11px] font-bold text-muted-foreground">
-                       Assistant notes
-                     </Label>
-                     <Textarea
-                       id="appointment-detail-notes"
-                       value={detailNotesDraft}
-                       onChange={(e) => setDetailNotesDraft(e.target.value)}
-                       placeholder="Internal notes for staff (not shown to patient)…"
-                       rows={4}
-                       disabled={selectedPatient.status === "completed"}
-                       className="rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] disabled:opacity-70"
-                     />
-                  </div>
-                  <div className="col-span-2 flex flex-wrap justify-end gap-3 pt-4">
-                     <Button variant="outline" className="rounded-xl h-11 px-6 font-bold" onClick={() => setSelectedPatient(null)}>
-                       Close
-                     </Button>
-                     {selectedPatient.status === "completed" ? (
-                       <Button
-                         type="button"
-                         variant="outline"
-                         className="rounded-xl h-11 px-6 font-bold border-[#1A5345]/30 text-[#1A5345] hover:bg-[#E8F0EE]"
-                         onClick={() => setVisitReportTarget(selectedPatient)}
-                       >
-                         <FileTextIcon className="mr-2 size-4" />
-                         Visit report
-                       </Button>
-                     ) : null}
+
+                  {/* Section 3: Interaction */}
+                  <div className="flex items-center gap-2 pt-1">
                      <Button
-                       type="button"
-                       variant="outline"
-                       className="rounded-xl h-11 px-6 font-bold border-[#1A5345]/30 text-[#1A5345] hover:bg-[#E8F0EE]"
-                       disabled={selectedPatient.status === "completed" || !detailNotesDirty || isUpdatingAppointment}
-                       onClick={() => void handleSaveDetailNotes()}
+                        variant="ghost"
+                        className="h-9 flex-1 rounded-xl font-bold text-muted-foreground transition-all hover:bg-[#F9F8F5] hover:text-[#1A1F1E] sm:h-10 sm:rounded-2xl"
+                        onClick={() => setSelectedAppointment(null)}
                      >
-                       {isUpdatingAppointment ? "Saving…" : "Save notes"}
+                        Close
                      </Button>
-                     {selectedPatient.patientId ? (
-                       <Button asChild className="rounded-xl h-11 px-6 bg-[#1A5345] font-bold hover:bg-[#133F34]">
-                         <Link href={`/assistant-patients/${selectedPatient.patientId}`}>Full profile</Link>
-                       </Button>
-                     ) : null}
+                     <Button
+                        asChild
+                        className="flex-[2] h-9 rounded-xl bg-[#1A5345] text-[12px] font-bold text-white shadow-lg shadow-[#1A5345]/15 transition-all hover:bg-[#133F34] sm:h-10 sm:rounded-2xl sm:text-[13px]"
+                     >
+                        <Link href={`/assistant-patients/${selectedAppointment.patientId}`}>
+                           Access Medical Chart
+                        </Link>
+                     </Button>
                   </div>
                </div>
-             </>
+             </div>
            )}
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(visitReportTarget)} onOpenChange={(open) => !open && setVisitReportTarget(null)}>
-        <DialogContent className="overflow-hidden rounded-3xl border-[#E8E6E0]/80 sm:max-w-lg">
-          {visitReportTarget ? (
-            <>
-              <DialogHeader>
-                <DialogTitle className="font-serif text-xl text-[#1A1F1E]">Visit report</DialogTitle>
-                <DialogDescription className="text-[14px] font-medium">
-                  Completed visit record for{" "}
-                  <span className="font-semibold text-[#1A1F1E]">{visitReportTarget.patientName}</span>.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-2">
-                <div className="grid grid-cols-2 gap-3 rounded-2xl border border-[#E8E6E0]/70 bg-[#F9F8F5]/80 p-4 text-[13px]">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Booking</p>
-                    <p className="font-mono font-semibold text-[#1A1F1E]">
-                      {visitReportTarget.id.slice(0, 12).toUpperCase()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Clinician</p>
-                    <p className="font-semibold text-[#1A1F1E]">{visitReportTarget.doctorName}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Scheduled</p>
-                    <p className="font-semibold text-[#1A1F1E]">
-                      {new Intl.DateTimeFormat("en-US", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      }).format(new Date(visitReportTarget.scheduledAt))}
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[11px] font-bold text-muted-foreground">Clinical summary</Label>
-                  <div className="max-h-[220px] overflow-y-auto rounded-xl border border-[#E8E6E0]/70 bg-white p-4 text-[14px] leading-relaxed text-[#1A1F1E]">
-                    {visitReportTarget.visitSummary?.trim() ||
-                      "No clinical summary is linked to this booking yet. When the backend attaches visit notes or a PDF link, they will appear here. You can still download a booking metadata file below."}
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {visitReportTarget.visitReportUrl ? (
-                    <Button asChild className="rounded-xl bg-[#1A5345] font-bold hover:bg-[#133F34]">
-                      <a href={visitReportTarget.visitReportUrl} target="_blank" rel="noopener noreferrer">
-                        <SquareArrowOutUpRightIcon className="mr-2 size-4" />
-                        Open full report
-                      </a>
-                    </Button>
-                  ) : null}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-xl font-semibold"
-                    onClick={() => downloadVisitBookingFile(visitReportTarget)}
-                  >
-                    <DownloadIcon className="mr-2 size-4" />
-                    Download booking file
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-xl font-semibold"
-                    onClick={() => setVisitReportTarget(null)}
-                  >
-                    Close
-                  </Button>
-                </div>
-              </div>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={Boolean(rescheduleTarget)}
-        onOpenChange={(open) => {
-          if (!open) setRescheduleTarget(null)
-        }}
-      >
-        <DialogContent className="rounded-3xl border-[#E8E6E0]/80 sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-serif text-xl text-[#1A1F1E]">Reschedule appointment</DialogTitle>
-            <DialogDescription className="text-[14px] font-medium">
-              Pick a new date and time for the same clinician. Only available slots are listed.
-            </DialogDescription>
-          </DialogHeader>
-          {rescheduleTarget ? (
-            <div className="space-y-4 py-2">
-              <p className="text-[13px] text-muted-foreground">
-                Patient:{" "}
-                <span className="font-semibold text-[#1A1F1E]">{rescheduleTarget.patientName}</span>
-              </p>
-              <div className="space-y-2">
-                <Label className="text-[13px] font-semibold">Date</Label>
-                <Input
-                  type="date"
-                  value={rescheduleDate}
-                  onChange={(e) => {
-                    setRescheduleDate(e.target.value)
-                    setRescheduleTimeSlot("")
-                  }}
-                  className="h-11 rounded-xl border-[#E8E6E0]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[13px] font-semibold">Time</Label>
-                <Select
-                  value={rescheduleTimeSlot}
-                  onValueChange={setRescheduleTimeSlot}
-                  disabled={!rescheduleDate || !rescheduleTarget.doctorId}
-                >
-                  <SelectTrigger className="h-11 rounded-xl border-[#E8E6E0]">
-                    <SelectValue placeholder={rescheduleDate ? "Choose slot" : "Pick a date first"} />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    {rescheduleSlotItems.map((slot) => (
-                      <SelectItem key={slot.value} value={slot.value}>
-                        {slot.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-xl"
-                  onClick={() => setRescheduleTarget(null)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  className="rounded-xl bg-[#1A5345] font-bold hover:bg-[#133F34]"
-                  disabled={
-                    !rescheduleDate ||
-                    !rescheduleTimeSlot ||
-                    isUpdatingAppointment ||
-                    rescheduleSlotsQuery.isLoading
-                  }
-                  onClick={() => void handleRescheduleSave()}
-                >
-                  {isUpdatingAppointment ? "Saving…" : "Save new time"}
-                </Button>
-              </div>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={Boolean(editTarget)}
-        onOpenChange={(open) => {
-          if (!open) setEditTarget(null)
-        }}
-      >
-        <DialogContent className="max-h-[min(90vh,560px)] overflow-y-auto rounded-3xl border-[#E8E6E0]/80 sm:max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle className="font-serif text-xl text-[#1A1F1E]">Edit booking</DialogTitle>
-            <DialogDescription className="text-[14px] font-medium">
-              Change clinician, visit type, or clinical reason. Availability is validated when you save.
-            </DialogDescription>
-          </DialogHeader>
-          {editTarget ? (
-            <div className="space-y-5 py-2">
-              <div className="space-y-2">
-                <Label className="text-[13px] font-semibold text-[#1A1F1E]">Clinician</Label>
-                <AppointmentPersonPicker
-                  value={editDoctorId}
-                  onValueChange={(id) => {
-                    setEditDoctorId(id)
-                  }}
-                  items={doctorPickerItems}
-                  placeholder="Select doctor"
-                  searchPlaceholder="Search doctors…"
-                  emptyText="No doctors found"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[13px] font-semibold text-[#1A1F1E]">Visit type</Label>
-                <Select
-                  value={editVisitType}
-                  onValueChange={(v) => setEditVisitType(v as "clinic" | "virtual")}
-                >
-                  <SelectTrigger className="h-11 rounded-xl border-[#E8E6E0]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="clinic">In clinic</SelectItem>
-                    <SelectItem value="virtual">Virtual</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[13px] font-semibold text-[#1A1F1E]">Visit reason</Label>
-                <Select value={editReason} onValueChange={setEditReason}>
-                  <SelectTrigger className="h-11 rounded-xl border-[#E8E6E0] text-left">
-                    <SelectValue placeholder="Select reason" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[min(280px,50vh)] rounded-xl">
-                    {editReasonOptions.map((option) => (
-                      <SelectItem key={option} value={option} className="text-[14px] leading-snug">
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditTarget(null)}>
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  className="rounded-xl bg-[#1A5345] font-bold hover:bg-[#133F34]"
-                  disabled={!editDoctorId || !editReason.trim() || isUpdatingAppointment}
-                  onClick={() => void handleEditBookingSave()}
-                >
-                  {isUpdatingAppointment ? "Saving…" : "Save changes"}
-                </Button>
-              </div>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="flex max-h-[min(90vh,640px)] flex-col gap-0 overflow-hidden rounded-[28px] border border-[#E8E6E0]/80 p-0 shadow-2xl sm:max-w-[560px]">
-          <div className="shrink-0 border-b border-[#E8E6E0]/70 bg-[#FAFAF8] px-6 pb-5 pt-6 sm:px-8 sm:pb-6 sm:pt-7">
-            <div className="flex items-start gap-4">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#E8F0EE] text-[#1A5345] ring-1 ring-[#1A5345]/10 sm:size-14">
-                <CalendarPlus2Icon className="size-6 sm:size-7" strokeWidth={2} />
-              </div>
-              <div className="min-w-0 flex-1 space-y-1.5 pr-8">
-                <DialogTitle className="text-left text-[22px] font-bold leading-tight tracking-tight text-[#102F27] font-serif sm:text-[24px]">
-                  New appointment
+      {/* Edit Appointment Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-lg rounded-3xl p-0 overflow-hidden border-0 shadow-2xl">
+          <div className="space-y-5 bg-white p-5 sm:space-y-6 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 space-y-0.5">
+                <DialogTitle className="font-serif text-[20px] font-bold tracking-tight text-[#1A1F1E] sm:text-[22px]">
+                  Edit schedule
                 </DialogTitle>
-                <DialogDescription className="text-left text-[15px] font-medium leading-snug text-muted-foreground">
-                  Create a clinical booking for an existing patient.
+                <DialogDescription className="text-[13px] font-medium text-muted-foreground">
+                  Modify the details or timing for this clinical booking.
                 </DialogDescription>
               </div>
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 sm:size-11">
+                <PencilLineIcon className="size-5 text-amber-600 sm:size-[22px]" />
+              </div>
             </div>
-          </div>
 
-          <form
-            className="flex min-h-0 flex-1 flex-col"
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleCreate()
-            }}
-          >
-            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-white px-6 py-6 sm:px-8 sm:py-7">
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
-                <div className="space-y-2.5">
-                  <Label className="flex items-center gap-2.5 text-[14px] font-bold text-[#1A1F1E]">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#E8F0EE] text-[#1A5345]">
-                      <UserIcon className="size-4" strokeWidth={2.25} aria-hidden />
-                    </span>
+            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleUpdate(); }}>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
+                    <UserIcon className="size-3.5 text-muted-foreground" />
                     Patient
                   </Label>
-                  <AppointmentPersonPicker
-                    value={bookingDraft.patientId}
-                    onValueChange={(id) => setBookingDraft((prev) => ({ ...prev, patientId: id }))}
+                  <AppointmentPersonPicker 
                     items={patientPickerItems}
-                    placeholder="Select patient"
-                    searchPlaceholder="Search patients…"
-                    emptyText="No patients found"
+                    value={editDraft.patientId}
+                    onValueChange={(val) => setEditDraft(prev => ({ ...prev, patientId: val }))}
+                    placeholder="Search patients..."
                   />
                 </div>
-                <div className="space-y-2.5">
-                  <Label className="flex items-center gap-2.5 text-[14px] font-bold text-[#1A1F1E]">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#E8F0EE] text-[#1A5345]">
-                      <UserCircle2Icon className="size-4" strokeWidth={2.25} aria-hidden />
-                    </span>
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
+                    <User2Icon className="size-3.5 text-muted-foreground" />
                     Doctor
                   </Label>
-                  <AppointmentPersonPicker
-                    value={bookingDraft.doctorId}
-                    onValueChange={(id) => setBookingDraft((prev) => ({ ...prev, doctorId: id, timeSlot: "" }))}
+                  <AppointmentPersonPicker 
                     items={doctorPickerItems}
-                    placeholder="Select doctor"
-                    searchPlaceholder="Search doctors…"
-                    emptyText="No doctors found"
+                    value={editDraft.doctorId}
+                    onValueChange={(val) => setEditDraft(prev => ({ ...prev, doctorId: val, timeSlot: "" }))}
+                    placeholder="Search doctors..."
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
-                <div className="space-y-2.5">
-                  <Label className="flex items-center gap-2.5 text-[14px] font-bold text-[#1A1F1E]">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#E8F0EE] text-[#1A5345]">
-                      <CalendarIcon className="size-4" strokeWidth={2.25} aria-hidden />
-                    </span>
-                    Date
-                  </Label>
-                  <Input
-                    type="date"
-                    value={bookingDraft.date}
-                    onChange={(e) => setBookingDraft((prev) => ({ ...prev, date: e.target.value, timeSlot: "" }))}
-                    className="h-12 rounded-xl border-[#E5EEEA] bg-white px-3.5 text-[15px] font-medium text-[#1A1F1E] shadow-sm transition-colors file:border-0 file:bg-transparent file:text-[15px] file:font-medium placeholder:text-muted-foreground/80 focus-visible:ring-[#1A5345]/20"
-                  />
-                </div>
-                <div className="space-y-2.5">
-                  <Label className="flex items-center gap-2.5 text-[14px] font-bold text-[#1A1F1E]">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#E8F0EE] text-[#1A5345]">
-                      <ClockIcon className="size-4" strokeWidth={2.25} aria-hidden />
-                    </span>
-                    Time
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-4">
+                <div className="min-w-0 space-y-2">
+                  <Label className="flex items-center gap-2 text-[13px] font-bold text-[#1A1F1E]">
+                    <Building2Icon className="size-3.5 text-muted-foreground" />
+                    Booking type
                   </Label>
                   <Select
-                    value={bookingDraft.timeSlot}
-                    onValueChange={(value) => setBookingDraft((prev) => ({ ...prev, timeSlot: value }))}
-                    disabled={!bookingDraft.date || !bookingDraft.doctorId}
+                    value={editDraft.visitType}
+                    onValueChange={(val) =>
+                      setEditDraft((prev) => ({
+                        ...prev,
+                        visitType: val as AssistantAppointmentVisitType,
+                      }))
+                    }
                   >
-                    <SelectTrigger
-                      className="h-12 w-full rounded-xl border-[#E5EEEA] bg-white px-3.5 text-left text-[15px] font-medium text-[#1A1F1E] shadow-sm transition-colors hover:border-[#1A5345]/25 focus:ring-[#1A5345]/20 disabled:cursor-not-allowed disabled:border-[#E8E6E0]/80 disabled:bg-[#F9F8F5] disabled:text-muted-foreground/70 data-[placeholder]:text-muted-foreground/80"
-                    >
-                      <SelectValue placeholder={!bookingDraft.doctorId || !bookingDraft.date ? "Pick doctor & date first" : "Choose slot"} />
+                    <SelectTrigger className="h-10 w-full min-w-0 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/30">
+                      <SelectValue placeholder="Select booking type" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-[#E8E6E0]/80 shadow-xl">
-                      {availableSlotsQuery.data?.map((slot) => (
-                        <SelectItem key={slot.value} value={slot.value} className="cursor-pointer rounded-lg py-2.5 text-[15px]">
-                          {slot.label}
+                    <SelectContent className="rounded-xl">
+                      {BOOKING_TYPE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="min-w-0 space-y-2">
+                  <Label className="flex items-center gap-2 text-[13px] font-bold text-[#1A1F1E]">
+                    <ActivityIcon className="size-3.5 text-muted-foreground" />
+                    Visit reason
+                  </Label>
+                  <Select
+                    value={editDraft.reason}
+                    onValueChange={(val) => setEditDraft((prev) => ({ ...prev, reason: val }))}
+                  >
+                    <SelectTrigger className="h-10 w-full min-w-0 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/30">
+                      <SelectValue placeholder="Select a reason..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {VISIT_REASON_OPTIONS.map((opt) => (
+                        <SelectItem key={opt} value={opt}>
+                          {opt}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1552,82 +1143,235 @@ export function AssistantAppointments({
                 </div>
               </div>
 
-              <div className="space-y-2.5">
-                <Label className="flex items-center gap-2.5 text-[14px] font-bold text-[#1A1F1E]">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#E8F0EE] text-[#1A5345]">
-                    <ActivityIcon className="size-4" strokeWidth={2.25} aria-hidden />
-                  </span>
-                  Visit reason
-                </Label>
-                <Select
-                  value={bookingDraft.reason}
-                  onValueChange={(value) => setBookingDraft((prev) => ({ ...prev, reason: value }))}
-                >
-                  <SelectTrigger className="h-12 w-full rounded-xl border-[#E5EEEA] bg-white px-3.5 text-left text-[15px] font-medium text-[#1A1F1E] shadow-sm transition-colors hover:border-[#1A5345]/25 focus:ring-[#1A5345]/20 data-[placeholder]:text-muted-foreground/80">
-                    <SelectValue placeholder="Select visit reason" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[min(280px,50vh)] rounded-xl border-[#E8E6E0]/80 shadow-xl">
-                    {VISIT_REASON_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option} className="cursor-pointer rounded-lg py-2.5 text-[15px] leading-snug">
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
+                    <CalendarIcon className="size-3.5 text-muted-foreground" />
+                    Date
+                  </Label>
+                  <Input 
+                    type="date" 
+                    value={editDraft.date} 
+                    onChange={(e) => setEditDraft(prev => ({ ...prev, date: e.target.value, timeSlot: "" }))} 
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/30" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
+                    <ClockIcon className="size-3.5 text-muted-foreground" />
+                    Time
+                  </Label>
+                  <Select value={editDraft.timeSlot} onValueChange={(value) => setEditDraft(prev => ({ ...prev, timeSlot: value }))} disabled={!editDraft.date || !editDraft.doctorId}>
+                    <SelectTrigger className="h-10 rounded-xl">
+                      <SelectValue placeholder="Choose slot" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {editAvailableSlotsQuery.data?.map(slot => <SelectItem key={slot.value} value={slot.value}>{slot.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
 
-            <div className="shrink-0 border-t border-[#E8E6E0]/70 bg-[#FAFAF8] px-6 py-4 sm:px-8 sm:py-5">
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsCreateDialogOpen(false)}
-                  className="h-12 rounded-xl border-[#E5EEEA] bg-white px-6 text-[15px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-[#F9F8F5] sm:min-w-[120px]"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="h-12 rounded-xl bg-[#1A5345] px-6 text-[15px] font-bold text-white shadow-md shadow-[#1A5345]/20 transition-colors hover:bg-[#133F34] sm:min-w-[180px]"
-                  disabled={
-                    isCreating ||
-                    !bookingDraft.patientId ||
-                    !bookingDraft.doctorId ||
-                    !bookingDraft.date ||
-                    !bookingDraft.timeSlot ||
-                    !bookingDraft.reason
-                  }
-                >
-                  {isCreating ? "Processing..." : "Confirm booking"}
-                </Button>
+              <div className="flex items-center gap-3 pt-2">
+                 <Button type="button" variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-10 flex-1 rounded-xl font-bold sm:rounded-2xl">Cancel</Button>
+                 <Button type="submit" className="h-10 flex-1 rounded-xl bg-amber-600 font-bold text-white hover:bg-amber-700 sm:rounded-2xl" disabled={isUpdatingAppointment}>
+                   {isUpdatingAppointment ? "Updating..." : "Save changes"}
+                 </Button>
               </div>
-            </div>
-          </form>
+            </form>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Cancellation Dialog */}
-      <Dialog open={Boolean(cancellingAppointment)} onOpenChange={(open) => !open && setCancellingAppointment(null)}>
-        <DialogContent className="sm:max-w-md rounded-3xl p-8 border-0 shadow-2xl">
-          <DialogHeader className="space-y-3">
-             <div className="size-14 rounded-2xl bg-red-50 flex items-center justify-center mb-2">
-                <BanIcon className="size-8 text-red-500" />
-             </div>
-             <DialogTitle className="text-[22px] font-bold text-[#1A1F1E]">Cancel appointment?</DialogTitle>
-             <DialogDescription className="text-[14px] font-medium">
-                Confirm cancellation for <span className="text-[#1A1F1E] font-bold">{cancellingAppointment?.patientName}</span>.
-             </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-             <div className="space-y-2">
-                <Label className="text-[13px] font-bold text-[#1A1F1E]">Reason</Label>
-                <Textarea value={cancellationReason} onChange={(e) => setCancellationReason(e.target.value)} placeholder="Provide reason..." className="rounded-xl bg-[#F9F8F5]/50" rows={3} />
-             </div>
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-lg rounded-3xl p-0 overflow-hidden border-0 shadow-2xl">
+          <div className="space-y-5 bg-white p-5 sm:space-y-6 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 space-y-0.5">
+                <DialogTitle className="font-serif text-[20px] font-bold tracking-tight text-[#1A1F1E] sm:text-[22px]">
+                  New appointment
+                </DialogTitle>
+                <DialogDescription className="text-[13px] font-medium text-muted-foreground">
+                  Create a clinical booking for an existing patient.
+                </DialogDescription>
+              </div>
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] sm:size-11">
+                <CalendarPlus2Icon className="size-5 text-[#1A5345] sm:size-[22px]" />
+              </div>
+            </div>
+
+            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreate(); }}>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
+                    <UserIcon className="size-3.5 text-muted-foreground" />
+                    Patient
+                  </Label>
+                  <AppointmentPersonPicker 
+                    items={patientPickerItems}
+                    value={bookingDraft.patientId}
+                    onValueChange={(val) => setBookingDraft(prev => ({ ...prev, patientId: val }))}
+                    placeholder="Search patients..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
+                    <User2Icon className="size-3.5 text-muted-foreground" />
+                    Doctor
+                  </Label>
+                  <AppointmentPersonPicker 
+                    items={doctorPickerItems}
+                    value={bookingDraft.doctorId}
+                    onValueChange={(val) => setBookingDraft(prev => ({ ...prev, doctorId: val, timeSlot: "" }))}
+                    placeholder="Search doctors..."
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-4">
+                <div className="min-w-0 space-y-2">
+                  <Label className="flex items-center gap-2 text-[13px] font-bold text-[#1A1F1E]">
+                    <Building2Icon className="size-3.5 text-muted-foreground" />
+                    Booking type
+                  </Label>
+                  <Select
+                    value={bookingDraft.visitType}
+                    onValueChange={(val) =>
+                      setBookingDraft((prev) => ({
+                        ...prev,
+                        visitType: val as AssistantAppointmentVisitType,
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="h-10 w-full min-w-0 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/30">
+                      <SelectValue placeholder="Select booking type" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {BOOKING_TYPE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="min-w-0 space-y-2">
+                  <Label className="flex items-center gap-2 text-[13px] font-bold text-[#1A1F1E]">
+                    <ActivityIcon className="size-3.5 text-muted-foreground" />
+                    Visit reason
+                  </Label>
+                  <Select
+                    value={bookingDraft.reason}
+                    onValueChange={(val) => setBookingDraft((prev) => ({ ...prev, reason: val }))}
+                  >
+                    <SelectTrigger className="h-10 w-full min-w-0 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/30">
+                      <SelectValue placeholder="Select a reason..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {VISIT_REASON_OPTIONS.map((opt) => (
+                        <SelectItem key={opt} value={opt}>
+                          {opt}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
+                    <CalendarIcon className="size-3.5 text-muted-foreground" />
+                    Date
+                  </Label>
+                  <Input 
+                    type="date" 
+                    value={bookingDraft.date} 
+                    onChange={(e) => setBookingDraft(prev => ({ ...prev, date: e.target.value, timeSlot: "" }))} 
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/30 transition-all focus:bg-white focus:ring-[#1A5345]/20" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
+                    <ClockIcon className="size-3.5 text-muted-foreground" />
+                    Time
+                  </Label>
+                  <Select value={bookingDraft.timeSlot} onValueChange={(value) => setBookingDraft(prev => ({ ...prev, timeSlot: value }))} disabled={!bookingDraft.date || !bookingDraft.doctorId}>
+                    <SelectTrigger className="h-10 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/30 transition-all focus:bg-white focus:ring-[#1A5345]/20">
+                      <SelectValue placeholder="Choose slot" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-[#E8E6E0]/60 shadow-xl">
+                      {availableSlotsQuery.data?.map(slot => <SelectItem key={slot.value} value={slot.value} className="rounded-lg">{slot.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                 <Button 
+                   type="button" 
+                   variant="ghost" 
+                   onClick={() => setIsCreateDialogOpen(false)} 
+                   className="h-10 flex-1 rounded-xl font-bold text-muted-foreground transition-all hover:bg-[#F9F8F5] sm:rounded-2xl"
+                 >
+                   Cancel
+                 </Button>
+                 <Button 
+                   type="submit" 
+                   className="h-10 flex-1 rounded-xl bg-[#1A5345] font-bold text-white shadow-lg shadow-[#1A5345]/10 transition-all hover:-translate-y-0.5 hover:bg-[#133F34] active:translate-y-0 sm:rounded-2xl" 
+                   disabled={isCreating || !bookingDraft.patientId || !bookingDraft.doctorId || !bookingDraft.date || !bookingDraft.timeSlot || !bookingDraft.reason}
+                 >
+                   {isCreating ? "Processing..." : "Confirm booking"}
+                 </Button>
+              </div>
+            </form>
           </div>
-          <div className="flex gap-3">
-             <Button variant="ghost" onClick={() => setCancellingAppointment(null)} className="flex-1 rounded-xl h-11 font-bold text-muted-foreground">Go back</Button>
-             <Button variant="destructive" onClick={handleCancelConfirm} disabled={isUpdatingStatus || !cancellationReason.trim()} className="flex-1 rounded-xl h-11 font-bold">Confirm cancellation</Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancellation Dialog — compact */}
+      <Dialog open={Boolean(cancellingAppointment)} onOpenChange={(open) => !open && setCancellingAppointment(null)}>
+        <DialogContent className="max-w-[min(100vw-2rem,22rem)] gap-0 rounded-2xl border-0 bg-white p-5 shadow-2xl sm:max-w-sm sm:p-6">
+          <div className="flex flex-col items-center text-center">
+            <div className="flex size-11 items-center justify-center rounded-full bg-red-50 sm:size-12">
+              <BanIcon className="size-5 text-red-500 sm:size-6" />
+            </div>
+            <div className="mt-3 space-y-1 sm:mt-3.5">
+              <DialogTitle className="text-[17px] font-bold leading-snug text-[#1A1F1E] sm:text-lg">
+                Cancel appointment?
+              </DialogTitle>
+              <DialogDescription className="text-[12px] font-medium leading-snug text-muted-foreground sm:text-[13px]">
+                Cancel for{" "}
+                <span className="font-bold text-[#1A1F1E]">{cancellingAppointment?.patientName}</span>? This cannot be
+                undone.
+              </DialogDescription>
+            </div>
+          </div>
+          <div className="mt-4 space-y-1.5 sm:mt-5">
+            <Label className="text-[12px] font-bold text-[#1A1F1E] sm:text-[13px]">Reason for cancellation</Label>
+            <Textarea
+              value={cancellationReason}
+              onChange={(e) => setCancellationReason(e.target.value)}
+              placeholder="Clinical or administrative reason…"
+              className="min-h-[72px] resize-none rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/50 text-[13px] transition-all focus:bg-white sm:min-h-[80px]"
+            />
+          </div>
+          <div className="mt-4 flex gap-2 sm:mt-5 sm:gap-2.5">
+            <Button
+              variant="ghost"
+              onClick={() => setCancellingAppointment(null)}
+              className="h-9 flex-1 rounded-xl text-[12px] font-bold text-muted-foreground sm:h-10 sm:text-[13px]"
+            >
+              Go back
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancelConfirm}
+              disabled={isUpdatingStatus || !cancellationReason.trim()}
+              className="h-9 flex-1 rounded-xl text-[12px] font-bold shadow-md shadow-red-500/10 transition-all hover:-translate-y-0.5 active:translate-y-0 sm:h-10 sm:text-[13px]"
+            >
+              Yes, cancel
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

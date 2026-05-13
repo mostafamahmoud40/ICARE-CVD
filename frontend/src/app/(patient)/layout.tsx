@@ -100,6 +100,12 @@ function PatientLayoutContent({
       isActive: pathname === "/appointments",
     },
     {
+      href: "/doctor-directory",
+      label: "Doctor Directory",
+      icon: User2Icon,
+      isActive: pathname === "/doctor-directory",
+    },
+    {
       href: "/queue",
       label: "Queue",
       icon: ListOrderedIcon,
@@ -319,7 +325,9 @@ function PatientLayoutContent({
                       ? "Chats"
                       : pathname === "/vitals"
                         ? "Vitals & Measurements"
-                        : "Patient Dashboard"}
+                        : pathname === "/doctor-directory"
+                          ? "Doctor Directory"
+                          : "Patient Dashboard"}
             </div>
             <div className="text-sm text-muted-foreground">
               {pathname === "/medications"
@@ -334,7 +342,9 @@ function PatientLayoutContent({
                       ? "Messages & conversations"
                       : pathname === "/vitals"
                         ? "Track your health metrics and progression"
-                        : "Overview & care summary"}
+                        : pathname === "/doctor-directory"
+                          ? "Find and connect with medical specialists"
+                          : "Overview & care summary"}
             </div>
           </div>
         </div>

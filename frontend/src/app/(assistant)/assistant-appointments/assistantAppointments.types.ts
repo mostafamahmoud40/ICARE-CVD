@@ -58,7 +58,7 @@ export type AppointmentStats = {
 
 export type DoctorOption = {
   id: string
-  name: string
+  name: string | null
   specialty: string | null
 }
 
@@ -69,7 +69,7 @@ export type AvailableSlotOption = {
 
 export type PatientOption = {
   id: string
-  name: string
+  name: string | null
   phone: string | null
 }
 

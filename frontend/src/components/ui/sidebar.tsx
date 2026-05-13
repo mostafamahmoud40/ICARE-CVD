@@ -345,7 +345,7 @@ function Sidebar({
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
-            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l border-sidebar-border/30",
           className
         )}
         {...props}
@@ -397,7 +397,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
     dragged: boolean
   } | null>(null)
   const sidebarRailBaseClassName =
-    "absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:start-1/2 after:w-[2px] hover:after:bg-sidebar-border sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2"
+    "absolute inset-y-0 z-20 hidden w-4 transition-all duration-300 ease-in-out group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:start-1/2 after:w-[1.5px] after:bg-gradient-to-b after:from-transparent after:via-sidebar-border/40 after:to-transparent hover:after:via-sidebar-primary/50 hover:bg-sidebar-primary/[0.02] sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2"
   const sidebarRailCursorClassName =
     "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize"
   const sidebarRailCollapsedCursorClassName =
@@ -496,10 +496,7 @@ function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="sidebar-header"
       data-sidebar="header"
-      className={cn(
-        "flex flex-col gap-2 border-b border-sidebar-border p-2",
-        className
-      )}
+      className={cn("flex flex-col gap-2 p-2", className)}
       {...props}
     />
   )
@@ -511,7 +508,7 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="sidebar-footer"
       data-sidebar="footer"
       className={cn(
-        "flex flex-col gap-2 border-t border-sidebar-border p-2",
+        "flex flex-col gap-2 border-t border-sidebar-border/30 p-2",
         className
       )}
       {...props}
@@ -527,7 +524,7 @@ function SidebarSeparator({
     <Separator
       data-slot="sidebar-separator"
       data-sidebar="separator"
-      className={cn("mx-2 w-auto bg-sidebar-border", className)}
+      className={cn("mx-2 w-auto bg-sidebar-border/30", className)}
       {...props}
     />
   )
