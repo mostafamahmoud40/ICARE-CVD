@@ -176,21 +176,23 @@ export function PatientsList({ patients, addPatientState }: PatientsListProps) {
     <div className="flex h-full flex-col bg-[#F9F8F5] animate-in fade-in duration-500 overflow-hidden">
 
       {/* Sticky Top Section (Header + Toolbar) */}
-      <div className="flex-none border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/95 px-8 pt-8 pb-4 backdrop-blur-md z-20">
+      <div className="flex-none border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/95 px-6 pt-4 pb-3 backdrop-blur-md z-20 sm:px-8">
         <div className="w-full h-full">
           {/* Header Row */}
-          {/* Header Row */}
-          <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-end">
             <div>
-              <h1 className="text-[32px] font-bold tracking-tight text-[#1A1F1E] font-serif leading-tight">Patient Directory</h1>
-              <p className="mt-1 text-[15px] font-medium text-muted-foreground">
-                Managing <span className="text-[#1A1F1E] font-bold">{patients.length.toLocaleString()}</span> active cardiovascular records
+              <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[26px]">
+                Patient Directory
+              </h1>
+              <p className="mt-0.5 text-[13px] font-medium text-muted-foreground sm:text-[14px]">
+                Managing <span className="font-bold text-[#1A1F1E]">{patients.length.toLocaleString()}</span> active
+                cardiovascular records
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Button
                 variant="outline"
-                className="h-11 gap-2 rounded-xl border border-[#E8E6E0] bg-white px-5 text-[14px] font-semibold text-[#1A1F1E] hover:bg-slate-50 hover:text-[#1A5345] shadow-sm transition-all"
+                className="h-9 gap-2 rounded-xl border border-[#E8E6E0] bg-white px-4 text-[13px] font-semibold text-[#1A1F1E] shadow-sm transition-all hover:bg-slate-50 hover:text-[#1A5345] sm:h-10 sm:px-5 sm:text-[14px]"
               >
                 <DownloadIcon className="size-4 text-muted-foreground" strokeWidth={2} />
                 Export Data
@@ -198,9 +200,9 @@ export function PatientsList({ patients, addPatientState }: PatientsListProps) {
               <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
                   <Button
-                    className="h-11 gap-2 rounded-xl bg-[#1A5345] px-6 text-[14px] font-bold text-white shadow-[0_4px_14px_rgba(26,83,69,0.2)] transition-all hover:-translate-y-0.5 hover:bg-[#133F34] hover:shadow-[0_6px_20px_rgba(26,83,69,0.25)] border-0"
+                    className="h-9 gap-2 rounded-xl border-0 bg-[#1A5345] px-4 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(26,83,69,0.2)] transition-all hover:-translate-y-0.5 hover:bg-[#133F34] hover:shadow-[0_6px_20px_rgba(26,83,69,0.25)] sm:h-10 sm:px-6 sm:text-[14px]"
                   >
-                    <UserPlusIcon className="size-4.5" strokeWidth={2.5} />
+                    <UserPlusIcon className="size-4 sm:size-[18px]" strokeWidth={2.5} />
                     Add Patient
                   </Button>
                 </SheetTrigger>
@@ -215,53 +217,74 @@ export function PatientsList({ patients, addPatientState }: PatientsListProps) {
             </div>
           </div>
 
-          {/* Premium Analytics Banner */}
-          <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-5 w-full">
-            <div className="flex items-center justify-between rounded-2xl bg-white p-6 border border-[#E8E6E0]/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_-4px_rgba(26,83,69,0.08)] transition-all group relative overflow-hidden">
-              <div className="absolute right-0 top-0 h-full w-32 bg-gradient-to-l from-[#1A5345]/[0.03] to-transparent pointer-events-none" />
-              <div className="flex flex-col gap-1.5 z-10">
-                <span className="text-[14px] font-medium text-muted-foreground">Total Patients</span>
-                <div className="flex items-end gap-3">
-                  <span className="text-[32px] leading-none font-bold text-[#1A1F1E] tracking-tight">{patients.length.toLocaleString()}</span>
-                  <span className="text-[12px] font-bold text-[#1A5345] bg-[#1A5345]/10 px-2 py-0.5 rounded-md mb-1">+12%</span>
+          {/* Premium Analytics Banner — compact */}
+          <div className="mb-3 grid w-full grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
+            <div className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-[#E8E6E0]/80 bg-white p-3 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_-4px_rgba(26,83,69,0.08)] sm:p-4">
+              <div className="pointer-events-none absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-[#1A5345]/[0.03] to-transparent sm:w-28" />
+              <div className="z-10 flex flex-col gap-0.5">
+                <span className="text-[12px] font-medium text-muted-foreground sm:text-[13px]">Total Patients</span>
+                <div className="flex items-end gap-2">
+                  <span className="text-[22px] font-bold leading-none tracking-tight text-[#1A1F1E] sm:text-[26px]">
+                    {patients.length.toLocaleString()}
+                  </span>
+                  <span className="mb-0.5 rounded-md bg-[#1A5345]/10 px-1.5 py-0.5 text-[11px] font-bold text-[#1A5345]">
+                    +12%
+                  </span>
                 </div>
               </div>
-              <div className="flex size-12 items-center justify-center rounded-xl bg-[#F4F3ED] group-hover:bg-[#1A5345] transition-colors duration-300 z-10 ring-4 ring-white">
-                <UsersIcon className="size-5.5 text-[#1A5345] group-hover:text-white transition-colors duration-300" strokeWidth={2.5} />
+              <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F3ED] ring-2 ring-white transition-colors duration-300 group-hover:bg-[#1A5345] sm:size-10">
+                <UsersIcon
+                  className="size-4 text-[#1A5345] transition-colors duration-300 group-hover:text-white sm:size-[18px]"
+                  strokeWidth={2.5}
+                />
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-2xl bg-white p-6 border border-[#E8E6E0]/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_-4px_rgba(232,52,94,0.08)] transition-all group relative overflow-hidden">
-              <div className="absolute right-0 top-0 h-full w-32 bg-gradient-to-l from-[#E8345E]/[0.03] to-transparent pointer-events-none" />
-              <div className="flex flex-col gap-1.5 z-10">
-                <span className="text-[14px] font-medium text-muted-foreground">High Risk</span>
-                <div className="flex items-end gap-3">
-                  <span className="text-[32px] leading-none font-bold text-[#1A1F1E] tracking-tight">{Math.floor(patients.length * 0.25) || 12}</span>
-                  <span className="text-[12px] font-bold text-[#E8345E] bg-[#E8345E]/10 px-2 py-0.5 rounded-md mb-1">+4%</span>
+            <div className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-[#E8E6E0]/80 bg-white p-3 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_-4px_rgba(232,52,94,0.08)] sm:p-4">
+              <div className="pointer-events-none absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-[#E8345E]/[0.03] to-transparent sm:w-28" />
+              <div className="z-10 flex flex-col gap-0.5">
+                <span className="text-[12px] font-medium text-muted-foreground sm:text-[13px]">High Risk</span>
+                <div className="flex items-end gap-2">
+                  <span className="text-[22px] font-bold leading-none tracking-tight text-[#1A1F1E] sm:text-[26px]">
+                    {Math.floor(patients.length * 0.25) || 12}
+                  </span>
+                  <span className="mb-0.5 rounded-md bg-[#E8345E]/10 px-1.5 py-0.5 text-[11px] font-bold text-[#E8345E]">
+                    +4%
+                  </span>
                 </div>
               </div>
-              <div className="flex size-12 items-center justify-center rounded-xl bg-[#F4F3ED] group-hover:bg-[#E8345E] transition-colors duration-300 z-10 ring-4 ring-white">
-                <ActivityIcon className="size-5.5 text-[#E8345E] group-hover:text-white transition-colors duration-300" strokeWidth={2.5} />
+              <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F3ED] ring-2 ring-white transition-colors duration-300 group-hover:bg-[#E8345E] sm:size-10">
+                <ActivityIcon
+                  className="size-4 text-[#E8345E] transition-colors duration-300 group-hover:text-white sm:size-[18px]"
+                  strokeWidth={2.5}
+                />
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-2xl bg-white p-6 border border-[#E8E6E0]/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_-4px_rgba(232,144,66,0.08)] transition-all group relative overflow-hidden">
-              <div className="absolute right-0 top-0 h-full w-32 bg-gradient-to-l from-[#E89042]/[0.03] to-transparent pointer-events-none" />
-              <div className="flex flex-col gap-1.5 z-10">
-                <span className="text-[14px] font-medium text-muted-foreground">New This Week</span>
-                <div className="flex items-end gap-3">
-                  <span className="text-[32px] leading-none font-bold text-[#1A1F1E] tracking-tight">{Math.floor(patients.length * 0.1) || 4}</span>
-                  <span className="text-[12px] font-bold text-muted-foreground bg-[#F4F3ED] px-2 py-0.5 rounded-md mb-1">Steady</span>
+            <div className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-[#E8E6E0]/80 bg-white p-3 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_-4px_rgba(232,144,66,0.08)] sm:p-4">
+              <div className="pointer-events-none absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-[#E89042]/[0.03] to-transparent sm:w-28" />
+              <div className="z-10 flex flex-col gap-0.5">
+                <span className="text-[12px] font-medium text-muted-foreground sm:text-[13px]">New This Week</span>
+                <div className="flex items-end gap-2">
+                  <span className="text-[22px] font-bold leading-none tracking-tight text-[#1A1F1E] sm:text-[26px]">
+                    {Math.floor(patients.length * 0.1) || 4}
+                  </span>
+                  <span className="mb-0.5 rounded-md bg-[#F4F3ED] px-1.5 py-0.5 text-[11px] font-bold text-muted-foreground">
+                    Steady
+                  </span>
                 </div>
               </div>
-              <div className="flex size-12 items-center justify-center rounded-xl bg-[#F4F3ED] group-hover:bg-[#E89042] transition-colors duration-300 z-10 ring-4 ring-white">
-                <CalendarIcon className="size-5.5 text-[#E89042] group-hover:text-white transition-colors duration-300" strokeWidth={2.5} />
+              <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F3ED] ring-2 ring-white transition-colors duration-300 group-hover:bg-[#E89042] sm:size-10">
+                <CalendarIcon
+                  className="size-4 text-[#E89042] transition-colors duration-300 group-hover:text-white sm:size-[18px]"
+                  strokeWidth={2.5}
+                />
               </div>
             </div>
           </div>
 
           {/* Minimalist Toolbar */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between pb-2">
+          <div className="flex flex-col gap-3 pb-0 md:flex-row md:items-center md:justify-between">
             <div className="relative group w-full max-w-[320px]">
               <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-[#1A5345] transition-colors" strokeWidth={2} />
               <Input
@@ -339,7 +362,7 @@ export function PatientsList({ patients, addPatientState }: PatientsListProps) {
             <div className="rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
               <table className="w-full text-left border-collapse bg-white">
               <thead className="sticky top-0 z-10">
-                <tr className="text-[15px] font-serif font-bold text-[#1A5345]/90 bg-[#F4F3ED]/90 backdrop-blur-md shadow-[0_1px_0_0_#E8E6E0] transition-colors">
+                <tr className="text-[15px] font-serif font-bold text-[#1A1F1E] bg-[#F4F3ED]/90 backdrop-blur-md shadow-[0_1px_0_0_#E8E6E0] transition-colors">
                   <th className="py-4 pr-4 pl-4">Patient Name</th>
                   <th className="py-4 px-4">Condition</th>
                   <th className="py-4 px-4">Doctor</th>

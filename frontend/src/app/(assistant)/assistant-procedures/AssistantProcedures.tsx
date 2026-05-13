@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import {
+  ActivityIcon,
   AlertTriangleIcon,
   CalendarDaysIcon,
   CheckCircle2Icon,
@@ -23,6 +24,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { ProcedureOrderRow } from "./ProcedureOrderRow"
 import { ProcedureDetailPanel } from "./ProcedureDetailPanel"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import type {
   ProcedureFilter,
   ProcedureOrder,
@@ -52,6 +55,11 @@ function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate()
+}
+
+function dicebearAvatarUrl(name: string, id: string): string {
+  const seed = (name + id).replace(/\s+/g, "")
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`
 }
 
 /* ---------- Mock Schedule Data ---------- */
@@ -93,7 +101,7 @@ type AssistantProceduresProps = {
   selectOrder: (id: string) => void
   clearSelection: () => void
   onToggleRequirement: (orderId: string, requirementId: string, isDone: boolean) => void
-  onUploadAttachment: (orderId: string, requirementId: string, file: File) => void
+  onUploadAttachment: (orderId: string, requirementId: string, file: File) => Promise<void>
   onAddRequirement: (
     orderId: string,
     title: string,
@@ -138,189 +146,212 @@ function DetailPlaceholder() {
 
 /* ---------- Schedule View Component ---------- */
 
+const SCHEDULED_OPERATIONS: ScheduledOperation[] = [
+  {
+    id: "op-1",
+    startTime: "07:30",
+    endTime: "09:45",
+    endTimeActual: "09:45",
+    patientName: "Khaled Mostafa",
+    patientId: "CARD-00471",
+    age: 63,
+    gender: "M",
+    procedureName: "CABG — Triple Vessel",
+    riskScore: "EuroSCORE II: 4.2%",
+    location: "Cardiac OR-1",
+    riskTags: ["Shah Scale: Mid"],
+    duration: "2h 15m",
+    status: "completed",
+    priority: "normal",
+    teamStatus: "Started Early",
+  },
+  {
+    id: "op-2",
+    startTime: "10:00",
+    endTime: "11:30",
+    endTimeActual: "11:30",
+    patientName: "Sarah Ahmed Najar",
+    patientId: "CARD-00389",
+    age: 58,
+    gender: "F",
+    procedureName: "TAVI — Aortic Valve Replacement",
+    riskScore: "EuroSCORE II: 3.1%",
+    location: "Hybrid Lab",
+    riskTags: ["Shah Scale: Low"],
+    duration: "1h 30m",
+    status: "completed",
+    priority: "normal",
+    teamStatus: "On Schedule",
+  },
+  {
+    id: "op-3",
+    startTime: "13:00",
+    endTime: "16:00",
+    endTimeExpected: "16:00",
+    patientName: "Mohammed Eid",
+    patientId: "CARD-00512",
+    age: 71,
+    gender: "M",
+    procedureName: "MVR — Mitral Valve Repair",
+    riskScore: "EuroSCORE II: 6.8%",
+    location: "Cardiac OR-2",
+    riskTags: ["Shah Scale: High"],
+    duration: "3h",
+    status: "in-progress",
+    priority: "urgent",
+    teamStatus: "Running Late",
+    notes: "Extra hour added",
+  },
+  {
+    id: "op-4",
+    startTime: "16:30",
+    endTime: "18:00",
+    endTimeExpected: "18:00",
+    patientName: "Fatima Ali Hussein",
+    patientId: "CARD-00445",
+    age: 55,
+    gender: "F",
+    procedureName: "ICD — Defibrillator Implant",
+    riskScore: "EuroSCORE II: 1.9%",
+    location: "Cardiac OR-1",
+    riskTags: ["Shah Scale: Low"],
+    duration: "1h 30m",
+    status: "pending",
+    priority: "normal",
+    teamStatus: "Room Ready",
+  },
+  {
+    id: "op-5",
+    startTime: "18:30",
+    endTime: "21:30",
+    endTimeExpected: "21:30",
+    patientName: "Omar Samy Darwish",
+    patientId: "CARD-00601",
+    age: 67,
+    gender: "M",
+    procedureName: "CABG + AVR — Combined",
+    riskScore: "EuroSCORE II: 8.3%",
+    location: "Cardiac OR-2",
+    riskTags: ["Shah Scale: High"],
+    duration: "3h",
+    status: "pending",
+    priority: "emergency",
+    teamStatus: "Extra Time Needed",
+  },
+]
+
+const STATUS_CFG = {
+  completed: { dot: "bg-[#1A5345]", badge: "bg-[#E8F0EE] text-[#1A5345]", border: "border-l-[#1A5345]", label: "Completed" },
+  "in-progress": { dot: "bg-[#B8860B]", badge: "bg-[#FFF8E7] text-[#B8860B]", border: "border-l-[#B8860B]", label: "In progress" },
+  pending: { dot: "bg-[#9CA3AF]", badge: "bg-[#F5F5F3] text-[#6B7870]", border: "border-l-[#D1D5DB]", label: "Scheduled" },
+}
+
+const PRIORITY_CFG = {
+  normal: { badge: "bg-[#E8F0EE] text-[#1A5345]", label: "Normal" },
+  urgent: { badge: "bg-[#FFF8E7] text-[#B8860B]", label: "Urgent" },
+  emergency: { badge: "bg-red-50 text-red-700", label: "Emergency" },
+}
+
 function ScheduleView() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const today = useMemo(() => new Date(), [])
+  const [selectedDate, setSelectedDate] = useState<Date>(today)
   const [weekOffset, setWeekOffset] = useState(0)
   const [viewMode, setViewMode] = useState<"list" | "timeline">("list")
 
   const days = useMemo(() => {
-    const base = new Date()
+    const base = new Date(today)
     base.setDate(base.getDate() + weekOffset * 14)
     return getDaysOfWeek(base)
-  }, [weekOffset])
+  }, [weekOffset, today])
 
-  const formatDateDisplay = (date: Date) => {
-    return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-  }
+  const stats = useMemo(() => ({
+    total: SCHEDULED_OPERATIONS.length,
+    done: SCHEDULED_OPERATIONS.filter((o) => o.status === "completed").length,
+    active: SCHEDULED_OPERATIONS.filter((o) => o.status === "in-progress").length,
+    pending: SCHEDULED_OPERATIONS.filter((o) => o.status === "pending").length,
+  }), [])
 
-  // Enhanced mock data matching the reference
-  const scheduledOperations: ScheduledOperation[] = [
-    {
-      id: "op-1",
-      startTime: "07:30",
-      endTime: "09:45",
-      endTimeActual: "09:45",
-      patientName: "Khaled Mostafa",
-      patientId: "CARD-00471",
-      age: 63,
-      gender: "M",
-      procedureName: "CABG — Triple Vessel",
-      riskScore: "EuroSCORE II: 4.2%",
-      location: "Cardiac OR-1",
-      riskTags: ["Shah Scale: Mid"],
-      duration: "2h 15m",
-      status: "completed",
-      priority: "normal",
-      teamStatus: "Started Early",
-    },
-    {
-      id: "op-2",
-      startTime: "10:00",
-      endTime: "11:30",
-      endTimeActual: "11:30",
-      patientName: "Sarah Ahmed Najar",
-      patientId: "CARD-00389",
-      age: 58,
-      gender: "F",
-      procedureName: "TAVI — Aortic Valve Replacement",
-      riskScore: "EuroSCORE II: 3.1%",
-      location: "Hybrid Lab",
-      riskTags: ["Shah Scale: Low"],
-      duration: "1h 30m",
-      status: "completed",
-      priority: "normal",
-      teamStatus: "On Schedule",
-    },
-    {
-      id: "op-3",
-      startTime: "13:00",
-      endTime: "16:00",
-      endTimeExpected: "16:00",
-      patientName: "Mohammed Eid",
-      patientId: "CARD-00512",
-      age: 71,
-      gender: "M",
-      procedureName: "MVR — Mitral Valve Repair",
-      riskScore: "EuroSCORE II: 6.8%",
-      location: "Cardiac OR-2",
-      riskTags: ["Shah Scale: High"],
-      duration: "3h",
-      status: "in-progress",
-      priority: "urgent",
-      teamStatus: "Running Late",
-      notes: "Extra hour added",
-    },
-    {
-      id: "op-4",
-      startTime: "16:30",
-      endTime: "18:00",
-      endTimeExpected: "18:00",
-      patientName: "Fatima Ali Hussein",
-      patientId: "CARD-00445",
-      age: 55,
-      gender: "F",
-      procedureName: "ICD — Defibrillator Implant",
-      riskScore: "EuroSCORE II: 1.9%",
-      location: "Cardiac OR-1",
-      riskTags: ["Shah Scale: Low"],
-      duration: "1h 30m",
-      status: "pending",
-      priority: "normal",
-      teamStatus: "Room Ready",
-    },
-    {
-      id: "op-5",
-      startTime: "18:30",
-      endTime: "21:30",
-      endTimeExpected: "21:30",
-      patientName: "Omar Samy Darwish",
-      patientId: "CARD-00601",
-      age: 67,
-      gender: "M",
-      procedureName: "CABG + AVR — Combined",
-      riskScore: "EuroSCORE II: 8.3%",
-      location: "Cardiac OR-2",
-      riskTags: ["Shah Scale: High"],
-      duration: "3h",
-      status: "pending",
-      priority: "emergency",
-      teamStatus: "Extra Time Needed",
-    },
-  ]
-
-  const statusConfig = {
-    completed: { 
-      color: "text-[#1A5345]", 
-      bg: "bg-[#E8F0EE]", 
-      label: "Completed" 
-    },
-    "in-progress": { 
-      color: "text-[#B8860B]", 
-      bg: "bg-[#FFF8E7]", 
-      label: "In Progress" 
-    },
-    pending: { 
-      color: "text-[#6B7870]", 
-      bg: "bg-[#F5F5F3]", 
-      label: "Scheduled" 
-    },
-  }
-
-  const priorityConfig = {
-    normal: { color: "text-[#1A5345]", bg: "bg-[#E8F0EE]", label: "Normal" },
-    urgent: { color: "text-[#B8860B]", bg: "bg-[#FFF8E7]", label: "Urgent" },
-    emergency: { color: "text-[#9B2C2C]", bg: "bg-[#FED7D7]", label: "Emergency" },
-  }
+  const formattedDate = selectedDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  })
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F9F8F5]">
-      {/* Date Selector Header */}
-      <div className="shrink-0 border-b border-[#E8E6E0] bg-white px-4 py-3">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[13px] font-semibold text-[#102F27]">
-            {formatDateDisplay(selectedDate)}
-          </h2>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setWeekOffset((w) => w - 1)}
-              className="flex size-7 items-center justify-center rounded-lg text-[#6B7870] transition-colors hover:bg-[#E8F0EE]"
-            >
-              <ChevronLeftIcon className="size-4" />
-            </button>
-            <button
-              onClick={() => setWeekOffset(0)}
-              className="rounded-lg px-2 py-1 text-[10px] font-medium text-[#1A5345] transition-colors hover:bg-[#E8F0EE]"
-            >
-              Today
-            </button>
-            <button
-              onClick={() => setWeekOffset((w) => w + 1)}
-              className="flex size-7 items-center justify-center rounded-lg text-[#6B7870] transition-colors hover:bg-[#E8F0EE]"
-            >
-              <ChevronRightIcon className="size-4" />
-            </button>
+      {/* ── Header ── */}
+      <div className="shrink-0 border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/95 px-4 py-3 backdrop-blur-md sm:px-5">
+        {/* Top row: title + nav */}
+        <div className="mb-2 flex flex-col justify-between gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#1A5345] sm:text-[11px]">
+              Operating schedule
+            </p>
+            <h2 className="mt-0.5 font-serif text-[18px] font-bold leading-tight text-[#1A1F1E] sm:text-[20px]">
+              {formattedDate}
+            </h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-xl border border-[#E8E6E0] bg-white p-0.5 shadow-sm">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setWeekOffset((w) => w - 1)}
+                className="size-8 rounded-lg text-[#6B7870] transition-all hover:bg-[#F9F8F5]"
+                aria-label="Previous two weeks"
+              >
+                <ChevronLeftIcon className="size-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => { setWeekOffset(0); setSelectedDate(today) }}
+                className="h-8 rounded-lg px-2.5 text-[11px] font-bold text-[#1A5345] transition-all hover:bg-[#F9F8F5] sm:px-3"
+              >
+                Today
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setWeekOffset((w) => w + 1)}
+                className="size-8 rounded-lg text-[#6B7870] transition-all hover:bg-[#F9F8F5]"
+                aria-label="Next two weeks"
+              >
+                <ChevronRightIcon className="size-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Days Row - square boxes */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        {/* Day pills */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide sm:gap-2">
           {days.map((day) => {
             const isSelected = isSameDay(day.date, selectedDate)
+            const isToday = isSameDay(day.date, today)
             return (
               <button
                 key={day.date.toISOString()}
                 onClick={() => setSelectedDate(day.date)}
                 className={cn(
-                  "flex aspect-square w-14 shrink-0 flex-col items-center justify-center rounded-xl border transition-all",
+                  "relative flex min-w-[52px] flex-col items-center justify-center gap-0.5 rounded-xl border py-2 transition-colors sm:min-w-[54px]",
                   isSelected
-                    ? "bg-[#E8F0EE] border-[#E8F0EE] text-[#1A5345] shadow-sm"
-                    : "bg-white border-[#E8E6E0] text-[#6B7870] hover:bg-[#E8F0EE] hover:border-[#E8F0EE]",
+                    ? "z-10 border-[#1A5345] bg-[#1A5345] text-white shadow-md shadow-[#1A5345]/15"
+                    : "border-[#E8E6E0]/80 bg-white text-[#6B7870] hover:border-[#1A5345]/30 hover:bg-[#F9F8F5]",
                 )}
               >
-                <span className={cn("text-[9px] font-medium uppercase tracking-wide", isSelected ? "text-[#6B7870]" : "")}>
+                {isToday && !isSelected && (
+                  <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-[#1A5345] ring-2 ring-white" />
+                )}
+                <span className={cn(
+                  "text-[9px] font-bold uppercase tracking-wide sm:text-[10px]",
+                  isSelected ? "text-white/80" : isToday ? "text-[#1A5345]" : "text-muted-foreground/80",
+                )}>
                   {day.dayName}
                 </span>
-                <span className={cn("text-[18px] font-semibold leading-tight", isSelected ? "text-[#1A5345]" : "text-[#102F27]")}>
+                <span className={cn(
+                  "text-[16px] font-bold leading-none sm:text-[17px]",
+                  isSelected ? "text-white" : isToday ? "text-[#1A5345]" : "text-[#1A1F1E]",
+                )}>
                   {day.dayNum}
                 </span>
               </button>
@@ -328,257 +359,279 @@ function ScheduleView() {
           })}
         </div>
 
-        {/* View Toggle + Summary Stats */}
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <div className="flex rounded-lg border border-[#E8E6E0] bg-[#FAFAF8] p-0.5">
+        {/* Bottom row: view toggle + stats */}
+        <div className="mt-2.5 flex flex-col items-stretch justify-between gap-2.5 sm:flex-row sm:items-center">
+          {/* View toggle */}
+          <div className="flex w-full items-center rounded-xl border border-[#E8E6E0] bg-white p-0.5 shadow-sm sm:w-auto">
             <button
               onClick={() => setViewMode("list")}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[10px] font-medium transition-colors",
-                viewMode === "list"
-                  ? "bg-white text-[#1A5345] shadow-sm"
-                  : "text-[#6B7870] hover:text-[#1A5345]"
+                "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all sm:flex-initial sm:px-3.5 sm:text-[12px]",
+                viewMode === "list" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-[#F9F8F5]",
               )}
             >
-              <ListIcon className="size-3.5" />
-              <span className="hidden sm:inline">List</span>
+              <ListIcon className="size-3.5 sm:size-4" />
+              <span>List</span>
             </button>
             <button
               onClick={() => setViewMode("timeline")}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[10px] font-medium transition-colors",
-                viewMode === "timeline"
-                  ? "bg-white text-[#1A5345] shadow-sm"
-                  : "text-[#6B7870] hover:text-[#1A5345]"
+                "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all sm:flex-initial sm:px-3.5 sm:text-[12px]",
+                viewMode === "timeline" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-[#F9F8F5]",
               )}
             >
-              <LayoutGridIcon className="size-3.5" />
-              <span className="hidden sm:inline">Timeline</span>
+              <LayoutGridIcon className="size-3.5 sm:size-4" />
+              <span>Timeline</span>
             </button>
           </div>
 
-          <div className="flex gap-2">
-            <div className="flex flex-col items-center justify-center rounded-xl border border-[#E8E6E0] bg-white px-3 py-2">
-              <span className="text-[16px] font-bold text-[#1A5345]">5</span>
-              <span className="text-[9px] text-[#6B7870]">Total</span>
-            </div>
-            <div className="flex flex-col items-center justify-center rounded-xl border border-[#E8E6E0] bg-white px-3 py-2">
-              <span className="text-[16px] font-bold text-[#4F6D64]">2</span>
-              <span className="text-[9px] text-[#6B7870]">Done</span>
-            </div>
-            <div className="flex flex-col items-center justify-center rounded-xl border border-[#E8E6E0] bg-white px-3 py-2">
-              <span className="text-[16px] font-bold text-[#B8860B]">1</span>
-              <span className="text-[9px] text-[#6B7870]">Active</span>
-            </div>
+          {/* Stats cards */}
+          <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+            {[
+              { label: "Total", value: stats.total, color: "text-[#1A1F1E]", bg: "bg-white" },
+              { label: "Completed", value: stats.done, color: "text-[#1A5345]", bg: "bg-[#E8F0EE]/50" },
+              { label: "Active", value: stats.active, color: "text-[#B8860B]", bg: "bg-[#FFF8E7]/50" },
+              { label: "Pending", value: stats.pending, color: "text-[#6B7870]", bg: "bg-[#F5F5F3]/50" },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className={cn(
+                  "flex min-w-[60px] flex-col items-center justify-center rounded-xl border border-[#E8E6E0]/80 px-2 py-1.5 shadow-sm sm:min-w-[64px] sm:px-2.5",
+                  s.bg
+                )}
+              >
+                <span className={cn("text-[14px] font-bold leading-none sm:text-[15px]", s.color)}>{s.value}</span>
+                <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-tight text-muted-foreground/80 sm:text-[10px]">
+                  {s.label}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Schedule Content */}
+      {/* ── Content ── */}
       <div className="flex-1 overflow-auto">
-        {viewMode === "list" ? (
-          <ScheduleListView scheduledOperations={scheduledOperations} statusConfig={statusConfig} />
-        ) : (
-          <ScheduleTimelineView scheduledOperations={scheduledOperations} />
-        )}
+        <div className="mx-auto max-w-[1400px]">
+          {viewMode === "list" ? (
+            <ScheduleListView scheduledOperations={SCHEDULED_OPERATIONS} />
+          ) : (
+            <ScheduleTimelineView scheduledOperations={SCHEDULED_OPERATIONS} />
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
-/* ---------- Schedule List View Component ---------- */
+/* ---------- Schedule List View ---------- */
 
-function ScheduleListView({
-  scheduledOperations,
-  statusConfig,
-}: {
-  scheduledOperations: ScheduledOperation[]
-  statusConfig: Record<string, { color: string; bg: string; label: string }>
-}) {
+function ScheduleListView({ scheduledOperations }: { scheduledOperations: ScheduledOperation[] }) {
   return (
-    <div className="flex-1 overflow-auto">
-      {/* Table Header */}
-      <div className="sticky top-0 z-10 grid grid-cols-[100px_1fr_1.2fr_140px_80px_100px] gap-3 border-b border-[#E8E6E0] bg-[#FAFAF8] px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-[#6B7870]">
-        <div>Time</div>
-        <div>Patient</div>
-        <div>Procedure</div>
-        <div>Location / Risk</div>
-        <div>Duration</div>
-        <div>Status</div>
-      </div>
-
-      {/* Table Body */}
-      <div className="divide-y divide-[#E8E6E0]">
-        {scheduledOperations.map((op) => (
+    <div className="grid grid-cols-1 gap-4 p-6 lg:gap-6">
+      {scheduledOperations.map((op) => {
+        const sc = STATUS_CFG[op.status]
+        const pc = PRIORITY_CFG[op.priority]
+        const endLabel = op.endTimeActual ?? op.endTimeExpected ?? op.endTime
+        return (
           <div
             key={op.id}
             className={cn(
-              "grid grid-cols-[100px_1fr_1.2fr_140px_80px_100px] gap-3 px-4 py-4 transition-colors hover:bg-white",
-              op.status === "in-progress" && "bg-[#EEF5F3]"
+              "group relative flex flex-col overflow-hidden rounded-3xl border border-[#E8E6E0]/80 bg-white shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.08)] sm:flex-row",
+              op.status === "in-progress" && "ring-1 ring-[#B8860B]/20",
             )}
           >
-            {/* Time Column */}
-            <div className="flex flex-col">
-              <div className="text-[16px] font-bold text-[#1A5345]">{op.startTime}</div>
-              <div className="text-[11px] text-[#9CA3AF]">
-                {op.endTimeActual || op.endTimeExpected || op.endTime}
+            {/* Left status stripe */}
+            <div className={cn("w-full h-1.5 shrink-0 sm:h-auto sm:w-1.5", sc.dot)} />
+
+            <div className="flex min-w-0 flex-1 flex-col gap-4 p-5 sm:flex-row sm:items-start sm:gap-6 sm:p-6">
+              {/* Time block */}
+              <div className="flex shrink-0 flex-row items-baseline gap-2 sm:w-[90px] sm:flex-col sm:items-start sm:gap-1">
+                <span className="font-serif text-[24px] font-bold leading-none text-[#1A1F1E] sm:text-[28px]">
+                  {op.startTime}
+                </span>
+                <div className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground sm:text-[13px]">
+                   <span>to</span>
+                   <span className="font-bold text-[#1A1F1E]/80">{endLabel}</span>
+                </div>
               </div>
-            </div>
 
-            {/* Patient Column */}
-            <div>
-              <div className="text-[13px] font-semibold text-[#102F27]">{op.patientName}</div>
-              <div className="text-[10px] text-[#6B7870]">
-                #{op.patientId} • {op.age}y • {op.gender}
+              {/* Patient info & Procedure */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-3">
+                  <div className="size-11 shrink-0 rounded-full border border-[#E8E6E0] bg-[#F4F3ED] p-0.5 shadow-sm overflow-hidden">
+                    <img 
+                      src={dicebearAvatarUrl(op.patientName, op.patientId)} 
+                      alt="" 
+                      className="size-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-[16px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors truncate">
+                        {op.patientName}
+                      </h3>
+                      <span className="rounded-md bg-[#F4F3ED] px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
+                        #{op.patientId}
+                      </span>
+                    </div>
+                    <p className="text-[13px] font-medium text-muted-foreground">
+                      {op.age} years · {op.gender === "M" ? "Male" : "Female"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  <p className="text-[15px] font-bold text-[#1A5345]">{op.procedureName}</p>
+                  <div className="flex flex-wrap items-center gap-3 text-[12px] font-medium text-[#6B7870]">
+                    <div className="flex items-center gap-1.5">
+                      <MapPinIcon className="size-3.5 text-[#1A5345]/60" />
+                      <span>{op.location}</span>
+                    </div>
+                    <span className="text-[#D4D1C9]">|</span>
+                    <div className="flex items-center gap-1.5">
+                      <ActivityIcon className="size-3.5 text-rose-500/60" />
+                      <span>{op.riskScore}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {op.riskTags.map((tag, i) => (
+                    <Badge key={i} variant="outline" className="rounded-lg border-[#1A5345]/10 bg-[#E8F0EE]/50 px-2 py-0.5 text-[11px] font-bold text-[#1A5345]">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {op.notes && (
+                    <Badge variant="outline" className="rounded-lg border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">
+                      {op.notes}
+                    </Badge>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Procedure Column */}
-            <div>
-              <div className="text-[13px] font-medium text-[#1A5345]">{op.procedureName}</div>
-              <div className="text-[10px] text-[#9CA3AF]">{op.riskScore}</div>
-            </div>
-
-            {/* Location / Risk Column */}
-            <div>
-              <div className="text-[11px] font-medium text-[#6B7870]">{op.location}</div>
-              <div className="mt-1 flex flex-wrap gap-1">
-                {op.riskTags.map((tag: string, i: number) => (
-                  <span
-                    key={i}
-                    className="inline-flex items-center rounded px-2 py-0.5 text-[9px] font-medium bg-[#E8F0EE] text-[#1A5345]"
-                  >
-                    {tag}
+              {/* Status & Actions */}
+              <div className="flex shrink-0 flex-row flex-wrap items-center gap-3 border-t border-[#F4F3ED] pt-4 sm:flex-col sm:items-end sm:gap-4 sm:border-t-0 sm:pt-0">
+                <div className="flex items-center gap-2">
+                   <span className={cn("rounded-full px-3 py-1 text-[11px] font-bold tracking-wide shadow-sm", sc.badge)}>
+                    {sc.label}
                   </span>
-                ))}
+                  {op.priority !== "normal" && (
+                    <span className={cn("rounded-full px-3 py-1 text-[11px] font-bold tracking-wide shadow-sm", pc.badge)}>
+                      {pc.label}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5 text-[12px] font-bold text-[#1A1F1E]/80">
+                    <ClockIcon className="size-3.5 text-[#1A5345]" />
+                    <span>{op.duration}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
+                    <div className={cn("size-2 rounded-full animate-pulse", sc.dot)} />
+                    <span>{op.teamStatus}</span>
+                  </div>
+                </div>
+
+                <Button variant="outline" className="h-9 w-full rounded-xl border-[#E8E6E0] bg-white text-[12px] font-bold text-[#1A1F1E] shadow-sm hover:bg-[#F9F8F5] sm:w-auto">
+                  View Detail
+                </Button>
               </div>
             </div>
-
-            {/* Duration Column */}
-            <div>
-              <div className="text-[12px] font-medium text-[#102F27]">{op.duration}</div>
-              <div className="text-[10px] text-[#9CA3AF]">{op.teamStatus}</div>
-              {op.notes && <div className="text-[9px] text-[#B8860B]">{op.notes}</div>}
-            </div>
-
-            {/* Status Column */}
-            <div>
-              <span className={cn(
-                "inline-flex items-center rounded-full px-3 py-1.5 text-[10px] font-semibold",
-                statusConfig[op.status].bg,
-                statusConfig[op.status].color,
-              )}>
-                {statusConfig[op.status].label}
-              </span>
-            </div>
           </div>
-        ))}
-      </div>
+        )
+      })}
 
-      {/* Empty State */}
       {scheduledOperations.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="mb-3 flex size-14 items-center justify-center rounded-full bg-[#E8F0EE]">
-            <CalendarDaysIcon className="size-7 text-[#9CA3AF]" />
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="mb-4 flex size-20 items-center justify-center rounded-3xl border-2 border-dashed border-[#E8E6E0] bg-white shadow-sm">
+            <CalendarDaysIcon className="size-10 text-muted-foreground/40" strokeWidth={1} />
           </div>
-          <p className="text-[12px] font-medium text-[#6B7870]">No scheduled operations</p>
-          <p className="text-[10px] text-muted-foreground">Select a different date to view schedule</p>
+          <h3 className="font-serif text-[20px] font-bold text-[#1A1F1E]">No scheduled operations</h3>
+          <p className="mt-1 text-[14px] font-medium text-muted-foreground">Select a different date to view the operating schedule.</p>
         </div>
       )}
     </div>
   )
 }
 
-/* ---------- Schedule Timeline View Component ---------- */
+/* ---------- Schedule Timeline View ---------- */
 
 function ScheduleTimelineView({ scheduledOperations }: { scheduledOperations: ScheduledOperation[] }) {
-  // Group operations by room/location
   const rooms = ["Cardiac OR-1", "Cardiac OR-2", "Hybrid Lab", "Cath Lab"]
-  const hours = Array.from({ length: 15 }, (_, i) => i + 7) // 7 AM to 9 PM
-
-  const getOperationForRoomAndTime = (room: string, hour: number) => {
-    return scheduledOperations.find((op) => {
-      if (op.location !== room) return false
-      const startHour = parseInt(op.startTime.split(":")[0])
-      const endHour = parseInt((op.endTimeActual || op.endTimeExpected || op.endTime).split(":")[0])
-      return startHour <= hour && hour < endHour
-    })
-  }
+  const hours = Array.from({ length: 15 }, (_, i) => i + 7)
 
   const getOpStyle = (status: string) => {
     switch (status) {
       case "completed":
-        return "bg-[#E8F0EE] border-[#1A5345]/20 text-[#1A5345]"
+        return "bg-[#E8F0EE] border-[#1A5345]/20 text-[#1A5345] shadow-sm"
       case "in-progress":
-        return "bg-[#FFF8E7] border-[#B8860B]/20 text-[#B8860B]"
+        return "bg-[#FFF8E7] border-[#B8860B]/20 text-[#B8860B] shadow-sm ring-1 ring-[#B8860B]/10"
       default:
-        return "bg-[#F5F5F3] border-[#6B7870]/20 text-[#6B7870]"
+        return "bg-white border-[#E8E6E0] text-[#6B7870] shadow-sm"
     }
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-auto">
-      {/* Timeline Header - Hours */}
-      <div className="sticky top-0 z-10 flex border-b border-[#E8E6E0] bg-[#FAFAF8]">
-        <div className="w-28 shrink-0 border-r border-[#E8E6E0] px-3 py-2 text-[10px] font-semibold text-[#6B7870]">
-          Room
+    <div className="flex flex-1 flex-col overflow-hidden rounded-3xl border border-[#E8E6E0]/80 bg-white m-6 shadow-xl">
+      {/* Hour header */}
+      <div className="sticky top-0 z-10 flex border-b border-[#E8E6E0]/60 bg-[#FAFAF8] backdrop-blur-md">
+        <div className="w-32 shrink-0 border-r border-[#E8E6E0]/60 px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-[#1A5345]">
+          Facility / Room
         </div>
         <div className="flex flex-1">
           {hours.map((hour) => (
-            <div
-              key={hour}
-              className="flex-1 border-r border-[#E8E6E0] px-1 py-2 text-center text-[9px] font-medium text-[#6B7870]"
-            >
+            <div key={hour} className="flex-1 border-r border-[#E8E6E0]/40 py-3 text-center text-[10px] font-bold text-[#6B7870]">
               {hour}:00
             </div>
           ))}
         </div>
       </div>
 
-      {/* Timeline Body - Rooms */}
-      <div className="flex-1 divide-y divide-[#E8E6E0]">
+      {/* Room rows */}
+      <div className="flex-1 divide-y divide-[#E8E6E0]/60 overflow-y-auto">
         {rooms.map((room) => (
-          <div key={room} className="flex min-h-[80px]">
-            {/* Room Label */}
-            <div className="w-28 shrink-0 border-r border-[#E8E6E0] bg-white px-3 py-3">
-              <div className="text-[11px] font-semibold text-[#102F27]">{room}</div>
+          <div key={room} className="flex min-h-[100px]">
+            <div className="w-32 shrink-0 border-r border-[#E8E6E0]/60 bg-[#FAFAF8]/50 px-4 py-4">
+              <p className="text-[13px] font-bold text-[#1A1F1E] leading-tight">{room}</p>
+              <p className="mt-1 text-[10px] font-medium text-muted-foreground uppercase tracking-tight">Main Wing</p>
             </div>
-
-            {/* Time Slots */}
-            <div className="relative flex flex-1">
-              {hours.map((hour) => (
-                <div
-                  key={hour}
-                  className="flex-1 border-r border-[#E8E6E0] bg-white"
-                />
-              ))}
-
-              {/* Operations in this room */}
+            <div className="relative flex flex-1 bg-[linear-gradient(to_right,#E8E6E0_1px,transparent_1px)] bg-[size:calc(100%/15)_100%]">
               {scheduledOperations
                 .filter((op) => op.location === room)
                 .map((op) => {
-                  const startHour = parseInt(op.startTime.split(":")[0])
-                  const endHour = parseInt((op.endTimeActual || op.endTimeExpected || op.endTime).split(":")[0])
-                  const startOffset = (startHour - 7) * (100 / 15) // percentage
-                  const width = (endHour - startHour) * (100 / 15) // percentage
+                  const startH = parseInt(op.startTime.split(":")[0])
+                  const startM = parseInt(op.startTime.split(":")[1])
+                  const endH = parseInt((op.endTimeActual ?? op.endTimeExpected ?? op.endTime).split(":")[0])
+                  const endM = parseInt((op.endTimeActual ?? op.endTimeExpected ?? op.endTime).split(":")[1])
+                  
+                  const startPos = (startH - 7 + startM / 60) * (100 / 15)
+                  const endPos = (endH - 7 + endM / 60) * (100 / 15)
+                  const width = endPos - startPos
 
                   return (
                     <div
                       key={op.id}
                       className={cn(
-                        "absolute top-2 bottom-2 rounded-lg border px-2 py-1.5 text-[9px] font-medium shadow-sm",
-                        getOpStyle(op.status)
+                        "absolute inset-y-3 rounded-2xl border px-3 py-2 text-[10px] transition-all duration-300 hover:z-20 hover:scale-[1.02] hover:shadow-lg cursor-pointer overflow-hidden",
+                        getOpStyle(op.status),
                       )}
-                      style={{
-                        left: `${startOffset}%`,
-                        width: `${width}%`,
-                        minWidth: "60px",
-                      }}
+                      style={{ left: `${startPos}%`, width: `${width}%`, minWidth: 80 }}
                     >
-                      <div className="truncate font-semibold">{op.patientName}</div>
-                      <div className="truncate opacity-80">{op.procedureName}</div>
-                      <div className="mt-0.5 text-[8px] opacity-60">
-                        {op.startTime} - {op.endTimeActual || op.endTimeExpected || op.endTime}
+                      <div className="flex flex-col h-full justify-between">
+                        <div className="min-w-0">
+                          <p className="truncate font-bold text-[11px]">{op.patientName}</p>
+                          <p className="truncate text-[10px] opacity-80 font-medium">{op.procedureName}</p>
+                        </div>
+                        <div className="flex items-center justify-between mt-auto pt-1 border-t border-black/5">
+                           <span className="text-[9px] font-bold opacity-60">
+                            {op.startTime}–{op.endTimeActual ?? op.endTimeExpected ?? op.endTime}
+                          </span>
+                          {op.status === 'in-progress' && (
+                            <span className="flex size-1.5 rounded-full bg-[#B8860B] animate-ping" />
+                          )}
+                        </div>
                       </div>
                     </div>
                   )
@@ -753,158 +806,133 @@ function HistoryView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F9F8F5]">
       {/* Header with filter and search */}
-      <div className="shrink-0 border-b border-[#E8E6E0] bg-white px-4 py-3">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[13px] font-semibold text-[#102F27]">Completed Procedures</h2>
-          <span className="text-[11px] text-[#6B7870]">{filteredOperations.length} records</span>
+      <div className="shrink-0 border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/95 px-6 pt-5 pb-4 backdrop-blur-md">
+        <div className="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <h2 className="font-serif text-[22px] font-bold text-[#102F27]">Procedure History</h2>
+            <p className="text-[13px] font-medium text-muted-foreground">{filteredOperations.length} records available</p>
+          </div>
+          
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            {/* Search */}
+            <div className="relative group min-w-[280px]">
+              <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#1A5345] transition-colors" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search patient, procedure, or ID..."
+                className="h-10 w-full rounded-2xl border-[#E8E6E0] bg-white pl-10 text-[13px] shadow-sm focus-visible:ring-1 focus-visible:ring-[#1A5345]/20"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Date filter buttons */}
-        <div className="mb-3 flex gap-1">
-          {filterOptions.map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => setDateFilter(opt.key)}
-              className={cn(
-                "flex-1 rounded-lg px-2 py-1.5 text-[10px] font-medium transition-colors",
-                dateFilter === opt.key
-                  ? "bg-[#E8F0EE] text-[#1A5345]"
-                  : "bg-white text-[#6B7870] hover:bg-[#E8F0EE]",
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+        {/* Date filter & Stats */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+           {/* Date filter tabs */}
+          <div className="flex items-center gap-1 overflow-x-auto rounded-2xl border border-[#E8E6E0] bg-white p-1 shadow-sm">
+            {filterOptions.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setDateFilter(opt.key)}
+                className={cn(
+                  "whitespace-nowrap rounded-xl px-4 py-2 text-[12px] font-bold transition-all",
+                  dateFilter === opt.key
+                    ? "bg-[#E8F0EE] text-[#1A5345] shadow-sm"
+                    : "text-muted-foreground hover:bg-[#F9F8F5] hover:text-[#1A1F1E]",
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
 
-        {/* Search */}
-        <div className="relative">
-          <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[#9CA3AF]" />
-          <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search patient, procedure, or ID..."
-            className="h-8 border-[#E8E6E0] bg-[#FAFAF8] pl-8 text-[11px] placeholder:text-[#9CA3AF]"
-          />
-        </div>
-
-        {/* Summary Stats */}
-        <div className="mt-3 grid grid-cols-4 gap-2">
-          <div className="flex flex-col items-center justify-center rounded-xl border border-[#E8E6E0] bg-white py-3">
-            <span className="text-[20px] font-bold text-[#1A5345]">{totalCompleted}</span>
-            <span className="text-[10px] text-[#6B7870]">Completed</span>
-          </div>
-          <div className="flex flex-col items-center justify-center rounded-xl border border-[#E8E6E0] bg-white py-3">
-            <span className="text-[20px] font-bold text-[#B8860B]">{totalDuration}h</span>
-            <span className="text-[10px] text-[#6B7870]">Total Hours</span>
-          </div>
-          <div className="flex flex-col items-center justify-center rounded-xl border border-[#E8E6E0] bg-white py-3">
-            <span className="text-[20px] font-bold text-[#9B2C2C]">{emergencyCount}</span>
-            <span className="text-[10px] text-[#6B7870]">Emergency</span>
-          </div>
-          <div className="flex flex-col items-center justify-center rounded-xl border border-[#E8E6E0] bg-white py-3">
-            <span className="text-[20px] font-bold text-[#4F6D64]">{avgRiskScore}</span>
-            <span className="text-[10px] text-[#6B7870]">Avg Risk</span>
+          {/* Summary Stats Cards */}
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center">
+            {[
+              { label: "Completed", value: totalCompleted, color: "text-[#1A5345]", bg: "bg-white" },
+              { label: "Total Hours", value: `${totalDuration}h`, color: "text-[#B8860B]", bg: "bg-white" },
+              { label: "Emergency", value: emergencyCount, color: "text-[#9B2C2C]", bg: "bg-white" },
+              { label: "Avg Risk", value: avgRiskScore, color: "text-[#4F6D64]", bg: "bg-white" },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="flex min-w-[100px] flex-col items-center justify-center rounded-2xl border border-[#E8E6E0]/80 bg-white px-4 py-2.5 shadow-sm transition-all hover:shadow-md"
+              >
+                <span className={cn("text-[18px] font-bold leading-none", s.color)}>{s.value}</span>
+                <span className="mt-1 text-[10px] font-bold text-muted-foreground/70 uppercase tracking-tight">{s.label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       {/* History Table */}
-      <div className="flex-1 overflow-auto">
-        {/* Table Header */}
-        <div className="sticky top-0 z-10 grid grid-cols-[1fr_1.2fr_140px_100px_120px] gap-3 border-b border-[#E8E6E0] bg-[#FAFAF8] px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-[#6B7870]">
-          <div>Patient</div>
-          <div>Procedure</div>
-          <div>Location / Risk</div>
-          <div>Duration</div>
-          <div>Actions</div>
-        </div>
-
-        {/* Table Body */}
-        <div className="divide-y divide-[#E8E6E0]">
-          {filteredOperations.map((op) => (
-            <div
-              key={op.id}
-              className="grid grid-cols-[1fr_1.2fr_140px_100px_120px] gap-3 px-4 py-4 transition-colors hover:bg-white"
-            >
-              {/* Patient Column */}
-              <div>
-                <div className="text-[13px] font-semibold text-[#102F27]">{op.patientName}</div>
-                <div className="text-[10px] text-[#6B7870]">
-                  #{op.patientId} • {op.age}y • {op.gender}
-                </div>
-                <div className="mt-1">
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-medium",
-                      priorityConfig[op.priority].bg,
-                      priorityConfig[op.priority].color,
-                    )}
-                  >
-                    {priorityConfig[op.priority].label}
-                  </span>
-                </div>
-              </div>
-
-              {/* Procedure Column */}
-              <div>
-                <div className="text-[13px] font-medium text-[#1A5345]">{op.procedureName}</div>
-                <div className="text-[10px] text-[#9CA3AF]">{op.riskScore}</div>
-              </div>
-
-              {/* Location / Risk Column */}
-              <div>
-                <div className="text-[11px] font-medium text-[#6B7870]">{op.location}</div>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {op.riskTags.map((tag: string, i: number) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center rounded px-2 py-0.5 text-[9px] font-medium bg-[#E8F0EE] text-[#1A5345]"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Duration Column */}
-              <div>
-                <div className="text-[12px] font-medium text-[#102F27]">{op.duration}</div>
-                <div className="text-[10px] text-[#9CA3AF]">{op.teamStatus}</div>
-                {op.notes && <div className="text-[9px] text-[#B8860B]">{op.notes}</div>}
-              </div>
-
-              {/* Actions Column */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  className="flex items-center gap-1 rounded-lg bg-[#E8F0EE] px-2 py-1.5 text-[9px] font-medium text-[#1A5345] transition-colors hover:bg-[#D4EDE6]"
-                  title="View Details"
-                >
-                  <FileTextIcon className="size-3" />
-                  <span className="hidden sm:inline">Details</span>
-                </button>
-                <button
-                  className="flex items-center gap-1 rounded-lg bg-[#F5F5F3] px-2 py-1.5 text-[9px] font-medium text-[#6B7870] transition-colors hover:bg-[#E8E6E0]"
-                  title="View Report"
-                >
-                  <FileIcon className="size-3" />
-                  <span className="hidden sm:inline">Report</span>
-                </button>
+      <div className="flex-1 overflow-auto p-6">
+        <div className="overflow-hidden rounded-3xl border border-[#E8E6E0]/80 bg-white shadow-xl">
+          <table className="w-full text-left border-collapse">
+            <thead className="sticky top-0 z-10">
+              <tr className="bg-[#FAFAF8] text-[13px] font-serif font-bold text-[#1A5345] uppercase tracking-wider">
+                <th className="py-4 px-6 border-b border-[#E8E6E0]/60">Patient</th>
+                <th className="py-4 px-6 border-b border-[#E8E6E0]/60">Procedure</th>
+                <th className="py-4 px-6 border-b border-[#E8E6E0]/60">Location / Risk</th>
+                <th className="py-4 px-6 border-b border-[#E8E6E0]/60">Duration</th>
+                <th className="py-4 px-6 border-b border-[#E8E6E0]/60 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E8E6E0]/40">
+              {filteredOperations.map((op) => (
+                <tr key={op.id} className="group hover:bg-[#F9F8F5]/50 transition-colors duration-200">
+                  <td className="py-4 px-6">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-full border border-[#E8E6E0] overflow-hidden">
+                        <img src={dicebearAvatarUrl(op.patientName, op.patientId)} alt="" className="size-full object-cover" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[14px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">{op.patientName}</p>
+                        <p className="text-[11px] font-medium text-muted-foreground uppercase">#{op.patientId}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6">
+                    <p className="text-[14px] font-bold text-[#1A5345]">{op.procedureName}</p>
+                    <p className="text-[11px] font-medium text-muted-foreground mt-0.5">{op.startTime} – {op.endTimeActual}</p>
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#1A1F1E]">
+                        <MapPinIcon className="size-3.5 text-muted-foreground" />
+                        <span>{op.location}</span>
+                      </div>
+                      <Badge variant="outline" className="w-fit rounded-lg border-[#1A5345]/10 bg-[#E8F0EE]/30 px-2 py-0 text-[10px] font-bold text-[#1A5345]">
+                        {op.riskScore}
+                      </Badge>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="flex items-center gap-2 text-[13px] font-bold text-[#1A1F1E]">
+                      <ClockIcon className="size-4 text-[#1A5345]" />
+                      <span>{op.duration}</span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6 text-right">
+                    <Button variant="ghost" size="sm" className="rounded-xl font-bold text-[#1A5345] hover:bg-[#E8F0EE]">
+                      View Report
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filteredOperations.length === 0 && (
+            <div className="py-20 text-center">
+              <div className="flex flex-col items-center justify-center opacity-30">
+                <HistoryIcon className="size-12 mb-3" strokeWidth={1.5} />
+                <p className="text-[16px] font-bold">No history records found</p>
               </div>
             </div>
-          ))}
+          )}
         </div>
-
-        {/* Empty State */}
-        {filteredOperations.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="mb-3 flex size-14 items-center justify-center rounded-full bg-[#E8F0EE]">
-              <HistoryIcon className="size-7 text-[#9CA3AF]" />
-            </div>
-            <p className="text-[12px] font-medium text-[#6B7870]">No completed procedures found</p>
-            <p className="text-[10px] text-muted-foreground">Try adjusting your search or filter</p>
-          </div>
-        )}
       </div>
     </div>
   )
@@ -967,49 +995,52 @@ export function AssistantProcedures({
 
       {viewMode === "operations" ? (
         /* Doctor Operations View - procedure requests from doctors */
-        <div className="flex min-h-0 flex-1">
+        <div className="flex min-h-0 flex-1 overflow-hidden">
           {/* Left: fixed-width order list */}
           <div
             className={cn(
-              "flex flex-col border-r border-[#E8E6E0] bg-[#FAFAF8]",
-              "w-full md:w-[300px] md:shrink-0",
+              "flex flex-col border-r border-[#E8E6E0]/60 bg-[#FAFAF8]",
+              "w-full md:w-[320px] md:shrink-0",
               selectedOrder && "hidden md:flex",
             )}
           >
             {/* Search + filter header */}
-            <div className="shrink-0 space-y-2 border-b border-[#E8E6E0] p-3">
+            <div className="shrink-0 space-y-4 border-b border-[#E8E6E0]/60 bg-white p-4">
+               <div className="flex items-center justify-between">
+                  <h2 className="font-serif text-[18px] font-bold text-[#1A1F1E]">Procedure Orders</h2>
+               </div>
               <div className="relative">
-                <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[#9CA3AF]" />
+                <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9CA3AF]" />
                 <Input
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search..."
-                  className="h-8 border-[#E8E6E0] bg-white pl-8 text-[11px] placeholder:text-[#9CA3AF]"
+                  placeholder="Search orders..."
+                  className="h-10 border-[#E8E6E0] bg-[#F9F8F5]/50 pl-9 text-[13px] placeholder:text-[#9CA3AF] rounded-xl focus-visible:ring-[#1A5345]/20"
                 />
                 {searchTerm && (
                   <button
                     onClick={() => setSearchTerm("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7870]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7870]"
                     aria-label="Clear search"
                   >
-                    <XIcon className="size-3.5" />
+                    <XIcon className="size-4" />
                   </button>
                 )}
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1.5 bg-[#F4F3ED] p-1.5 rounded-2xl">
                 {FILTER_TABS.map((tab) => (
                   <button
                     key={tab.key}
                     onClick={() => setFilter(tab.key)}
                     className={cn(
-                      "flex-1 rounded-lg px-2 py-1 text-[9px] font-medium transition-colors",
+                      "flex-1 rounded-xl py-2 text-[11px] font-bold transition-all duration-300",
                       filter === tab.key
-                        ? "bg-[#1A5345] text-white"
-                        : "bg-white text-[#4F6D64] hover:bg-[#E8F0EE]",
+                        ? "bg-white text-[#1A5345] shadow-md shadow-[#1A5345]/5"
+                        : "text-[#6B7870] hover:text-[#1A5345] hover:bg-white/50",
                     )}
                   >
-                    {tab.shortLabel}{" "}
-                    <span className={filter === tab.key ? "opacity-60" : "text-muted-foreground"}>
+                    {tab.shortLabel}
+                    <span className={cn("ml-2 text-[10px] opacity-60", filter === tab.key ? "text-[#1A5345]" : "text-muted-foreground")}>
                       {tab.count}
                     </span>
                   </button>
@@ -1017,8 +1048,8 @@ export function AssistantProcedures({
               </div>
             </div>
 
-            {/* Scrollable row list — spacing matches assistant queue */}
-            <div className="min-h-0 flex-1 overflow-y-auto p-2">
+            {/* Scrollable row list */}
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {orders.length > 0 ? (
                 <div className="space-y-2">
                   {orders.map((order) => (
@@ -1031,9 +1062,10 @@ export function AssistantProcedures({
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <ClipboardPlusIcon className="mb-2 size-8 text-[#9CA3AF]" />
-                  <p className="text-[11px] text-muted-foreground">No procedure orders found.</p>
+                <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
+                  <ClipboardPlusIcon className="mb-4 size-12 text-[#9CA3AF]" strokeWidth={1.5} />
+                  <p className="text-[14px] font-bold text-[#102F27]">No procedure orders</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">Try adjusting your filters</p>
                 </div>
               )}
             </div>

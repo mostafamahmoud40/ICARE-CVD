@@ -130,7 +130,11 @@ import { AddVitalsDialog } from "./AddVitalsDialog"
 import { LabReportDialog } from "./LabReportDialog"
 import { PrescriptionDialog } from "./PrescriptionDialog"
 
-export function AssistantPatientProfilePage() {
+type AssistantPatientProfilePageProps = {
+  patientId: string
+}
+
+export function AssistantPatientProfilePage({ patientId: routePatientId }: AssistantPatientProfilePageProps) {
   const {
     patientId,
     patient,
@@ -160,7 +164,7 @@ export function AssistantPatientProfilePage() {
     setVitalReadingDetail,
     appointmentDetail,
     setAppointmentDetail,
-  } = useAssistantPatientProfilePage()
+  } = useAssistantPatientProfilePage({ routePatientId })
 
   return (
     <div className="flex h-full flex-col bg-[#F9F8F5] overflow-hidden animate-in fade-in duration-500">

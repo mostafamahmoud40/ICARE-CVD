@@ -132,9 +132,14 @@ const PROFILE_TABS = [
   { id: "medications" as const, label: "Medications", icon: PillIcon },
 ]
 
-export function useAssistantPatientProfilePage() {
+type UseAssistantPatientProfilePageOpts = {
+  /** From server `page.tsx` after `await params` — avoids relying on async route props on the client. */
+  routePatientId?: string
+}
+
+export function useAssistantPatientProfilePage(opts?: UseAssistantPatientProfilePageOpts) {
   const params = useParams<{ patientId: string }>()
-  const patientId = params?.patientId || "1"
+  const patientId = opts?.routePatientId?.trim() || params?.patientId || "1"
   const pathname = usePathname()
   const searchParams = useSearchParams()
 

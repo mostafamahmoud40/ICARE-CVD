@@ -13,11 +13,11 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium sm:text-[10px]",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wide uppercase sm:text-[11px] shadow-sm",
         cfg.style,
       )}
     >
-      <span className={cn("inline-block size-1.5 rounded-full", cfg.dot)} />
+      <span className={cn("inline-block size-1.5 rounded-full ring-2 ring-white/50", cfg.dot)} />
       {cfg.label}
     </span>
   )

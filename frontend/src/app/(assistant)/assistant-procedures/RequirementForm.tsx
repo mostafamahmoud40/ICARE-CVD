@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
-import { CalendarDaysIcon, PaperclipIcon } from "lucide-react"
+import { CheckIcon, CalendarDaysIcon, PaperclipIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -58,87 +57,110 @@ export function RequirementForm({ open, initial, onSave, onCancel }: Requirement
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onCancel() }}>
-      <DialogContent className="max-w-sm border-[#E8E6E0] bg-white p-0">
-        <DialogHeader className="border-b border-[#E8E6E0] px-4 py-3">
-          <DialogTitle className="text-[14px] font-bold text-[#102F27] sm:text-[15px]">
-            {initial ? "Edit requirement" : "Add requirement"}
+      <DialogContent className="max-w-md rounded-[32px] border-0 bg-white p-0 shadow-2xl overflow-hidden">
+        <DialogHeader className="gap-0 px-5 pb-3 pt-4 text-left sm:px-6 sm:pb-4 sm:pt-5 bg-[#F9F8F5]/50 border-b border-[#E8E6E0]/40">
+          <DialogTitle className="font-serif text-[17px] font-bold leading-snug tracking-tight text-[#1A1F1E] sm:text-[18px]">
+            {initial ? "Edit Directive" : "Add Clinical Directive"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3 px-4 py-3">
-          <Input
-            autoFocus
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleSave() }}
-            placeholder="Write the requirement..."
-            className="h-10 border-[#E8E6E0] bg-white text-[13px] placeholder:text-[#9CA3AF]"
-          />
-          <div className="grid gap-2 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => setAllowsAttachment((v) => !v)}
-              className={cn(
-                "flex h-full w-full items-center gap-2 rounded-lg border px-3 py-2 text-[12px] font-medium transition-colors",
-                allowsAttachment
-                  ? "border-[#1A5345]/30 bg-[#E8F0EE] text-[#1A5345]"
-                  : "border-[#E5EEEA] bg-white text-muted-foreground hover:bg-[#F5F5F3]",
-              )}
-            >
-              <PaperclipIcon className="size-3.5" />
-              {allowsAttachment ? "Attachment required" : "No attachment needed"}
-            </button>
+        <div className="space-y-4 px-5 pb-6 pt-3 sm:px-6 sm:pt-4">
+           <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Requirement Title
+              </label>
+              <Input
+                autoFocus
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSave() }}
+                placeholder="e.g. Fasting 12 hours before lab"
+                className="h-12 border-[#E8E6E0] bg-[#F9F8F5]/30 text-[14px] placeholder:text-[#9CA3AF] rounded-2xl focus-visible:ring-[#1A5345]/20"
+              />
+           </div>
 
-            <div>
-              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className={cn(
-                      "h-10 justify-start border-[#E8E6E0] bg-white text-left text-[12px] font-normal hover:bg-[#F6FBF9]",
-                      !dueDate && "text-muted-foreground",
-                    )}
-                  >
-                    <CalendarDaysIcon className="mr-2 size-4 text-[#1A5345]" />
-                    {dueDate
-                      ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(dueDate)
-                      : "Pick due date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={(date) => {
-                      setDueDate(date)
-                      setCalendarOpen(false)
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
+           <div className="grid grid-cols-2 gap-4">
+              {/* Custom Toggle for Attachment */}
+              <div className="space-y-2">
+                 <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Documentation</label>
+                 <button
+                   type="button"
+                   onClick={() => setAllowsAttachment((v) => !v)}
+                   className={cn(
+                     "flex h-12 w-full items-center justify-between rounded-2xl border px-4 transition-all duration-300",
+                     allowsAttachment
+                       ? "border-[#1A5345]/20 bg-[#F0F5F3] text-[#1A5345] shadow-sm"
+                       : "border-[#E8E6E0]/60 bg-white text-muted-foreground hover:bg-[#F9F8F5]",
+                   )}
+                 >
+                   <div className="flex items-center gap-2">
+                      <PaperclipIcon className={cn("size-4 transition-colors", allowsAttachment ? "text-[#1A5345]" : "text-[#9CA3AF]")} />
+                      <span className="text-[13px] font-bold">Attachment</span>
+                   </div>
+                   <div className={cn(
+                      "size-5 rounded-md border-2 flex items-center justify-center transition-all",
+                      allowsAttachment ? "bg-[#1A5345] border-[#1A5345]" : "border-[#E8E6E0]"
+                   )}>
+                      {allowsAttachment && <CheckIcon className="size-3 text-white" strokeWidth={4} />}
+                   </div>
+                 </button>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Deadline</label>
+                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "h-12 w-full justify-start border-[#E8E6E0]/60 bg-white px-4 rounded-2xl text-[13px] font-bold hover:bg-[#F9F8F5] transition-all",
+                        !dueDate && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarDaysIcon className="mr-2 size-4 text-[#1A5345]/40" />
+                      {dueDate
+                        ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(dueDate)
+                        : "No deadline"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 rounded-[24px] overflow-hidden border-0 shadow-2xl" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dueDate}
+                      onSelect={(date) => {
+                        setDueDate(date)
+                        setCalendarOpen(false)
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+           </div>
+
+           {/* Form Actions */}
+           <div className="flex items-center justify-end gap-2 pt-3 sm:gap-2.5">
+             <Button
+               type="button"
+               variant="ghost"
+               size="sm"
+               onClick={onCancel}
+               className="h-9 rounded-xl px-3 text-[12px] font-semibold text-muted-foreground hover:bg-[#F9F8F5]"
+             >
+               Discard
+             </Button>
+             <Button
+               type="button"
+               size="sm"
+               onClick={handleSave}
+               disabled={!text.trim()}
+               className="h-9 rounded-xl px-4 text-[12px] font-semibold bg-[#1A5345] text-white shadow-sm shadow-[#1A5345]/15 hover:bg-[#133F34] disabled:opacity-40"
+             >
+               {initial ? "Apply Changes" : "Create Requirement"}
+             </Button>
+           </div>
         </div>
-
-        <DialogFooter className="border-t border-[#E8E6E0] px-4 py-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-lg border border-[#E5EEEA] px-4 py-2 text-[12px] text-muted-foreground transition-colors hover:bg-[#F5F5F3]"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!text.trim()}
-            className="rounded-lg bg-[#1A5345] px-4 py-2 text-[12px] font-medium text-white transition-colors hover:bg-[#0F3D32] disabled:opacity-40"
-          >
-            {initial ? "Save changes" : "Add requirement"}
-          </button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
