@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import {
+  showIcareErrorToast,
+  showIcareSuccessToast,
+  showIcareToast,
+} from "@/components/shared/icare-toast";
 import type {
   DoctorEscalation,
   DoctorEscalationPriority,
@@ -217,9 +221,9 @@ export function useAssistantMedications(opts?: { routePatientId?: string | null 
           p.id === payload.patientId ? { ...p, flags: [...p.flags, flag] } : p
         );
       });
-      toast.success("Flag saved on medication chart");
+      showIcareSuccessToast("Flag saved on medication chart");
     },
-    onError: () => toast.error("Could not save flag"),
+    onError: () => showIcareErrorToast("Could not save flag"),
   });
 
   const resolveFlagMutation = useMutation({
@@ -248,9 +252,9 @@ export function useAssistantMedications(opts?: { routePatientId?: string | null 
             : p
         );
       });
-      toast.success("Flag marked resolved");
+      showIcareSuccessToast("Flag marked resolved");
     },
-    onError: () => toast.error("Could not clear flag"),
+    onError: () => showIcareErrorToast("Could not clear flag"),
   });
 
   const updateInstructionsMutation = useMutation({
@@ -278,9 +282,9 @@ export function useAssistantMedications(opts?: { routePatientId?: string | null 
               }
         );
       });
-      toast.success("Care note updated");
+      showIcareSuccessToast("Care note updated");
     },
-    onError: () => toast.error("Could not update instructions"),
+    onError: () => showIcareErrorToast("Could not update instructions"),
   });
 
   const sendReminderMutation = useMutation({
@@ -320,13 +324,13 @@ export function useAssistantMedications(opts?: { routePatientId?: string | null 
             : p
         );
       });
-      toast.success(
-        payload.channel === "sms"
-          ? "SMS queued (demo — connects when messaging API is live)"
-          : "Push notification queued (demo)"
-      );
+      if (payload.channel === "sms") {
+        showIcareSuccessToast("SMS queued", "Demo — connects when messaging API is live.");
+      } else {
+        showIcareSuccessToast("Push notification queued", "(demo)");
+      }
     },
-    onError: () => toast.error("Could not queue reminder"),
+    onError: () => showIcareErrorToast("Could not queue reminder"),
   });
 
   const escalateToDoctorMutation = useMutation({
@@ -358,9 +362,9 @@ export function useAssistantMedications(opts?: { routePatientId?: string | null 
           p.id === payload.patientId ? { ...p, escalations: [escalation, ...p.escalations] } : p
         );
       });
-      toast.success("Doctor escalation queued");
+      showIcareSuccessToast("Doctor escalation queued");
     },
-    onError: () => toast.error("Could not queue escalation"),
+    onError: () => showIcareErrorToast("Could not queue escalation"),
   });
 
   const dismissInsightMutation = useMutation({
@@ -380,7 +384,7 @@ export function useAssistantMedications(opts?: { routePatientId?: string | null 
             : p
         );
       });
-      toast.message("Insight dismissed");
+      showIcareToast({ title: "Insight dismissed" });
     },
   });
 

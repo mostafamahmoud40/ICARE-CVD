@@ -54,9 +54,14 @@ import { MedicationReminderDialog } from "./MedicationReminderDialog";
 import { EditMedicationInstructionsDialog } from "./EditMedicationInstructionsDialog";
 import { EscalateMedicationDialog } from "./EscalateMedicationDialog";
 
-export function AssistantMedicationsPatientDetail() {
+type AssistantMedicationsPatientDetailProps = {
+  /** Resolved in `page.tsx` via `await params` (Next.js 15+). */
+  patientId?: string
+}
+
+export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRoute }: AssistantMedicationsPatientDetailProps = {}) {
   const params = useParams();
-  const patientIdParam = params.patientId;
+  const patientIdParam = patientIdFromRoute ?? params.patientId;
   const patientId =
     typeof patientIdParam === "string" ? patientIdParam : Array.isArray(patientIdParam) ? patientIdParam[0] ?? "" : "";
 
