@@ -1,0 +1,81 @@
+--- src/app/(assistant)/assistant-queue/AssistantQueue.tsx
++++ src/app/(assistant)/assistant-queue/AssistantQueue.tsx
+@@ -74,13 +74,13 @@
+ function StatCell({
+   icon: Icon, iconStyle, value, label,
++  valueColor
+ }: { icon: React.ElementType; iconStyle: string; value: number | string; label: string; valueColor?: string }) {
+   return (
+-    <div className="flex flex-col items-center justify-center gap-1 py-2.5 sm:py-3">
+-      <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl shadow-md sm:size-10", iconStyle)}>
+-        <Icon className="size-4 text-white sm:size-5" />
++    <div className="p-4 rounded-2xl border border-[#E8E6E0]/80 bg-[#FBFDFC]/50 space-y-1">
++      <div className="flex items-center justify-between">
++        <p className="text-[11px] font-bold text-muted-foreground">{label}</p>
++        <div className={cn("flex size-7 shrink-0 items-center justify-center rounded-xl shadow-sm", iconStyle)}>
++          <Icon className="size-3.5 text-white" />
++        </div>
+       </div>
+-      <div className="text-[14px] font-bold leading-none text-[#102F27] sm:text-[15px]">{value}</div>
+-      <div className="text-[8px] text-muted-foreground">{label}</div>
++      <div className={cn("text-[24px] font-bold tracking-tight", valueColor || "text-[#1A1F1E]")}>{value}</div>
+     </div>
+   )
+@@ -1445,40 +1445,34 @@
+   return (
+-    <main className="flex h-full flex-1 flex-col overflow-hidden bg-[#F9F8F5]">
++    <div className="flex h-full flex-1 flex-col overflow-hidden bg-white">
+ 
+       {/* ── sticky top: only the pill nav ───────────────────────────── */}
+-      <div className="sticky top-0 z-50 flex shrink-0 items-center justify-between gap-4 border-b border-[#E8E6E0] bg-[#F9F8F5]/95 px-4 py-2.5 backdrop-blur-sm">
++      <div className="z-10 flex flex-wrap items-center justify-between gap-4 border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-6 py-5">
+         <div className="flex items-center gap-3">
+-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#1A5345]">
+-            <UsersIcon className="size-4 text-white" />
++          <div className="flex size-12 items-center justify-center rounded-2xl bg-white shadow-sm border border-[#E8E6E0]/60 overflow-hidden">
++            <UsersIcon className="size-6 text-[#1A5345]" />
+           </div>
+-          <div className="hidden sm:block">
+-            <p className="text-[12px] font-bold text-[#102F27]">Patient Queue</p>
+-            <p className="text-[9px] text-muted-foreground">{new Intl.DateTimeFormat(undefined, { dateStyle: "full" }).format(new Date())}</p>
++          <div>
++            <div className="flex items-center gap-3">
++              <h1 className="text-[20px] font-bold text-[#1A1F1E] tracking-tight">Patient Queue</h1>
++              <span className="hidden items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 sm:flex border border-emerald-200/50">
++                <span className="inline-block size-2 animate-pulse rounded-full bg-emerald-400" />
++                Live Floor
++              </span>
++            </div>
++            <p className="text-[13px] font-medium text-muted-foreground mt-0.5">
++              {new Intl.DateTimeFormat(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" }).format(new Date())}
++            </p>
+           </div>
+         </div>
+-
+-        <span className="hidden items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 sm:flex">
+-          <span className="inline-block size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+-          Live
+-        </span>
+       </div>
+ 
+       {/* ── stats grid ─────────────────────────────────────────────── */}
+-      <div className="shrink-0 border-b border-[#E8E6E0] bg-[#FAFAF8] overflow-x-auto sm:overflow-visible">
+-        <div className="flex min-w-max divide-x divide-[#E8E6E0] sm:grid sm:min-w-0 sm:grid-cols-7">
+-          <StatCell icon={UsersIcon}          iconStyle="bg-[#1A5345]"        value={stats.totalToday}       label="Total today" />
+-          <StatCell icon={PlayCircleIcon}     iconStyle="bg-[#0F3D32]"        value={stats.inConsultation}   label="In consult." />
+-          <StatCell icon={ClockIcon}          iconStyle="bg-amber-600"        value={stats.inWaiting}        label="Waiting" />
+-          <StatCell icon={LogInIcon}          iconStyle="bg-[#C07818]"        value={stats.arrived}          label="Arrived" />
+-          <StatCell icon={CalendarDaysIcon}   iconStyle="bg-[#4F6D64]"        value={stats.scheduled}        label="Scheduled" />
+-          <StatCell icon={CheckCircle2Icon}   iconStyle="bg-[#8A6230]"        value={stats.completed}        label="Completed" />
+-          <StatCell icon={TimerIcon}          iconStyle="bg-[#4F6D64]"        value={`${stats.avgWaitMin}m`} label="Avg wait" />
++      <div className="shrink-0 border-b border-[#E8E6E0]/60 bg-[#FAFAF8] p-6">
++        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
++          <StatCell icon={UsersIcon}          iconStyle="bg-[#1A5345]"        value={stats.totalToday}       label="Total today" valueColor="text-[#1A5345]" />
++          <StatCell icon={PlayCircleIcon}     iconStyle="bg-[#0F3D32]"        value={stats.inConsultation}   label="In consult." />
++          <StatCell icon={ClockIcon}          iconStyle="bg-amber-500"        value={stats.inWaiting}        label="Waiting" valueColor="text-amber-600" />
++          <StatCell icon={LogInIcon}          iconStyle="bg-blue-500"         value={stats.arrived}          label="Arrived" valueColor="text-blue-600" />
++          <StatCell icon={CalendarDaysIcon}   iconStyle="bg-[#4F6D64]"        value={stats.scheduled}        label="Scheduled" />
++          <StatCell icon={CheckCircle2Icon}   iconStyle="bg-[#8A6230]"        value={stats.completed}        label="Completed" />
++          <StatCell icon={TimerIcon}          iconStyle="bg-[#4F6D64]"        value={`${stats.avgWaitMin}m`} label="Avg wait" />
+         </div>
+       </div>
