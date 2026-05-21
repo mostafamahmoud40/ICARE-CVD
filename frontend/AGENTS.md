@@ -202,6 +202,40 @@ The app uses a consistent medical-themed palette. Use these Tailwind values:
 | Emerald success | `bg-emerald-50 text-emerald-700` |
 | Violet AI / new | `bg-violet-50 text-violet-600` |
 
+## Toast / Notification Design
+
+All toast notifications across the app must use a **consistent card-style design** via the global `Toaster` (`@/components/ui/sonner`). Do not use `sonner`'s built-in `richColors`.
+
+### Toast Card Style (applied globally to ALL toast types)
+
+```
+rounded-2xl border border-[#E8E6E0]/80 bg-white px-5 py-4
+shadow-[0_12px_40px_-8px_rgba(26,83,69,0.12)] ring-1 ring-[#1A5345]/5
+w-[min(460px,calc(100vw-2rem))] max-w-[460px]
+flex-row items-start gap-3.5
+```
+
+- **Title:** `text-[14.5px] font-bold tracking-tight text-[#1A1F1E]`
+- **Description:** `text-[13px] font-medium leading-[1.6] text-muted-foreground`
+- **Background:** Always white (`bg-white`) for all variants (success, error, info, warning, loading)
+- **Border:** Always `border-[#E8E6E0]/80`
+
+### Toast Icon Container
+
+All built-in toast icons are rendered inside a circular badge:
+```
+flex size-10 shrink-0 items-center justify-center rounded-full ring-4 mt-0.5
+bg-[#1A5345]/10 text-[#1A5345] ring-[#1A5345]/5
+```
+- Icon size: `size-[18px]` with `strokeWidth={2.5}`
+- **Error variant** uses: `bg-red-50 text-red-600 ring-red-500/10`
+
+### Usage
+
+- Use `toast.success()`, `toast.error()`, `toast.info()`, `toast.warning()`, `toast.loading()` directly — the card style is applied automatically.
+- For custom toasts, use `showIcareToast()` / `showIcareSuccessToast()` / `showIcareErrorToast()` from `@/components/shared/icare-toast`.
+- Do **not** wrap custom toast content in its own card wrapper — render only the inner layout (icon + text) because the `Toaster` root already provides the card.
+
 ### Empty States
 
 Center empty state content with:
@@ -209,3 +243,11 @@ Center empty state content with:
 rounded-xl border-2 border-dashed border-[#E5EEEA] bg-white py-8 sm:py-12
 ```
 Icon container: `size-12 sm:size-14 rounded-full bg-[#F5F5F3]`.
+
+## Specific Badge Colors
+
+For maintaining consistency across queue and status indicators, use the following exact Tailwind classes:
+
+- **Walk-in (Visit Type):** `bg-orange-50 text-orange-700 border-orange-200/60`
+- **No Show (Status):** `bg-red-50 text-red-600`
+- **New (Status/Badge):** `bg-violet-50 text-violet-700 border-violet-200/60`

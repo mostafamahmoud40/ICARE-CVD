@@ -1,0 +1,1884 @@
+"use client"
+
+import * as React from "react"
+import Image from "next/image"
+import {
+  ArrowRightLeftIcon,
+  BanIcon,
+  BriefcaseIcon,
+  CalendarDaysIcon,
+  CalendarRangeIcon,
+  CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronsUpDownIcon,
+  ClockIcon,
+  CoffeeIcon,
+  CopyIcon,
+  Loader2Icon,
+  PauseIcon,
+  PencilLineIcon,
+  PlayIcon,
+  PrinterIcon,
+  SaveIcon,
+  Table2Icon,
+  Trash2Icon,
+  UsersIcon,
+  XCircleIcon,
+} from "lucide-react"
+import { toast } from "sonner"
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameMonth,
+  isToday,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from "date-fns"
+
+import { ScheduleTable } from "@/app/(doctor)/doctor-schedule/ScheduleTable"
+import { timeToMinutes } from "@/app/(doctor)/doctor-schedule/doctorSchedule.schema"
+import { generateTimeBlockId } from "@/app/(doctor)/doctor-schedule/doctorSchedule.utils"
+import {
+  WEEKDAY_ORDER,
+  type BlockedDate,
+  type DayAvailability,
+  type DoctorSchedulePayload,
+  type TimeBlock,
+  type WeekdayId,
+} from "@/app/(doctor)/doctor-schedule/doctorSchedule.types"
+import { MOCK_DOCTORS } from "@/app/(assistant)/assistant-doctors/assistantDoctors.mock"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+
+import type { AssistantDoctorScheduleBundle } from "./assistantDoctorSchedule.store"
+import { computeAvailableSlotsForDay } from "./assistantDoctorSchedule.slots"
+import type { DemoBooking } from "./assistantDoctorSchedule.types"
+import { useAssistantDoctorSchedule } from "./useAssistantDoctorSchedule"
+
+function replaceDay(days: DayAvailability[], next: DayAvailability): DayAvailability[] {
+  return days.map((d) => (d.weekday === next.weekday ? next : d))
+}
+
+function timeToMins(time: string): number {
+  const [h, m] = time.split(":").map(Number)
+  return h * 60 + m
+}
+
+function AssistantDayTimeline({
+  periods,
+  blocks,
+  bookings,
+}: {
+  periods: TimeBlock[]
+  blocks: TimeBlock[]
+  bookings: DemoBooking[]
+}) {
+  const totalMins = 24 * 60
+
+  return (
+    <div className="w-full select-none pt-1 pb-1">
+      <div className="relative h-10 w-full rounded-xl bg-[#F4F3ED] border border-[#E8E6E0] overflow-hidden shadow-inner">
+        {[4, 8, 12, 16, 20].map((h) => (
+          <div
+            key={h}
+            className="absolute inset-y-0 border-l border-[#E8E6E0]/40 z-0"
+            style={{ left: `${(h / 24) * 100}%` }}
+          />
+        ))}
+
+        {periods.map((p) => {
+          const start = timeToMins(p.startTime)
+          const end = timeToMins(p.endTime)
+          if (start >= end) return null
+          const left = (start / totalMins) * 100
+          const width = ((end - start) / totalMins) * 100
+          const periodBookings = bookings.filter((bk) => {
+            const bkStart = timeToMins(bk.startTime)
+            const bkEnd = timeToMins(bk.endTime)
+            return bkStart >= start && bkEnd <= end
+          })
+          return (
+            <Popover key={p.id}>
+              <PopoverTrigger asChild>
+                <div
+                  className="absolute inset-y-0 bg-[#1A5345] z-10 flex flex-col items-center justify-center overflow-hidden shadow-sm border-x border-[#133F34]/50 transition-all hover:brightness-110 cursor-pointer"
+                  style={{ left: `${left}%`, width: `${width}%` }}
+                  title={`Working: ${p.startTime} - ${p.endTime}`}
+                >
+                  {width > 8 && (
+                    <span className="text-[10px] font-bold text-white whitespace-nowrap px-1 drop-shadow-sm">
+                      {p.startTime} - {p.endTime}
+                    </span>
+                  )}
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 rounded-xl border-[#E8E6E0] p-0 shadow-xl" align="center" side="top" sideOffset={6}>
+                <div className="h-1 bg-[#1A5345] rounded-t-xl" />
+                <div className="flex items-center justify-between px-4 py-3 border-b border-[#E8E6E0]/50">
+                  <div>
+                    <p className="font-bold text-sm text-[#1A1F1E]">Working Period</p>
+                    <p className="text-xs text-muted-foreground">{p.startTime} – {p.endTime}</p>
+                  </div>
+                  <Badge className="rounded-md bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">Active</Badge>
+                </div>
+                {periodBookings.length > 0 ? (
+                  <div className="p-3 space-y-2 max-h-64 overflow-y-auto">
+                    {periodBookings.map((bk) => (
+                        <div key={bk.id} className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white p-3 shadow-sm hover:shadow-md transition-shadow">
+                          <Avatar className="size-10 border-2 border-[#E8F0EE] shadow-sm shrink-0">
+                            <AvatarImage src={bk.avatarUrl} alt={bk.patientLabel} />
+                            <AvatarFallback className="bg-[#F4F3ED]" />
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-[#1A1F1E] truncate">{bk.patientLabel}</p>
+                            <p className="text-xs text-muted-foreground">{bk.startTime} – {bk.endTime}</p>
+                          </div>
+                        </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="px-4 py-5 text-sm text-muted-foreground text-center">No bookings in this period</p>
+                )}
+              </PopoverContent>
+            </Popover>
+          )
+        })}
+
+        {bookings.map((b) => {
+          const start = timeToMins(b.startTime)
+          const end = timeToMins(b.endTime)
+          if (start >= end) return null
+          const left = (start / totalMins) * 100
+          const width = ((end - start) / totalMins) * 100
+          return (
+            <Popover key={b.id}>
+              <PopoverTrigger asChild>
+                <div
+                  className="absolute inset-y-0 bg-amber-100 z-20 flex flex-col items-center justify-center overflow-hidden shadow-sm border-x border-amber-300/60 transition-all hover:brightness-105 cursor-pointer"
+                  style={{ left: `${left}%`, width: `${width}%`, minWidth: "16px" }}
+                  title={`Booking: ${b.startTime} - ${b.endTime}`}
+                >
+                  {width > 6 && (
+                    <span className="text-[10px] font-bold text-amber-800 whitespace-nowrap px-1 drop-shadow-sm">
+                      {b.patientLabel}
+                    </span>
+                  )}
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 rounded-xl border-[#E8E6E0] p-0 shadow-xl" align="center" side="top" sideOffset={6}>
+                <div className="h-1.5 bg-amber-400 rounded-t-xl" />
+                <div className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="size-12 border-2 border-amber-100 shadow-sm shrink-0">
+                      <AvatarImage src={b.avatarUrl} alt={b.patientLabel} />
+                      <AvatarFallback className="bg-[#F4F3ED]" />
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-[15px] text-[#1A1F1E] truncate">{b.patientLabel}</p>
+                      <p className="text-xs text-muted-foreground">{b.startTime} – {b.endTime}</p>
+                      <Badge className="mt-1.5 rounded-full bg-blue-50 text-blue-700 border-blue-200 text-[10px] font-bold px-2.5 py-0.5">Confirmed</Badge>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" className="h-8 flex-1 rounded-lg border-[#E8E6E0] text-[13px] font-semibold hover:bg-[#FAFAF8]">
+                      Details
+                    </Button>
+                    <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-lg border-[#E8E6E0] text-muted-foreground hover:bg-[#FAFAF8] hover:text-[#1A1F1E]">
+                      <PencilLineIcon className="size-3.5" />
+                    </Button>
+                    <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-lg border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600">
+                      <Trash2Icon className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )
+        })}
+
+        {blocks.map((b) => {
+          const start = timeToMins(b.startTime)
+          const end = timeToMins(b.endTime)
+          if (start >= end) return null
+          const left = (start / totalMins) * 100
+          const width = ((end - start) / totalMins) * 100
+          return (
+            <Popover key={b.id}>
+              <PopoverTrigger asChild>
+                <div
+                  className="absolute inset-y-0 bg-red-50 z-20 flex flex-col items-center justify-center overflow-hidden shadow-sm border-x border-red-200/60 transition-all hover:brightness-105 cursor-pointer"
+                  style={{ left: `${left}%`, width: `${width}%` }}
+                  title={`Break: ${b.startTime} - ${b.endTime}`}
+                >
+                  <div className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,#fca5a5_4px,#fca5a5_8px)]" />
+                  {width > 6 && (
+                    <span className="text-[10px] font-bold text-red-700 relative z-10 whitespace-nowrap px-1 bg-white/90 rounded-sm shadow-sm">
+                      Break
+                    </span>
+                  )}
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 rounded-xl border-[#E8E6E0] p-0 shadow-lg" align="center" side="top" sideOffset={6}>
+                <div className="flex items-center gap-3 p-3">
+                  <Avatar className="size-10 border border-[#E8E6E0]">
+                    <AvatarFallback className="bg-red-50 text-red-500">
+                      <CoffeeIcon className="size-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-[#1A1F1E] truncate">Break</p>
+                    <p className="text-xs text-muted-foreground">{b.startTime} – {b.endTime}</p>
+                  </div>
+                </div>
+                <div className="border-t border-[#E8E6E0]/50 px-3 py-2 flex items-center justify-between">
+                  <Badge className="rounded-md bg-red-50 text-red-600 border-red-200 text-[10px] font-bold">Blocked</Badge>
+                  <span className="text-[10px] text-muted-foreground">Block ID: {b.id.slice(-4)}</span>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )
+        })}
+      </div>
+
+      <div className="relative w-full h-4 mt-1.5">
+        <span className="absolute left-0 text-[10px] font-medium text-muted-foreground">12 AM</span>
+        <span className="absolute left-[16.66%] -translate-x-1/2 text-[10px] font-medium text-muted-foreground">
+          4 AM
+        </span>
+        <span className="absolute left-[33.33%] -translate-x-1/2 text-[10px] font-medium text-muted-foreground">
+          8 AM
+        </span>
+        <span className="absolute left-[50%] -translate-x-1/2 text-[10px] font-medium text-muted-foreground">
+          12 PM
+        </span>
+        <span className="absolute left-[66.66%] -translate-x-1/2 text-[10px] font-medium text-muted-foreground">
+          4 PM
+        </span>
+        <span className="absolute left-[83.33%] -translate-x-1/2 text-[10px] font-medium text-muted-foreground">
+          8 PM
+        </span>
+        <span className="absolute right-0 text-[10px] font-medium text-muted-foreground">
+          11:59 PM
+        </span>
+      </div>
+    </div>
+  )
+}
+
+type ViewMode = "week" | "day" | "blocked" | "calendar"
+
+function buildScheduleExportSummary(
+  schedule: DoctorSchedulePayload,
+  doctorName: string,
+  demoBookingsCount: number,
+  pausedCount: number
+): string {
+  const lines: string[] = []
+  lines.push(`ICARE-CVD — Doctor schedule (demo export)`)
+  lines.push(`Doctor: ${doctorName}`)
+  lines.push(
+    `Slot length: ${schedule.slotDurationMinutes} min · Buffer: ${schedule.bufferBetweenSlotsMinutes} min`
+  )
+  lines.push(`Demo bookings (memory): ${demoBookingsCount} · Paused sessions: ${pausedCount}`)
+  lines.push("")
+  lines.push("Weekly pattern (by weekday)")
+  for (const day of schedule.days) {
+    if (!day.enabled) {
+      lines.push(`- ${day.label}: closed`)
+      continue
+    }
+    const periods = day.periods.map((p) => `${p.startTime}–${p.endTime}`).join(", ") || "none"
+    const blocks =
+      day.unavailableBlocks.map((b) => `${b.startTime}–${b.endTime}`).join(", ") || "none"
+    lines.push(`- ${day.label}: ${periods} · breaks: ${blocks}`)
+  }
+  lines.push("")
+  lines.push("Blocked calendar dates")
+  if (schedule.blockedDates.length === 0) {
+    lines.push("- (none)")
+  } else {
+    for (const b of schedule.blockedDates) {
+      lines.push(`- ${b.date}${b.reason ? ` — ${b.reason}` : ""}`)
+    }
+  }
+  return lines.join("\n")
+}
+
+function ScheduleMonthCalendar({
+  monthCursor,
+  onMonthChange,
+  blockedDates,
+}: {
+  monthCursor: Date
+  onMonthChange: (next: Date) => void
+  blockedDates: BlockedDate[]
+}) {
+  const calendarDays = React.useMemo(() => {
+    const start = startOfWeek(startOfMonth(monthCursor), { weekStartsOn: 0 })
+    const end = endOfWeek(endOfMonth(monthCursor), { weekStartsOn: 0 })
+    return eachDayOfInterval({ start, end })
+  }, [monthCursor])
+
+  const blockedByIso = React.useMemo(() => {
+    const map = new Map<string, BlockedDate>()
+    for (const b of blockedDates) {
+      map.set(b.date, b)
+    }
+    return map
+  }, [blockedDates])
+
+  return (
+    <TooltipProvider delay={200}>
+      <div className="flex flex-col overflow-hidden rounded-3xl border border-[#E8E6E0]/80 bg-white shadow-[0_8px_40px_rgba(0,0,0,0.02)] animate-in zoom-in-95 duration-500">
+        <div className="flex flex-col gap-3 border-b border-[#E8E6E0]/60 bg-[#FAFAF8]/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="flex items-center gap-1 rounded-xl border border-[#E8E6E0] bg-white p-0.5 shadow-sm">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-lg sm:size-9"
+              aria-label="Previous month"
+              onClick={() => onMonthChange(startOfMonth(subMonths(monthCursor, 1)))}
+            >
+              <ChevronLeftIcon className="size-4" />
+            </Button>
+            <span className="min-w-[9.5rem] px-2 text-center font-serif text-[13px] font-bold text-[#1A1F1E] sm:min-w-[11rem] sm:text-[14px]">
+              {format(monthCursor, "MMMM yyyy")}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-lg sm:size-9"
+              aria-label="Next month"
+              onClick={() => onMonthChange(startOfMonth(addMonths(monthCursor, 1)))}
+            >
+              <ChevronRightIcon className="size-4" />
+            </Button>
+          </div>
+          <p className="text-[11px] font-medium text-muted-foreground sm:text-right sm:text-[12px]">
+            Sun–Sat grid · blocked days match the Blocked dates list
+          </p>
+        </div>
+
+        <div className="grid grid-cols-7 border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/50">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+            <div
+              key={day}
+              className="border-r border-[#E8E6E0]/40 px-2 py-3 text-center text-[11px] font-bold uppercase tracking-widest text-muted-foreground last:border-r-0 sm:px-4 sm:text-[12px]"
+            >
+              {day}
+            </div>
+          ))}
+        </div>
+
+        <div className="grid min-h-[480px] auto-rows-fr grid-cols-7 sm:min-h-[560px]">
+          {calendarDays.map((day, idx) => {
+            const iso = format(day, "yyyy-MM-dd")
+            const inMonth = isSameMonth(day, monthCursor)
+            const blocked = blockedByIso.get(iso)
+            const isTodayDay = isToday(day)
+
+            const cellBody = (
+              <>
+                <div className="mb-2 flex items-center justify-between gap-1">
+                  <span
+                    className={cn(
+                      "flex size-7 shrink-0 items-center justify-center rounded-full text-[13px] font-bold",
+                      isTodayDay ? "bg-[#1A5345] text-white" : "text-[#102F27]"
+                    )}
+                  >
+                    {format(day, "d")}
+                  </span>
+                  {blocked && inMonth ? (
+                    <span className="shrink-0 rounded-md bg-[#CC5533]/12 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#A34429] sm:text-[10px]">
+                      Off
+                    </span>
+                  ) : null}
+                </div>
+
+                {inMonth && blocked ? (
+                  <div className="mt-auto flex flex-1 flex-col justify-end gap-1">
+                    <div className="flex flex-wrap content-start gap-1">
+                      <Badge
+                        variant="outline"
+                        className="rounded-lg border-[#CC5533]/30 bg-white px-2 py-0.5 text-[10px] font-bold text-[#A34429]"
+                      >
+                        Blocked
+                      </Badge>
+                    </div>
+                    {blocked.reason ? (
+                      <p className="line-clamp-3 text-[11px] font-medium leading-snug text-muted-foreground">
+                        {blocked.reason}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] font-medium text-muted-foreground">No sessions</p>
+                    )}
+                  </div>
+                ) : inMonth && !blocked ? (
+                  <div className="mt-auto flex flex-1 flex-col justify-end">
+                    <p className="text-[11px] font-medium text-muted-foreground/60">Available</p>
+                  </div>
+                ) : null}
+              </>
+            )
+
+            return (
+              <div
+                key={iso}
+                className={cn(
+                  "flex min-h-[100px] flex-col border-b border-r border-[#E8E6E0]/40 transition-colors sm:min-h-[120px]",
+                  !inMonth && "bg-[#F9F8F5]/30 opacity-40",
+                  inMonth && "hover:bg-[#1A5345]/[0.02]",
+                  idx % 7 === 6 && "border-r-0",
+                  blocked && inMonth && "bg-[#CC5533]/[0.04]"
+                )}
+              >
+                {blocked && inMonth ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex flex-1 flex-col p-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {cellBody}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[260px]">
+                      <p className="text-[12px] font-semibold text-[#1A1F1E]">Blocked day</p>
+                      {blocked.reason ? (
+                        <p className="text-[11px] text-muted-foreground">{blocked.reason}</p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">No reason provided.</p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <div className="flex flex-1 flex-col p-2">{cellBody}</div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="border-t border-[#E8E6E0]/50 bg-[#F9F8F5]/50 px-4 py-3 text-[11px] text-muted-foreground sm:text-[12px]">
+          Weekly working hours repeat every week (demo). Warm tint = blocked; solid green circle =
+          today.
+        </div>
+      </div>
+    </TooltipProvider>
+  )
+}
+
+function DailySessionsPanel({
+  days,
+  pausedPeriodIds,
+  onTogglePause,
+  onDayChange,
+  scheduleDraft,
+  demoBookings,
+  onMoveDemoBooking,
+  isMovingDemoBooking,
+  onCancelDemoBooking,
+  isCancellingDemoBooking,
+  cancellingDemoBookingId,
+  doctorArrivalByWeekday,
+  onSetDoctorArrival,
+  isSettingArrival,
+  disabled,
+}: {
+  days: DayAvailability[]
+  pausedPeriodIds: string[]
+  onTogglePause: (periodId: string) => void
+  onDayChange: (next: DayAvailability) => void
+  scheduleDraft: DoctorSchedulePayload
+  demoBookings: DemoBooking[]
+  onMoveDemoBooking: (bookingId: string, startTime: string, endTime: string) => Promise<unknown>
+  isMovingDemoBooking: boolean
+  onCancelDemoBooking: (bookingId: string) => void
+  isCancellingDemoBooking: boolean
+  cancellingDemoBookingId: string | null
+  doctorArrivalByWeekday: Partial<Record<WeekdayId, string | null>>
+  onSetDoctorArrival: (weekday: WeekdayId, arrivalTime: string | null) => void
+  isSettingArrival: boolean
+  disabled: boolean
+}) {
+  const [weekday, setWeekday] = React.useState<WeekdayId>("monday")
+  const day = days.find((d) => d.weekday === weekday)
+  const dayBookings = React.useMemo(
+    () => demoBookings.filter((b) => b.weekday === weekday),
+    [demoBookings, weekday]
+  )
+
+  const [moveBookingOpenId, setMoveBookingOpenId] = React.useState<string | null>(null)
+
+  const [editingBlock, setEditingBlock] = React.useState<TimeBlock | null>(null)
+  const [editStart, setEditStart] = React.useState("")
+  const [editEnd, setEditEnd] = React.useState("")
+  const [editError, setEditError] = React.useState<string | null>(null)
+
+  // Local draft of the arrival time input before confirming
+  const currentArrival = doctorArrivalByWeekday[weekday] ?? null
+  const [arrivalDraft, setArrivalDraft] = React.useState(currentArrival ?? "")
+
+  // Sync draft when switching weekdays
+  React.useEffect(() => {
+    setArrivalDraft(doctorArrivalByWeekday[weekday] ?? "")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekday])
+
+  const handleApplyArrival = () => {
+    const hm = /^\d{2}:\d{2}$/
+    const val = arrivalDraft.trim().slice(0, 5)
+    if (val === "") {
+      onSetDoctorArrival(weekday, null)
+      return
+    }
+    if (!hm.test(val)) {
+      toast.error("Invalid time", { description: "Use HH:mm (24h format)." })
+      return
+    }
+    onSetDoctorArrival(weekday, val)
+  }
+
+  const handleClearArrival = () => {
+    setArrivalDraft("")
+    onSetDoctorArrival(weekday, null)
+  }
+
+  const openBlockEditor = (b: TimeBlock) => {
+    setEditStart(b.startTime)
+    setEditEnd(b.endTime)
+    setEditError(null)
+    setEditingBlock(b)
+  }
+
+  const closeBlockEditor = () => {
+    setEditingBlock(null)
+    setEditError(null)
+  }
+
+  const handleRemoveUnavailableBlock = (blockId: string) => {
+    if (!day) return
+    onDayChange({
+      ...day,
+      unavailableBlocks: day.unavailableBlocks.filter((b) => b.id !== blockId),
+    })
+  }
+
+  const handleApplyBlockEdit = () => {
+    if (!day || !editingBlock) return
+    const norm = (s: string) => (s.length >= 5 ? s.slice(0, 5) : s)
+    const start = norm(editStart)
+    const end = norm(editEnd)
+    const hm = /^\d{2}:\d{2}$/
+    if (!hm.test(start) || !hm.test(end)) {
+      setEditError("Use HH:mm (24h).")
+      return
+    }
+    if (timeToMinutes(start) >= timeToMinutes(end)) {
+      setEditError("End time must be after start.")
+      return
+    }
+    onDayChange({
+      ...day,
+      unavailableBlocks: day.unavailableBlocks.map((b) =>
+        b.id === editingBlock.id ? { ...b, startTime: start, endTime: end } : b
+      ),
+    })
+    closeBlockEditor()
+  }
+
+  const moveSlots = React.useMemo(() => {
+    if (!day || !moveBookingOpenId) return []
+    const bk = dayBookings.find((b) => b.id === moveBookingOpenId)
+    if (!bk) return []
+    const slots = computeAvailableSlotsForDay({
+      day,
+      slotDurationMinutes: scheduleDraft.slotDurationMinutes,
+      bufferBetweenSlotsMinutes: scheduleDraft.bufferBetweenSlotsMinutes,
+      pausedPeriodIds,
+      demoBookings,
+      weekday: day.weekday,
+      excludeBookingId: moveBookingOpenId,
+      doctorArrivalTime: doctorArrivalByWeekday[day.weekday],
+    })
+    return slots.filter((s) => !(s.startTime === bk.startTime && s.endTime === bk.endTime))
+  }, [
+    day,
+    dayBookings,
+    demoBookings,
+    doctorArrivalByWeekday,
+    moveBookingOpenId,
+    pausedPeriodIds,
+    scheduleDraft.bufferBetweenSlotsMinutes,
+    scheduleDraft.slotDurationMinutes,
+  ])
+
+  const handleConfirmMove = async (bookingId: string, startTime: string, endTime: string) => {
+    await onMoveDemoBooking(bookingId, startTime, endTime)
+    setMoveBookingOpenId(null)
+  }
+
+  return (
+    <div className="space-y-4">
+      <Dialog
+        open={editingBlock !== null}
+        onOpenChange={(open) => {
+          if (!open) closeBlockEditor()
+        }}
+      >
+        <DialogContent className="rounded-xl sm:max-w-md" showCloseButton>
+          <DialogHeader>
+            <DialogTitle className="font-serif">Edit break window</DialogTitle>
+            <DialogDescription>
+              Lunch and meetings block bookings inside working hours. This is not moving a patient
+              appointment; use Move to free slot on a booked row for that.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="block-edit-start" className="text-xs font-semibold">
+                Start
+              </Label>
+              <Input
+                id="block-edit-start"
+                type="time"
+                className="h-10 rounded-xl"
+                value={editStart}
+                onChange={(e) => {
+                  setEditStart(e.target.value)
+                  setEditError(null)
+                }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="block-edit-end" className="text-xs font-semibold">
+                End
+              </Label>
+              <Input
+                id="block-edit-end"
+                type="time"
+                className="h-10 rounded-xl"
+                value={editEnd}
+                onChange={(e) => {
+                  setEditEnd(e.target.value)
+                  setEditError(null)
+                }}
+              />
+            </div>
+          </div>
+          {editError ? <p className="text-sm text-destructive">{editError}</p> : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-lg"
+              onClick={closeBlockEditor}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="rounded-lg bg-[#1A5345] font-bold text-white hover:bg-[#133F34]"
+              onClick={handleApplyBlockEdit}
+            >
+              Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Day
+            </Label>
+            <Select value={weekday} onValueChange={(v) => setWeekday(v as WeekdayId)}>
+              <SelectTrigger className="h-10 w-full max-w-xs rounded-xl border-[#E8E6E0] bg-white sm:w-[220px]">
+                <SelectValue placeholder="Pick a day" />
+              </SelectTrigger>
+              <SelectContent>
+                {WEEKDAY_ORDER.map((w) => {
+                  const d = days.find((x) => x.weekday === w)
+                  return (
+                    <SelectItem key={w} value={w}>
+                      {d?.label ?? w}
+                      {d?.enabled ? "" : " (off)"}
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+          {day ? (
+            <Badge
+              variant="secondary"
+              className={cn(
+                "w-fit rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide",
+                day.enabled
+                  ? "border-[#1A5345]/20 bg-[#E8F0EE] text-[#1A5345]"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              {day.enabled ? "Clinic open" : "Day off"}
+            </Badge>
+          ) : null}
+        </div>
+
+        {/* ── Doctor arrival time control ── */}
+        <div
+          className={cn(
+            "flex flex-wrap items-end gap-3 rounded-xl border px-4 py-3 transition-colors",
+            currentArrival
+              ? "border-amber-300/70 bg-amber-50/60"
+              : "border-[#E8E6E0]/70 bg-[#FAFAF8]/60"
+          )}
+        >
+          <div className="flex-1 space-y-1">
+            <div className="flex items-center gap-1.5">
+              <ClockIcon
+                className={cn(
+                  "size-3.5",
+                  currentArrival ? "text-amber-600" : "text-muted-foreground"
+                )}
+                aria-hidden
+              />
+              <Label
+                htmlFor={`arrival-${weekday}`}
+                className={cn(
+                  "text-xs font-bold uppercase tracking-wide",
+                  currentArrival ? "text-amber-700" : "text-muted-foreground"
+                )}
+              >
+                Doctor arrival time
+              </Label>
+              {currentArrival ? (
+                <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                  Delayed — slots from {currentArrival}
+                </span>
+              ) : (
+                <span className="text-[11px] text-muted-foreground/70">
+                  Set to push free slots when the doctor is running late
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Existing bookings stay as-is. Only new (free) available slots are shifted.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              id={`arrival-${weekday}`}
+              type="time"
+              className={cn(
+                "h-9 w-36 rounded-xl text-sm",
+                currentArrival &&
+                  "border-amber-300 bg-amber-50 text-amber-800 focus-visible:ring-amber-400"
+              )}
+              value={arrivalDraft}
+              onChange={(e) => setArrivalDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleApplyArrival()
+              }}
+              disabled={isSettingArrival || disabled}
+            />
+            <Button
+              type="button"
+              size="sm"
+              className="h-9 rounded-lg bg-[#1A5345] px-3 font-bold text-white hover:bg-[#133F34]"
+              disabled={isSettingArrival || disabled}
+              onClick={handleApplyArrival}
+            >
+              {isSettingArrival ? (
+                <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                "Set"
+              )}
+            </Button>
+            {currentArrival ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-9 rounded-lg border-amber-300 px-2 text-amber-700 hover:bg-amber-50"
+                disabled={isSettingArrival || disabled}
+                onClick={handleClearArrival}
+              >
+                <XCircleIcon className="size-3.5" aria-hidden />
+                <span className="sr-only">Clear arrival</span>
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {!day?.enabled ? (
+        <p className="rounded-xl border border-dashed border-[#E8E6E0] bg-[#FAFAF8] px-4 py-8 text-center text-sm text-muted-foreground">
+          This weekday is turned off in the weekly table. Enable it under “Weekly table” to manage
+          sessions here.
+        </p>
+      ) : (
+        <div className="space-y-5">
+          <AssistantDayTimeline
+            periods={day.periods}
+            blocks={day.unavailableBlocks}
+            bookings={dayBookings}
+          />
+
+          <div className="flex items-center gap-2 text-[13px] font-semibold text-[#1A1F1E]">
+            <BriefcaseIcon className="size-4 text-[#1A5345]" />
+            Working sessions
+            <span className="ml-1 rounded-full bg-[#E8F0EE] px-2 py-0.5 text-[10px] font-bold text-[#1A5345]">
+              {day.periods.length}
+            </span>
+          </div>
+          {day.periods.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No working periods for this day.</p>
+          ) : (
+            <ul className="space-y-2">
+              {day.periods.map((p) => {
+                const paused = pausedPeriodIds.includes(p.id)
+                return (
+                  <li
+                    key={p.id}
+                    className={cn(
+                      "flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 shadow-sm",
+                      paused
+                        ? "border-[#CC5533]/35 bg-[#CC5533]/[0.06]"
+                        : "border-[#E8E6E0]/80 bg-white"
+                    )}
+                  >
+                    <div>
+                      <p className="font-serif text-[15px] font-bold text-[#1A1F1E]">
+                        {p.startTime} – {p.endTime}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Session ID: {p.id}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        {paused ? "Paused" : "Active"}
+                      </span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={paused ? "outline" : "secondary"}
+                        className={cn(
+                          "h-8 gap-1.5 rounded-lg px-3 text-xs font-bold",
+                          paused
+                            ? "border-[#1A5345]/25 text-[#1A5345]"
+                            : "bg-[#CC5533]/12 text-[#A34429] hover:bg-[#CC5533]/18"
+                        )}
+                        disabled={disabled}
+                        onClick={() => onTogglePause(p.id)}
+                      >
+                        {paused ? (
+                          <>
+                            <PlayIcon className="size-3.5" aria-hidden />
+                            Resume
+                          </>
+                        ) : (
+                          <>
+                            <PauseIcon className="size-3.5" aria-hidden />
+                            Pause
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+
+          {dayBookings.length > 0 ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[13px] font-semibold text-[#1A1F1E]">
+                <UsersIcon className="size-4 text-amber-600" />
+                Booked slots
+                <span className="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                  {dayBookings.length}
+                </span>
+              </div>
+              <ul className="space-y-2">
+                {dayBookings.map((bk) => (
+                  <li
+                    key={bk.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E8E6E0]/80 bg-white px-4 py-3 shadow-sm"
+                  >
+                    <div>
+                      <p className="font-serif text-[15px] font-bold text-[#1A1F1E]">
+                        {bk.startTime} – {bk.endTime}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{bk.patientLabel}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={isMovingDemoBooking || isCancellingDemoBooking}
+                        className="h-8 gap-1.5 rounded-lg border-[#E8E6E0] px-3 text-xs font-bold text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          setMoveBookingOpenId(null)
+                          onCancelDemoBooking(bk.id)
+                        }}
+                      >
+                        {isCancellingDemoBooking && cancellingDemoBookingId === bk.id ? (
+                          <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
+                        ) : (
+                          <Trash2Icon className="size-3.5" aria-hidden />
+                        )}
+                        Cancel booking
+                      </Button>
+                      <Popover
+                        open={moveBookingOpenId === bk.id}
+                        onOpenChange={(open) => setMoveBookingOpenId(open ? bk.id : null)}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={isMovingDemoBooking || isCancellingDemoBooking}
+                            className="h-8 gap-1.5 rounded-lg px-3 text-xs font-bold bg-[#CC5533]/12 text-[#A34429] hover:bg-[#CC5533]/18"
+                          >
+                            {isMovingDemoBooking && moveBookingOpenId === bk.id ? (
+                              <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
+                            ) : (
+                              <ArrowRightLeftIcon className="size-3.5" aria-hidden />
+                            )}
+                            Move to free slot
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-[min(100vw-2rem,360px)] max-w-md rounded-xl border-[#E8E6E0] p-0"
+                          align="end"
+                        >
+                          <Command>
+                            <CommandInput placeholder="Search available times…" className="h-10" />
+                            <CommandList className="max-h-[min(280px,40vh)]">
+                              <CommandEmpty className="py-6 text-sm text-muted-foreground">
+                                No free slots. Try another day, resume a paused session, or shorten
+                                breaks in the weekly table.
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {moveSlots.map((slot) => (
+                                  <CommandItem
+                                    key={slot.key}
+                                    value={`${slot.startTime} ${slot.endTime} available`}
+                                    disabled={isMovingDemoBooking || isCancellingDemoBooking}
+                                    onSelect={() =>
+                                      void handleConfirmMove(bk.id, slot.startTime, slot.endTime)
+                                    }
+                                    className="cursor-pointer rounded-lg font-medium data-[selected=true]:bg-[#E8F0EE]/70"
+                                  >
+                                    {slot.startTime} – {slot.endTime}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {day.unavailableBlocks.length > 0 ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[13px] font-semibold text-[#1A1F1E]">
+                <CoffeeIcon className="size-4 text-red-500" />
+                Breaks
+                <span className="ml-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">
+                  {day.unavailableBlocks.length}
+                </span>
+              </div>
+              <ul className="space-y-2">
+                {day.unavailableBlocks.map((b) => (
+                  <li
+                    key={b.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-[#E8E6E0] bg-[#F9F8F5] px-4 py-3 shadow-sm"
+                  >
+                    <div>
+                      <p className="font-serif text-[15px] font-bold text-[#1A1F1E]">
+                        {b.startTime} – {b.endTime}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Not bookable inside working hours
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="h-8 gap-1.5 rounded-lg px-3 text-xs font-bold bg-[#CC5533]/12 text-[#A34429] hover:bg-[#CC5533]/18"
+                        onClick={() => openBlockEditor(b)}
+                      >
+                        <PencilLineIcon className="size-3.5" aria-hidden />
+                        Edit break
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1.5 rounded-lg border-[#E8E6E0] px-3 text-xs font-bold text-destructive hover:bg-destructive/10"
+                        onClick={() => handleRemoveUnavailableBlock(b.id)}
+                      >
+                        <Trash2Icon className="size-3.5" aria-hidden />
+                        Remove
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function doctorSearchKeywords(d: (typeof MOCK_DOCTORS)[number]) {
+  return [d.name, d.specialty, d.room, ...(d.tags ?? [])].filter(Boolean).join(" ")
+}
+
+function DoctorScheduleDoctorPicker({
+  doctorId,
+  onDoctorIdChange,
+}: {
+  doctorId: string
+  onDoctorIdChange: (id: string) => void
+}) {
+  const [open, setOpen] = React.useState(false)
+  const selected = MOCK_DOCTORS.find((d) => d.id === doctorId)
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          id="doctor-select"
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          aria-haspopup="listbox"
+          className="h-auto min-h-12 w-full max-w-md justify-between rounded-xl border-[#E8E6E0] bg-white px-2 py-2 font-normal hover:bg-[#FAFAF8]"
+        >
+          <div className="flex min-w-0 flex-1 items-center gap-3 text-left">
+            {selected ? (
+              <>
+                <div className="relative size-10 shrink-0 overflow-hidden rounded-xl border border-[#E8E6E0]/80 bg-white shadow-sm">
+                  {selected.avatarUrl ? (
+                    <Image
+                      src={selected.avatarUrl}
+                      alt=""
+                      width={40}
+                      height={40}
+                      unoptimized
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex size-full items-center justify-center bg-muted text-[10px] font-bold text-muted-foreground">
+                      {selected.name.slice(0, 2)}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold leading-tight text-[#1A1F1E]">
+                    {selected.name}
+                  </p>
+                  <p className="truncate text-[12px] text-muted-foreground">{selected.specialty}</p>
+                </div>
+              </>
+            ) : (
+              <span className="text-muted-foreground">Choose doctor</span>
+            )}
+          </div>
+          <ChevronsUpDownIcon className="ml-2 size-4 shrink-0 opacity-50" aria-hidden />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] max-w-md rounded-xl border-[#E8E6E0] p-0"
+        align="start"
+      >
+        <Command>
+          <CommandInput placeholder="Search by name, specialty, room…" className="h-10" />
+          <CommandList className="max-h-[min(320px,48vh)]">
+            <CommandEmpty className="py-6 text-sm text-muted-foreground">
+              No doctor matches.
+            </CommandEmpty>
+            <CommandGroup>
+              {MOCK_DOCTORS.map((d) => (
+                <CommandItem
+                  key={d.id}
+                  value={`${doctorSearchKeywords(d)} ${d.id}`}
+                  onSelect={() => {
+                    onDoctorIdChange(d.id)
+                    setOpen(false)
+                  }}
+                  className="min-h-12 cursor-pointer rounded-xl border border-transparent py-2 pl-2 pr-2 outline-none data-[selected=true]:border-[#1A5345]/12 data-[selected=true]:bg-[#E8F0EE]/70"
+                >
+                  <div className="flex w-full min-w-0 items-center gap-3">
+                    <div className="relative size-10 shrink-0 overflow-hidden rounded-xl border border-[#E8E6E0]/80 bg-white shadow-sm">
+                      {d.avatarUrl ? (
+                        <Image
+                          src={d.avatarUrl}
+                          alt=""
+                          width={40}
+                          height={40}
+                          unoptimized
+                          className="size-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex size-full items-center justify-center bg-muted text-[10px] font-bold text-muted-foreground">
+                          {d.name.slice(0, 2)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="truncate font-semibold leading-tight text-[#1A1F1E]">
+                        {d.name}
+                      </p>
+                      <p className="truncate text-[12px] text-muted-foreground">{d.specialty}</p>
+                    </div>
+                    <CheckIcon
+                      className={cn(
+                        "ml-auto size-4 shrink-0 text-[#1A5345]",
+                        d.id !== doctorId && "invisible"
+                      )}
+                      aria-hidden
+                    />
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+type AssistantDoctorScheduleBodyProps = {
+  doctorId: string
+  bundle: AssistantDoctorScheduleBundle
+  saveScheduleAsync: (s: DoctorSchedulePayload) => Promise<unknown>
+  isSaving: boolean
+  togglePeriodPause: (periodId: string) => void
+  isTogglingPause: boolean
+  moveDemoBookingAsync: (args: {
+    bookingId: string
+    startTime: string
+    endTime: string
+    schedule: DoctorSchedulePayload
+  }) => Promise<unknown>
+  isMovingDemoBooking: boolean
+  cancelDemoBooking: (bookingId: string) => void
+  isCancellingDemoBooking: boolean
+  cancellingDemoBookingId: string | null
+  setDoctorArrival: (args: { weekday: WeekdayId; arrivalTime: string | null }) => void
+  isSettingArrival: boolean
+}
+
+function AssistantDoctorScheduleBody({
+  doctorId,
+  bundle,
+  saveScheduleAsync,
+  isSaving,
+  togglePeriodPause,
+  isTogglingPause,
+  moveDemoBookingAsync,
+  isMovingDemoBooking,
+  cancelDemoBooking,
+  isCancellingDemoBooking,
+  cancellingDemoBookingId,
+  setDoctorArrival,
+  isSettingArrival,
+}: AssistantDoctorScheduleBodyProps) {
+  const [view, setView] = React.useState<ViewMode>("week")
+  const [draft, setDraft] = React.useState(() => structuredClone(bundle.schedule))
+  const [calendarMonth, setCalendarMonth] = React.useState(() => new Date())
+  const [exportOpen, setExportOpen] = React.useState(false)
+  const [newBlockedDate, setNewBlockedDate] = React.useState("")
+  const [newBlockedReason, setNewBlockedReason] = React.useState("")
+
+  const doctorName = MOCK_DOCTORS.find((d) => d.id === doctorId)?.name ?? "Doctor"
+
+  const demoBookingCount = bundle.demoBookings.length
+  const pausedCount = bundle.pausedPeriodIds.length
+
+  const exportText = React.useMemo(
+    () => buildScheduleExportSummary(draft, doctorName, demoBookingCount, pausedCount),
+    [draft, doctorName, demoBookingCount, pausedCount]
+  )
+
+  const hasChanges = React.useMemo(
+    () => JSON.stringify(draft) !== JSON.stringify(bundle.schedule),
+    [draft, bundle.schedule]
+  )
+
+  React.useEffect(() => {
+    const order: ViewMode[] = ["week", "day", "blocked", "calendar"]
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const el = e.target as HTMLElement | null
+      if (el?.closest("input, textarea, select, [contenteditable=true]")) return
+      const idx = e.key === "1" ? 0 : e.key === "2" ? 1 : e.key === "3" ? 2 : e.key === "4" ? 3 : -1
+      if (idx >= 0) {
+        e.preventDefault()
+        setView(order[idx]!)
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
+  const handleDayChange = React.useCallback((next: DayAvailability) => {
+    setDraft((prev) => ({ ...prev, days: replaceDay(prev.days, next) }))
+  }, [])
+
+  const handleNumeric = (
+    field: "slotDurationMinutes" | "bufferBetweenSlotsMinutes",
+    raw: string
+  ) => {
+    const n = Number(raw)
+    if (!Number.isFinite(n)) return
+    setDraft((prev) => ({ ...prev, [field]: Math.max(0, Math.min(240, Math.round(n))) }))
+  }
+
+  const handleSave = async () => {
+    await saveScheduleAsync(draft)
+  }
+
+  const handleAddBlockedDate = () => {
+    const hm = /^\d{4}-\d{2}-\d{2}$/
+    if (!hm.test(newBlockedDate)) {
+      toast.error("Invalid date", {
+        description: "Use YYYY-MM-DD (pick from the calendar field).",
+      })
+      return
+    }
+    if (draft.blockedDates.some((b) => b.date === newBlockedDate)) {
+      toast.error("Already blocked", { description: "That date is already in the list." })
+      return
+    }
+    const next: BlockedDate = {
+      id: `bd-${generateTimeBlockId()}`,
+      date: newBlockedDate,
+      reason: newBlockedReason.trim() ? newBlockedReason.trim() : undefined,
+    }
+    setDraft((prev) => ({ ...prev, blockedDates: [...prev.blockedDates, next] }))
+    setNewBlockedDate("")
+    setNewBlockedReason("")
+    toast.success("Blocked date added", { description: "Save the schedule to persist (demo)." })
+  }
+
+  const handleRemoveBlockedDate = (id: string) => {
+    setDraft((prev) => ({ ...prev, blockedDates: prev.blockedDates.filter((b) => b.id !== id) }))
+  }
+
+  const handleCopyExport = async () => {
+    try {
+      await navigator.clipboard.writeText(exportText)
+      toast.success("Copied to clipboard")
+    } catch {
+      toast.error("Could not copy", { description: "Select the text manually in the dialog." })
+    }
+  }
+
+  return (
+    <>
+      <TooltipProvider delay={200}>
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#E8E6E0]/70 bg-white p-1.5 shadow-sm">
+          <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant={view === "week" ? "default" : "ghost"}
+                  className={cn(
+                    "rounded-lg px-3 sm:px-4",
+                    view === "week"
+                      ? "bg-[#1A5345] text-white hover:bg-[#133F34]"
+                      : "text-[#1A1F1E]"
+                  )}
+                  onClick={() => setView("week")}
+                >
+                  <Table2Icon className="mr-2 size-4 shrink-0" aria-hidden />
+                  <span className="truncate">Weekly table</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-xs">
+                Edit the weekly grid and slot settings. Shortcut:{" "}
+                <kbd className="pointer-events-none rounded border bg-muted px-1 font-mono text-[10px]">
+                  1
+                </kbd>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant={view === "day" ? "default" : "ghost"}
+                  className={cn(
+                    "rounded-lg px-3 sm:px-4",
+                    view === "day" ? "bg-[#1A5345] text-white hover:bg-[#133F34]" : "text-[#1A1F1E]"
+                  )}
+                  onClick={() => setView("day")}
+                >
+                  <CalendarDaysIcon className="mr-2 size-4 shrink-0" aria-hidden />
+                  <span className="truncate">Daily sessions</span>
+                  <span className="ml-1.5 hidden items-center gap-1 sm:inline-flex">
+                    {demoBookingCount > 0 ? (
+                      <Badge
+                        variant="secondary"
+                        className="h-5 rounded-md px-1.5 text-[10px] font-bold tabular-nums text-[#1A1F1E]"
+                      >
+                        {demoBookingCount} bk
+                      </Badge>
+                    ) : null}
+                    {pausedCount > 0 ? (
+                      <Badge
+                        variant="outline"
+                        className="h-5 rounded-md border-[#CC5533]/35 px-1.5 text-[10px] font-bold tabular-nums text-[#A34429]"
+                      >
+                        {pausedCount} pause
+                      </Badge>
+                    ) : null}
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-xs">
+                Sessions, demo bookings, and breaks for one weekday. Shortcut:{" "}
+                <kbd className="pointer-events-none rounded border bg-muted px-1 font-mono text-[10px]">
+                  2
+                </kbd>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant={view === "blocked" ? "default" : "ghost"}
+                  className={cn(
+                    "rounded-lg px-3 sm:px-4",
+                    view === "blocked"
+                      ? "bg-[#1A5345] text-white hover:bg-[#133F34]"
+                      : "text-[#1A1F1E]"
+                  )}
+                  onClick={() => setView("blocked")}
+                >
+                  <BanIcon className="mr-2 size-4 shrink-0" aria-hidden />
+                  <span className="truncate">Blocked dates</span>
+                  {draft.blockedDates.length > 0 ? (
+                    <Badge
+                      variant="secondary"
+                      className="ml-1.5 h-5 rounded-md px-1.5 text-[10px] font-bold tabular-nums text-[#1A1F1E]"
+                    >
+                      {draft.blockedDates.length}
+                    </Badge>
+                  ) : null}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-xs">
+                Full-day closures (vacation, conference). Shortcut:{" "}
+                <kbd className="pointer-events-none rounded border bg-muted px-1 font-mono text-[10px]">
+                  3
+                </kbd>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant={view === "calendar" ? "default" : "ghost"}
+                  className={cn(
+                    "rounded-lg px-3 sm:px-4",
+                    view === "calendar"
+                      ? "bg-[#1A5345] text-white hover:bg-[#133F34]"
+                      : "text-[#1A1F1E]"
+                  )}
+                  onClick={() => setView("calendar")}
+                >
+                  <CalendarRangeIcon className="mr-2 size-4 shrink-0" aria-hidden />
+                  <span className="truncate">Calendar</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-xs">
+                Month view with blocked dates highlighted. Shortcut:{" "}
+                <kbd className="pointer-events-none rounded border bg-muted px-1 font-mono text-[10px]">
+                  4
+                </kbd>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
+            {hasChanges ? (
+              <Badge className="h-7 gap-1.5 rounded-lg border-amber-200 bg-amber-50 px-2.5 text-[10px] font-bold text-amber-700">
+                <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Unsaved changes
+              </Badge>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 shrink-0 gap-1.5 rounded-lg border-[#E8E6E0] font-bold text-[#1A1F1E]"
+              onClick={() => setExportOpen(true)}
+            >
+              <PrinterIcon className="size-4" aria-hidden />
+              Export
+            </Button>
+          </div>
+        </div>
+      </TooltipProvider>
+
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-hidden rounded-xl" showCloseButton>
+          <DialogHeader>
+            <DialogTitle className="font-serif">Export schedule</DialogTitle>
+            <DialogDescription>
+              Plain-text summary for handoff or documentation (demo). Use Print for a paper copy of
+              the whole page.
+            </DialogDescription>
+          </DialogHeader>
+          <pre className="max-h-[min(50vh,360px)] overflow-auto rounded-lg border border-[#E8E6E0] bg-[#FAFAF8] p-3 font-mono text-[11px] leading-relaxed text-[#1A1F1E]">
+            {exportText}
+          </pre>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-lg"
+              onClick={() => window.print()}
+            >
+              <PrinterIcon className="mr-2 size-4" aria-hidden />
+              Print page
+            </Button>
+            <Button
+              type="button"
+              className="rounded-lg bg-[#1A5345] font-bold text-white hover:bg-[#133F34]"
+              onClick={() => void handleCopyExport()}
+            >
+              <CopyIcon className="mr-2 size-4" aria-hidden />
+              Copy text
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid animate-in fade-in duration-300 grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/70 bg-white p-3 shadow-sm transition-all hover:shadow-md">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
+            <ClockIcon className="size-4 text-[#1A5345]" aria-hidden />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Slot Duration
+            </p>
+            <p className="text-lg font-bold tabular-nums text-[#1A1F1E]">
+              {draft.slotDurationMinutes}
+              <span className="text-xs font-medium text-muted-foreground"> min</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/70 bg-white p-3 shadow-sm transition-all hover:shadow-md">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#EEF5F3]">
+            <Table2Icon className="size-4 text-[#1A5345]" aria-hidden />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Active Days
+            </p>
+            <p className="text-lg font-bold tabular-nums text-[#1A1F1E]">
+              {draft.days.filter((d) => d.enabled).length}
+              <span className="text-xs font-medium text-muted-foreground"> / 7</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/70 bg-white p-3 shadow-sm transition-all hover:shadow-md">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
+            <CheckIcon className="size-4 text-emerald-600" aria-hidden />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Bookings
+            </p>
+            <p className="text-lg font-bold tabular-nums text-[#1A1F1E]">{demoBookingCount}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/70 bg-white p-3 shadow-sm transition-all hover:shadow-md">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-50">
+            <BanIcon className="size-4 text-amber-600" aria-hidden />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Blocked
+            </p>
+            <p className="text-lg font-bold tabular-nums text-[#1A1F1E]">
+              {draft.blockedDates.length}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {view === "week" ? (
+        <div className="space-y-4">
+          <Card className="border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
+            <CardHeader className="border-b border-[#E8E6E0]/50 pb-3">
+              <CardTitle className="font-serif text-base text-[#1A1F1E]">Slot settings</CardTitle>
+              <CardDescription>
+                Same fields as the doctor portal; saved locally for now.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-6 pt-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="slot-len" className="text-xs font-semibold">
+                  Slot length (minutes)
+                </Label>
+                <Input
+                  id="slot-len"
+                  type="number"
+                  min={5}
+                  max={120}
+                  className="h-10 w-32 rounded-xl"
+                  value={draft.slotDurationMinutes}
+                  onChange={(e) => handleNumeric("slotDurationMinutes", e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="buffer" className="text-xs font-semibold">
+                  Buffer between slots (minutes)
+                </Label>
+                <Input
+                  id="buffer"
+                  type="number"
+                  min={0}
+                  max={60}
+                  className="h-10 w-32 rounded-xl"
+                  value={draft.bufferBetweenSlotsMinutes}
+                  onChange={(e) => handleNumeric("bufferBetweenSlotsMinutes", e.target.value)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <ScheduleTable days={draft.days} onDayChange={handleDayChange} />
+        </div>
+      ) : null}
+
+      {view === "blocked" ? (
+        <div className="space-y-4">
+          <Card className="border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
+            <CardHeader className="border-b border-[#E8E6E0]/50 pb-3">
+              <CardTitle className="font-serif text-base text-[#1A1F1E]">
+                Blocked calendar dates
+              </CardTitle>
+              <CardDescription>
+                Whole days marked unavailable (vacation, conference). Save the schedule to persist
+                changes (demo).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <div className="flex flex-wrap items-end gap-3 rounded-xl border border-[#E8E6E0]/70 bg-[#FAFAF8] p-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="blocked-date" className="text-xs font-semibold">
+                    Date
+                  </Label>
+                  <Input
+                    id="blocked-date"
+                    type="date"
+                    className="h-10 w-full min-w-[160px] rounded-xl sm:w-44"
+                    value={newBlockedDate}
+                    onChange={(e) => setNewBlockedDate(e.target.value)}
+                  />
+                </div>
+                <div className="min-w-[200px] flex-1 space-y-1.5">
+                  <Label htmlFor="blocked-reason" className="text-xs font-semibold">
+                    Reason (optional)
+                  </Label>
+                  <Input
+                    id="blocked-reason"
+                    className="h-10 rounded-xl"
+                    placeholder="Conference, PTO…"
+                    value={newBlockedReason}
+                    onChange={(e) => setNewBlockedReason(e.target.value)}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  className="h-10 shrink-0 rounded-xl bg-[#1A5345] px-4 font-bold text-white hover:bg-[#133F34]"
+                  onClick={handleAddBlockedDate}
+                >
+                  Add
+                </Button>
+              </div>
+              {draft.blockedDates.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No blocked dates yet.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {draft.blockedDates.map((bd) => (
+                    <li
+                      key={bd.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E8E6E0]/80 bg-white px-4 py-3 shadow-sm"
+                    >
+                      <div>
+                        <p className="font-semibold text-[#1A1F1E]">{bd.date}</p>
+                        {bd.reason ? (
+                          <p className="text-xs text-muted-foreground">{bd.reason}</p>
+                        ) : null}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="rounded-lg border-[#E8E6E0] text-destructive hover:bg-destructive/10"
+                        onClick={() => handleRemoveBlockedDate(bd.id)}
+                      >
+                        <Trash2Icon className="mr-2 size-4" aria-hidden />
+                        Remove
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
+
+      {view === "calendar" ? (
+        <div className="space-y-4">
+          <div className="px-1 sm:px-0">
+            <h2 className="font-serif text-[20px] font-bold tracking-tight text-[#102F27] sm:text-[22px]">
+              Month overview
+            </h2>
+            <p className="mt-1 max-w-2xl text-[13px] font-medium text-muted-foreground">
+              Blocked dates from the Blocked dates tab are highlighted on this grid.
+            </p>
+          </div>
+          <ScheduleMonthCalendar
+            monthCursor={calendarMonth}
+            onMonthChange={setCalendarMonth}
+            blockedDates={draft.blockedDates}
+          />
+        </div>
+      ) : null}
+
+      {view === "day" ? (
+        <Card className="border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
+          <CardHeader className="border-b border-[#E8E6E0]/50 pb-3">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="font-serif text-base text-[#1A1F1E]">Sessions by day</CardTitle>
+                <CardDescription className="mt-0.5">
+                  Manage working periods, breaks, and demo bookings for the selected day.
+                </CardDescription>
+              </div>
+              <div className="mt-2 flex items-center gap-3 text-[11px] font-medium text-muted-foreground sm:mt-0">
+                <span className="flex items-center gap-1">
+                  <span className="inline-block size-2.5 rounded-sm bg-[#1A5345]" />
+                  Working
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block size-2.5 rounded-sm bg-amber-100 border border-amber-300" />
+                  Booking
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block size-2.5 rounded-sm bg-red-50 border border-red-200" />
+                  Break
+                </span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <DailySessionsPanel
+              days={draft.days}
+              pausedPeriodIds={bundle.pausedPeriodIds}
+              onTogglePause={(id) => togglePeriodPause(id)}
+              onDayChange={handleDayChange}
+              scheduleDraft={draft}
+              demoBookings={bundle.demoBookings}
+              onMoveDemoBooking={(bookingId, startTime, endTime) =>
+                moveDemoBookingAsync({ bookingId, startTime, endTime, schedule: draft })
+              }
+              isMovingDemoBooking={isMovingDemoBooking}
+              onCancelDemoBooking={cancelDemoBooking}
+              isCancellingDemoBooking={isCancellingDemoBooking}
+              cancellingDemoBookingId={cancellingDemoBookingId}
+              doctorArrivalByWeekday={bundle.doctorArrivalByWeekday}
+              onSetDoctorArrival={(weekday, arrivalTime) =>
+                setDoctorArrival({ weekday, arrivalTime })
+              }
+              isSettingArrival={isSettingArrival}
+              disabled={isTogglingPause}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {hasChanges ? (
+        <div className="sticky bottom-0 z-30 -mx-6 border-t border-[#E8E6E0]/70 bg-white/95 px-6 py-3 backdrop-blur-md animate-in slide-in-from-bottom-4 duration-300 sm:-mx-8 sm:px-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+              <p className="text-[13px] font-medium text-[#1A1F1E] sm:text-[14px]">
+                Schedule has unsaved changes
+              </p>
+            </div>
+            <Button
+              type="button"
+              className="rounded-xl bg-[#1A5345] px-6 font-bold text-white shadow-[0_4px_20px_-6px_rgba(26,83,69,0.3)] hover:bg-[#133F34]"
+              disabled={isSaving}
+              onClick={() => void handleSave()}
+            >
+              {isSaving ? (
+                <Loader2Icon className="mr-2 size-4 animate-spin" aria-hidden />
+              ) : (
+                <SaveIcon className="mr-2 size-4" aria-hidden />
+              )}
+              Save schedule for {doctorName}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+export function AssistantDoctorScheduleClient() {
+  const [doctorId, setDoctorId] = React.useState(MOCK_DOCTORS[0]?.id ?? "1")
+
+  const {
+    bundle,
+    isLoading,
+    saveScheduleAsync,
+    isSaving,
+    togglePeriodPause,
+    isTogglingPause,
+    moveDemoBookingAsync,
+    isMovingDemoBooking,
+    cancelDemoBooking,
+    isCancellingDemoBooking,
+    cancellingDemoBookingId,
+    setDoctorArrival,
+    isSettingArrival,
+  } = useAssistantDoctorSchedule(doctorId)
+
+  const scheduleFingerprint = React.useMemo(
+    () => (bundle ? JSON.stringify(bundle.schedule) : ""),
+    [bundle]
+  )
+
+  const bodyKey = `${doctorId}__${scheduleFingerprint}`
+
+  return (
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-col animate-in fade-in duration-500">
+      <header className="bg-transparent px-6 pb-3 pt-4 sm:px-8">
+        <div className="space-y-0.5">
+          <h1 className="font-serif text-[22px] font-bold tracking-tight text-[#102F27] sm:text-[26px]">
+            Doctor schedule
+          </h1>
+          <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
+            Review the weekly grid, adjust working periods, inspect each day&apos;s sessions, and
+            pause a session when the doctor must step away. Demo data is stored in memory until
+            backend endpoints exist.
+          </p>
+        </div>
+      </header>
+
+      <div className="flex min-h-0 flex-1 flex-col space-y-6 px-6 pb-10 sm:px-8">
+        <Card className="border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
+          <CardHeader className="border-b border-[#E8E6E0]/50 pb-4">
+            <CardTitle className="font-serif text-lg text-[#1A1F1E]">Select doctor</CardTitle>
+            <CardDescription>Schedules are isolated per doctor in this mock.</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="flex max-w-md flex-col gap-2">
+              <Label
+                htmlFor="doctor-select"
+                className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+              >
+                Doctor
+              </Label>
+              <DoctorScheduleDoctorPicker doctorId={doctorId} onDoctorIdChange={setDoctorId} />
+            </div>
+          </CardContent>
+        </Card>
+
+        {isLoading || !bundle ? (
+          <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-[#E8E6E0]/70 bg-white">
+            <Loader2Icon className="size-8 animate-spin text-[#1A5345]" aria-hidden />
+          </div>
+        ) : (
+          <AssistantDoctorScheduleBody
+            key={bodyKey}
+            doctorId={doctorId}
+            bundle={bundle}
+            saveScheduleAsync={saveScheduleAsync}
+            isSaving={isSaving}
+            togglePeriodPause={togglePeriodPause}
+            isTogglingPause={isTogglingPause}
+            moveDemoBookingAsync={moveDemoBookingAsync}
+            isMovingDemoBooking={isMovingDemoBooking}
+            cancelDemoBooking={cancelDemoBooking}
+            isCancellingDemoBooking={isCancellingDemoBooking}
+            cancellingDemoBookingId={cancellingDemoBookingId}
+            setDoctorArrival={setDoctorArrival}
+            isSettingArrival={isSettingArrival}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
