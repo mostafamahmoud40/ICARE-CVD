@@ -11,6 +11,13 @@ export type QueuePriority = "normal" | "urgent" | "emergency"
 
 export type QueueVisitType = "follow-up" | "new" | "walk-in" | "urgent-care" | "post-procedure"
 
+/** AI review flags on a past / completed visit (optional until API provides them). */
+export type VisitAiInsights = {
+  reviewed: boolean
+  /** Short note surfaced to the assistant (e.g. follow-up or risk flag). */
+  note?: string | null
+}
+
 export type QueuePatient = {
   id: string
   queueEntryId: string
@@ -35,6 +42,8 @@ export type QueuePatient = {
   phoneNumber: string
   assignedDoctor: string
   assignedDoctorDepartment: string
+  aiInsights?: VisitAiInsights | null
+  avatarUrl?: string
 }
 
 export type QueueStats = {

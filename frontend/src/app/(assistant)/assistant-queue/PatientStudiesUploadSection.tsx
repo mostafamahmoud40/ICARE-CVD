@@ -70,7 +70,7 @@ export function PatientStudiesUploadSection({ queueEntryId }: PatientStudiesUplo
           <RadiationIcon className="size-3.5 text-[#1A5345] sm:size-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[9px] uppercase tracking-wider text-muted-foreground sm:text-[10px]">
+          <p className="text-[9px] text-muted-foreground sm:text-[10px]">
             Imaging & documents
           </p>
           <p className="text-[10px] text-muted-foreground sm:text-[11px]">

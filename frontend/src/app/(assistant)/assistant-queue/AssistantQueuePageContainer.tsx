@@ -1,27 +1,24 @@
 "use client"
 
 import { useMemo, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
 import { AssistantQueue } from "./AssistantQueue"
-import type { QueueNavMode } from "./AssistantQueue"
+import type { QueueNavMode } from "./queueNavMode"
 import { useAssistantQueue } from "./useAssistantQueue"
 import { MOCK_QUEUE_PATIENTS, MOCK_QUEUE_STATS } from "./assistantQueue.mock"
 import {
   buildDoctorLiveSnapshots,
   buildWaitingTurnMap,
 } from "./assistantQueue.liveBoard"
+import { filterHistoryPatients } from "./past-visits/pastVisits.helpers"
 
 /** When the active floor has fewer than this many patients, prefer rich demo data (dev only). */
 const MOCK_FALLBACK_MIN_LIVE_FLOOR = 3
 
-export function AssistantQueuePageContainer() {
-  const searchParams = useSearchParams()
-  const rawView = searchParams.get("view")
-  const queueNavMode: QueueNavMode =
-    rawView === "schedule" || rawView === "history" || rawView === "doctors"
-      ? rawView
-      : "operations"
+type AssistantQueuePageContainerProps = {
+  queueNavMode: QueueNavMode
+}
 
+export function AssistantQueuePageContainer({ queueNavMode }: AssistantQueuePageContainerProps) {
   const api = useAssistantQueue()
 
   useEffect(() => {
@@ -29,7 +26,7 @@ export function AssistantQueuePageContainer() {
     if (queueNavMode === "operations") api.setFilter("active")
     else if (queueNavMode === "schedule") api.setFilter("scheduled")
     else if (queueNavMode === "doctors") api.setFilter("scheduled")
-    else api.setFilter("completed")
+    else if (queueNavMode !== "history") api.setFilter("completed")
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queueNavMode])
 
@@ -59,13 +56,26 @@ export function AssistantQueuePageContainer() {
         api.filter === "active" &&
         liveBoardFloorTotal < MOCK_FALLBACK_MIN_LIVE_FLOOR))
 
+  const pastVisitsPatients = useMemo(() => {
+    if (useMock) return filterHistoryPatients(MOCK_QUEUE_PATIENTS)
+    return filterHistoryPatients(api.historyPatients)
+  }, [useMock, api.historyPatients])
+
   const selectedPatient = useMemo(() => {
     if (!api.selectedPatientId) return null
     if (useMock) {
-      return MOCK_QUEUE_PATIENTS.find((p) => p.queueEntryId === api.selectedPatientId) ?? null
+      const pool =
+        queueNavMode === "history" ? pastVisitsPatients : MOCK_QUEUE_PATIENTS
+      return pool.find((p) => p.queueEntryId === api.selectedPatientId) ?? null
+    }
+    if (queueNavMode === "history") {
+      return (
+        pastVisitsPatients.find((p) => p.queueEntryId === api.selectedPatientId) ??
+        api.selectedPatient
+      )
     }
     return api.selectedPatient
-  }, [api.selectedPatient, api.selectedPatientId, useMock])
+  }, [api.selectedPatient, api.selectedPatientId, useMock, queueNavMode, pastVisitsPatients])
 
   const mockSnapshots = useMemo(() => buildDoctorLiveSnapshots(MOCK_QUEUE_PATIENTS), [])
   const mockTurnMap   = useMemo(() => buildWaitingTurnMap(mockSnapshots), [mockSnapshots])
@@ -102,6 +112,8 @@ export function AssistantQueuePageContainer() {
       isLoading={api.isLoading}
       isError={api.isError}
       queueNavMode={queueNavMode}
+      pastVisitsPatients={pastVisitsPatients}
+      pastVisitsLoading={useMock ? false : api.historyLoading}
     />
   )
 }

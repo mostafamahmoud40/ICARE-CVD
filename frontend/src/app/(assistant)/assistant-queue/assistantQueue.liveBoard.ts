@@ -117,3 +117,21 @@ export function formatShortTime(iso: string): string {
     return iso
   }
 }
+
+/** e.g. "17 May" — for compact visit rows on mobile */
+export function formatShortDate(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" }).format(new Date(iso))
+  } catch {
+    return iso
+  }
+}
+
+/** e.g. "May 17, 2026" — for visit rows on sm+ */
+export function formatVisitDate(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(iso))
+  } catch {
+    return iso
+  }
+}
