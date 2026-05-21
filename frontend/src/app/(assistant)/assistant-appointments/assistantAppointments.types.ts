@@ -9,6 +9,8 @@ export type AssistantAppointmentAdvancedFilters = {
   doctorName: string
   department: string
   dateScope: AppointmentDateScopeFilter
+  dateFrom: string
+  dateTo: string
 }
 
 export const defaultAssistantAppointmentAdvancedFilters: AssistantAppointmentAdvancedFilters = {
@@ -16,6 +18,8 @@ export const defaultAssistantAppointmentAdvancedFilters: AssistantAppointmentAdv
   doctorName: "",
   department: "",
   dateScope: "all",
+  dateFrom: "",
+  dateTo: "",
 }
 
 export type AssistantAppointment = {

@@ -100,11 +100,11 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
         onFieldChange("files", [
           ...uploadedFiles,
           {
+            ...uploadedDoc,
             id: uploadedDoc.id,
             name: uploadedDoc.fileName,
             size: uploadedDoc.fileSize,
             category: uploadedDoc.category,
-            ...uploadedDoc,
           },
         ]);
 

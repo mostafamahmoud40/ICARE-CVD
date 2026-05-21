@@ -24,8 +24,6 @@ import {
   MessageSquareIcon,
   MoreHorizontalIcon,
   MoreVerticalIcon,
-  PenLineIcon,
-  PlusIcon,
   PrinterIcon,
   RefreshCwIcon,
   ReplyIcon,
@@ -42,7 +40,6 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -244,25 +241,22 @@ function MessageDetail({
             <div className="min-w-0">
               <div className="text-[14px] font-bold text-[#1A1F1E]">{message.sender.name}</div>
               <div className="mt-0.5 text-[13px] text-muted-foreground">
-                From : <span className="font-medium text-[#6B7870]">{message.sender.email || "adrian@example.com"}</span>
+                From : <span className="font-medium text-[#6B7870]">{message.sender.role}</span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="size-9 rounded-md border-[#E8E6E0]/80 bg-slate-50/50 text-muted-foreground hover:bg-slate-100 hover:text-[#1A1F1E] shadow-sm">
+            <Button variant="outline" size="icon" title="Star" className="size-9 rounded-md border-[#E8E6E0]/80 bg-slate-50/50 text-muted-foreground hover:bg-slate-100 hover:text-[#1A1F1E] shadow-sm">
               <StarIcon className="size-4" />
             </Button>
-            <Button variant="outline" size="icon" className="size-9 rounded-md border-[#E8E6E0]/80 bg-slate-50/50 text-muted-foreground hover:bg-slate-100 hover:text-[#1A1F1E] shadow-sm" onClick={onArchive} disabled={isArchiving}>
+            <Button variant="outline" size="icon" title="Archive" className="size-9 rounded-md border-[#E8E6E0]/80 bg-slate-50/50 text-muted-foreground hover:bg-slate-100 hover:text-[#1A1F1E] shadow-sm" onClick={onArchive} disabled={isArchiving}>
               <ArchiveIcon className="size-4" />
             </Button>
-            <Button variant="outline" size="icon" className="size-9 rounded-md border-[#E8E6E0]/80 bg-slate-50/50 text-muted-foreground hover:bg-slate-100 hover:text-[#1A1F1E] shadow-sm">
+            <Button variant="outline" size="icon" title="Delete" className="size-9 rounded-md border-[#E8E6E0]/80 bg-slate-50/50 text-muted-foreground hover:bg-slate-100 hover:text-[#1A1F1E] shadow-sm">
               <Trash2Icon className="size-4" />
             </Button>
-            <Button variant="outline" size="icon" className="size-9 rounded-md border-[#E8E6E0]/80 bg-slate-50/50 text-muted-foreground hover:bg-slate-100 hover:text-[#1A1F1E] shadow-sm">
-              <MessageSquareIcon className="size-4" />
-            </Button>
-            <Button variant="outline" size="icon" className="size-9 rounded-md border-[#E8E6E0]/80 bg-slate-50/50 text-muted-foreground hover:bg-slate-100 hover:text-[#1A1F1E] shadow-sm">
+            <Button variant="outline" size="icon" title="Reply" className="size-9 rounded-md border-[#E8E6E0]/80 bg-slate-50/50 text-muted-foreground hover:bg-slate-100 hover:text-[#1A1F1E] shadow-sm">
               <CornerUpLeftIcon className="size-4" />
             </Button>
           </div>
@@ -381,90 +375,6 @@ function EmptyState({ type }: { type: "no-selection" | "no-messages" | "error" }
   )
 }
 
-function SidebarMenuItem({ icon: Icon, label, badge, count, active }: any) {
-  return (
-    <Button
-      variant="ghost"
-      className={cn(
-        "justify-start h-9 px-3 text-[14px] font-medium hover:bg-white hover:shadow-sm w-full transition-all",
-        active ? "bg-[#E8E6E0]/50 text-[#1A1F1E] font-bold" : "text-muted-foreground"
-      )}
-    >
-      <Icon className={cn("mr-3 size-4", active ? "text-[#1A1F1E]" : "text-muted-foreground/80")} />
-      <span className="flex-1 text-left">{label}</span>
-      {badge && (
-        <span className="rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white shadow-sm">
-          {badge}
-        </span>
-      )}
-      {count && <span className="text-[12px] opacity-70 font-normal">{count}</span>}
-    </Button>
-  )
-}
-
-function SidebarLabelItem({ color, label }: any) {
-  return (
-    <Button
-      variant="ghost"
-      className="justify-start h-9 px-3 text-[14px] font-medium text-muted-foreground hover:bg-white hover:shadow-sm w-full transition-all"
-    >
-      <div className={cn("mr-3 size-3.5 rounded-full border-[2.5px] bg-white", color)} />
-      {label}
-    </Button>
-  )
-}
-
-function SidebarMenu() {
-  return (
-    <div className="hidden lg:flex w-[260px] flex-col border-l border-[#E8E6E0]/60 bg-[#F9F8F5] p-5 h-full z-10 shrink-0 shadow-[-4px_0_24px_rgba(0,0,0,0.01)]">
-      <Button className="w-full justify-center bg-[#1A5345] hover:bg-[#133F34] text-white rounded-xl h-11 text-[15px] font-bold shadow-[0_4px_14px_rgba(26,83,69,0.25)] transition-all hover:shadow-[0_6px_20px_rgba(26,83,69,0.3)] hover:-translate-y-0.5">
-        <PenLineIcon className="mr-2 size-4" />
-        Compose
-      </Button>
-
-      <ScrollArea className="flex-1 mt-8 -mx-2 px-2 custom-scrollbar">
-        <div className="mb-8">
-          <h4 className="text-[14px] font-bold text-[#1A1F1E] mb-3 px-3">Emails</h4>
-          <nav className="flex flex-col gap-1">
-            <SidebarMenuItem icon={InboxIcon} label="Inbox" badge="56" active />
-            <SidebarMenuItem icon={StarIcon} label="Starred" count="46" />
-            <SidebarMenuItem icon={MailOpenIcon} label="Sent" count="14" />
-            <SidebarMenuItem icon={FileTextIcon} label="Drafts" count="12" />
-            <SidebarMenuItem icon={Trash2Icon} label="Deleted" count="08" />
-            <SidebarMenuItem icon={AlertCircleIcon} label="Spam" count="0" />
-            <SidebarMenuItem icon={ArchiveIcon} label="Important" count="12" />
-            <SidebarMenuItem icon={InboxIcon} label="All Emails" count="34" />
-          </nav>
-        </div>
-
-        <div className="mb-8">
-          <div className="flex items-center justify-between px-3 mb-3">
-            <h4 className="text-[14px] font-bold text-[#1A1F1E]">Labels</h4>
-            <Button variant="ghost" size="icon" className="size-5 rounded-full text-[#1A5345] hover:bg-[#1A5345]/10">
-              <PlusIcon className="size-3" strokeWidth={3} />
-            </Button>
-          </div>
-          <nav className="flex flex-col gap-1">
-            <SidebarLabelItem color="border-emerald-500" label="Team Events" />
-            <SidebarLabelItem color="border-amber-400" label="Work" />
-            <SidebarLabelItem color="border-rose-500" label="External" />
-            <SidebarLabelItem color="border-indigo-500" label="Projects" />
-          </nav>
-        </div>
-        
-        <div className="mb-4">
-          <div className="flex items-center justify-between px-3 mb-3">
-            <h4 className="text-[14px] font-bold text-[#1A1F1E]">Folders</h4>
-            <Button variant="ghost" size="icon" className="size-5 rounded-full text-[#1A5345] hover:bg-[#1A5345]/10">
-              <PlusIcon className="size-3" strokeWidth={3} />
-            </Button>
-          </div>
-        </div>
-      </ScrollArea>
-    </div>
-  )
-}
-
 export function Inbox({
   data,
   isLoading,
@@ -490,30 +400,6 @@ export function Inbox({
         <div>
           <h1 className="text-[32px] font-bold text-[#1A1F1E] tracking-tight font-serif">Inbox</h1>
           <p className="text-[14px] font-medium text-muted-foreground mt-1.5">All your campaign updates, messages and alerts in one place.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            className="h-10 gap-2 rounded-full border-[#E8E6E0]/80 bg-white px-5 text-[14px] font-semibold text-[#1A1F1E] hover:bg-slate-50 hover:text-[#1A5345] shadow-sm transition-all"
-          >
-            <FilterIcon className="size-4 text-muted-foreground" strokeWidth={2} />
-            Filter
-            <ChevronDownIcon className="size-3.5 ml-1 text-muted-foreground/70" strokeWidth={2} />
-          </Button>
-          <Button
-            variant="outline"
-            className="h-10 gap-2 rounded-full border-[#E8E6E0]/80 bg-white px-5 text-[14px] font-semibold text-[#1A1F1E] hover:bg-slate-50 hover:text-[#1A5345] shadow-sm transition-all"
-          >
-            <CalendarIcon className="size-4 text-muted-foreground" strokeWidth={2} />
-            Monthly
-            <ChevronDownIcon className="size-3.5 ml-1 text-muted-foreground/70" strokeWidth={2} />
-          </Button>
-          <Button
-            className="h-10 gap-2 rounded-full bg-[#1A5345] px-6 text-[14px] font-bold text-white hover:bg-[#133F34] shadow-[0_4px_14px_rgba(26,83,69,0.2)] hover:shadow-[0_6px_20px_rgba(26,83,69,0.25)] border-0 transition-all hover:-translate-y-0.5"
-          >
-            <DownloadIcon className="size-4" strokeWidth={2.5} />
-            Export
-          </Button>
         </div>
       </div>
 
@@ -622,7 +508,6 @@ export function Inbox({
           )}
         </div>
 
-        <SidebarMenu />
       </div>
       
       {/* Custom scrollbar styles */}

@@ -15,7 +15,6 @@ import {
   ClipboardListIcon,
   ClipboardPlusIcon,
   CreditCardIcon,
-  HeartHandshakeIcon,
   HistoryIcon,
   InboxIcon,
   LayoutDashboardIcon,
@@ -33,6 +32,7 @@ import {
 
 import { useRequireRole } from "@/hooks/use-require-role"
 import { cn } from "@/lib/utils"
+import { QUEUE_ROUTES, queueNavModeFromPathname } from "./assistant-queue/queueNavMode"
 
 import {
   Sidebar,
@@ -114,6 +114,7 @@ function AssistantLayoutContent({
   const [isQueueOpen, setIsQueueOpen] = useState(() => pathname.startsWith("/assistant-queue"))
   const [isProceduresOpen, setIsProceduresOpen] = useState(() => pathname.startsWith("/assistant-procedures"))
   const viewParam = searchParams.get("view")
+  const queueNavMode = queueNavModeFromPathname(pathname)
 
   const navItems = [
     {
@@ -159,6 +160,12 @@ function AssistantLayoutContent({
       isActive: pathname.startsWith("/assistant-doctors"),
     },
     {
+      href: "/assistant-doctor-schedule",
+      label: "Doctor Schedule",
+      icon: CalendarDaysIcon,
+      isActive: pathname.startsWith("/assistant-doctor-schedule"),
+    },
+    {
       href: "/assistant-procedures",
       label: "Procedures",
       icon: ClipboardPlusIcon,
@@ -170,47 +177,29 @@ function AssistantLayoutContent({
       icon: PillIcon,
       isActive: pathname.startsWith("/assistant-medications"),
     },
-    {
-      href: "/assistant-dashboard",
-      label: "Doctor Support",
-      icon: HeartHandshakeIcon,
-      isActive: false,
-    },
   ] as const
 
   const accountNavItems = [
     {
       href: "/assistant-account",
-      label: "Settings",
-      icon: Settings2Icon,
+      label: "Account",
+      icon: User2Icon,
       isActive:
         (pathname === "/assistant-account" ||
           pathname === "/assistant/assistant-account") &&
-        !pathname.includes("/notifications") &&
-        !pathname.includes("/preferences") &&
-        !pathname.includes("/security"),
+        !pathname.includes("/settings"),
     },
     {
-      href: "/assistant-account/security",
-      label: "Security",
-      icon: ShieldCheckIcon,
+      href: "/assistant-account/settings",
+      label: "Settings",
+      icon: Settings2Icon,
       isActive:
+        pathname.includes("/assistant-account/settings") ||
+        pathname.includes("/assistant/assistant-account/settings") ||
         pathname.includes("/assistant-account/security") ||
-        pathname.includes("/assistant/assistant-account/security"),
-    },
-    {
-      href: "/assistant-account/notifications",
-      label: "Notifications",
-      icon: BellIcon,
-      isActive:
+        pathname.includes("/assistant/assistant-account/security") ||
         pathname.includes("/assistant-account/notifications") ||
-        pathname.includes("/assistant/assistant-account/notifications"),
-    },
-    {
-      href: "/assistant-account/preferences",
-      label: "Preferences",
-      icon: SlidersHorizontalIcon,
-      isActive:
+        pathname.includes("/assistant/assistant-account/notifications") ||
         pathname.includes("/assistant-account/preferences") ||
         pathname.includes("/assistant/assistant-account/preferences"),
     },
@@ -302,9 +291,9 @@ function AssistantLayoutContent({
                         <SidebarMenuSub>
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton
-                              isActive={pathname.startsWith("/assistant-queue") && (!viewParam || viewParam === "operations")}
+                              isActive={queueNavMode === "operations"}
                               render={
-                                <Link href="/assistant-queue?view=operations">
+                                <Link href={QUEUE_ROUTES.operations}>
                                   <PlayCircleIcon className="size-3.5" />
                                   Live Desk
                                 </Link>
@@ -313,9 +302,9 @@ function AssistantLayoutContent({
                           </SidebarMenuSubItem>
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton
-                              isActive={pathname.startsWith("/assistant-queue") && viewParam === "schedule"}
+                              isActive={queueNavMode === "schedule"}
                               render={
-                                <Link href="/assistant-queue?view=schedule">
+                                <Link href={QUEUE_ROUTES.schedule}>
                                   <CalendarDaysIcon className="size-3.5" />
                                   Expected Today
                                 </Link>
@@ -324,9 +313,9 @@ function AssistantLayoutContent({
                           </SidebarMenuSubItem>
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton
-                              isActive={pathname.startsWith("/assistant-queue") && viewParam === "history"}
+                              isActive={queueNavMode === "history"}
                               render={
-                                <Link href="/assistant-queue?view=history">
+                                <Link href={QUEUE_ROUTES.history}>
                                   <HistoryIcon className="size-3.5" />
                                   Past Visits
                                 </Link>
@@ -335,9 +324,9 @@ function AssistantLayoutContent({
                           </SidebarMenuSubItem>
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton
-                              isActive={pathname.startsWith("/assistant-queue") && viewParam === "doctors"}
+                              isActive={queueNavMode === "doctors"}
                               render={
-                                <Link href="/assistant-queue?view=doctors">
+                                <Link href={QUEUE_ROUTES.doctors}>
                                   <StethoscopeIcon className="size-3.5" />
                                   Doctors
                                 </Link>
