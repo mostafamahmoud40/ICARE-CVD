@@ -24,6 +24,21 @@ async function fetchStats(): Promise<QueueStats> {
   return data
 }
 
+/** Completed + no-show entries for Past Visits (terminal states). */
+async function fetchHistoryPatients(): Promise<QueuePatient[]> {
+  const [completed, noShow] = await Promise.all([
+    fetchQueueEntries("completed"),
+    fetchQueueEntries("no-show"),
+  ])
+  const byId = new Map<string, QueuePatient>()
+  for (const p of [...completed, ...noShow]) {
+    byId.set(p.queueEntryId, p)
+  }
+  return [...byId.values()].sort(
+    (a, b) => Date.parse(b.scheduledTime) - Date.parse(a.scheduledTime),
+  )
+}
+
 async function updateQueueStatus(payload: { queueId: string; status: QueueStatus }) {
   const { data } = await apiClient.patch(
     `/assistant/patient-queue/${payload.queueId}/status`,
@@ -61,6 +76,12 @@ export function useAssistantQueue() {
   const statsQuery = useQuery<QueueStats, Error>({
     queryKey: statsKey,
     queryFn: fetchStats,
+    staleTime: 30 * 1000,
+  })
+
+  const historyQuery = useQuery<QueuePatient[], Error>({
+    queryKey: ["assistant-patient-queue", "history"],
+    queryFn: fetchHistoryPatients,
     staleTime: 30 * 1000,
   })
 
@@ -177,6 +198,9 @@ export function useAssistantQueue() {
     waitingTurnByQueueId,
     clinicNextPatient,
     liveBoardLoading: activeSnapshotQuery.isLoading,
+    historyPatients: historyQuery.data ?? [],
+    historyLoading: historyQuery.isLoading,
+    historyError: historyQuery.isError,
     isLoading: queueQuery.isLoading || statsQuery.isLoading,
     isError: queueQuery.isError || statsQuery.isError,
     isUpdating: statusMutation.isPending,
