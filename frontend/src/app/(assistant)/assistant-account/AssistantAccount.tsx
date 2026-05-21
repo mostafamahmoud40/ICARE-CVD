@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ComponentType } from "react"
 import type {
   AssistantProfile,
   ActivityEntry,
@@ -48,8 +48,7 @@ import {
   MonitorSmartphoneIcon,
   MessageCircleIcon,
   HistoryIcon,
-  ChevronRightIcon,
-  TrendingUpIcon,
+  SlidersHorizontalIcon,
 } from "lucide-react"
 
 function formatDate(iso: string) {
@@ -102,7 +101,9 @@ function ProfileHeaderCard({ profile }: { profile: AssistantProfile }) {
                 <p className="text-[11px] text-[#6B7870] sm:text-[12px]">Care Assistant</p>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <span className="text-[10px] font-medium text-[#0A3D2E] sm:text-[11px]">ID: CVD-{Math.floor(Math.random() * 9000) + 1000}</span>
+                <span className="text-[10px] font-medium text-[#0A3D2E] sm:text-[11px]">
+                  ID: CVD-{profile.id.split("-").pop() ?? profile.id}
+                </span>
                 <span className="flex items-center gap-1 text-[10px] text-[#10B981] sm:text-[11px]">
                   <span className="size-1.5 rounded-full bg-[#10B981]" />
                   Online
@@ -310,41 +311,127 @@ function ActivityLogCard({ activities }: { activities: ActivityEntry[] }) {
    ──────────────────────────────────────────── */
 
 export function AssistantSecuritySettingsCard({ security }: { security: SecurityInfo }) {
+  const twoFactorOn = security.twoFactorEnabled
+
   return (
-    <Card className="border-[#E5EEEA]">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-[12px] font-semibold text-[#102F27] sm:text-[14px]">Security</CardTitle>
-        <CardDescription className="text-[10px] text-[#6B7870] sm:text-[11px]">Account protection and login info</CardDescription>
+    <Card className="overflow-hidden rounded-[24px] border-[#E8E6E0]/60 bg-white shadow-[0_8px_40px_rgb(0,0,0,0.03)] transition-all hover:shadow-[0_12px_50px_rgb(0,0,0,0.06)]">
+      <CardHeader className="space-y-1 border-b border-[#E8E6E0]/40 bg-gradient-to-br from-[#F8FAFA] to-white px-6 py-6 sm:px-8 sm:py-8">
+        <div className="flex items-center gap-4">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#1A5345] text-white shadow-lg shadow-[#1A5345]/20 ring-4 ring-[#1A5345]/5">
+            <ShieldCheckIcon className="size-6" aria-hidden />
+          </div>
+          <div>
+            <CardTitle className="font-serif text-[20px] font-bold tracking-tight text-[#102F27] sm:text-[24px]">Sign-in Protection</CardTitle>
+            <CardDescription className="text-[13px] font-medium text-[#6B7870] sm:text-[14px]">
+              Strengthen your account security and monitor access
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
-        <div className="flex items-center justify-between rounded-lg border border-[#E5EEEA] p-3">
-          <div className="flex items-center gap-3">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-[#E8F0EE]">
-              <ShieldCheckIcon className="size-4 text-[#1A5345]" />
+
+      <CardContent className="space-y-8 p-6 sm:p-8">
+        <div className="group relative flex flex-col gap-5 rounded-2xl border border-[#E5EEEA] bg-[#FAFAF8] p-5 transition-all hover:bg-white hover:shadow-xl hover:shadow-[#1A5345]/5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex min-w-0 items-start gap-4 sm:items-center">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-[#E5EEEA] transition-transform group-hover:scale-110">
+              <ShieldCheckIcon className="size-6 text-[#1A5345]" aria-hidden />
             </div>
-            <div>
-              <p className="text-[11px] font-medium text-[#102F27] sm:text-[12px]">Two-Factor Authentication</p>
-              <p className="text-[10px] text-[#6B7870] sm:text-[11px]">{security.twoFactorEnabled ? "Enabled" : "Disabled"}</p>
+            <div className="min-w-0 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <p className="text-[15px] font-bold text-[#102F27]">Two-factor authentication</p>
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
+                    twoFactorOn
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border-amber-200 bg-amber-50 text-amber-700"
+                  )}
+                >
+                  {twoFactorOn ? "Active" : "Highly Recommended"}
+                </Badge>
+              </div>
+              <p className="text-[13px] leading-relaxed text-[#6B7870]">
+                {twoFactorOn
+                  ? "Your account is protected by an additional verification layer."
+                  : "Add an extra layer of security to prevent unauthorized access to clinical data."}
+              </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="gap-1.5 border-[#E5EEEA] text-[10px] text-[#1A5345] hover:bg-[#E8F0EE] sm:text-[11px]">
-            {security.twoFactorEnabled ? "Disable" : "Enable"}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10 shrink-0 gap-2 self-stretch rounded-xl border-[#1A5345]/20 bg-white px-5 text-[13px] font-bold text-[#1A5345] transition-all hover:bg-[#1A5345] hover:text-white sm:self-center"
+          >
+            {twoFactorOn ? "Modify Settings" : "Secure Account"}
           </Button>
         </div>
 
-        <InfoRow icon={LockIcon} label="Last Password Change" value={formatDate(security.lastPasswordChange)} />
-        <InfoRow icon={LogInIcon} label="Last Login" value={formatDateTimeShort(security.lastLogin)} />
-        <InfoRow icon={MonitorSmartphoneIcon} label="Active Sessions" value={`${security.activeSessions} devices`} />
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#E8E6E0] to-transparent" />
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6B7870]">System Logs</p>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#E8E6E0] to-transparent" />
+          </div>
+          
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <SecurityStatRow
+              icon={LockIcon}
+              label="Security Protocol"
+              value={formatDate(security.lastPasswordChange)}
+            />
+            <SecurityStatRow
+              icon={LogInIcon}
+              label="Last Access"
+              value={formatDateTimeShort(security.lastLogin)}
+            />
+            <SecurityStatRow
+              icon={MonitorSmartphoneIcon}
+              label="Active Sessions"
+              value={`${security.activeSessions} ${security.activeSessions === 1 ? "device" : "devices"}`}
+            />
+          </div>
+        </div>
 
-        <Button variant="outline" className="w-full gap-2 border-[#E5EEEA] text-[11px] text-[#102F27] hover:bg-[#E8F0EE] sm:text-[12px]">
-          <LockIcon className="size-3.5" /> Change Password
-        </Button>
-
-        <Button variant="outline" className="w-full gap-2 border-red-200 text-[11px] text-red-600 hover:bg-red-50 sm:text-[12px]">
-          <EyeIcon className="size-3.5" /> Sign Out All Other Devices
-        </Button>
+        <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:gap-4">
+          <Button
+            variant="outline"
+            className="h-12 flex-1 gap-2.5 rounded-xl border-[#E8E6E0] bg-white text-[14px] font-bold text-[#102F27] shadow-sm transition-all hover:border-[#1A5345]/30 hover:bg-[#F8FAFA]"
+          >
+            <LockIcon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
+            Refresh Credentials
+          </Button>
+          <Button
+            variant="outline"
+            className="h-12 flex-1 gap-2.5 rounded-xl border-red-100 bg-white text-[14px] font-bold text-red-600 shadow-sm transition-all hover:bg-red-50 hover:border-red-200"
+          >
+            <EyeIcon className="size-4 shrink-0" aria-hidden />
+            Terminate All Sessions
+          </Button>
+        </div>
       </CardContent>
     </Card>
+  )
+}
+
+function SecurityStatRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: ComponentType<{ className?: string }>
+  label: string
+  value: string
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 sm:px-5 sm:py-3.5">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
+        <Icon className="size-4 text-[#1A5345]" aria-hidden />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-medium text-[#6B7870]">{label}</p>
+        <p className="truncate text-[13px] font-semibold text-[#102F27]">{value}</p>
+      </div>
+    </div>
   )
 }
 
@@ -369,14 +456,16 @@ function PreferenceSwitch({
       aria-checked={checked}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1A5345]/30",
-        checked ? "bg-[#1A5345]" : "bg-[#D1D5DB]",
+        "relative h-7 w-12 shrink-0 rounded-full transition-all duration-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#1A5345]/20",
+        checked 
+          ? "bg-[#1A5345] shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]" 
+          : "bg-[#E2E8F0] shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]",
       )}
     >
       <span
         className={cn(
-          "pointer-events-none absolute top-0.5 size-5 rounded-full bg-white shadow transition-transform left-0.5",
-          checked ? "translate-x-5" : "translate-x-0",
+          "pointer-events-none absolute top-1 size-5 rounded-full bg-white shadow-md transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+          checked ? "left-[22px] scale-110" : "left-1",
         )}
       />
     </button>
@@ -398,19 +487,19 @@ export function AssistantNotificationsSettingsCard({
   const rows = [
     {
       id: "assistant-notif-emergency",
-      title: "Emergency alerts",
-      description: "Immediate alert when an emergency case is flagged.",
-      iconWrap: "bg-red-50",
+      title: "Emergency Alerts",
+      description: "Critical bypass for immediate medical interventions.",
+      iconWrap: "bg-red-50 ring-red-100",
       Icon: AlertTriangleIcon,
-      iconClass: "text-red-500",
+      iconClass: "text-red-600",
       checked: emergencyAlerts,
       setChecked: setEmergencyAlerts,
     },
     {
       id: "assistant-notif-appointment",
-      title: "Appointment reminders",
-      description: "30 minutes before the appointment.",
-      iconWrap: "bg-blue-50",
+      title: "Appointment Reminders",
+      description: "Schedule synchronization and patient arrivals.",
+      iconWrap: "bg-blue-50 ring-blue-100",
       Icon: CalendarDaysIcon,
       iconClass: "text-blue-600",
       checked: appointmentReminders,
@@ -418,9 +507,9 @@ export function AssistantNotificationsSettingsCard({
     },
     {
       id: "assistant-notif-checklist",
-      title: "Checklist updates",
-      description: "When a task is completed or delayed.",
-      iconWrap: "bg-emerald-50",
+      title: "Checklist Updates",
+      description: "Real-time task completion and directive alerts.",
+      iconWrap: "bg-emerald-50 ring-emerald-100",
       Icon: ClipboardListIcon,
       iconClass: "text-emerald-600",
       checked: checklistUpdates,
@@ -428,9 +517,9 @@ export function AssistantNotificationsSettingsCard({
     },
     {
       id: "assistant-notif-doctor",
-      title: "Doctor messages",
-      description: "Direct requests and instructions.",
-      iconWrap: "bg-orange-50",
+      title: "Physician Directives",
+      description: "Direct communications from attending specialists.",
+      iconWrap: "bg-orange-50 ring-orange-100",
       Icon: MessageCircleIcon,
       iconClass: "text-orange-600",
       checked: doctorMessages,
@@ -439,34 +528,40 @@ export function AssistantNotificationsSettingsCard({
   ] as const
 
   return (
-    <Card className="border-[#E5EEEA]">
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-[#E8F0EE] sm:size-9">
-            <BellIcon className="size-4 text-[#1A5345] sm:size-[18px]" />
+    <Card className="overflow-hidden rounded-[24px] border-[#E8E6E0]/60 bg-white shadow-[0_8px_40px_rgb(0,0,0,0.03)] transition-all hover:shadow-[0_12px_50px_rgb(0,0,0,0.06)]">
+      <CardHeader className="space-y-1 border-b border-[#E8E6E0]/40 bg-gradient-to-br from-[#F8FAFA] to-white px-6 py-6 sm:px-8 sm:py-8">
+        <div className="flex items-center gap-4">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#1A5345] text-white shadow-lg shadow-[#1A5345]/20 ring-4 ring-[#1A5345]/5">
+            <BellIcon className="size-6" aria-hidden />
           </div>
-          <CardTitle className="text-[13px] font-semibold text-[#102F27] sm:text-[15px]">
-            Notification settings
-          </CardTitle>
+          <div>
+            <CardTitle className="font-serif text-[20px] font-bold tracking-tight text-[#102F27] sm:text-[24px]">Notification Channels</CardTitle>
+            <CardDescription className="text-[13px] font-medium text-[#6B7870] sm:text-[14px]">
+              Configure high-priority clinical alert delivery systems
+            </CardDescription>
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-0 p-4 pt-0 sm:p-6 sm:pt-0">
-        {rows.map((row, i) => {
-          const Icon = row.Icon
-          return (
-            <div key={row.id}>
-              <div className="flex items-center gap-3 py-3 sm:gap-4">
+      <CardContent className="p-4 sm:p-6">
+        <div className="divide-y divide-[#E8E6E0]/40">
+          {rows.map((row) => {
+            const Icon = row.Icon
+            return (
+              <div 
+                key={row.id} 
+                className="group relative flex items-center gap-4 px-2 py-5 transition-all hover:bg-[#F8FAFA] rounded-xl sm:px-4 sm:py-6"
+              >
                 <div
                   className={cn(
-                    "flex size-9 shrink-0 items-center justify-center rounded-lg sm:size-10",
+                    "flex size-11 shrink-0 items-center justify-center rounded-2xl ring-1 transition-all duration-500 group-hover:scale-110",
                     row.iconWrap,
                   )}
                 >
-                  <Icon className={cn("size-4 sm:size-[18px]", row.iconClass)} />
+                  <Icon className={cn("size-5", row.iconClass)} />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-semibold text-[#102F27] sm:text-[12px]">{row.title}</p>
-                  <p className="mt-0.5 text-[10px] leading-relaxed text-[#6B7870] sm:text-[11px]">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p className="text-[15px] font-bold text-[#102F27] transition-colors group-hover:text-[#1A5345]">{row.title}</p>
+                  <p className="text-[13px] leading-relaxed text-[#6B7870]">
                     {row.description}
                   </p>
                 </div>
@@ -476,10 +571,9 @@ export function AssistantNotificationsSettingsCard({
                   onCheckedChange={row.setChecked}
                 />
               </div>
-              {i < rows.length - 1 ? <Separator className="bg-[#E5EEEA]" /> : null}
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </CardContent>
     </Card>
   )
@@ -498,30 +592,48 @@ export function AssistantDisplayPreferencesCard({
         : LaptopIcon
 
   return (
-    <Card className="border-[#E5EEEA]">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-[12px] font-semibold text-[#102F27] sm:text-[14px]">Preferences</CardTitle>
-        <CardDescription className="text-[10px] text-[#6B7870] sm:text-[11px]">
-          Display theme and language
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
-        <div className="flex items-center justify-between rounded-lg border border-[#E5EEEA] p-2.5">
-          <div className="flex items-center gap-2">
-            <ThemeIcon className="size-3.5 text-[#1A5345]" />
-            <span className="text-[11px] text-[#102F27] sm:text-[12px]">Display theme</span>
+    <Card className="overflow-hidden rounded-[24px] border-[#E8E6E0]/60 bg-white shadow-[0_8px_40px_rgb(0,0,0,0.03)] transition-all hover:shadow-[0_12px_50px_rgb(0,0,0,0.06)]">
+      <CardHeader className="space-y-1 border-b border-[#E8E6E0]/40 bg-gradient-to-br from-[#F8FAFA] to-white px-6 py-6 sm:px-8 sm:py-8">
+        <div className="flex items-center gap-4">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#1A5345] text-white shadow-lg shadow-[#1A5345]/20 ring-4 ring-[#1A5345]/5">
+            <SlidersHorizontalIcon className="size-6" aria-hidden />
           </div>
-          <Badge variant="secondary" className="bg-[#E8F0EE] text-[10px] capitalize text-[#1A5345]">
+          <div>
+            <CardTitle className="font-serif text-[20px] font-bold tracking-tight text-[#102F27] sm:text-[24px]">Display Preferences</CardTitle>
+            <CardDescription className="text-[13px] font-medium text-[#6B7870] sm:text-[14px]">
+              Personalize your workspace aesthetic and localization
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 p-6 sm:p-8">
+        <div className="group flex items-center justify-between rounded-2xl border border-[#E5EEEA] bg-[#FAFAF8] p-4 transition-all hover:bg-white hover:shadow-lg hover:shadow-[#1A5345]/5 sm:p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-[#E5EEEA] transition-transform group-hover:rotate-12">
+              <ThemeIcon className="size-5 text-[#1A5345]" aria-hidden />
+            </div>
+            <div className="space-y-0.5">
+              <span className="text-[14px] font-bold text-[#102F27] sm:text-[15px]">Interface Theme</span>
+              <p className="text-[11px] font-medium text-[#6B7870]">Adapts to your environment</p>
+            </div>
+          </div>
+          <Badge variant="secondary" className="rounded-lg border border-[#E5EEEA] bg-white px-3 py-1 text-[11px] font-bold capitalize text-[#1A5345] shadow-sm transition-colors group-hover:bg-[#1A5345] group-hover:text-white">
             {preferences.theme}
           </Badge>
         </div>
-        <div className="flex items-center justify-between rounded-lg border border-[#E5EEEA] p-2.5">
-          <div className="flex items-center gap-2">
-            <GlobeIcon className="size-3.5 text-[#1A5345]" />
-            <span className="text-[11px] text-[#102F27] sm:text-[12px]">Language</span>
+        
+        <div className="group flex items-center justify-between rounded-2xl border border-[#E5EEEA] bg-[#FAFAF8] p-4 transition-all hover:bg-white hover:shadow-lg hover:shadow-[#1A5345]/5 sm:p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-[#E5EEEA] transition-transform group-hover:-rotate-12">
+              <GlobeIcon className="size-5 text-[#1A5345]" aria-hidden />
+            </div>
+            <div className="space-y-0.5">
+              <span className="text-[14px] font-bold text-[#102F27] sm:text-[15px]">Regional Language</span>
+              <p className="text-[11px] font-medium text-[#6B7870]">Clinical terminology localization</p>
+            </div>
           </div>
-          <Badge variant="secondary" className="bg-[#E8F0EE] text-[10px] text-[#1A5345]">
-            English
+          <Badge variant="secondary" className="rounded-lg border border-[#E5EEEA] bg-white px-3 py-1 text-[11px] font-bold text-[#1A5345] shadow-sm transition-colors group-hover:bg-[#1A5345] group-hover:text-white">
+            English (US)
           </Badge>
         </div>
       </CardContent>

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import { CalendarDaysIcon } from "lucide-react"
 import { PRIORITY_CONFIG } from "./assistantProcedures.config"
 import type { ProcedureOrder } from "./assistantProcedures.types"
+import Image from "next/image"
 
 type ProcedureOrderRowProps = {
   order: ProcedureOrder
@@ -15,34 +16,25 @@ export function ProcedureOrderRow({ order, isSelected, onSelect }: ProcedureOrde
   const priority = order.priority
   const pCfg = PRIORITY_CONFIG[priority]
 
-  const dicebearAvatarUrl = (name: string, idFallback: string) => {
-    const fromName = typeof name === "string" ? name.trim() : ""
-    const fromId = idFallback.trim()
-    const raw = (fromName || fromId || "x").replace(/\s+/g, "")
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(raw)}`
-  }
-
   return (
     <button
       type="button"
       onClick={onSelect}
       className={cn(
-        "relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border p-3 text-left transition-all duration-300",
+        "group flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-all duration-200",
         isSelected
-          ? "border-[#1A5345]/30 bg-white shadow-md shadow-[#1A5345]/5 ring-1 ring-[#1A5345]/10"
-          : "border-[#E8E6E0]/60 bg-white hover:border-[#1A5345]/30 hover:bg-[#F9F8F5]/50 hover:shadow-sm",
+          ? "bg-white shadow-sm ring-1 ring-[#1A5345]/20"
+          : "hover:bg-[#EAEBE8]/50"
       )}
     >
-      {/* Avatar — circular, matches assistant appointments list */}
+      {/* Avatar */}
       <div className="relative shrink-0">
-        <div className={cn(
-          "size-10 shrink-0 overflow-hidden rounded-full border-2 transition-all duration-300 sm:size-11",
-          isSelected ? "border-[#1A5345]/20 shadow-sm" : "border-[#F4F3ED]"
-        )}>
-          <img
-            src={dicebearAvatarUrl(order.patientName, order.patientId)}
-            alt=""
-            className="size-full object-cover"
+        <div className="relative size-10 overflow-hidden rounded-full border border-[#E8E6E0] bg-[#F5F5F3]">
+          <Image
+            src={`https://i.pravatar.cc/150?u=${order.patientId}`}
+            alt={order.patientName}
+            fill
+            className="object-cover"
           />
         </div>
         {priority === "emergency" && (
@@ -52,53 +44,44 @@ export function ProcedureOrderRow({ order, isSelected, onSelect }: ProcedureOrde
 
       {/* Content */}
       <div className="min-w-0 flex-1">
-        {/* Name + Age */}
-        <div className="flex min-w-0 items-center justify-between gap-2">
-          <span className={cn(
-            "truncate font-serif text-[14px] font-bold tracking-tight transition-colors sm:text-[15px]",
-            isSelected ? "text-[#1A5345]" : "text-[#1A1F1E]"
-          )}>
-            {order.patientName}
-          </span>
-          <span className="shrink-0 rounded-lg bg-[#F4F3ED] px-1.5 py-0.5 text-[10px] font-bold text-[#6B7870] sm:text-[11px]">
-            {order.patientAge}y
-          </span>
-        </div>
-
-        {/* Procedure Name */}
-        <p className={cn(
-          "mt-0.5 truncate text-[11px] font-bold transition-colors",
-          isSelected ? "text-[#1A5345]/80" : "text-[#1A5345]/60"
-        )}>
-          {order.procedureName}
-        </p>
-
-        {/* Bottom Metadata */}
-        <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          {pCfg && (
-            <span
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wide uppercase",
-                pCfg.style,
-              )}
-            >
-              <span className="size-1 rounded-full bg-current opacity-40" />
-              {pCfg.label}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={cn(
+              "truncate text-[13px] font-semibold transition-colors",
+              isSelected ? "text-[#1A5345]" : "text-[#1A1F1E] group-hover:text-[#1A5345]"
+            )}>
+              {order.patientName}
             </span>
-          )}
-
+            <span className="shrink-0 text-[10px] text-muted-foreground">
+              {order.patientAge}y
+            </span>
+          </div>
           {order.scheduledAt && (
-            <span className="inline-flex shrink-0 items-center gap-1 text-[9px] font-bold text-muted-foreground/60 sm:text-[10px]">
-              <CalendarDaysIcon className="size-3 shrink-0 text-[#1A5345]/40" />
+            <span className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+              <CalendarDaysIcon className="size-3" />
               {new Date(order.scheduledAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
             </span>
           )}
         </div>
+        
+        <div className="mt-0.5 flex items-center justify-between text-[11px]">
+          <span className="truncate font-medium text-muted-foreground">
+            {order.procedureName}
+          </span>
+          {pCfg && priority !== "normal" && (
+            <span className={cn(
+              "shrink-0 font-bold capitalize",
+              priority === "emergency" ? "text-red-600" : "text-[#B8860B]"
+            )}>
+              {pCfg.label}
+            </span>
+          )}
+        </div>
       </div>
-
+      
       {/* Selected Indicator Bar */}
       {isSelected && (
-        <div className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-[#1A5345] shadow-[2px_0_10px_rgba(26,83,69,0.3)]" />
+        <div className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-[#1A5345]" />
       )}
     </button>
   )

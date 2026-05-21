@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useParams, usePathname, useSearchParams } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import {
   ActivityIcon,
   DropletsIcon,
@@ -133,13 +133,12 @@ const PROFILE_TABS = [
 ]
 
 type UseAssistantPatientProfilePageOpts = {
-  /** From server `page.tsx` after `await params` — avoids relying on async route props on the client. */
-  routePatientId?: string
+  /** From server `page.tsx` after `await params` (Next.js 16+). */
+  routePatientId: string
 }
 
-export function useAssistantPatientProfilePage(opts?: UseAssistantPatientProfilePageOpts) {
-  const params = useParams<{ patientId: string }>()
-  const patientId = opts?.routePatientId?.trim() || params?.patientId || "1"
+export function useAssistantPatientProfilePage({ routePatientId }: UseAssistantPatientProfilePageOpts) {
+  const patientId = routePatientId.trim() || "1"
   const pathname = usePathname()
   const searchParams = useSearchParams()
 

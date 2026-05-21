@@ -132,6 +132,7 @@ type AssistantAppointmentsProps = {
   isUpdatingAppointment: boolean
   doctors: DoctorOption[]
   patients: PatientOption[]
+  defaultCreateDialogOpen?: boolean
 }
 
 const statusLabel: Record<AssistantAppointmentStatus, string> = {
@@ -251,9 +252,10 @@ export function AssistantAppointments({
   isUpdatingAppointment,
   doctors,
   patients,
+  defaultCreateDialogOpen = false,
 }: AssistantAppointmentsProps) {
   const [selectedAppointment, setSelectedAppointment] = useState<AssistantAppointment | null>(null)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(defaultCreateDialogOpen)
   const [cancellingAppointment, setCancellingAppointment] = useState<AssistantAppointment | null>(null)
   const [cancellationReason, setCancellationReason] = useState("")
   

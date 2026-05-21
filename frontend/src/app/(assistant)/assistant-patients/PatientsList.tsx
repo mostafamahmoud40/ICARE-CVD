@@ -21,6 +21,10 @@ import {
   MoreVerticalIcon,
   EditIcon,
   ArchiveIcon,
+  Heart,
+  StethoscopeIcon,
+  BrainIcon,
+  BabyIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -70,6 +74,8 @@ import type { useAddPatient } from "./useAddPatient"
 type PatientsListProps = {
   patients: CreatedPatient[]
   addPatientState: ReturnType<typeof useAddPatient>
+  initialSearchQuery?: string
+  initialSheetOpen?: boolean
 }
 
 type SortOption = "lastVisit" | "riskLevel" | "name"
@@ -137,9 +143,25 @@ function RiskBadge({ level }: { level: string }) {
   )
 }
 
-export function PatientsList({ patients, addPatientState }: PatientsListProps) {
-  const [isSheetOpen, setIsSheetOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
+type DepartmentConfig = {
+  name: string
+  icon: React.ElementType
+  color: string
+}
+
+function DepartmentBadge({ department }: { department: DepartmentConfig }) {
+  const Icon = department.icon
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#6B7870]">
+      <Icon className="size-3.5" style={{ color: department.color }} strokeWidth={2} aria-hidden />
+      {department.name}
+    </span>
+  )
+}
+
+export function PatientsList({ patients, addPatientState, initialSearchQuery = "", initialSheetOpen = false }: PatientsListProps) {
+  const [isSheetOpen, setIsSheetOpen] = useState(initialSheetOpen)
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [riskFilter, setRiskFilter] = useState<RiskFilter>("all")
   const [sortBy, setSortBy] = useState<SortOption>("lastVisit")
@@ -219,9 +241,8 @@ export function PatientsList({ patients, addPatientState }: PatientsListProps) {
 
           {/* Premium Analytics Banner — compact */}
           <div className="mb-3 grid w-full grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
-            <div className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-[#E8E6E0]/80 bg-white p-3 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_-4px_rgba(26,83,69,0.08)] sm:p-4">
-              <div className="pointer-events-none absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-[#1A5345]/[0.03] to-transparent sm:w-28" />
-              <div className="z-10 flex flex-col gap-0.5">
+            <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#E8E6E0]/60 shadow-sm transition-shadow hover:shadow-md sm:p-4">
+              <div className="flex flex-col gap-0.5 min-w-0">
                 <span className="text-[12px] font-medium text-muted-foreground sm:text-[13px]">Total Patients</span>
                 <div className="flex items-end gap-2">
                   <span className="text-[22px] font-bold leading-none tracking-tight text-[#1A1F1E] sm:text-[26px]">
@@ -232,17 +253,16 @@ export function PatientsList({ patients, addPatientState }: PatientsListProps) {
                   </span>
                 </div>
               </div>
-              <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F3ED] ring-2 ring-white transition-colors duration-300 group-hover:bg-[#1A5345] sm:size-10">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F3ED] sm:size-10">
                 <UsersIcon
-                  className="size-4 text-[#1A5345] transition-colors duration-300 group-hover:text-white sm:size-[18px]"
+                  className="size-4 text-[#1A5345] sm:size-[18px]"
                   strokeWidth={2.5}
                 />
               </div>
             </div>
 
-            <div className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-[#E8E6E0]/80 bg-white p-3 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_-4px_rgba(232,52,94,0.08)] sm:p-4">
-              <div className="pointer-events-none absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-[#E8345E]/[0.03] to-transparent sm:w-28" />
-              <div className="z-10 flex flex-col gap-0.5">
+            <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#E8E6E0]/60 shadow-sm transition-shadow hover:shadow-md sm:p-4">
+              <div className="flex flex-col gap-0.5 min-w-0">
                 <span className="text-[12px] font-medium text-muted-foreground sm:text-[13px]">High Risk</span>
                 <div className="flex items-end gap-2">
                   <span className="text-[22px] font-bold leading-none tracking-tight text-[#1A1F1E] sm:text-[26px]">
@@ -253,17 +273,16 @@ export function PatientsList({ patients, addPatientState }: PatientsListProps) {
                   </span>
                 </div>
               </div>
-              <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F3ED] ring-2 ring-white transition-colors duration-300 group-hover:bg-[#E8345E] sm:size-10">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F3ED] sm:size-10">
                 <ActivityIcon
-                  className="size-4 text-[#E8345E] transition-colors duration-300 group-hover:text-white sm:size-[18px]"
+                  className="size-4 text-[#E8345E] sm:size-[18px]"
                   strokeWidth={2.5}
                 />
               </div>
             </div>
 
-            <div className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-[#E8E6E0]/80 bg-white p-3 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_-4px_rgba(232,144,66,0.08)] sm:p-4">
-              <div className="pointer-events-none absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-[#E89042]/[0.03] to-transparent sm:w-28" />
-              <div className="z-10 flex flex-col gap-0.5">
+            <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#E8E6E0]/60 shadow-sm transition-shadow hover:shadow-md sm:p-4">
+              <div className="flex flex-col gap-0.5 min-w-0">
                 <span className="text-[12px] font-medium text-muted-foreground sm:text-[13px]">New This Week</span>
                 <div className="flex items-end gap-2">
                   <span className="text-[22px] font-bold leading-none tracking-tight text-[#1A1F1E] sm:text-[26px]">
@@ -274,9 +293,9 @@ export function PatientsList({ patients, addPatientState }: PatientsListProps) {
                   </span>
                 </div>
               </div>
-              <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F3ED] ring-2 ring-white transition-colors duration-300 group-hover:bg-[#E89042] sm:size-10">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F3ED] sm:size-10">
                 <CalendarIcon
-                  className="size-4 text-[#E89042] transition-colors duration-300 group-hover:text-white sm:size-[18px]"
+                  className="size-4 text-[#E89042] sm:size-[18px]"
                   strokeWidth={2.5}
                 />
               </div>
@@ -365,7 +384,7 @@ export function PatientsList({ patients, addPatientState }: PatientsListProps) {
                 <tr className="text-[15px] font-serif font-bold text-[#1A1F1E] bg-[#F4F3ED]/90 backdrop-blur-md shadow-[0_1px_0_0_#E8E6E0] transition-colors">
                   <th className="py-4 pr-4 pl-4">Patient Name</th>
                   <th className="py-4 px-4">Condition</th>
-                  <th className="py-4 px-4">Doctor</th>
+                  <th className="py-4 px-4">Department</th>
                   <th className="py-4 px-4">Age / Sex</th>
                   <th className="py-4 px-4">Last Visit</th>
                   <th className="py-4 px-4">Status</th>
@@ -428,18 +447,18 @@ export function PatientsList({ patients, addPatientState }: PatientsListProps) {
                       "2023-10-14",
                       "2023-10-15",
                     ]
-                    const mockDoctors = [
-                      { name: "Dr. Sarah Jenkins", id: 101 },
-                      { name: "Dr. Michael Chen", id: 102 },
-                      { name: "Dr. Emily Roberts", id: 103 },
-                      { name: "Dr. James Wilson", id: 104 },
+                    const mockDepartments: DepartmentConfig[] = [
+                      { name: "Cardiology", icon: Heart, color: "#E15C5C" },
+                      { name: "Neurology", icon: BrainIcon, color: "#7C3AED" },
+                      { name: "General Surgery", icon: StethoscopeIcon, color: "#1A5345" },
+                      { name: "Pediatrics", icon: BabyIcon, color: "#0891B2" },
                     ]
 
                     const status = mockStatuses[index % mockStatuses.length]
                     const risk = mockRisks[index % mockRisks.length]
                     const condition = mockConditions[index % mockConditions.length]
                     const lastVisit = mockLastVisits[index % mockLastVisits.length]
-                    const doctor = mockDoctors[index % mockDoctors.length]
+                    const department = mockDepartments[index % mockDepartments.length]
 
                     const age = patient.dateOfBirth
                       ? Math.floor(
@@ -469,14 +488,7 @@ export function PatientsList({ patients, addPatientState }: PatientsListProps) {
                           </span>
                         </td>
                         <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <div className="relative size-8 rounded-full overflow-hidden border border-[#E8E6E0] shadow-sm">
-                              <img src={`https://i.pravatar.cc/150?u=${doctor.id}`} alt={doctor.name} className="w-full h-full object-cover" />
-                            </div>
-                            <span className="text-[14px] font-medium text-[#1A1F1E]">
-                              {doctor.name}
-                            </span>
-                          </div>
+                          <DepartmentBadge department={department} />
                         </td>
                         <td className="py-4 px-4">
                           <span className="text-[14px] font-medium text-[#1A1F1E]">

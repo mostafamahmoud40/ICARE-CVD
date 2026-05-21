@@ -32,7 +32,7 @@ export type DayAvailability = {
 export type BlockedDate = {
   id: string
   date: string
-  reason?: string
+  reason?: string | null
 }
 
 export type DoctorSchedulePayload = {
