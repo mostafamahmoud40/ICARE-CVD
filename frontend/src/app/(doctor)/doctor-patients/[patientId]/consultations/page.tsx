@@ -1,11 +1,15 @@
 "use client"
 
-import { useParams } from "next/navigation"
+import { use } from "react"
 import { ConsultationsPage } from "./ConsultationsPage"
 import { mockDoctorPatientsData, mockPatientFullRecord } from "../../doctorPatients.mock"
 
-export default function ConsultationsRoutePage() {
-  const { patientId = "" } = useParams<{ patientId: string }>()
+type PageProps = {
+  params: Promise<{ patientId: string }>
+}
+
+export default function ConsultationsRoutePage({ params }: PageProps) {
+  const { patientId } = use(params)
   const patient = mockDoctorPatientsData.patients.find((p) => p.id === patientId)
 
   if (!patient) {
