@@ -1,6 +1,5 @@
 import { ArrowUpRightIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
 export type AiAnalysisColor = "green" | "orange" | "blue"
@@ -21,9 +20,9 @@ export interface AiDetailedAnalysisProps {
 }
 
 const colorMap = {
-  green: "bg-emerald-600 dark:bg-emerald-400",
-  orange: "bg-amber-600 dark:bg-amber-400",
-  blue: "bg-blue-600 dark:bg-blue-400",
+  green: "bg-emerald-500",
+  orange: "bg-amber-500",
+  blue: "bg-blue-500",
 }
 
 export function AiDetailedAnalysis({
@@ -35,16 +34,16 @@ export function AiDetailedAnalysis({
   className,
 }: AiDetailedAnalysisProps) {
   return (
-    <Card className={cn("border-border/50 shadow-sm", className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle className="text-base font-bold text-[#1A1F1E] dark:text-foreground">
+    <div className={cn("overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]", className)}>
+      <div className="flex flex-row items-center justify-between border-b border-[#E8E6E0]/40 px-5 py-4 sm:px-6">
+        <h3 className="font-serif text-[17px] font-bold text-[#1A1F1E]">
           {title}
-        </CardTitle>
-        <div className="rounded-full border border-[#C8D9D3] bg-[#E8F0ED] px-2.5 py-0.5 text-[11px] font-semibold text-[#1a5345] dark:border-emerald-900/50 dark:bg-emerald-900/30 dark:text-emerald-400">
+        </h3>
+        <div className="inline-flex shrink-0 items-center justify-center gap-1 overflow-hidden whitespace-nowrap rounded-lg bg-violet-600 px-2 py-0.5 text-[10px] font-bold text-white">
           {updatedText}
         </div>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      </div>
+      <div className="flex flex-col gap-4 px-5 pb-6 pt-4 sm:px-6">
         <ul className="flex flex-col gap-3">
           {items.map((item, idx) => (
             <li key={idx} className="flex items-start gap-3">
@@ -84,7 +83,7 @@ export function AiDetailedAnalysis({
             </Button>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

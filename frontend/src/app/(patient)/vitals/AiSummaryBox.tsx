@@ -1,4 +1,4 @@
-import { ArrowUpRightIcon, SmileIcon } from "lucide-react"
+import { ArrowUpRightIcon, SparklesIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
@@ -20,41 +20,41 @@ export function AiSummaryBox({
   return (
     <div
       className={cn(
-        "flex items-start gap-4 rounded-xl border border-[#C8D9D3] bg-[#E8F0ED] p-5 dark:border-emerald-900/50 dark:bg-emerald-950/30",
+        "flex items-start gap-4 rounded-2xl border border-violet-200/60 bg-violet-50/50 p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]",
         className
       )}
     >
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/70 shadow-sm text-[#1a5345] dark:bg-emerald-900/50 dark:text-emerald-300">
-        <SmileIcon className="size-5" />
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-violet-600">
+        <SparklesIcon className="size-5" />
       </div>
       <div className="flex flex-col gap-3 w-full">
         <div>
-          <h4 className="m-0 mb-1.5 text-[15px] font-semibold text-[#1a5345] dark:text-emerald-300">
+          <h4 className="m-0 mb-1.5 font-serif text-[16px] font-bold text-[#1A1F1E]">
             {title}
           </h4>
-          <p className="m-0 text-[13px] leading-relaxed text-[#2d4a3e]/90 dark:text-emerald-300/80">
+          <p className="m-0 text-[13px] font-medium leading-relaxed text-muted-foreground">
             {body}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {actionLabel1 && (
             <Button
               variant="outline"
               size="sm"
-              className="h-8 gap-1.5 border-[#C8D9D3] bg-white/70 text-[#1a5345] hover:bg-white/90 hover:text-[#1a5345] dark:border-emerald-900/50 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60"
+              className="group h-8 gap-1.5 rounded-lg border-violet-200 bg-white px-3 text-[12px] font-bold text-violet-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:shadow-md"
             >
               {actionLabel1}
-              <ArrowUpRightIcon className="size-3.5" />
+              <ArrowUpRightIcon className="size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </Button>
           )}
           {actionLabel2 && (
             <Button
               variant="outline"
               size="sm"
-              className="h-8 gap-1.5 border-[#C8D9D3] bg-white/70 text-[#1a5345] hover:bg-white/90 hover:text-[#1a5345] dark:border-emerald-900/50 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60"
+              className="group h-8 gap-1.5 rounded-lg border-violet-200 bg-white px-3 text-[12px] font-bold text-violet-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:shadow-md"
             >
               {actionLabel2}
-              <ArrowUpRightIcon className="size-3.5" />
+              <ArrowUpRightIcon className="size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </Button>
           )}
         </div>
