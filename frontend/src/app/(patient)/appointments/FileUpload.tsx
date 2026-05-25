@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react"
 import { cn } from "@/lib/utils"
+import { appointmentsBookingCardClassName } from "./shared"
 import { UploadIcon, FileIcon, XIcon, FileTextIcon, Beaker, ImageIcon, Pill, Waves, Stethoscope, FileBadge } from "lucide-react"
 import {
   Select,
@@ -21,13 +22,13 @@ export type FileCategory =
   | "other"
 
 export const fileCategories: { id: FileCategory; label: string; icon: React.ReactNode }[] = [
-  { id: "ecg", label: "ECG Report", icon: <Waves className="size-4 text-[#00392D]" /> },
-  { id: "blood-test", label: "Blood Test", icon: <Beaker className="size-4 text-[#00392D]" /> },
-  { id: "xray", label: "X-Ray / Imaging", icon: <ImageIcon className="size-4 text-[#00392D]" /> },
-  { id: "prescription", label: "Prescription", icon: <Pill className="size-4 text-[#00392D]" /> },
-  { id: "medical-history", label: "Medical History", icon: <Stethoscope className="size-4 text-[#00392D]" /> },
-  { id: "insurance", label: "Insurance Document", icon: <FileBadge className="size-4 text-[#00392D]" /> },
-  { id: "other", label: "Other", icon: <FileTextIcon className="size-4 text-[#00392D]" /> },
+  { id: "ecg", label: "ECG Report", icon: <Waves className="size-4 text-[#1A5345]" /> },
+  { id: "blood-test", label: "Blood Test", icon: <Beaker className="size-4 text-[#1A5345]" /> },
+  { id: "xray", label: "X-Ray / Imaging", icon: <ImageIcon className="size-4 text-[#1A5345]" /> },
+  { id: "prescription", label: "Prescription", icon: <Pill className="size-4 text-[#1A5345]" /> },
+  { id: "medical-history", label: "Medical History", icon: <Stethoscope className="size-4 text-[#1A5345]" /> },
+  { id: "insurance", label: "Insurance Document", icon: <FileBadge className="size-4 text-[#1A5345]" /> },
+  { id: "other", label: "Other", icon: <FileTextIcon className="size-4 text-[#1A5345]" /> },
 ]
 
 export interface UploadedFile {
@@ -98,13 +99,11 @@ export function FileUpload({ files, onFilesChange }: FileUploadProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-[#E8E6E0] bg-white p-6 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+    <div className={appointmentsBookingCardClassName}>
       <div className="mb-4 flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-[#E8F0EE]">
-          <FileTextIcon className="size-4 text-[#00392D]" />
-        </div>
-        <h3 className="text-lg font-bold text-[#1A1F1E]">Attachments</h3>
-        <span className="text-[13px] text-[#6B7870]">(Optional)</span>
+        <FileTextIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
+        <h3 className="font-serif text-[17px] font-bold text-[#1A1F1E]">Attachments</h3>
+        <span className="text-[13px] font-medium text-muted-foreground">(Optional)</span>
       </div>
 
       {/* Upload Area */}
@@ -116,8 +115,8 @@ export function FileUpload({ files, onFilesChange }: FileUploadProps) {
         className={cn(
           "cursor-pointer rounded-xl border-2 border-dashed p-6 transition-colors",
           isDragging
-            ? "border-[#00392D] bg-[#E8F0EE]"
-            : "border-[#E8E6E0] bg-[#FAFAF8] hover:border-[#A8C4BC]"
+            ? "border-[#1A5345] bg-[#E8F0EE]/80"
+            : "border-[#E8E6E0]/80 bg-[#F9F8F5]/50 hover:border-[#1A5345]/40"
         )}
       >
         <input
@@ -129,9 +128,7 @@ export function FileUpload({ files, onFilesChange }: FileUploadProps) {
           className="hidden"
         />
         <div className="flex flex-col items-center text-center">
-          <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-[#E8F0EE]">
-            <UploadIcon className="size-6 text-[#00392D]" />
-          </div>
+          <UploadIcon className="size-6 text-[#1A5345]" aria-hidden />
           <p className="text-[14px] font-medium text-[#1A1F1E]">
             Click to upload or drag and drop
           </p>
@@ -151,7 +148,7 @@ export function FileUpload({ files, onFilesChange }: FileUploadProps) {
             >
               <div className="flex items-center gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
-                  <FileIcon className="size-5 text-[#00392D]" />
+                  <FileIcon className="size-5 text-[#1A5345]" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-medium text-[#1A1F1E]">

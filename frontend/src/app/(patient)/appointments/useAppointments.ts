@@ -3,6 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
 import type { AppointmentsPageData } from "./appointments.types"
+import {
+  normalizeAppointmentBookingStatus,
+  partitionAppointmentsByBooking,
+} from "./appointments.utils"
 
 type DoctorApiRow = {
   id: string
@@ -21,7 +25,11 @@ type AppointmentApiRow = {
   clinician: string
   location: string
   locationDetail?: string
-  status: "scheduled" | "confirmed" | "completed" | "cancelled"
+  status: string
+  rescheduledTo?: string
+  cancellationReason?: string
+  cancelledBy?: "patient" | "doctor" | "clinic"
+  cancelledAt?: string
   notes?: string
   symptoms?: string
   visitType: "clinic" | "virtual"
@@ -43,19 +51,34 @@ type CreateAppointmentPayload = {
   reason: string
 }
 
+function mapAppointmentRow(row: AppointmentApiRow): Appointment {
+  return {
+    ...row,
+    status: normalizeAppointmentBookingStatus(row.status, row.scheduledAt),
+    rescheduledTo: row.rescheduledTo,
+    cancellationReason: row.cancellationReason,
+    cancelledBy: row.cancelledBy,
+    cancelledAt: row.cancelledAt,
+  }
+}
+
 async function fetchAppointmentsPage(): Promise<AppointmentsPageData> {
   const [doctorsResult, appointmentsResult] = await Promise.allSettled([
     apiClient.get<DoctorApiRow[]>("/patient/appointments/doctors"),
     apiClient.get<AppointmentApiRow[]>("/patient/appointments"),
   ])
 
-  const doctors = doctorsResult.status === "fulfilled" ? doctorsResult.value.data : []
-  const appointments = appointmentsResult.status === "fulfilled" ? appointmentsResult.value.data : []
-  const now = new Date()
-  const upcoming = appointments.filter((a) => new Date(a.scheduledAt) >= now && a.status !== "cancelled")
-  const past = appointments.filter((a) => new Date(a.scheduledAt) < now && a.status !== "cancelled")
+  const doctors = (doctorsResult.status === "fulfilled" ? doctorsResult.value.data : []).map((d) => ({
+    ...d,
+    rating: 4.8,
+  }))
+  const appointments = (appointmentsResult.status === "fulfilled" ? appointmentsResult.value.data : []).map(
+    mapAppointmentRow,
+  )
+  const { upcoming, past } = partitionAppointmentsByBooking(appointments)
   const selectedDoctor = doctors[0] ?? null
 
+  const now = new Date()
   let availability: DoctorAvailabilityApi = {
     monthLabel: now.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
     days: [],

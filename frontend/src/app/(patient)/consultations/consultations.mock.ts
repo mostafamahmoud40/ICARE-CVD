@@ -1,14 +1,17 @@
-import type { ConsultationsData, VisitSummary, ConsultationStats } from "./consultations.types"
+import type { ConsultationsData, VisitSummary } from "./consultations.types"
+import { computeConsultationStats } from "./consultations.utils"
 
 const visitsData: VisitSummary[] = [
   {
     id: "visit-001",
-    date: "April 14, 2026",
+    scheduledAt: "2026-04-14T10:30:00",
+    visitType: "clinic",
+    visitTitle: "Cardiology visit",
     doctor: {
       name: "Dr. Sarah Johnson",
       specialty: "Cardiology",
     },
-    status: "completed",
+    recordStatus: "report-ready",
     vitals: [
       { label: "Blood pressure", value: "142/88", unit: "", status: "elevated", note: "Elevated" },
       { label: "Heart rate", value: "78", unit: "bpm", status: "normal", note: "Normal" },
@@ -24,26 +27,102 @@ const visitsData: VisitSummary[] = [
       description: "Your blood pressure is not well controlled with the current medication dose. The doctor will adjust your Metoprolol dosage.",
     },
     medications: [
-      { name: "Metoprolol 100 mg", dosage: "100 mg", schedule: "Morning & evening · Ongoing", status: "increased", note: "Dose increased from 50mg", icon: "blue" },
-      { name: "Aspirin 75 mg", dosage: "75 mg", schedule: "Morning · Ongoing", status: "ongoing", note: "No change", icon: "red" },
-      { name: "Atorvastatin 20 mg", dosage: "20 mg", schedule: "Evening · Ongoing", status: "ongoing", note: "No change", icon: "green" },
+      {
+        name: "Metoprolol",
+        dosage: "100 mg",
+        schedule: "Morning & evening",
+        status: "increased",
+        note: "Dose increased from 50 mg",
+        icon: "blue",
+      },
+      {
+        name: "Spironolactone",
+        dosage: "25 mg",
+        schedule: "Morning · with food",
+        status: "new",
+        note: "Started at this visit",
+        icon: "yellow",
+      },
+      {
+        name: "Aspirin",
+        dosage: "75 mg",
+        schedule: "Morning",
+        status: "ongoing",
+        note: "No change",
+        icon: "red",
+      },
+      {
+        name: "Atorvastatin",
+        dosage: "20 mg",
+        schedule: "Evening",
+        status: "ongoing",
+        icon: "green",
+      },
+      {
+        name: "Amlodipine",
+        dosage: "5 mg",
+        schedule: "Was taken once daily before this visit",
+        status: "discontinued",
+        note: "Stopped — blood pressure now managed with Metoprolol dose increase",
+        icon: "blue",
+      },
+      {
+        name: "Hydrochlorothiazide",
+        dosage: "12.5 mg",
+        schedule: "Previously morning only",
+        status: "discontinued",
+        note: "Stopped — you had been on this for 8 months",
+        icon: "green",
+      },
     ],
-    followUpInstructions: [
-      { title: "Measure BP twice daily", description: "Log readings in the app every morning and evening", status: "pending" },
-      { title: "Renal function panel", description: "Order blood test within the next 5 days", status: "pending" },
-      { title: "Next visit", description: "April 28, 2026 — in 2 weeks", status: "scheduled", date: "April 28, 2026" },
+    orders: [
+      {
+        id: "o-001-1",
+        kind: "self_care",
+        title: "Measure BP twice daily",
+        detail: "Log readings in the app every morning and evening",
+        status: "pending",
+      },
+      {
+        id: "o-001-2",
+        kind: "lab",
+        title: "Renal function panel",
+        detail: "Blood test at the lab — bring this visit summary if asked",
+        status: "pending",
+        dueDate: "April 19, 2026",
+      },
+      {
+        id: "o-001-3",
+        kind: "referral",
+        title: "Nephrology consultation",
+        specialty: "Nephrology",
+        referredDoctor: "Dr. Ahmed Hassan",
+        detail: "Review kidney function before the next cardiology dose adjustment",
+        status: "pending",
+        urgency: "routine",
+      },
+      {
+        id: "o-001-4",
+        kind: "appointment",
+        title: "Cardiology follow-up",
+        detail: "In-clinic review with Dr. Sarah Johnson",
+        status: "scheduled",
+        dueDate: "April 28, 2026",
+      },
     ],
     previousVisits: [],
     aiNote: "Your BP has been trending upward over the past 4 weeks. The dose increase in Metoprolol should help — it's important to take it consistently, especially the evening dose which you missed several times recently. If you feel dizziness or your heart rate drops below 60, contact the clinic immediately.",
   },
   {
     id: "visit-002",
-    date: "March 12, 2026",
+    scheduledAt: "2026-03-12T09:00:00",
+    visitType: "virtual",
+    visitTitle: "Cardiology visit",
     doctor: {
       name: "Dr. Sarah Johnson",
       specialty: "Cardiology",
     },
-    status: "completed",
+    recordStatus: "updated",
     vitals: [
       { label: "Blood pressure", value: "138/85", unit: "", status: "elevated", note: "Slightly elevated" },
       { label: "Heart rate", value: "76", unit: "bpm", status: "normal", note: "Normal" },
@@ -62,21 +141,36 @@ const visitsData: VisitSummary[] = [
       { name: "Metoprolol 50 mg", dosage: "50 mg", schedule: "Morning & evening · Ongoing", status: "ongoing", note: "No change", icon: "blue" },
       { name: "Aspirin 75 mg", dosage: "75 mg", schedule: "Morning · Ongoing", status: "ongoing", note: "No change", icon: "red" },
     ],
-    followUpInstructions: [
-      { title: "Continue BP monitoring", description: "Keep daily BP log", status: "completed" },
-      { title: "Next visit", description: "April 14, 2026", status: "scheduled", date: "April 14, 2026" },
+    orders: [
+      {
+        id: "o-002-1",
+        kind: "self_care",
+        title: "Daily BP log",
+        detail: "Continue home monitoring until your next visit",
+        status: "completed",
+      },
+      {
+        id: "o-002-2",
+        kind: "appointment",
+        title: "Cardiology follow-up",
+        detail: "Video visit with Dr. Sarah Johnson",
+        status: "scheduled",
+        dueDate: "April 14, 2026",
+      },
     ],
     previousVisits: [],
     aiNote: "Patient adherence to medication has been good. BP readings show stable trend. Recommend continuing lifestyle modifications including low sodium diet.",
   },
   {
     id: "visit-003",
-    date: "February 3, 2026",
+    scheduledAt: "2026-02-03T14:15:00",
+    visitType: "clinic",
+    visitTitle: "Cardiology visit",
     doctor: {
       name: "Dr. Sarah Johnson",
       specialty: "Cardiology",
     },
-    status: "completed",
+    recordStatus: "report-ready",
     vitals: [
       { label: "Blood pressure", value: "135/82", unit: "", status: "elevated", note: "Stable" },
       { label: "Heart rate", value: "72", unit: "bpm", status: "normal", note: "Normal" },
@@ -94,21 +188,36 @@ const visitsData: VisitSummary[] = [
     medications: [
       { name: "Metoprolol 50 mg", dosage: "50 mg", schedule: "Morning & evening · Ongoing", status: "ongoing", note: "No change", icon: "blue" },
     ],
-    followUpInstructions: [
-      { title: "ECG monitoring", description: "No immediate action needed", status: "completed" },
-      { title: "Next visit", description: "March 12, 2026", status: "scheduled", date: "March 12, 2026" },
+    orders: [
+      {
+        id: "o-003-1",
+        kind: "imaging",
+        title: "ECG on file",
+        detail: "No repeat ECG needed before the next visit",
+        status: "completed",
+      },
+      {
+        id: "o-003-2",
+        kind: "appointment",
+        title: "Cardiology follow-up",
+        detail: "Routine in-clinic visit",
+        status: "scheduled",
+        dueDate: "March 12, 2026",
+      },
     ],
     previousVisits: [],
     aiNote: "ECG patterns remain consistent with previous readings. No concerning arrhythmias detected. Heart rate variability is within normal limits.",
   },
   {
     id: "visit-004",
-    date: "January 10, 2026",
+    scheduledAt: "2026-01-10T11:00:00",
+    visitType: "virtual",
+    visitTitle: "Cardiology visit",
     doctor: {
       name: "Dr. Sarah Johnson",
       specialty: "Cardiology",
     },
-    status: "completed",
+    recordStatus: "pending-report",
     vitals: [
       { label: "Blood pressure", value: "140/88", unit: "", status: "elevated", note: "Elevated" },
       { label: "Heart rate", value: "74", unit: "bpm", status: "normal", note: "Normal" },
@@ -126,10 +235,29 @@ const visitsData: VisitSummary[] = [
     medications: [
       { name: "Metoprolol 50 mg", dosage: "50 mg", schedule: "Morning & evening · New", status: "new", note: "New prescription", icon: "blue" },
     ],
-    followUpInstructions: [
-      { title: "Home BP monitoring", description: "Start twice daily BP checks", status: "completed" },
-      { title: "Lifestyle changes", description: "Reduce sodium intake, increase exercise", status: "pending" },
-      { title: "Next visit", description: "February 3, 2026", status: "scheduled", date: "February 3, 2026" },
+    orders: [
+      {
+        id: "o-004-1",
+        kind: "self_care",
+        title: "Home BP monitoring",
+        detail: "Start twice-daily checks and log in the app",
+        status: "completed",
+      },
+      {
+        id: "o-004-2",
+        kind: "self_care",
+        title: "Lifestyle plan",
+        detail: "Reduce sodium intake and add light exercise 3× per week",
+        status: "pending",
+      },
+      {
+        id: "o-004-3",
+        kind: "appointment",
+        title: "Cardiology follow-up",
+        detail: "Video visit to review BP trends",
+        status: "scheduled",
+        dueDate: "February 3, 2026",
+      },
     ],
     previousVisits: [],
     aiNote: "First BP management visit. Patient shows good understanding of condition. High likelihood of success with medication adherence and lifestyle changes.",
@@ -141,12 +269,7 @@ export const mockVisitData: ConsultationsData = {
   totalCount: visitsData.length,
 }
 
-export const mockStats: ConsultationStats = {
-  totalVisits: 4,
-  completedVisits: 4,
-  upcomingVisits: 0,
-  thisMonthVisits: 1,
-}
+export const mockStats = computeConsultationStats(visitsData)
 
 export function getVisitById(id: string): VisitSummary | undefined {
   return visitsData.find(visit => visit.id === id)

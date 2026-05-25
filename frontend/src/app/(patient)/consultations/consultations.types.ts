@@ -15,11 +15,21 @@ export type Medication = {
   icon: "blue" | "red" | "green" | "yellow"
 }
 
-export type FollowUpInstruction = {
+export type ClinicalOrderStatus = "pending" | "scheduled" | "completed"
+
+export type ClinicalOrderKind = "lab" | "imaging" | "referral" | "appointment" | "self_care"
+
+export type ClinicalOrder = {
+  id: string
+  kind: ClinicalOrderKind
   title: string
-  description: string
-  status: "pending" | "completed" | "scheduled"
-  date?: string
+  detail: string
+  status: ClinicalOrderStatus
+  dueDate?: string
+  /** Set when kind is referral — another specialist visit. */
+  specialty?: string
+  referredDoctor?: string
+  urgency?: "routine" | "urgent"
 }
 
 export type PreviousVisit = {
@@ -34,14 +44,25 @@ export type DiagnosisTag = {
   variant: "urgency" | "stable" | "improving" | "critical"
 }
 
+/** Patient-facing status of the clinical report (not appointment booking). */
+export type ConsultationRecordStatus = "report-ready" | "pending-report" | "updated"
+
+export type ConsultationsViewMode = "table" | "timeline"
+
+/** How the visit was held — in person at the clinic or online. */
+export type ConsultationVisitType = "clinic" | "virtual"
+
 export type VisitSummary = {
   id: string
-  date: string
+  scheduledAt: string
+  visitType: ConsultationVisitType
+  /** Legacy label; specialty is also on `doctor.specialty`. */
+  visitTitle: string
   doctor: {
     name: string
     specialty: string
   }
-  status: "completed" | "scheduled" | "cancelled" | "in-progress"
+  recordStatus: ConsultationRecordStatus
   vitals: VitalMetric[]
   doctorNotes: string
   diagnosis: {
@@ -49,7 +70,7 @@ export type VisitSummary = {
     description: string
   }
   medications: Medication[]
-  followUpInstructions: FollowUpInstruction[]
+  orders: ClinicalOrder[]
   previousVisits: PreviousVisit[]
   aiNote?: string
 }
@@ -60,8 +81,8 @@ export type ConsultationsData = {
 }
 
 export type ConsultationStats = {
-  totalVisits: number
-  completedVisits: number
-  upcomingVisits: number
-  thisMonthVisits: number
+  totalReports: number
+  thisMonthReports: number
+  pendingReports: number
+  followUpDue: number
 }

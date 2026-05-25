@@ -1,7 +1,6 @@
 "use client"
 
-import { cn } from "@/lib/utils"
-import { FileTextIcon } from "lucide-react"
+import { appointmentsBookingCardClassName, StepHeading } from "./shared"
 import {
   Select,
   SelectContent,
@@ -25,36 +24,30 @@ const commonReasons = [
 ]
 
 export function BookingReason({ value, onChange }: BookingReasonProps) {
-  const selectedReason = commonReasons.find(r => r.label === value)?.id || "other"
-  const isOther = selectedReason === "other" && !commonReasons.some(r => r.label === value)
+  const selectedReason = commonReasons.find((r) => r.label === value)?.id || "other"
+  const isOther = selectedReason === "other" && !commonReasons.some((r) => r.label === value)
 
   return (
-    <div className="rounded-2xl border border-[#cfd9d5] bg-white p-6 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
-      <div className="mb-4 flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-[#E8F0EE]">
-          <FileTextIcon className="size-4 text-[#00392D]" />
-        </div>
-        <h3 className="text-lg font-bold text-[#152a24]">Reason for Visit</h3>
-      </div>
+    <div className={appointmentsBookingCardClassName}>
+      <StepHeading step={2} title="Reason for visit" />
 
-      {/* Reason Dropdown */}
       <div className="mb-4">
         <Select
           value={selectedReason}
           onValueChange={(v) => {
-            const reason = commonReasons.find(r => r.id === v)
+            const reason = commonReasons.find((r) => r.id === v)
             if (reason) onChange(reason.label)
           }}
         >
-          <SelectTrigger className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
+          <SelectTrigger className="h-10 w-full rounded-xl border-[#E8E6E0]/80 bg-[#F9F8F5] text-[13px] font-medium text-[#1A1F1E] focus:ring-2 focus:ring-[#1A5345]/12">
             <SelectValue placeholder="Select reason for visit" />
           </SelectTrigger>
-          <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
+          <SelectContent className="rounded-xl border-[#E8E6E0]/80 bg-white">
             {commonReasons.map((reason) => (
-              <SelectItem 
-                key={reason.id} 
-                value={reason.id} 
-                className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10"
+              <SelectItem
+                key={reason.id}
+                value={reason.id}
+                className="cursor-pointer text-[13px] font-medium"
               >
                 {reason.label}
               </SelectItem>
@@ -63,17 +56,22 @@ export function BookingReason({ value, onChange }: BookingReasonProps) {
         </Select>
       </div>
 
-      {/* Custom Input */}
       <div>
-        <label className="mb-1.5 block text-[13px] font-medium text-[#152a24]">
+        <label className="mb-1.5 block text-[12px] font-bold text-[#1A1F1E]">
           Describe your symptoms or reason
         </label>
         <textarea
-          value={isOther ? value : value === commonReasons.find(r => r.id === selectedReason)?.label ? "" : value}
+          value={
+            isOther
+              ? value
+              : value === commonReasons.find((r) => r.id === selectedReason)?.label
+                ? ""
+                : value
+          }
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Please describe what brings you in today..."
+          placeholder="Please describe what brings you in today…"
           rows={3}
-          className="w-full resize-none rounded-xl border border-[#cfd9d5] bg-white p-3 text-[14px] text-[#152a24] placeholder:text-[#9CA3AF] focus:border-[#d9e5e1] focus:outline-none"
+          className="w-full resize-none rounded-xl border border-[#E8E6E0]/80 bg-[#F9F8F5]/50 p-3 text-[14px] font-medium text-[#1A1F1E] placeholder:text-muted-foreground/55 focus:border-[#1A5345]/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1A5345]/12"
         />
       </div>
     </div>

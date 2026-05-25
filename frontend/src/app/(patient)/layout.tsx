@@ -10,6 +10,7 @@ import {
   BellIcon,
   BotMessageSquareIcon,
   CalendarDaysIcon,
+  ChevronDownIcon,
   CreditCardIcon,
   FileTextIcon,
   HeartPulseIcon,
@@ -220,85 +221,121 @@ function PatientLayoutContent({
 
         <SidebarRail />
 
-        <SidebarFooter className="group-data-[collapsible=icon]:p-1">
+        <SidebarFooter className="group-data-[collapsible=icon]:p-1 border-t border-[#E8E6E0]/60 p-4">
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton
-                    isActive={false}
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                     render={
-                      <button type="button" aria-label="Patient profile">
-                        <div
-                          className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/25"
-                          aria-hidden="true"
-                        >
-                          <User2Icon className="size-4" />
+                      <button 
+                        type="button" 
+                        aria-label="Patient profile"
+                        className="flex w-full items-center gap-3 p-1 transition-all hover:bg-[#F9F8F5] rounded-[20px] group relative"
+                      >
+                        <div className="relative shrink-0">
+                          <div className="size-11 rounded-[16px] bg-white p-0.5 shadow-sm border border-[#E8E6E0]/60 overflow-hidden group-hover:scale-105 transition-transform duration-300">
+                             <img 
+                               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${mounted && user ? encodeURIComponent(user.name) : "Patient"}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
+                               alt="Avatar" 
+                               className="size-full object-cover rounded-[14px]"
+                             />
+                          </div>
+                          <span className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full bg-[#22C55E] border-2 border-white shadow-sm z-10" />
                         </div>
 
                         {isCollapsed ? null : (
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-medium">{mounted && user ? user.name : "Patient"}</div>
-                            <div className="truncate text-xs text-muted-foreground">
-                              Patient
+                          <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 text-left">
+                            <span className="truncate font-sans text-[15px] font-bold text-[#1A1F1E]">
+                              {mounted && user ? user.name : "Patient"}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                               <span className="size-1 rounded-full bg-[#1A5345]/30" />
+                               <span className="truncate font-sans text-[11px] font-medium text-muted-foreground">
+                                 Patient
+                               </span>
                             </div>
                           </div>
+                        )}
+                        {!isCollapsed && (
+                           <ChevronDownIcon className="ml-auto size-4 text-muted-foreground/30 group-hover:text-[#1A5345] group-hover:translate-y-0.5 transition-all" />
                         )}
                       </button>
                     }
                   />
                 </DropdownMenuTrigger>
 
-                <DropdownMenuContent align="end" side="right" className="w-56">
-                  <div className="flex items-start gap-3 px-2 py-2">
-                    <div
-                      className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/25"
-                      aria-hidden="true"
-                    >
-                      <User2Icon className="size-4" />
+                <DropdownMenuContent
+                  align="end"
+                  side="right"
+                  sideOffset={8}
+                  className="w-[248px] rounded-xl border-[#E8E6E0]/60 bg-white p-0 shadow-[0_8px_30px_rgb(0,0,0,0.08)]"
+                >
+                  <div className="flex items-center gap-2.5 border-b border-[#E8E6E0]/40 bg-[#F9F8F5]/80 px-3 py-2 backdrop-blur-md">
+                    <div className="size-9 shrink-0 overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-white p-px shadow-sm">
+                       <img 
+                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${mounted && user ? encodeURIComponent(user.name) : "Patient"}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
+                         alt="Avatar" 
+                         className="size-full object-cover rounded-[10px]"
+                       />
                     </div>
-
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">{mounted && user ? user.name : "Patient"}</div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {mounted && user ? user.email : ""}
-                      </div>
+                    <div className="flex min-w-0 flex-1 flex-col gap-0">
+                      <span className="truncate font-sans text-[14px] font-bold leading-tight text-[#1A1F1E]">
+                        {mounted && user ? user.name : "Patient"}
+                      </span>
+                      <p className="mt-0.5 truncate font-sans text-[10px] font-medium leading-snug text-muted-foreground">
+                        Patient
+                        <span className="text-muted-foreground/50" aria-hidden>
+                          {" "}
+                          ·{" "}
+                        </span>
+                        <span className="text-muted-foreground/80">{mounted && user ? user.email : ""}</span>
+                      </p>
                     </div>
                   </div>
 
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-[#E8E6E0]/60 m-0" />
 
-                  <DropdownMenuItem>
-                    <SparklesIcon className="size-4" />
+                  <DropdownMenuItem className="flex items-center gap-3 p-4 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
+                    <SparklesIcon className="size-5" />
                     <span>Upgrade to Pro</span>
                   </DropdownMenuItem>
 
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-[#E8E6E0]/60 m-0" />
 
-                  <DropdownMenuItem>
-                    <User2Icon className="size-4" />
-                    <span>Account</span>
-                  </DropdownMenuItem>
+                  <div className="flex flex-col py-1">
+                    <DropdownMenuItem asChild className="flex items-center gap-3 px-4 py-3 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
+                      <Link href="/account">
+                        <User2Icon className="size-5" />
+                        <span>Account</span>
+                      </Link>
+                    </DropdownMenuItem>
 
-                  <DropdownMenuItem>
-                    <CreditCardIcon className="size-4" />
-                    <span>Billing</span>
-                  </DropdownMenuItem>
+                    <DropdownMenuItem className="flex items-center gap-3 px-4 py-3 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
+                      <CreditCardIcon className="size-5" />
+                      <span>Billing</span>
+                    </DropdownMenuItem>
 
-                  <DropdownMenuItem>
-                    <BellIcon className="size-4" />
-                    <span>Notifications</span>
-                  </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="flex items-center gap-3 px-4 py-3 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
+                      <Link href="/account/notifications">
+                        <BellIcon className="size-5" />
+                        <span>Notifications</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </div>
 
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-[#E8E6E0]/60 m-0" />
 
                   <DropdownMenuItem
+                    className="flex items-center gap-3 p-4 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-b-xl rounded-t-none"
                     onSelect={(e) => {
                       e.preventDefault()
                       logout()
                     }}
                   >
-                    <LogOutIcon className="size-4" />
+                    <LogOutIcon className="size-5" />
                     <span>Log out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>

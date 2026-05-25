@@ -13,6 +13,7 @@ import { MyAppointments } from "./MyAppointments"
 import { useBookingForm } from "./useBookingForm"
 import { useAppointments } from "./useAppointments"
 import { SparklesIcon } from "lucide-react"
+import { appointmentsScrollbarCss } from "./shared"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -21,28 +22,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-
-function PageHeader() {
-  return (
-    <header>
-      <div className="mb-3 flex items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight text-[#1A1F1E]">
-          Book Your Appointment
-        </h1>
-        <div className="flex shrink-0 items-center gap-2">
-          <SparklesIcon className="size-3.5 text-[#00392D]" />
-          <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#00392D]">
-            AI-Powered Scheduling
-          </span>
-        </div>
-      </div>
-      <p className="m-0 max-w-xl text-[15px] leading-relaxed text-[#6B7870]">
-        Our AI analyzes clinic traffic to suggest times with the lowest wait
-        probability for your cardiovascular check-up.
-      </p>
-    </header>
-  )
-}
 
 function LoadingSkeleton() {
   return (
@@ -127,33 +106,61 @@ function BookingSection({
   })
 
   return (
-    <div className="space-y-6">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <button onClick={onBack} className="cursor-pointer">
-                My Appointments
-              </button>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Book Appointment</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
+      <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-white">
+        <div className="flex flex-col px-5 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5">
+          <div className="mb-2 flex items-center gap-2 sm:mb-2.5">
+            <Breadcrumb>
+              <BreadcrumbList className="text-[10px] sm:text-[11px]">
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <button
+                      type="button"
+                      onClick={onBack}
+                      className="cursor-pointer text-[10px] font-medium sm:text-[11px]"
+                    >
+                      My appointments
+                    </button>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">
+                    Book appointment
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
 
-      <PageHeader />
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+            <div className="min-w-0 space-y-0.5">
+              <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px] lg:text-[26px]">
+                Book appointment
+              </h1>
+              <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
+                Choose visit type, reason, and a time slot with lower wait probability for your check-up.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 rounded-xl border border-violet-200/70 bg-violet-50/80 px-3 py-2 text-violet-700">
+              <SparklesIcon className="size-4 shrink-0" aria-hidden />
+              <span className="text-[11px] font-bold sm:text-[12px]">AI-suggested slots</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
-        <div className="space-y-6">
+      <div className="relative flex-1 overflow-auto bg-[#F9F8F5] px-6 sm:px-8">
+        <div className="custom-scrollbar w-full pb-8 pt-4">
+          <div className="grid items-start gap-5 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] xl:gap-8">
+        <div className="space-y-5 sm:space-y-6">
           {data.selectedDoctor ? (
             <DoctorCard
               name={data.selectedDoctor.name}
               title={data.selectedDoctor.title}
               experience={data.selectedDoctor.experience}
               specialties={data.selectedDoctor.specialties}
+              avatarSeed={data.selectedDoctor.id}
             />
           ) : (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
@@ -183,7 +190,11 @@ function BookingSection({
           fees={data.fees}
           onConfirm={handleConfirm}
         />
+          </div>
+        </div>
       </div>
+
+      <style dangerouslySetInnerHTML={{ __html: appointmentsScrollbarCss() }} />
     </div>
   )
 }
@@ -215,15 +226,13 @@ function AppointmentsContent({
   }
 
   return (
-    <div className="space-y-6">
-      <MyAppointments
-        appointments={data.appointments}
-        upcoming={data.upcoming}
-        past={data.past}
-        onBookNew={() => setShowBooking(true)}
-        onCancelAppointment={onCancelAppointment}
-      />
-    </div>
+    <MyAppointments
+      appointments={data.appointments}
+      upcoming={data.upcoming}
+      past={data.past}
+      onBookNew={() => setShowBooking(true)}
+      onCancelAppointment={onCancelAppointment}
+    />
   )
 }
 
@@ -239,8 +248,12 @@ function combineDateAndTime(dateOnly: string, slotLabel: string) {
 export function Appointments() {
   const { data, isLoading, createAppointment, cancelAppointment } = useAppointments()
   return (
-    <main className="flex flex-1 flex-col space-y-6 overflow-x-hidden bg-[#F9F8F5] px-4 py-6 md:px-6">
-      {isLoading ? <LoadingSkeleton /> : null}
+    <main className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#F9F8F5]">
+      {isLoading ? (
+        <div className="p-4 md:p-6">
+          <LoadingSkeleton />
+        </div>
+      ) : null}
       {data ? (
         <AppointmentsContent
           data={data}

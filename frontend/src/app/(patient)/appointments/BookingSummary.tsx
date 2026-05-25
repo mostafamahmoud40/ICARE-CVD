@@ -2,13 +2,14 @@ import type { FeeRow } from "./appointments.types"
 import { cn } from "@/lib/utils"
 import { LucideIcon } from "./shared"
 import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
 import {
   CalendarIcon,
   ClockIcon,
-  CheckCircleIcon,
   MapPinIcon,
   ArrowRightIcon,
-  PersonStandingIcon,
+  SparklesIcon,
+  StethoscopeIcon,
 } from "lucide-react"
 import { computeFeeTotal } from "./appointments.utils"
 
@@ -22,11 +23,11 @@ type SummaryRowProps = {
 function SummaryRow({ icon, primary, secondary, className }: SummaryRowProps) {
   return (
     <div className={cn("flex items-start gap-3", className)}>
-      <div className="shrink-0 text-[#6B7870]">{icon}</div>
+      <div className="shrink-0 text-[#1A5345]">{icon}</div>
       <div>
         <p className="m-0 text-[13px] font-medium text-[#1A1F1E]">
           {primary}
-          {secondary && <span className="text-[#6B7870]"> {secondary}</span>}
+          {secondary ? <span className="text-muted-foreground"> {secondary}</span> : null}
         </p>
       </div>
     </div>
@@ -40,27 +41,27 @@ type FeeBreakdownProps = {
 function FeeBreakdown({ fees }: FeeBreakdownProps) {
   const total = computeFeeTotal(fees)
   return (
-    <div className="mb-5 rounded-lg bg-[#F9F8F5] p-4">
+    <div className="mb-5 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-4">
       <div className="flex flex-col gap-2">
         {fees.map((row, i) => (
           <div
             key={i}
             className={cn(
-              "flex justify-between text-[13px]",
-              row.highlight ? "text-[#738678]" : "text-[#6B7870]",
+              "flex justify-between text-[13px] font-medium",
+              row.highlight ? "text-[#1A5345]" : "text-muted-foreground",
             )}
           >
-            <span className="flex items-center gap-1">
-              {row.icon && <LucideIcon name={row.icon} className="size-3.5" />}
+            <span className="flex items-center gap-1.5">
+              {row.icon ? <LucideIcon name={row.icon} className="size-3.5 text-[#1A5345]" /> : null}
               {row.label}
             </span>
-            <span>{row.amount}</span>
+            <span className="tabular-nums">{row.amount}</span>
           </div>
         ))}
-        <Separator className="my-2" />
+        <Separator className="my-2 bg-[#E8E6E0]/60" />
         <div className="flex items-center justify-between">
-          <span className="text-[13px] font-bold text-[#1A1F1E]">Est. Pay</span>
-          <span className="text-[22px] font-bold text-[#1A1F1E]">${total.toFixed(2)}</span>
+          <span className="text-[13px] font-bold text-[#1A1F1E]">Est. pay</span>
+          <span className="text-[20px] font-bold tabular-nums text-[#1A1F1E]">${total.toFixed(2)}</span>
         </div>
       </div>
     </div>
@@ -96,63 +97,63 @@ export function BookingSummary({
   return (
     <div
       className={cn(
-        "w-full overflow-hidden rounded-2xl border border-[#E8E6E0] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.09)] xl:sticky xl:top-6",
+        "w-full overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)] xl:sticky xl:top-4",
         className,
       )}
     >
-      <div className="bg-[#00392D] px-6 py-4 text-white">
-        <h3 className="m-0 text-[15px] font-semibold">Booking Summary</h3>
+      <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-3.5 sm:px-6 sm:py-4">
+        <h3 className="font-serif text-[17px] font-bold leading-tight text-[#1A1F1E] sm:text-[18px]">
+          Booking summary
+        </h3>
+        <p className="mt-0.5 text-[12px] font-medium text-muted-foreground sm:text-[13px]">
+          Review details before confirming
+        </p>
       </div>
 
-      <div className="p-6">
-        <div className="mb-5 flex items-center gap-3 border-b border-[#E8E6E0] pb-5">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-100 to-violet-200">
-            <PersonStandingIcon className="size-6 text-slate-400" />
-          </div>
+      <div className="p-5 sm:p-6">
+        <div className="mb-5 flex items-start gap-3 border-b border-[#E8E6E0]/60 pb-5">
+          <StethoscopeIcon className="mt-0.5 size-5 shrink-0 text-[#1A5345]" aria-hidden />
           <div>
-            <p className="m-0 text-[13px] font-bold text-[#1A1F1E]">{doctorName}</p>
-            <p className="m-0 text-[12px] text-[#6B7870]">Cardiology</p>
+            <p className="m-0 font-serif text-[15px] font-bold text-[#1A1F1E]">{doctorName}</p>
+            <p className="m-0 text-[12px] font-medium text-muted-foreground">Cardiology</p>
           </div>
         </div>
 
         <div className="mb-6 flex flex-col gap-4">
+          <SummaryRow icon={<CalendarIcon className="size-4" />} primary={selectedDateLabel} />
           <SummaryRow
-            icon={<CalendarIcon className="size-5" />}
-            primary={selectedDateLabel}
+            icon={<ClockIcon className="size-4" />}
+            primary={selectedSlot || "Select a time"}
+            secondary={selectedSlot ? "(30 min)" : undefined}
           />
           <SummaryRow
-            icon={<ClockIcon className="size-5" />}
-            primary={selectedSlot}
-            secondary="(30 min)"
-          />
-          <SummaryRow
-            icon={<CheckCircleIcon className="size-5 fill-[#C5A97B] text-[#C5A97B]" />}
+            icon={<SparklesIcon className="size-4 text-violet-600" />}
             primary="Low wait time anticipated"
-            className="[&_p]:text-[#C5A97B]"
+            className="[&_p]:text-violet-700"
           />
           <div className="flex items-start gap-3">
-            <MapPinIcon className="size-5 shrink-0 text-[#6B7870]" />
+            <MapPinIcon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
             <div>
               <p className="m-0 text-[13px] font-medium text-[#1A1F1E]">Downtown Heart Center</p>
-              <p className="m-0 text-[11px] text-[#6B7870]">Building B, Suite 402</p>
+              <p className="m-0 text-[11px] font-medium text-muted-foreground">Building B, Suite 402</p>
             </div>
           </div>
         </div>
 
         <FeeBreakdown fees={fees} />
 
-        <button
+        <Button
           type="button"
           onClick={onConfirm}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00392D] px-4 py-3.5 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(0,57,45,0.3)] transition-colors hover:bg-[#002620]"
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border-0 bg-[#1A5345] text-[13px] font-bold text-white shadow-sm hover:bg-[#133F34]"
         >
-          Confirm Appointment
-          <ArrowRightIcon className="size-[18px]" />
-        </button>
+          Confirm appointment
+          <ArrowRightIcon className="size-4" aria-hidden />
+        </Button>
 
-        <p className="mt-3 text-center text-[10px] text-[#6B7870]">
+        <p className="mt-3 text-center text-[10px] font-medium text-muted-foreground">
           By booking, you agree to our{" "}
-          <a href="#" className="text-[#00392D] underline">
+          <a href="#" className="font-bold text-[#1A5345] underline-offset-2 hover:underline">
             Terms of Service
           </a>
           .

@@ -1,10 +1,15 @@
 export type VisitType = "clinic" | "virtual"
 
-export type AppointmentStatus =
-  | "scheduled"
-  | "confirmed"
+/** Booking lifecycle status shown in the appointments list (not clinical report status). */
+export type AppointmentBookingStatus =
+  | "upcoming"
   | "completed"
   | "cancelled"
+  | "no-show"
+  | "rescheduled"
+
+/** Who initiated cancellation (patient self-service vs clinical staff). */
+export type AppointmentCancelledBy = "patient" | "doctor" | "clinic"
 
 export type TimeSlot = {
   time: string
@@ -46,7 +51,12 @@ export type Appointment = {
   clinician: string
   location: string
   locationDetail?: string
-  status: AppointmentStatus
+  status: AppointmentBookingStatus
+  /** New slot after reschedule (shown when status is rescheduled). */
+  rescheduledTo?: string
+  cancellationReason?: string
+  cancelledBy?: AppointmentCancelledBy
+  cancelledAt?: string
   notes?: string
   symptoms?: string
   attachments?: Attachment[]

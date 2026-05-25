@@ -2,16 +2,17 @@
 
 import Link from "next/link"
 import {
-  CheckCircle2,
+  Activity,
+  ClipboardList,
   Download,
-  ExternalLink,
   FileText,
-  Info,
   Lock,
+  Pill,
+  Stethoscope,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -20,216 +21,211 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { cn } from "@/lib/utils"
-
-import type { VisitSummary, VitalMetric, Medication, FollowUpInstruction } from "./consultations.types"
-
-const statusVariants = {
-  normal: "text-[#1a5345]",
-  elevated: "text-[#9A6B2F]",
-  warning: "text-[#c45d4b]",
-  critical: "text-red-600",
-}
-
-
-const iconBgColors = {
-  blue: "bg-[#E0EFF2] text-[#2d8a9e] ring-1 ring-[#C8E0E6]",
-  red: "bg-[#F5E8E5] text-[#c45d4b] ring-1 ring-[#E8D4CE]",
-  green: "bg-[#E8F0ED] text-[#1a5345] ring-1 ring-[#C8D9D3]",
-  yellow: "bg-[#F7F1E6] text-[#8E7043] ring-1 ring-[#E8DCC8]",
-}
-
-const medicationStatusVariants = {
-  ongoing: "text-[#1a5345]",
-  increased: "text-[#9A6B2F]",
-  decreased: "text-[#E89042]",
-  new: "text-[#2d8a9e]",
-  discontinued: "text-[#c45d4b]",
-}
+import type { VisitSummary } from "./consultations.types"
+import { ClinicalOrdersPanel } from "./ClinicalOrdersPanel"
+import {
+  ConsultationRecordStatusBadge,
+  ConsultationVisitTypeBadge,
+  getVisitVitalStatProps,
+  VisitMedicationStatusBadge,
+} from "./consultations.shared"
+import { formatConsultationDateLong } from "./consultations.utils"
+import { QueueStatCell } from "../queue/patientQueue.shared"
 
 type VisitDetailProps = {
   visit: VisitSummary
 }
 
-function VitalCard({ vital }: { vital: VitalMetric }) {
-  return (
-    <Card className="border-[#E7EFEB] transition-colors hover:border-[#1a5345]/20">
-      <CardContent className="p-4">
-        <p className="text-sm text-[#6B7870]">{vital.label}</p>
-        <p className="text-2xl font-bold text-[#1A1F1E]">
-          {vital.value} <span className="text-sm font-normal text-[#6B7870]">{vital.unit}</span>
-        </p>
-        <p className={cn("text-xs font-medium", statusVariants[vital.status])}>
-          {vital.status.charAt(0).toUpperCase() + vital.status.slice(1)}
-        </p>
-        {vital.note && <p className="text-xs text-[#6B7870] mt-1">{vital.note}</p>}
-      </CardContent>
-    </Card>
-  )
-}
-
-function MedicationCard({ medication }: { medication: Medication }) {
-  return (
-    <Card className="border-[#E7EFEB] transition-colors hover:border-[#1a5345]/20">
-      <CardContent className="flex items-start gap-3 p-4">
-        <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", iconBgColors[medication.icon])}>
-          <Lock className="h-5 w-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-[#1A1F1E]">{medication.name}</p>
-          <p className="text-sm text-[#6B7870]">{medication.schedule}</p>
-          <p className={cn("text-xs", medicationStatusVariants[medication.status])}>
-            {medication.note || medication.status.charAt(0).toUpperCase() + medication.status.slice(1)}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function FollowUpItem({ instruction, isLast }: { instruction: FollowUpInstruction; isLast: boolean }) {
-  return (
-    <div className="flex gap-3">
-      <div className="flex flex-col items-center">
-        <div
-          className={cn(
-            "h-3 w-3 rounded-full",
-            instruction.status === "completed" && "bg-[#1a5345]",
-            instruction.status === "scheduled" && "bg-[#2d8a9e]",
-            instruction.status === "pending" && "bg-[#E89042]"
-          )}
-        />
-        {!isLast && <div className="mt-1 h-full w-px bg-[#E7EFEB]" />}
-      </div>
-      <div className={cn("pb-4", isLast && "pb-0")}>
-        <p className="font-medium text-[#1A1F1E]">{instruction.title}</p>
-        <p className="text-sm text-[#6B7870]">{instruction.description}</p>
-        {instruction.date && <p className="text-xs text-[#6B7870] mt-1">{instruction.date}</p>}
-      </div>
-    </div>
-  )
-}
-
 export function VisitDetail({ visit }: VisitDetailProps) {
   return (
-    <div className="space-y-6">
-      {/* Breadcrumb */}
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/consultations" className="flex items-center gap-1.5 text-[#6B7870] hover:text-[#1a5345]">
-              <FileText className="h-4 w-4" />
-              Consultations
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage className="text-[#1A1F1E] font-medium">Visit Details</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+    <div className="flex h-full w-full flex-col bg-[#F4F3EF]">
+      {/* Top Breadcrumb Bar */}
+      <div className="shrink-0 border-b border-[#E8E6E0]/60 bg-white px-5 py-4 sm:px-6">
+        <Breadcrumb>
+          <BreadcrumbList className="text-[11px]">
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/consultations" className="font-medium text-[#6B7870] hover:text-[#1A5345]">
+                  Consultations
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-medium text-[#1A1F1E]">
+                Visit Summary
+              </BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
 
-      {/* Header Area */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="mb-1">
-          <h1 className="text-3xl font-bold tracking-tight text-[#1A1F1E] dark:text-foreground">
-            Visit Summary
-          </h1>
-          <p className="m-0 max-w-xl text-[15px] leading-relaxed text-[#6B7870] dark:text-muted-foreground">
-            {visit.date} · {visit.doctor.name} · {visit.doctor.specialty}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 border border-emerald-200">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-            <span className="text-xs font-medium text-emerald-700">Completed</span>
+      {/* Main Content Area — full width like consultation list */}
+      <div className="relative flex-1 overflow-auto px-5 pb-12 sm:px-6 lg:px-8">
+        <div className="w-full min-w-0">
+          {/* Controls above the "Paper" */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+            <h1 className="font-serif text-[24px] font-bold text-[#1A1F1E] sm:text-[28px]">
+              Clinical Summary
+            </h1>
+            <div className="flex items-center gap-3">
+              <ConsultationRecordStatusBadge status={visit.recordStatus} className="shadow-sm" />
+              <Button
+                size="sm"
+                className="h-9 gap-2 rounded-lg bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34]"
+              >
+                <Download className="size-4" />
+                Download PDF
+              </Button>
+            </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] hover:bg-[#f8faf9]"
-          >
-            <Download className="h-4 w-4" />
-            Download PDF
-          </Button>
+
+          {/* The "Paper" Chart */}
+          <div className="overflow-hidden rounded-[24px] border border-[#E8E6E0]/60 bg-white shadow-md">
+            {/* Chart Header */}
+            <div className="border-b-[3px] border-[#1A5345] bg-[#F9F8F5] px-6 py-8 sm:px-10">
+              <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                <div className="flex items-center gap-4 text-left">
+                  <Stethoscope className="size-7 shrink-0 text-[#1A5345]" strokeWidth={2} aria-hidden />
+                  <div>
+                    <p className="mb-1 text-[12px] font-bold uppercase tracking-[0.15em] text-[#6B7870]">
+                      Attending Physician
+                    </p>
+                    <p className="font-serif text-[18px] font-bold text-[#1A1F1E]">
+                      {visit.doctor.name}
+                    </p>
+                    <p className="text-[13px] font-medium text-muted-foreground">
+                      {visit.doctor.specialty}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-left">
+                  <p className="mb-2 text-[12px] font-bold uppercase tracking-[0.15em] text-[#6B7870]">
+                    Visit type
+                  </p>
+                  <ConsultationVisitTypeBadge visitType={visit.visitType} />
+                </div>
+                <div className="text-left md:text-right">
+                  <p className="mb-2 text-[12px] font-bold uppercase tracking-[0.15em] text-[#6B7870]">
+                    Date of Visit
+                  </p>
+                  <p className="font-serif text-[20px] font-bold text-[#1A1F1E]">
+                    {formatConsultationDateLong(visit.scheduledAt)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Vitals — full width above clinical columns */}
+            <div className="border-b border-dashed border-[#E8E6E0] px-6 py-6 sm:px-10 sm:py-8">
+              <h3 className="mb-4 flex items-center gap-2 font-serif text-[18px] font-bold text-[#1A1F1E]">
+                <Activity className="size-5 text-[#6B7870]" />
+                Recorded Vitals
+              </h3>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {visit.vitals.map((vital, idx) => (
+                  <div
+                    key={idx}
+                    className="animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards duration-500"
+                    style={{ animationDelay: `${idx * 80}ms` }}
+                  >
+                    <QueueStatCell {...getVisitVitalStatProps(vital)} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col lg:flex-row">
+              {/* Left Column (Main Clinical Info) */}
+              <div className="flex-1 border-b border-dashed border-[#E8E6E0] p-6 sm:p-10 lg:border-b-0 lg:border-r">
+                {/* Clinical Notes */}
+                <div className="mb-10">
+                  <h3 className="mb-4 flex items-center gap-2 font-serif text-[18px] font-bold text-[#1A1F1E]">
+                    <FileText className="size-5 text-[#6B7870]" />
+                    Clinical Notes
+                  </h3>
+                  <div className="rounded-xl bg-[#F9F8F5] p-5">
+                    <p className="whitespace-pre-line text-[14.5px] leading-relaxed text-[#2D3633] font-medium">
+                      {visit.doctorNotes}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Orders */}
+                <div>
+                  <h3 className="mb-4 flex items-center gap-2 font-serif text-[18px] font-bold text-[#1A1F1E]">
+                    <ClipboardList className="size-5 text-[#6B7870]" />
+                    Orders
+                  </h3>
+                  <ClinicalOrdersPanel orders={visit.orders} layout="grid" />
+                </div>
+
+              </div>
+
+              {/* Right Column (Action Plan) */}
+              <div className="w-full shrink-0 bg-[#FAFAFA] p-6 sm:p-10 lg:w-[min(380px,32%)] xl:w-[min(420px,34%)]">
+                
+                {/* Prescriptions */}
+                <div className="mb-10">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <h3 className="flex items-center gap-2 font-serif text-[18px] font-bold text-[#1A1F1E]">
+                      <Pill className="size-5 text-[#6B7870]" />
+                      Prescriptions
+                    </h3>
+                    <Button variant="link" size="sm" className="h-auto p-0 text-[12px] text-[#1A5345]" asChild>
+                      <Link href="/medications">View all</Link>
+                    </Button>
+                  </div>
+                  <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-[#E8E6E0]/60">
+                    <ul className="divide-y divide-[#E8E6E0]/60">
+                      {visit.medications.map((med, idx) => {
+                        const isDiscontinued = med.status === "discontinued"
+
+                        return (
+                          <li key={idx} className="flex items-start gap-3 px-3 py-3">
+                            <Lock
+                              className={cn(
+                                "mt-0.5 size-4 shrink-0",
+                                isDiscontinued ? "text-[#6B7870]" : "text-[#1A5345]",
+                              )}
+                              strokeWidth={2}
+                              aria-hidden
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p
+                                  className={cn(
+                                    "font-serif text-[14px] font-bold leading-snug text-[#1A1F1E]",
+                                    isDiscontinued &&
+                                      "text-[#6B7870] line-through decoration-[#6B7870]/50",
+                                  )}
+                                >
+                                  {med.name}{" "}
+                                  <span className="font-sans text-[12px] font-semibold text-[#6B7870] no-underline">
+                                    {med.dosage}
+                                  </span>
+                                </p>
+                                <VisitMedicationStatusBadge status={med.status} />
+                              </div>
+                              <p className="mt-0.5 text-[12px] text-[#6B7870]">{med.schedule}</p>
+                              {med.note ? (
+                                <p className="mt-1 text-[11px] font-medium leading-snug text-[#6B7870]">
+                                  {med.note}
+                                </p>
+                              ) : null}
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Vitals */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {visit.vitals.map((vital, index) => (
-          <VitalCard key={index} vital={vital} />
-        ))}
-      </div>
-
-      {/* Doctor Notes */}
-      <Card className="border-[#E7EFEB] transition-colors hover:border-[#1a5345]/20">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium uppercase tracking-wide text-[#6B7870]">
-            What the doctor noted
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-[#1A1F1E] leading-relaxed">{visit.doctorNotes}</p>
-        </CardContent>
-      </Card>
-
-      {/* Prescription & Follow-up - Side by Side */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Prescription */}
-        <Card className="border-[#E7EFEB] transition-colors hover:border-[#1a5345]/20">
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium uppercase tracking-wide text-[#6B7870]">
-              Your Prescription
-            </CardTitle>
-            <Button variant="ghost" size="icon-xs" className="h-8 w-8 text-[#6B7870] hover:text-[#1a5345]" asChild>
-              <Link href="/medications" title="View all medications">
-                <ExternalLink className="h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3">
-              {visit.medications.map((medication, index) => (
-                <MedicationCard key={index} medication={medication} />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Follow-up Instructions */}
-        <Card className="border-[#E7EFEB] transition-colors hover:border-[#1a5345]/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium uppercase tracking-wide text-[#6B7870]">
-              Follow-up Instructions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {visit.followUpInstructions.map((instruction, index) => (
-                <FollowUpItem
-                  key={index}
-                  instruction={instruction}
-                  isLast={index === visit.followUpInstructions.length - 1}
-                />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* AI Note */}
-      {visit.aiNote && (
-        <Card className="border-[#C8D9D3] bg-[#E8F0ED]/50 dark:border-emerald-900/50 dark:bg-emerald-900/20">
-          <CardContent className="flex gap-3 p-4">
-            <Info className="h-5 w-5 shrink-0 text-[#1a5345] dark:text-emerald-400" />
-            <div>
-              <p className="font-medium text-[#1a5345] dark:text-emerald-400">iCare AI note</p>
-              <p className="text-sm text-[#1a5345]/80 dark:text-emerald-400/80 leading-relaxed">{visit.aiNote}</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }
