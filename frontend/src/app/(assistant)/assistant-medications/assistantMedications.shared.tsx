@@ -1,8 +1,30 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { PatientMedicationProfile } from "./assistantMedications.types";
+
+/** Workflow snapshot tile — same hover treatment as queue `StatCell`. */
+export const medicationSnapshotCardClassName =
+  "rounded-xl border border-[#E8E6E0]/60 bg-white p-3 shadow-sm transition-shadow hover:shadow-md";
+
+export function MedicationSnapshotCard({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("space-y-1", medicationSnapshotCardClassName, className)}>
+      <p className="text-[11px] font-medium text-[#6B7870]">{label}</p>
+      {children}
+    </div>
+  );
+}
 
 export function AdherencePill({ pct }: { pct: number }) {
   const safe = Math.min(100, Math.max(0, pct));
@@ -63,6 +85,10 @@ export function formatDateTime(dateValue: string) {
     hour12: true,
   }).format(new Date(dateValue));
 }
+
+/** Toolbar search — styled for the medication adherence list header only. */
+export const medicationsListSearchInputClassName =
+  "h-10 w-full rounded-2xl border border-[#E8E6E0]/80 bg-[#F9F8F5] pl-10 pr-4 text-[13px] font-medium text-[#1A1F1E] shadow-none transition-[border-color,background-color,box-shadow] placeholder:font-medium placeholder:text-muted-foreground/55 focus-visible:border-[#1A5345]/50 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#1A5345]/12 sm:h-11 sm:pl-11 sm:text-[14px]";
 
 export function medicationsScrollbarCss() {
   return `

@@ -19,7 +19,11 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { medicationsScrollbarCss, RiskBadge } from "./assistantMedications.shared";
+import {
+  medicationsListSearchInputClassName,
+  medicationsScrollbarCss,
+  RiskBadge,
+} from "./assistantMedications.shared";
 import { useAssistantMedications } from "./useAssistantMedications";
 
 function formatPatientRowId(internalId: string) {
@@ -74,48 +78,57 @@ export function AssistantMedicationsList() {
                   <FlagIcon className="size-5 shrink-0 text-rose-600" aria-hidden />
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 gap-2 rounded-xl border-[#E8E6E0] bg-white px-4 text-[13px] font-bold text-[#1A1F1E] shadow-sm transition-all hover:bg-[#F9F8F5] sm:h-10 sm:px-5 sm:text-[14px]"
-              >
-                <FilterIcon className="size-4 text-muted-foreground" />
-                Filter view
-              </Button>
             </div>
           </div>
 
           <div className="mt-3 flex flex-col gap-2 pt-1 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
-            <div className="relative w-full sm:w-[min(100%,300px)] lg:w-[340px]">
-              <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <div className="group relative w-full sm:min-w-0 sm:flex-1 sm:max-w-[min(100%,360px)] lg:max-w-[400px]">
+              <SearchIcon
+                className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#1A5345]/35 transition-colors group-focus-within:text-[#1A5345] sm:left-4"
+                strokeWidth={2}
+                aria-hidden
+              />
               <Input
+                type="search"
                 placeholder="Search patient or medication…"
                 value={vm.searchTerm}
                 onChange={(e) => vm.setSearchTerm(e.target.value)}
-                className="h-9 rounded-xl border-[#E8E6E0] bg-white pl-9 text-[13px] shadow-sm focus-visible:border-[#1A5345]/40 focus-visible:ring-[#1A5345]/20 sm:h-10 sm:rounded-2xl sm:pl-10 sm:text-[14px]"
+                className={medicationsListSearchInputClassName}
               />
             </div>
-            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-              <label className="flex cursor-pointer items-center gap-2.5 px-1">
-                <Checkbox
-                  checked={vm.flaggedOnly}
-                  onCheckedChange={(v) => vm.setFlaggedOnly(Boolean(v))}
-                  className="rounded-md border-[#E8E6E0] data-[state=checked]:border-[#1A5345] data-[state=checked]:bg-[#1A5345]"
-                />
-                <span className="text-[12px] font-bold text-muted-foreground transition-colors hover:text-[#1A1F1E]">
-                  Flagged only
-                </span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-2.5 px-1">
-                <Checkbox
-                  checked={vm.followUpOnly}
-                  onCheckedChange={(v) => vm.setFollowUpOnly(Boolean(v))}
-                  className="rounded-md border-[#E8E6E0] data-[state=checked]:border-[#1A5345] data-[state=checked]:bg-[#1A5345]"
-                />
-                <span className="text-[12px] font-bold text-muted-foreground transition-colors hover:text-[#1A1F1E]">
-                  Follow-up queue only
-                </span>
-              </label>
+            <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
+              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
+                <label className="flex cursor-pointer items-center gap-2.5 px-1">
+                  <Checkbox
+                    checked={vm.flaggedOnly}
+                    onCheckedChange={(v) => vm.setFlaggedOnly(Boolean(v))}
+                    className="rounded-md border-[#E8E6E0] data-[state=checked]:border-[#1A5345] data-[state=checked]:bg-[#1A5345]"
+                  />
+                  <span className="text-[12px] font-bold text-muted-foreground transition-colors hover:text-[#1A1F1E]">
+                    Flagged only
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-center gap-2.5 px-1">
+                  <Checkbox
+                    checked={vm.followUpOnly}
+                    onCheckedChange={(v) => vm.setFollowUpOnly(Boolean(v))}
+                    className="rounded-md border-[#E8E6E0] data-[state=checked]:border-[#1A5345] data-[state=checked]:bg-[#1A5345]"
+                  />
+                  <span className="text-[12px] font-bold text-muted-foreground transition-colors hover:text-[#1A1F1E]">
+                    Follow-up queue only
+                  </span>
+                </label>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                title="Filter view"
+                aria-label="Filter view"
+                className="size-8 shrink-0 rounded-lg text-muted-foreground hover:bg-transparent hover:text-[#1A1F1E] sm:size-9"
+              >
+                <FilterIcon className="size-4" strokeWidth={2} />
+              </Button>
             </div>
           </div>
         </div>
@@ -180,7 +193,7 @@ export function AssistantMedicationsList() {
                                   <div className="flex items-start gap-3">
                                     <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
                                       <Image
-                                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(p.fullName.replace(/\s+/g, ""))}`}
+                                        src={`https://i.pravatar.cc/150?u=${encodeURIComponent(p.fullName.replace(/\s+/g, ""))}`}
                                         alt=""
                                         width={44}
                                         height={44}

@@ -94,9 +94,7 @@ export function MedicationReminderDialog({
         {/* Header — compact strip like AddVitals */}
         <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-3.5 sm:px-6 sm:py-4">
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#E8E6E0] bg-white text-[#1A5345] shadow-sm sm:size-10">
-              <MessageCircleIcon className="size-[18px] sm:size-5" aria-hidden />
-            </div>
+            <MessageCircleIcon className="size-6 text-[#1A5345] shrink-0" aria-hidden />
             <div className="min-w-0 flex-1 space-y-0.5">
               <DialogTitle className="text-left text-[17px] font-bold font-serif leading-tight text-[#1A1F1E]">
                 Send adherence reminder
@@ -124,16 +122,16 @@ export function MedicationReminderDialog({
               <Select value={channel} onValueChange={(v) => setChannel(v as MedicationReminderChannel)}>
                 <SelectTrigger
                   id="reminder-channel"
-                  className="h-10 w-full min-w-0 rounded-xl border-[#E8E6E0] bg-white text-[13px] shadow-sm focus-visible:ring-[#1A5345]"
+                  className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0"
                 >
                   <SelectValue placeholder="Channel" />
                 </SelectTrigger>
                 <SelectContent
                   alignItemWithTrigger={false}
-                  className="rounded-xl border-[#E8E6E0]/60 shadow-lg"
+                  className="rounded-lg border-[#cfd9d5] bg-white shadow-lg"
                 >
-                  <SelectItem value="sms">SMS</SelectItem>
-                  <SelectItem value="push">Push notification</SelectItem>
+                  <SelectItem value="sms" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">SMS</SelectItem>
+                  <SelectItem value="push" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">Push notification</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -144,16 +142,16 @@ export function MedicationReminderDialog({
               <Select value={template} onValueChange={(v) => setTemplate(v as ReminderTemplateId)}>
                 <SelectTrigger
                   id="reminder-template"
-                  className="h-10 w-full min-w-0 rounded-xl border-[#E8E6E0] bg-white text-[13px] shadow-sm focus-visible:ring-[#1A5345]"
+                  className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0"
                 >
                   <SelectValue placeholder="Template" />
                 </SelectTrigger>
                 <SelectContent
                   alignItemWithTrigger={false}
-                  className="rounded-xl border-[#E8E6E0]/60 shadow-lg"
+                  className="rounded-lg border-[#cfd9d5] bg-white shadow-lg"
                 >
                   {REMINDER_TEMPLATES.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
+                    <SelectItem key={item.id} value={item.id} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">
                       {item.label}
                     </SelectItem>
                   ))}
@@ -169,15 +167,15 @@ export function MedicationReminderDialog({
               </Label>
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="icon"
-                className="size-8 shrink-0 rounded-lg border-[#E8E6E0]/80 bg-white text-[#1A1F1E] shadow-sm hover:bg-[#F9F8F5] sm:size-9"
+                className="size-8 shrink-0 border-0 bg-transparent text-muted-foreground hover:bg-transparent hover:text-violet-600 shadow-none transition-colors sm:size-9"
                 onClick={useTemplate}
                 disabled={!profile}
                 aria-label="Insert template into message"
                 title="Insert template into message"
               >
-                <SparklesIcon className="size-4 text-violet-600" aria-hidden />
+                <SparklesIcon className="size-5" aria-hidden />
                 <span className="sr-only">Insert template into message</span>
               </Button>
             </div>
@@ -209,7 +207,7 @@ export function MedicationReminderDialog({
           <Button
             type="button"
             variant="outline"
-            className="h-10 rounded-xl border-[#E8E6E0]/80 px-4 text-[13px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-white"
+            className="h-8 rounded-lg border border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] shadow-sm transition-colors hover:bg-slate-50 hover:text-[#1A5345]"
             onClick={() => onOpenChange(false)}
             disabled={isPending}
           >
@@ -217,13 +215,13 @@ export function MedicationReminderDialog({
           </Button>
           <Button
             type="button"
-            className="h-10 rounded-xl border-0 bg-[#1A5345] px-5 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(26,83,69,0.2)] transition-all hover:bg-[#133F34] hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none"
+            className="h-8 rounded-lg border-0 bg-[#1A5345] px-5 text-[12px] font-bold text-white shadow-sm transition-all hover:bg-[#133F34] disabled:opacity-50 disabled:shadow-none"
             onClick={() => void handleSend()}
             disabled={isPending || !profile}
           >
             {isPending ? (
               <>
-                <Loader2Icon className="mr-2 size-4 animate-spin" aria-hidden />
+                <Loader2Icon className="mr-2 size-3.5 animate-spin" aria-hidden />
                 Sending…
               </>
             ) : (

@@ -15,7 +15,10 @@ import {
   MessageSquareTextIcon,
   MoreVerticalIcon,
   PencilLineIcon,
+  FileTextIcon,
   PillIcon,
+  SyringeIcon,
+  BeakerIcon,
   SparklesIcon,
   StethoscopeIcon,
   XIcon,
@@ -45,6 +48,7 @@ import {
   formatDate,
   formatDateTime,
   MedicationDots,
+  MedicationSnapshotCard,
   medicationsScrollbarCss,
   RiskBadge,
 } from "./assistantMedications.shared";
@@ -53,10 +57,30 @@ import { FlagMedicationDialog } from "./FlagMedicationDialog";
 import { MedicationReminderDialog } from "./MedicationReminderDialog";
 import { EditMedicationInstructionsDialog } from "./EditMedicationInstructionsDialog";
 import { EscalateMedicationDialog } from "./EscalateMedicationDialog";
+import { MedicationRecordDialog } from "./MedicationRecordDialog";
 
 type AssistantMedicationsPatientDetailProps = {
   /** Resolved in `page.tsx` via `await params` (Next.js 15+). */
   patientId?: string
+}
+
+function MedicationIcon({ type, className }: { type?: "pill" | "injection" | "solution"; className?: string }) {
+  if (type === "injection") return <SyringeIcon className={cn("text-sky-500", className)} />;
+  if (type === "solution") return <BeakerIcon className={cn("text-purple-500", className)} />;
+  return (
+    <svg 
+      className={cn("drop-shadow-sm", className)} 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g transform="rotate(-45 12 12)">
+        <path d="M7 12V8C7 5.23858 9.23858 3 12 3C14.7614 3 17 5.23858 17 8V12H7Z" fill="#3B82F6" />
+        <path d="M7 12V16C7 18.7614 9.23858 21 12 21C14.7614 21 17 18.7614 17 16V12H7Z" fill="#EF4444" />
+        <line x1="7" y1="12" x2="17" y2="12" stroke="white" strokeWidth="1.5" />
+      </g>
+    </svg>
+  );
 }
 
 export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRoute }: AssistantMedicationsPatientDetailProps = {}) {
@@ -69,11 +93,17 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
 
   const [flagMedId, setFlagMedId] = useState<string | null>(null);
   const [editLine, setEditLine] = useState<MedicationLine | null>(null);
+  const [recordMedName, setRecordMedName] = useState<string | null>(null);
+  const [recordMedStrength, setRecordMedStrength] = useState<string | null>(null);
+  const [recordMedType, setRecordMedType] = useState<MedicationLine["type"] | undefined>(undefined);
+  const [recordMedDosage, setRecordMedDosage] = useState<string | null>(null);
+  const [recordMedFrequency, setRecordMedFrequency] = useState<string | null>(null);
   const [reminderOpen, setReminderOpen] = useState(false);
   const [reminderMedSummary, setReminderMedSummary] = useState<string | null>(null);
   const [escalateOpen, setEscalateOpen] = useState(false);
   const [escalateMedicationId, setEscalateMedicationId] = useState<string | null>(null);
   const [escalationReason, setEscalationReason] = useState("");
+  const [medicationsTab, setMedicationsTab] = useState<"active" | "past">("active");
 
   const flagMedication = useMemo(() => 
     vm.selectedProfile?.medications.find((m) => m.id === flagMedId) ?? null,
@@ -179,14 +209,16 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
                  <div className="flex items-center gap-2">
                     <Button 
                       variant="outline" 
-                      className="rounded-xl border-[#E8E6E0] h-10 px-4 text-[13px] font-bold bg-white"
+                      size="sm"
+                      className="h-8 rounded-lg border border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] shadow-sm transition-colors hover:bg-slate-50 hover:text-[#1A5345]"
                       onClick={() => openEscalation(null, "Medication workflow needs doctor review.")}
                     >
                        <StethoscopeIcon className="size-4 mr-2 text-violet-600" />
                        Escalate review
                     </Button>
                     <Button 
-                      className="h-10 rounded-xl bg-[#1A5345] px-5 text-[13px] font-bold text-white hover:bg-[#133F34] shadow-md border-0"
+                      size="sm"
+                      className="h-8 rounded-lg bg-[#1A5345] px-5 text-[12px] font-bold text-white shadow-sm border-0 transition-colors hover:bg-[#133F34]"
                       onClick={openPatientReminder}
                     >
                        <BellIcon className="size-4 mr-2" />
@@ -200,40 +232,48 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
                 <div className="p-8 space-y-10">
                    
                    {/* Workflow Snapshot Cards */}
-                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="p-5 rounded-2xl border border-[#E8E6E0]/80 bg-[#FBFDFC]/50 space-y-1">
-                         <p className="text-[11px] font-bold text-muted-foreground">Adherence score</p>
+                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                      <MedicationSnapshotCard label="Adherence score">
                          <div className="flex items-baseline gap-2">
-                            <span className="text-[24px] font-bold text-[#1A1F1E]">{vm.selectedProfile.overallAdherencePct}%</span>
+                            <span className="text-[18px] font-bold leading-none tabular-nums text-[#1A1F1E]">
+                              {vm.selectedProfile.overallAdherencePct}%
+                            </span>
                             <AdherencePill pct={vm.selectedProfile.overallAdherencePct} />
                          </div>
-                      </div>
-                      <div className="p-5 rounded-2xl border border-[#E8E6E0]/80 bg-[#FBFDFC]/50 space-y-1">
-                         <p className="text-[11px] font-bold text-muted-foreground">Follow-up items</p>
-                         <p className="text-[24px] font-bold text-amber-600">{vm.selectedFollowUpItems.length}</p>
-                      </div>
-                      <div className="p-5 rounded-2xl border border-[#E8E6E0]/80 bg-[#FBFDFC]/50 space-y-2">
-                         <p className="text-[11px] font-bold text-muted-foreground">Active flags</p>
+                      </MedicationSnapshotCard>
+                      <MedicationSnapshotCard label="Medications">
                          <div className="flex items-center gap-2">
-                            <span className="text-[24px] font-bold text-rose-600 leading-none tabular-nums">
+                            <span className="text-[18px] font-bold leading-none tabular-nums text-[#1A5345]">
+                              {vm.selectedProfile.medications.length}
+                            </span>
+                            <PillIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
+                         </div>
+                      </MedicationSnapshotCard>
+                      <MedicationSnapshotCard label="Follow-up items">
+                         <p className="text-[18px] font-bold leading-none tabular-nums text-amber-600">
+                           {vm.selectedFollowUpItems.length}
+                         </p>
+                      </MedicationSnapshotCard>
+                      <MedicationSnapshotCard label="Active flags" className="space-y-2">
+                         <div className="flex items-center gap-2">
+                            <span className="text-[18px] font-bold leading-none tabular-nums text-rose-600">
                                {vm.selectedProfile.flags.filter((f) => f.status === "open").length}
                             </span>
-                            <FlagIcon className="size-7 shrink-0 text-rose-600" aria-hidden />
+                            <FlagIcon className="size-5 shrink-0 text-rose-600" aria-hidden />
                          </div>
-                      </div>
-                      <div className="space-y-2 rounded-2xl border border-[#E8E6E0]/80 bg-[#FBFDFC]/50 p-5">
-                         <p className="text-[11px] font-bold text-muted-foreground">Last contact</p>
+                      </MedicationSnapshotCard>
+                      <MedicationSnapshotCard label="Last contact" className="space-y-2">
                          {vm.selectedProfile.contactHistory[0] ? (
                            <div className="space-y-1.5">
                              <div className="flex min-w-0 items-center gap-2">
                                <CalendarIcon className="size-4 shrink-0 text-[#1A5345]/70" aria-hidden />
-                               <span className="text-[14px] font-bold text-[#1A1F1E]">
+                               <span className="text-[13px] font-bold leading-none text-[#1A1F1E]">
                                  {formatDate(vm.selectedProfile.contactHistory[0].createdAt)}
                                </span>
                              </div>
                              <div className="flex min-w-0 items-center gap-2">
-                               <ClockIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                               <span className="min-w-0 text-[13px] font-semibold tabular-nums text-[#1A1F1E]">
+                               <ClockIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                               <span className="min-w-0 text-[11px] font-medium tabular-nums text-[#6B7870]">
                                  {new Intl.DateTimeFormat("en-US", {
                                    hour: "numeric",
                                    minute: "2-digit",
@@ -243,9 +283,9 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
                              </div>
                            </div>
                          ) : (
-                           <p className="text-[14px] font-medium text-muted-foreground">No history</p>
+                           <p className="text-[13px] font-medium text-[#6B7870]">No history</p>
                          )}
-                      </div>
+                      </MedicationSnapshotCard>
                    </div>
 
                    {/* Main Sections Grid */}
@@ -254,15 +294,38 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
                       {/* Left Side: Medications Table */}
                       <div className="xl:col-span-2 space-y-8">
                          <section>
-                            <div className="flex items-center justify-between mb-4">
-                               <div className="flex items-center gap-2">
-                                  <PillIcon className="size-5 text-[#1A5345]" />
-                                  <h3 className="text-[18px] font-bold text-[#1A1F1E]">Medications</h3>
-                               </div>
-                               <Badge variant="outline" className="rounded-lg border-[#E8E6E0] font-bold text-[11px]">
-                                  {vm.selectedProfile.medications.length} total
-                               </Badge>
-                            </div>
+                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                                <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                                   <div className="flex items-center gap-2">
+                                      <PillIcon className="size-5 text-[#1A5345]" />
+                                      <h3 className="text-[18px] font-bold text-[#1A1F1E]">Medications</h3>
+                                   </div>
+                                   <div className="flex items-center rounded-lg border border-[#E8E6E0] bg-[#F9F8F5] p-0.5 shadow-sm">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={() => setMedicationsTab("active")}
+                                        className={cn("h-7 rounded-md px-3 text-[11px] font-bold transition-all", medicationsTab === "active" ? "bg-white text-[#1A1F1E] shadow-sm" : "text-muted-foreground hover:text-[#1A1F1E]")}
+                                      >
+                                         Active
+                                      </Button>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={() => setMedicationsTab("past")}
+                                        className={cn("h-7 rounded-md px-3 text-[11px] font-bold transition-all", medicationsTab === "past" ? "bg-white text-[#1A1F1E] shadow-sm" : "text-muted-foreground hover:text-[#1A1F1E]")}
+                                      >
+                                         Past & History
+                                      </Button>
+                                   </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                   <Button onClick={() => alert('Preparing Adherence Report for ' + vm.selectedProfile?.fullName + '...')} variant="outline" size="sm" className="h-8 rounded-lg border-[#E8E6E0] bg-white text-[12px] font-bold text-[#1A5345] hover:bg-[#F9F8F5] shadow-sm">
+                                      <FileTextIcon className="size-3.5 mr-1.5" />
+                                      Adherence report
+                                   </Button>
+                                </div>
+                             </div>
                             
                             <div className="rounded-2xl border border-[#E8E6E0]/80 bg-white overflow-hidden shadow-sm">
                                <div className="overflow-x-auto">
@@ -276,10 +339,13 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
                                         </tr>
                                      </thead>
                                      <tbody className="divide-y divide-[#E8E6E0]/40">
-                                        {vm.selectedProfile.medications.map((m) => (
+                                        {medicationsTab === "active" ? vm.selectedProfile.medications.map((m) => (
                                            <tr key={m.id} className="group hover:bg-[#F9F8F5]/30 transition-colors">
                                               <td className="px-5 py-4">
-                                                 <p className="text-[14px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">{m.name}</p>
+                                                 <div className="flex items-center gap-2">
+                                                    <p className="text-[14px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">{m.name}</p>
+                                                    <MedicationIcon type={m.type} className="size-[18px] shrink-0 opacity-90" />
+                                                 </div>
                                                  <p className="text-[11px] font-medium text-muted-foreground mt-0.5">{m.strength}</p>
                                               </td>
                                               <td className="px-5 py-4">
@@ -307,18 +373,18 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
                                               </td>
                                               <td className="px-5 py-4 text-right">
                                                  <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button variant="ghost" size="icon" className="size-8 rounded-lg text-rose-600 hover:bg-rose-50" onClick={() => setFlagMedId(m.id)}>
+                                                    <Button variant="ghost" size="icon" className="size-8 border-0 bg-transparent text-rose-600 hover:bg-transparent hover:text-rose-700 shadow-none transition-colors" onClick={() => setFlagMedId(m.id)}>
                                                        <FlagIcon className="size-4" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="size-8 rounded-lg text-violet-600 hover:bg-violet-50" onClick={() => openEscalation(m, `${m.name} ${m.strength} needs review.`)}>
+                                                    <Button variant="ghost" size="icon" className="size-8 border-0 bg-transparent text-violet-600 hover:bg-transparent hover:text-violet-700 shadow-none transition-colors" onClick={() => openEscalation(m, `${m.name} ${m.strength} needs review.`)}>
                                                        <StethoscopeIcon className="size-4" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="size-8 rounded-lg text-[#1A5345] hover:bg-[#1A5345]/5" onClick={() => openMedReminder(m)}>
+                                                    <Button variant="ghost" size="icon" className="size-8 border-0 bg-transparent text-[#1A5345] hover:bg-transparent hover:text-[#0F3D32] shadow-none transition-colors" onClick={() => openMedReminder(m)}>
                                                        <BellIcon className="size-4" />
                                                     </Button>
                                                     <DropdownMenu>
                                                        <DropdownMenuTrigger asChild>
-                                                          <Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground">
+                                                          <Button variant="ghost" size="icon" className="size-8 border-0 bg-transparent text-muted-foreground hover:bg-transparent hover:text-[#1A1F1E] shadow-none transition-colors">
                                                              <MoreVerticalIcon className="size-4" />
                                                           </Button>
                                                        </DropdownMenuTrigger>
@@ -327,7 +393,7 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
                                                              <PencilLineIcon className="size-3.5 mr-2" />
                                                              Edit care note
                                                           </DropdownMenuItem>
-                                                          <DropdownMenuItem>
+                                                          <DropdownMenuItem onClick={() => { setRecordMedName(m.name); setRecordMedStrength(m.strength); setRecordMedType(m.type); setRecordMedDosage(m.dosageInstructions); setRecordMedFrequency(m.frequencyLabel); }}>
                                                              <ClockIcon className="size-3.5 mr-2" />
                                                              View history
                                                           </DropdownMenuItem>
@@ -336,7 +402,29 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
                                                  </div>
                                               </td>
                                            </tr>
-                                        ))}
+                                        )) : (
+                                           <tr className="group hover:bg-[#F9F8F5]/30 transition-colors">
+                                              <td className="px-5 py-4">
+                                                 <div className="flex items-center gap-2">
+                                                    <p className="text-[14px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">Lisinopril</p>
+                                                    <MedicationIcon type="pill" className="size-[18px] shrink-0 opacity-60 grayscale" />
+                                                 </div>
+                                                 <p className="text-[11px] font-medium text-muted-foreground mt-0.5">10 mg</p>
+                                              </td>
+                                              <td className="px-5 py-4">
+                                                 <p className="text-[13px] font-medium text-[#1A1F1E]/80 leading-relaxed max-w-[200px]">1 tablet daily. Discontinued on Feb 10, 2026 due to dry cough.</p>
+                                              </td>
+                                              <td className="px-5 py-4">
+                                                 <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-0 text-[10px] font-bold">Discontinued</Badge>
+                                              </td>
+                                              <td className="px-5 py-4 text-right">
+                                                 <Button variant="ghost" size="sm" onClick={() => { setRecordMedName("Lisinopril"); setRecordMedStrength("10 mg"); setRecordMedType("pill"); setRecordMedDosage("1 tablet every morning"); setRecordMedFrequency("QD AM"); }} className="h-8 rounded-lg text-[11px] font-bold text-[#1A5345] hover:bg-[#1A5345]/5">
+                                                    <ClockIcon className="size-3.5 mr-1.5" />
+                                                    View record
+                                                 </Button>
+                                              </td>
+                                           </tr>
+                                        )}
                                      </tbody>
                                   </table>
                                </div>
@@ -380,7 +468,7 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
                                     vm.selectedProfile.escalations.slice(0, 3).map(event => (
                                       <div key={event.id} className="p-4 rounded-xl border border-[#E8E6E0]/80 bg-[#FBFDFC] space-y-2">
                                          <div className="flex items-center justify-between">
-                                            <Badge className="bg-violet-50 text-violet-700 border-violet-100 text-[9px] font-bold">Waiting</Badge>
+                                            <Badge className="bg-violet-50 text-violet-700 border-violet-100 text-[10px] font-bold rounded-lg shadow-sm">Waiting</Badge>
                                             <span className="text-[10px] font-medium text-muted-foreground">{formatDateTime(event.createdAt).split(',')[0]}</span>
                                          </div>
                                          <p className="text-[13px] font-bold text-[#1A1F1E]">{event.reason}</p>
@@ -422,8 +510,8 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
                                          </Button>
                                       </div>
                                       <div className="flex items-center gap-2 mb-3">
-                                         <Badge className="bg-violet-600 text-[9px] font-bold text-white border-0">{insight.kind}</Badge>
-                                         <span className="text-[10px] font-bold text-violet-600/60 uppercase tracking-tighter">{insight.confidencePct}% match</span>
+                                         <Badge className="bg-violet-600 text-[10px] font-bold text-white border-0 rounded-lg shadow-sm">{insight.kind}</Badge>
+                                         <span className="text-[10px] font-bold text-violet-600/60 tracking-tight">{insight.confidencePct}% match</span>
                                       </div>
                                       <h4 className="text-[14px] font-bold text-[#1A1F1E] mb-1">{insight.title}</h4>
                                       <p className="text-[12px] text-violet-900/70 leading-relaxed">{insight.detail}</p>
@@ -450,8 +538,8 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
                                    <div key={flag.id} className="p-5 rounded-2xl border border-rose-100 bg-white shadow-sm space-y-3">
                                       <div className="flex items-center justify-between">
                                          <Badge className={cn(
-                                           "text-[9px] font-bold border-0",
-                                           flag.severity === 'critical' ? "bg-rose-600 text-white" : "bg-amber-500 text-white"
+                                           "text-[10px] font-bold border-0 rounded-lg shadow-sm",
+                                           flag.severity === 'critical' ? "bg-rose-600 text-white" : "bg-amber-600 text-white"
                                          )}>
                                             {flag.severity}
                                          </Badge>
@@ -560,6 +648,18 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
               note: values.note,
             });
           }}
+        />
+      )}
+
+      {recordMedName && (
+        <MedicationRecordDialog
+          open={true}
+          onOpenChange={(v) => !v && setRecordMedName(null)}
+          medicationName={recordMedName}
+          strength={recordMedStrength ?? undefined}
+          type={recordMedType}
+          dosageInstructions={recordMedDosage ?? undefined}
+          frequencyLabel={recordMedFrequency ?? undefined}
         />
       )}
 
