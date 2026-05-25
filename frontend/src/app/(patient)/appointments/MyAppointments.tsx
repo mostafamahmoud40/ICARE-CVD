@@ -1,161 +1,240 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import type { Appointment, FilterTab } from "./appointments.types"
 import { cn } from "@/lib/utils"
-import { StatusBadge, LucideIcon } from "./shared"
+import {
+  StatusBadge,
+  LucideIcon,
+  appointmentsListSearchInputClassName,
+  appointmentsScrollbarCss,
+} from "./shared"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
+import Link from "next/link"
+import Image from "next/image"
 import {
   CalendarIcon,
-  ClockIcon,
-  MapPinIcon,
-  ChevronRightIcon,
   CalendarDaysIcon,
-  StethoscopeIcon,
   SearchIcon,
-  XIcon,
-  BellIcon,
+  CalendarClockIcon,
+  Trash2Icon,
   FileTextIcon,
-  PaperclipIcon,
-  RefreshCwIcon,
-  MoreVerticalIcon,
-  AlertTriangleIcon,
 } from "lucide-react"
-import { formatTimeOnly, formatDateTime } from "./appointments.utils"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+  APPOINTMENTS_LIST_PAGE_SIZE,
+  formatTimeOnly,
+  getAppointmentBookingDisplayStatus,
+  isAppointmentManageable,
+  sortAppointmentsByScheduledAtDesc,
+} from "./appointments.utils"
+import { AppointmentDetailDialog } from "./AppointmentDetailDialog"
+import { AppointmentsListPagination } from "./AppointmentsListPagination"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 function getVisitTypeIcon(location: string, visitType?: string): string {
-  if (visitType === "virtual" || location.toLowerCase().includes("virtual") || location.toLowerCase().includes("video")) {
+  if (
+    visitType === "virtual" ||
+    location.toLowerCase().includes("virtual") ||
+    location.toLowerCase().includes("video")
+  ) {
     return "video"
   }
   return "building"
 }
 
-type CompactRowProps = {
+function getVisitTypeLabel(location: string, visitType?: string): string {
+  if (
+    visitType === "virtual" ||
+    location.toLowerCase().includes("virtual") ||
+    location.toLowerCase().includes("video")
+  ) {
+    return "Virtual"
+  }
+  return "In clinic"
+}
+
+type AppointmentTableRowProps = {
   appointment: Appointment
   isPast?: boolean
   isCancelled?: boolean
-  onClick?: () => void
+  onSelect: () => void
+  onReschedule: () => void
+  onCancel: () => void
 }
 
-function getVisitTypeLabel(location: string, visitType?: string): string {
-  if (visitType === "virtual" || location.toLowerCase().includes("virtual") || location.toLowerCase().includes("video")) {
-    return "Virtual"
-  }
-  return "In-Clinic"
-}
-
-function CompactRow({ appointment, isPast, isCancelled, onClick }: CompactRowProps) {
+function AppointmentTableRow({
+  appointment,
+  isPast,
+  isCancelled,
+  onSelect,
+  onReschedule,
+  onCancel,
+}: AppointmentTableRowProps) {
   const visitTypeIcon = getVisitTypeIcon(appointment.location, appointment.visitType)
   const visitTypeLabel = getVisitTypeLabel(appointment.location, appointment.visitType)
   const date = new Date(appointment.scheduledAt)
   const isToday = new Date().toDateString() === date.toDateString()
+  const displayStatus = getAppointmentBookingDisplayStatus(appointment)
+  const canManage = isAppointmentManageable(appointment.status)
 
   return (
-    <div
-      onClick={onClick}
+    <tr
+      role="button"
+      tabIndex={0}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onSelect()
+        }
+      }}
       className={cn(
-        "group flex cursor-pointer items-center gap-2 border-b border-[#E8E6E0] px-3 py-3 transition-colors hover:bg-[#F9F8F5] lg:gap-3 lg:px-4",
+        "group cursor-pointer border-t border-[#E8E6E0]/40 transition-colors hover:bg-[#F9F8F5]/50",
         isPast && "opacity-70",
-        isCancelled && "opacity-50"
+        isCancelled && "opacity-50",
       )}
     >
-      {/* Code Column */}
-      <div className="w-[92px] shrink-0 text-center lg:w-[110px]">
-        <p className="font-mono text-[12px] font-medium text-[#00392D]">
+      <td className="py-4 pl-4 pr-4 align-middle">
+        <p className="font-mono text-[12px] font-medium tabular-nums tracking-wide text-[#00392D]">
           {appointment.confirmationCode}
         </p>
-      </div>
-
-      {/* Icon (Type) */}
-      <div className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-full",
-        visitTypeIcon === "video" ? "bg-violet-50" : "bg-[#E8F0EE]"
-      )}>
-        <LucideIcon
-          name={visitTypeIcon}
+      </td>
+      <td className="px-4 py-4 align-middle">
+        <p
           className={cn(
-            "size-5",
-            visitTypeIcon === "video" ? "text-violet-500" : "text-[#00392D]"
+            "text-[11px] font-bold uppercase tracking-wide",
+            isToday ? "text-emerald-600" : "text-muted-foreground",
           )}
-        />
-      </div>
-
-      {/* Date Column */}
-      <div className="w-[56px] shrink-0 text-center lg:w-[64px]">
-        <p className={cn(
-          "text-[11px] font-medium uppercase",
-          isToday ? "text-emerald-600" : "text-[#6B7870]"
-        )}>
+        >
           {isToday ? "Today" : date.toLocaleDateString("en-US", { month: "short" })}
         </p>
-        <p className="text-lg font-bold text-[#1A1F1E]">{date.getDate()}</p>
-      </div>
-
-      {/* Content - Table Columns */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 lg:gap-3">
-          {/* Doctor Column */}
-          <div className="w-[120px] shrink-0 lg:w-[140px]">
-            <p className="truncate text-[13px] font-semibold text-[#1A1F1E]">
+        <p className="text-[18px] font-bold tabular-nums leading-none text-[#1A1F1E]">{date.getDate()}</p>
+      </td>
+      <td className="px-4 py-4 align-middle">
+        <div className="flex items-start gap-3">
+          <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
+            <Image
+              src={`https://i.pravatar.cc/150?u=${encodeURIComponent(appointment.clinician)}`}
+              alt=""
+              width={44}
+              height={44}
+              unoptimized
+              className="size-full object-cover"
+            />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate font-serif text-[15px] font-bold leading-snug text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">
               {appointment.clinician}
             </p>
-            <p className="truncate text-[11px] text-[#6B7870]">{appointment.location}</p>
-          </div>
-
-          {/* Type Column */}
-          <div className="w-[72px] shrink-0 lg:w-[80px]">
-            <span className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium",
-              visitTypeIcon === "video"
-                ? "bg-violet-50 text-violet-600 border border-violet-200"
-                : "bg-[#E8F0EE] text-[#00392D] border border-[#A8C4BC]"
-            )}>
-              <LucideIcon name={visitTypeIcon} className="size-3" />
-              {visitTypeLabel}
-            </span>
-          </div>
-
-          {/* Time Column */}
-          <div className="w-[84px] shrink-0 lg:w-[96px]">
-            <span className="flex items-center gap-1 text-[13px] text-[#1A1F1E]">
-              <ClockIcon className="size-3.5 text-[#6B7870]" />
-              {formatTimeOnly(appointment.scheduledAt)}
-            </span>
-          </div>
-
-          {/* Reason Column */}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] text-[#1A1F1E]">
-              {appointment.reason?.trim() || appointment.department}
+            <p className="mt-0.5 truncate text-[12px] font-medium text-muted-foreground">
+              {appointment.department}
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Status Column */}
-      <div className="w-[64px] shrink-0 text-center lg:w-[76px]">
-        <StatusBadge status={appointment.status} />
-      </div>
-
-      {/* Action Column (Arrow) */}
-      <div className="w-3 shrink-0">
-        <ChevronRightIcon className="size-4 text-[#9CA3AF] opacity-0 transition-opacity group-hover:opacity-100" />
-      </div>
-    </div>
+      </td>
+      <td className="px-4 py-4 align-middle">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 text-[13px] font-medium text-[#1A1F1E]/80",
+            visitTypeIcon === "video" && "text-violet-700",
+          )}
+        >
+          <LucideIcon
+            name={visitTypeIcon}
+            className={cn(
+              "size-4 shrink-0",
+              visitTypeIcon === "video" ? "text-violet-600" : "text-[#1A5345]",
+            )}
+          />
+          {visitTypeLabel}
+        </span>
+      </td>
+      <td className="px-4 py-4 align-middle">
+        <p className="text-[14px] font-bold tabular-nums text-[#1A1F1E]">
+          {formatTimeOnly(appointment.scheduledAt)}
+        </p>
+        {displayStatus === "upcoming" || displayStatus === "rescheduled" ? (
+          <p className="mt-0.5 text-[11px] font-bold text-emerald-600">
+            {displayStatus === "rescheduled" ? "New slot" : "Scheduled"}
+          </p>
+        ) : displayStatus === "completed" || displayStatus === "no-show" ? (
+          <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">Ended</p>
+        ) : null}
+      </td>
+      <td className="max-w-[220px] px-4 py-4 align-middle">
+        <p className="truncate text-[14px] font-medium text-[#1A1F1E]/80">
+          {appointment.reason?.trim() || appointment.department}
+        </p>
+      </td>
+      <td className="px-4 py-4 align-middle">
+        <StatusBadge status={displayStatus} />
+      </td>
+      <td className="px-4 py-4 align-middle">
+        <div className="flex items-center justify-end gap-0.5">
+          {appointment.status === "completed" && displayStatus === "completed" ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              title="View report"
+              aria-label="View report"
+              className="size-8 border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-[#1A5345]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <FileTextIcon className="size-4" strokeWidth={2.5} />
+            </Button>
+          ) : canManage && !isCancelled ? (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                title="Reschedule"
+                aria-label="Reschedule"
+                className="size-8 border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-[#1A5345]"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onReschedule()
+                }}
+              >
+                <CalendarClockIcon className="size-4" strokeWidth={2.5} />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                title="Cancel"
+                aria-label="Cancel appointment"
+                className="size-8 border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-rose-600"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onCancel()
+                }}
+              >
+                <Trash2Icon className="size-4" strokeWidth={2.2} />
+              </Button>
+            </>
+          ) : (
+            <span className="px-1 text-[11px] font-bold text-muted-foreground">—</span>
+          )}
+        </div>
+      </td>
+    </tr>
   )
 }
 
@@ -168,6 +247,21 @@ type MyAppointmentsProps = {
   className?: string
 }
 
+const FILTER_SELECT_ALL = "__icare_filter_all__"
+
+const STATUS_FILTER_OPTIONS: { value: FilterTab; label: string }[] = [
+  { value: "all", label: "All appointments" },
+  { value: "upcoming", label: "Upcoming" },
+  { value: "past", label: "Past" },
+  { value: "cancelled", label: "Cancelled" },
+]
+
+const appointmentsFilterSelectTriggerClassName =
+  "h-8 w-full rounded-lg border border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A1F1E] shadow-sm transition-all hover:bg-slate-50 focus:ring-0 sm:w-[140px]"
+
+const appointmentsFilterSelectItemClassName =
+  "h-10 cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345]"
+
 export function MyAppointments({
   appointments,
   upcoming,
@@ -177,359 +271,361 @@ export function MyAppointments({
   className,
 }: MyAppointmentsProps) {
   const [filter, setFilter] = useState<FilterTab>("all")
+  const [doctorFilter, setDoctorFilter] = useState("")
+  const [departmentFilter, setDepartmentFilter] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
+  const [page, setPage] = useState(1)
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
-  const [isRefreshing, setIsRefreshing] = useState(false)
   const [cancelledAppointments, setCancelledAppointments] = useState<string[]>([])
 
-  // Get urgent appointments (within 24 hours)
-  const urgentCount = useMemo(() => {
-    const now = new Date()
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-    return upcoming.filter(a => {
-      const apptDate = new Date(a.scheduledAt)
-      return apptDate > now && apptDate <= tomorrow && a.status !== "cancelled"
-    }).length
-  }, [upcoming])
+  const appointmentsView = useMemo(
+    () =>
+      appointments.map((a) =>
+        cancelledAppointments.includes(a.id)
+          ? {
+              ...a,
+              status: "cancelled" as const,
+              cancelledBy: "patient" as const,
+              cancellationReason:
+                a.cancellationReason ?? "Cancelled from your account.",
+              cancelledAt: a.cancelledAt ?? new Date().toISOString(),
+            }
+          : a,
+      ),
+    [appointments, cancelledAppointments],
+  )
 
-  // Filter appointments
+  const doctorOptions = useMemo(
+    () =>
+      [...new Set(appointmentsView.map((a) => a.clinician.trim()).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [appointmentsView],
+  )
+
+  const departmentOptions = useMemo(
+    () =>
+      [...new Set(appointmentsView.map((a) => a.department.trim()).filter(Boolean))].sort(
+        (a, b) => a.localeCompare(b),
+      ),
+    [appointmentsView],
+  )
+
   const filteredAppointments = useMemo(() => {
-    let filtered = appointments
+    let filtered = appointmentsView
 
     if (filter === "upcoming") {
-      filtered = upcoming.filter(a => !cancelledAppointments.includes(a.id))
-    } else if (filter === "past") {
-      filtered = past
-    } else if (filter === "cancelled") {
-      filtered = appointments.filter(a =>
-        cancelledAppointments.includes(a.id) || a.status === "cancelled"
+      filtered = appointmentsView.filter(
+        (a) => a.status === "upcoming" || a.status === "rescheduled",
       )
-    } else {
-      // All - exclude cancelled from main list
-      filtered = appointments.filter(a =>
-        !cancelledAppointments.includes(a.id) && a.status !== "cancelled"
+    } else if (filter === "past") {
+      filtered = appointmentsView.filter(
+        (a) => a.status === "completed" || a.status === "no-show",
+      )
+    } else if (filter === "cancelled") {
+      filtered = appointmentsView.filter((a) => a.status === "cancelled")
+    }
+
+    if (doctorFilter) {
+      filtered = filtered.filter(
+        (a) => a.clinician.trim().toLowerCase() === doctorFilter.toLowerCase(),
       )
     }
 
-    // Search filter
+    if (departmentFilter) {
+      filtered = filtered.filter(
+        (a) => a.department.trim().toLowerCase() === departmentFilter.toLowerCase(),
+      )
+    }
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(a =>
-        a.department.toLowerCase().includes(query) ||
-        a.clinician.toLowerCase().includes(query) ||
-        a.location.toLowerCase().includes(query) ||
-        a.confirmationCode.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (a) =>
+          a.department.toLowerCase().includes(query) ||
+          a.clinician.toLowerCase().includes(query) ||
+          a.location.toLowerCase().includes(query) ||
+          a.confirmationCode.toLowerCase().includes(query),
       )
     }
 
-    return filtered
-  }, [appointments, upcoming, past, filter, searchQuery, cancelledAppointments])
+    return sortAppointmentsByScheduledAtDesc(filtered)
+  }, [appointmentsView, filter, doctorFilter, departmentFilter, searchQuery])
 
-  const handleRefresh = () => {
-    setIsRefreshing(true)
-    setTimeout(() => setIsRefreshing(false), 1000)
-  }
+  const hasActiveFilters =
+    filter !== "all" || Boolean(doctorFilter) || Boolean(departmentFilter)
+
+  const totalCount = filteredAppointments.length
+  const totalPages = Math.max(1, Math.ceil(totalCount / APPOINTMENTS_LIST_PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+
+  const paginatedAppointments = useMemo(() => {
+    const start = (safePage - 1) * APPOINTMENTS_LIST_PAGE_SIZE
+    return filteredAppointments.slice(start, start + APPOINTMENTS_LIST_PAGE_SIZE)
+  }, [filteredAppointments, safePage])
+
+  const rangeStart = totalCount === 0 ? 0 : (safePage - 1) * APPOINTMENTS_LIST_PAGE_SIZE + 1
+  const rangeEnd = Math.min(safePage * APPOINTMENTS_LIST_PAGE_SIZE, totalCount)
+
+  useEffect(() => {
+    setPage(1)
+  }, [filter, doctorFilter, departmentFilter, searchQuery])
 
   const handleCancel = async (id: string) => {
     try {
       await onCancelAppointment(id)
-      setCancelledAppointments(prev => [...prev, id])
+      setCancelledAppointments((prev) => [...prev, id])
       setSelectedAppointment(null)
     } catch {
       alert("Could not cancel appointment. Please try again.")
     }
   }
 
-  const handleReschedule = (appointment: Appointment) => {
-    // Open booking with pre-filled data
+  const handleReschedule = () => {
     setSelectedAppointment(null)
     onBookNew()
   }
 
   return (
-    <>
-      <style>{`
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .no-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
-      <div className={cn("w-full overflow-hidden bg-white", className)}>
-      {/* Header */}
-      <div className="border-b border-[#E8E6E0] bg-[#FAFAF8] px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-[#00392D]">
-              <StethoscopeIcon className="size-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-[15px] font-bold text-[#1A1F1E]">Appointments</h2>
-              <p className="text-[11px] text-[#6B7870]">
-                {upcoming.length} upcoming · {past.length} past
+    <div
+      className={cn(
+        "flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500",
+        className,
+      )}
+    >
+      <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-white">
+        <div className="flex flex-col px-5 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5">
+          <div className="mb-2 flex items-center gap-2 sm:mb-2.5">
+            <Breadcrumb>
+              <BreadcrumbList className="text-[10px] sm:text-[11px]">
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href="/dashboard" className="text-[10px] font-medium sm:text-[11px]">
+                      Dashboard
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">
+                    Appointments
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+            <div className="min-w-0 space-y-0.5">
+              <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px] lg:text-[26px]">
+                My appointments
+              </h1>
+              <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
+                All your bookings — upcoming, completed, cancelled, and rescheduled.
               </p>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Notifications Bell */}
-            <button className="relative rounded-lg p-2 text-[#6B7870] hover:bg-[#E8E6E0]/50">
-              <BellIcon className="size-5" />
-              {urgentCount > 0 && (
-                <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                  {urgentCount}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <div className="hidden flex-col items-end gap-0.5 xl:flex">
+                <span className="text-[10px] font-bold text-muted-foreground sm:text-[11px]">
+                  Upcoming visits
                 </span>
-              )}
-            </button>
-            {/* Refresh */}
-            <button 
-              onClick={handleRefresh}
-              className={cn(
-                "rounded-lg p-2 text-[#6B7870] hover:bg-[#E8E6E0]/50",
-                isRefreshing && "animate-spin"
-              )}
-            >
-              <RefreshCwIcon className="size-5" />
-            </button>
-            <Button
-              onClick={onBookNew}
-              className="h-8 gap-1.5 rounded-lg bg-[#00392D] px-3 text-[13px] font-semibold"
-            >
-              <CalendarIcon className="size-4" />
-              Book
-            </Button>
-          </div>
-        </div>
-
-        {/* Filter Tabs with Search */}
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <div className="relative w-full md:w-80 lg:w-96">
-            <SearchIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-[#9CA3AF]" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search..."
-              className="h-8 border-[#E8E6E0] bg-white pl-9 text-[13px] placeholder:text-[#9CA3AF]"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7870]"
-              >
-                <XIcon className="size-4" />
-              </button>
-            )}
-          </div>
-          <div className="w-full overflow-x-auto no-scrollbar md:ml-auto md:w-auto">
-            <div className="flex min-w-max gap-1">
-              {(["all", "upcoming", "past", "cancelled"] as FilterTab[]).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setFilter(tab)}
-                  className={cn(
-                    "rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors",
-                    filter === tab
-                      ? "bg-[#00392D] text-white"
-                      : "bg-[#E8E6E0]/50 text-[#6B7870] hover:bg-[#E8E6E0]"
-                  )}
-                >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Appointments List */}
-      <div className="w-full overflow-hidden">
-        <div className="w-full">
-        {/* Table Header */}
-        <div className="flex items-center gap-2 border-b border-[#E8E6E0] bg-[#F9F8F5] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-[#6B7870] lg:gap-3 lg:px-4">
-          <div className="w-[92px] shrink-0 text-center lg:w-[110px]">Code</div>
-          <div className="flex size-10 shrink-0 items-center justify-center">Type</div>
-          <div className="w-[56px] shrink-0 text-center lg:w-[64px]">Date</div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 lg:gap-3">
-              <span className="w-[120px] lg:w-[140px]">Doctor</span>
-              <span className="w-[72px] lg:w-[80px]">Type</span>
-              <span className="w-[84px] lg:w-[96px]">Time</span>
-              <span className="flex-1">Reason</span>
-            </div>
-          </div>
-          <div className="w-[64px] text-center lg:w-[76px]">Status</div>
-          <div className="w-3 shrink-0"></div>
-        </div>
-
-        {filteredAppointments.length === 0 ? (
-          <EmptyState
-            message={searchQuery
-              ? "No appointments match your search."
-              : "No appointments found. Book your first visit!"
-            }
-            onBookNew={onBookNew}
-          />
-        ) : (
-          <div>
-            {filteredAppointments.map((appointment) => (
-              <CompactRow
-                key={appointment.id}
-                appointment={appointment}
-                isCancelled={cancelledAppointments.includes(appointment.id) || appointment.status === "cancelled"}
-                onClick={() => setSelectedAppointment(appointment)}
-              />
-            ))}
-          </div>
-        )}
-        </div>
-      </div>
-
-      {/* Appointment Details Dialog */}
-      <Dialog open={!!selectedAppointment} onOpenChange={() => setSelectedAppointment(null)}>
-        <DialogContent className="max-w-md">
-          {selectedAppointment && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <span>Appointment Details</span>
-                  <StatusBadge status={selectedAppointment.status} />
-                </DialogTitle>
-                <DialogDescription>
-                  Confirmation Code: <span className="font-mono font-bold text-[#00392D]">{selectedAppointment.confirmationCode}</span>
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4 py-4">
-                {/* Doctor Info */}
-                <div className="flex items-start gap-3 rounded-lg bg-[#F9F8F5] p-3">
-                  <div className="flex size-10 items-center justify-center rounded-full bg-[#E8F0EE]">
-                    <StethoscopeIcon className="size-5 text-[#00392D]" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-[#1A1F1E]">{selectedAppointment.clinician}</p>
-                    <p className="text-[13px] text-[#6B7870]">{selectedAppointment.department}</p>
-                  </div>
-                </div>
-
-                {/* Date & Time */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-lg border border-[#E8E6E0] p-3">
-                    <p className="text-[11px] uppercase text-[#6B7870]">Date</p>
-                    <p className="font-semibold text-[#1A1F1E]">
-                      {formatDateTime(selectedAppointment.scheduledAt).split(" at ")[0]}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-[#E8E6E0] p-3">
-                    <p className="text-[11px] uppercase text-[#6B7870]">Time</p>
-                    <p className="font-semibold text-[#1A1F1E]">
-                      {formatTimeOnly(selectedAppointment.scheduledAt)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Visit Type */}
-                <div className="flex items-center gap-2">
-                  <span className="text-[12px] text-[#6B7870]">Visit Type:</span>
-                  <span className={cn(
-                    "rounded-md px-2 py-1 text-[11px] font-medium",
-                    selectedAppointment.visitType === "virtual"
-                      ? "bg-violet-50 text-violet-600 border border-violet-200"
-                      : "bg-[#E8F0EE] text-[#00392D] border border-[#A8C4BC]"
-                  )}>
-                    {selectedAppointment.visitType === "virtual" ? "Virtual Consultation" : "In-Clinic Visit"}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[16px] font-bold leading-none text-[#1A5345] tabular-nums sm:text-[17px]">
+                    {upcoming.length}
                   </span>
+                  <CalendarIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
                 </div>
-
-                {/* Symptoms */}
-                {selectedAppointment.symptoms && (
-                  <div className="rounded-lg border border-[#E8E6E0] p-3">
-                    <div className="flex items-center gap-2 text-[#6B7870]">
-                      <FileTextIcon className="size-4" />
-                      <span className="text-[11px] uppercase">Symptoms</span>
-                    </div>
-                    <p className="mt-1 text-[13px] text-[#1A1F1E]">{selectedAppointment.symptoms}</p>
-                  </div>
-                )}
-
-                {/* Attachments */}
-                {selectedAppointment.attachments && selectedAppointment.attachments.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-[11px] uppercase text-[#6B7870]">Attachments</p>
-                    <div className="space-y-2">
-                      {selectedAppointment.attachments.map((file) => (
-                        <a
-                          key={file.id}
-                          href={file.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 rounded-lg border border-[#E8E6E0] p-2 text-[13px] text-[#00392D] hover:bg-[#F9F8F5]"
-                        >
-                          <PaperclipIcon className="size-4" />
-                          <span className="truncate">{file.name}</span>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Notes */}
-                {selectedAppointment.notes && (
-                  <div className="rounded-lg bg-[#F9F8F5] p-3">
-                    <p className="text-[11px] uppercase text-[#6B7870]">Notes</p>
-                    <p className="mt-1 text-[13px] italic text-[#6B7870]">
-                      &ldquo;{selectedAppointment.notes}&rdquo;
-                    </p>
-                  </div>
-                )}
               </div>
+              <Button
+                type="button"
+                onClick={onBookNew}
+                className="h-9 gap-2 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34]"
+              >
+                <CalendarIcon className="size-4" aria-hidden />
+                Book appointment
+              </Button>
+            </div>
+          </div>
 
-              {/* Actions */}
-              <div className="flex gap-2">
-                {selectedAppointment.status !== "cancelled" && selectedAppointment.status !== "completed" && (
-                  <>
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => handleReschedule(selectedAppointment)}
+          <div className="mt-3 flex flex-col gap-2 pt-1 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
+            <div className="group relative w-full sm:min-w-0 sm:max-w-[min(100%,360px)] sm:flex-1 lg:max-w-[400px]">
+              <SearchIcon
+                className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#1A5345]/35 transition-colors group-focus-within:text-[#1A5345] sm:left-4"
+                strokeWidth={2}
+                aria-hidden
+              />
+              <Input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search clinician, department or code…"
+                className={appointmentsListSearchInputClassName}
+              />
+            </div>
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+              <Select value={filter} onValueChange={(value) => setFilter(value as FilterTab)}>
+                <SelectTrigger className={appointmentsFilterSelectTriggerClassName}>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="rounded-lg border border-[#cfd9d5] bg-white shadow-lg">
+                  {STATUS_FILTER_OPTIONS.map((option) => (
+                    <SelectItem
+                      key={option.value}
+                      value={option.value}
+                      className={appointmentsFilterSelectItemClassName}
                     >
-                      Reschedule
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      className="flex-1"
-                      onClick={() => {
-                        void handleCancel(selectedAppointment.id)
-                      }}
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={doctorFilter || FILTER_SELECT_ALL}
+                onValueChange={(value) =>
+                  setDoctorFilter(value === FILTER_SELECT_ALL ? "" : value)
+                }
+              >
+                <SelectTrigger className={appointmentsFilterSelectTriggerClassName}>
+                  <SelectValue placeholder="All doctors" />
+                </SelectTrigger>
+                <SelectContent className="rounded-lg border border-[#cfd9d5] bg-white shadow-lg">
+                  <SelectItem value={FILTER_SELECT_ALL} className={appointmentsFilterSelectItemClassName}>
+                    All doctors
+                  </SelectItem>
+                  {doctorOptions.map((doctor) => (
+                    <SelectItem key={doctor} value={doctor} className={appointmentsFilterSelectItemClassName}>
+                      {doctor}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={departmentFilter || FILTER_SELECT_ALL}
+                onValueChange={(value) =>
+                  setDepartmentFilter(value === FILTER_SELECT_ALL ? "" : value)
+                }
+              >
+                <SelectTrigger className={appointmentsFilterSelectTriggerClassName}>
+                  <SelectValue placeholder="All departments" />
+                </SelectTrigger>
+                <SelectContent className="rounded-lg border border-[#cfd9d5] bg-white shadow-lg">
+                  <SelectItem value={FILTER_SELECT_ALL} className={appointmentsFilterSelectItemClassName}>
+                    All departments
+                  </SelectItem>
+                  {departmentOptions.map((department) => (
+                    <SelectItem
+                      key={department}
+                      value={department}
+                      className={appointmentsFilterSelectItemClassName}
                     >
-                      Cancel
-                    </Button>
-                  </>
-                )}
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+                      {department}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative flex-1 overflow-auto bg-[#F9F8F5] px-6 sm:px-8">
+        <div className="custom-scrollbar w-full pb-6 pt-4">
+          <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
+            <div className="overflow-x-auto">
+              <table className="min-w-[1040px] w-full border-collapse bg-white text-left">
+                <thead className="sticky top-0 z-10 bg-[#F4F3ED]/90 shadow-[0_1px_0_0_#E8E6E0] backdrop-blur-md">
+                  <tr className="font-serif text-[15px] font-bold text-[#1A1F1E] transition-colors">
+                    <th className="py-4 pl-4 pr-4">Code</th>
+                    <th className="px-4 py-4">Date</th>
+                    <th className="px-4 py-4">Doctor</th>
+                    <th className="px-4 py-4">Type</th>
+                    <th className="px-4 py-4">Time</th>
+                    <th className="px-4 py-4">Reason</th>
+                    <th className="px-4 py-4">Status</th>
+                    <th className="px-4 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E8E6E0]/40">
+                  {filteredAppointments.length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-20 text-center" colSpan={8}>
+                        <EmptyState
+                          message={
+                            searchQuery
+                              ? "No appointments match your search."
+                              : hasActiveFilters
+                                ? "No appointments match your filters."
+                                : "No appointments found. Book your first visit!"
+                          }
+                          onBookNew={onBookNew}
+                        />
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedAppointments.map((appointment) => {
+                      const displayStatus = getAppointmentBookingDisplayStatus(appointment)
+                      const isPast =
+                        displayStatus === "completed" || displayStatus === "no-show"
+                      const isCancelled = appointment.status === "cancelled"
+
+                      return (
+                        <AppointmentTableRow
+                          key={appointment.id}
+                          appointment={appointment}
+                          isPast={isPast}
+                          isCancelled={isCancelled}
+                          onSelect={() => setSelectedAppointment(appointment)}
+                          onReschedule={handleReschedule}
+                          onCancel={() => void handleCancel(appointment.id)}
+                        />
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {totalCount > 0 ? (
+              <AppointmentsListPagination
+                page={safePage}
+                totalPages={totalPages}
+                totalCount={totalCount}
+                rangeStart={rangeStart}
+                rangeEnd={rangeEnd}
+                onPageChange={setPage}
+              />
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <AppointmentDetailDialog
+        appointment={selectedAppointment}
+        onClose={() => setSelectedAppointment(null)}
+        onReschedule={handleReschedule}
+        onCancel={(id) => void handleCancel(id)}
+      />
+
+      <style dangerouslySetInnerHTML={{ __html: appointmentsScrollbarCss() }} />
     </div>
-    </>
   )
 }
 
 function EmptyState({ message, onBookNew }: { message: string; onBookNew?: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center py-10 text-center">
-      <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-[#F5F5F3]">
-        <CalendarDaysIcon className="size-7 text-[#9CA3AF]" />
-      </div>
-      <p className="text-[14px] text-[#6B7870]">{message}</p>
+    <div className="flex flex-col items-center justify-center opacity-50">
+      <CalendarDaysIcon className="mb-4 size-12 stroke-[1.25]" aria-hidden />
+      <p className="text-[16px] font-bold text-[#1A1F1E]">{message}</p>
       {onBookNew && (
         <Button
+          type="button"
           onClick={onBookNew}
-          className="mt-4 gap-2"
+          className="mt-4 gap-2 rounded-xl bg-[#1A5345] text-[12px] font-bold hover:bg-[#133F34]"
         >
-          <CalendarIcon className="size-4" />
-          Book Appointment
+          <CalendarIcon className="size-4" aria-hidden />
+          Book appointment
         </Button>
       )}
     </div>

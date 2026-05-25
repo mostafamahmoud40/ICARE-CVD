@@ -17,7 +17,7 @@ export function VisitDetailContent({ visitId }: VisitDetailContentProps) {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-6 lg:p-8">
+    <div className="flex h-full w-full min-h-0 flex-col overflow-hidden bg-[#F4F3EF] animate-in fade-in duration-500">
       <VisitDetail visit={visit} />
     </div>
   )

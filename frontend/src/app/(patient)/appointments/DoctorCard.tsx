@@ -1,7 +1,7 @@
-import type { DoctorInfo } from "./appointments.types"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
-import { LucideIcon } from "./shared"
-import { VerifiedIcon, PersonStandingIcon } from "lucide-react"
+import { LucideIcon, appointmentsBookingCardClassName } from "./shared"
+import { VerifiedIcon } from "lucide-react"
 
 type SpecialtyProps = {
   icon: string
@@ -14,10 +14,8 @@ function SpecialtyBadge({ icon, label, color }: SpecialtyProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium",
-        isPrimary
-          ? "border-[#A8C4BC] bg-[#E8F0EE] text-[#00392D]"
-          : "border-[#DDD0B8] bg-[#F5EFE4] text-[#C5A97B]",
+        "inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold",
+        isPrimary ? "bg-[#E8F0EE] text-[#1A5345]" : "bg-[#F5EFE4] text-[#9A6B2F]",
       )}
     >
       <LucideIcon name={icon} className="size-3.5" />
@@ -31,6 +29,7 @@ type DoctorCardProps = {
   title: string
   experience: string
   specialties: SpecialtyProps[]
+  avatarSeed?: string
   className?: string
 }
 
@@ -39,39 +38,42 @@ export function DoctorCard({
   title,
   experience,
   specialties,
+  avatarSeed,
   className,
 }: DoctorCardProps) {
   return (
-    <div
-      className={cn(
-        "rounded-2xl border border-[#E8E6E0] bg-white p-6 shadow-[0_1px_4px_rgba(0,0,0,0.06)]",
-        className,
-      )}
-    >
-      <div className="flex items-start gap-5">
+    <div className={cn(appointmentsBookingCardClassName, className)}>
+      <div className="flex items-start gap-4 sm:gap-5">
         <div className="relative shrink-0">
-          <div className="flex size-20 items-center justify-center rounded-xl border border-[#E8E6E0] bg-gradient-to-br from-sky-100 to-violet-200">
-            <PersonStandingIcon className="size-10 text-slate-400" />
+          <div className="flex size-16 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF] sm:size-[72px]">
+            <Image
+              src={`https://i.pravatar.cc/150?u=${encodeURIComponent(avatarSeed ?? name)}`}
+              alt=""
+              width={72}
+              height={72}
+              unoptimized
+              className="size-full object-cover"
+            />
           </div>
-          <div className="absolute -right-1.5 -bottom-1.5 rounded-full bg-white p-0.5 shadow-sm">
-            <VerifiedIcon className="size-[18px] text-[#C5A97B]" />
-          </div>
+          <VerifiedIcon
+            className="absolute -right-0.5 -bottom-0.5 size-[18px] rounded-full bg-white text-[#1A5345]"
+            aria-hidden
+          />
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h2 className="text-xl font-bold text-[#1A1F1E]">{name}</h2>
-              <p className="mt-0.5 text-[13px] font-medium text-[#6B7870]">
-                {title}
-              </p>
+              <h2 className="font-serif text-[18px] font-bold leading-snug text-[#1A1F1E] sm:text-[20px]">
+                {name}
+              </h2>
+              <p className="mt-0.5 text-[13px] font-medium text-muted-foreground">{title}</p>
             </div>
-            <div className="flex items-center gap-1.5 rounded-md border border-[#A8C4BC] bg-[#E8F0EE] px-2.5 py-1">
-              <VerifiedIcon className="size-4 text-[#00392D]" />
-              <span className="text-[13px] font-bold text-[#00392D]">{experience}</span>
-            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E8F0EE] px-2.5 py-1 text-[12px] font-bold text-[#1A5345]">
+              {experience}
+            </span>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {specialties.map((s) => (
               <SpecialtyBadge key={s.label} {...s} />
             ))}

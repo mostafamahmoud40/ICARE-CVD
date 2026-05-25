@@ -3,7 +3,7 @@
 import { useState } from "react"
 import type { DayOption, TimeSlot } from "./appointments.types"
 import { cn } from "@/lib/utils"
-import { StepHeading } from "./shared"
+import { StepHeading, appointmentsBookingCardClassName } from "./shared"
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -69,7 +69,7 @@ function MonthNav({ label, selectedDate, onDateSelect, className }: MonthNavProp
             head_cell: "text-[11px] font-medium text-[#6B7870] w-8",
             row: "flex w-full",
             cell: cn(
-              "relative p-0 text-center text-[13px] focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-[#00392D] [&:has([aria-selected])]:text-white [&:has([aria-selected].day-outside)]:bg-[#00392D]/50",
+              "relative p-0 text-center text-[13px] focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-[#1A5345] [&:has([aria-selected])]:text-white [&:has([aria-selected].day-outside)]:bg-[#1A5345]/50",
               "hover:bg-[#d9e5e1] hover:text-[#1a5345]"
             ),
             day: cn(
@@ -79,13 +79,13 @@ function MonthNav({ label, selectedDate, onDateSelect, className }: MonthNavProp
             ),
             day_range_end: "day-range-end",
             day_selected:
-              "bg-[#00392D] text-white hover:bg-[#00392D] hover:text-white",
-            day_today: "bg-[#E8F0EE] text-[#00392D] font-bold",
+              "bg-[#1A5345] text-white hover:bg-[#1A5345] hover:text-white",
+            day_today: "bg-[#E8F0EE] text-[#1A5345] font-bold",
             day_outside:
               "text-[#9CA3AF] opacity-50",
             day_disabled: "text-[#9CA3AF] opacity-50 cursor-not-allowed",
             day_range_middle:
-              "aria-selected:bg-[#E8F0EE] aria-selected:text-[#00392D]",
+              "aria-selected:bg-[#E8F0EE] aria-selected:text-[#1A5345]",
             day_hidden: "invisible",
           }}
         />
@@ -112,7 +112,7 @@ function DayButton({ day, date, label, disabled, active, onSelect }: DayButtonPr
       className={cn(
         "relative flex size-[72px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl transition-all",
         active
-          ? "scale-105 bg-[#00392D] text-white shadow-[0_4px_16px_rgba(0,57,45,0.25)]"
+          ? "scale-105 bg-[#1A5345] text-white shadow-[0_4px_16px_rgba(0,57,45,0.25)]"
           : disabled
             ? "cursor-not-allowed border border-[#E8E6E0] bg-transparent text-[#9CA3AF] opacity-60"
             : "cursor-pointer border border-[#E8E6E0] bg-white text-[#1A1F1E] hover:border-[#A8C4BC]",
@@ -141,14 +141,14 @@ function SlotButton({ slot, active, onSelect }: SlotButtonProps) {
       className={cn(
         "relative rounded-lg p-3 text-center text-[13px] transition-all",
         active
-          ? "border-2 border-[#00392D] bg-[#E8F0EE] font-bold text-[#00392D]"
+          ? "border-2 border-[#1A5345] bg-[#E8F0EE] font-bold text-[#1A5345]"
           : slot.available
             ? "cursor-pointer border border-[#E8E6E0] bg-white font-medium text-[#1A1F1E] hover:border-[#A8C4BC]"
             : "cursor-not-allowed border border-[#E8E6E0] bg-[#F9F8F5] font-medium text-[#9CA3AF]",
       )}
     >
       {active && slot.recommended && (
-        <div className="absolute -right-2 -top-2 flex size-[18px] items-center justify-center rounded-full bg-[#00392D] text-white">
+        <div className="absolute -right-2 -top-2 flex size-[18px] items-center justify-center rounded-full bg-[#1A5345] text-white">
           <CheckIcon className="size-3" />
         </div>
       )}
@@ -175,8 +175,8 @@ function AiTipBox({ title, body, className }: AiTipBoxProps) {
         <InfoIcon className="size-5" />
       </div>
       <div>
-        <h4 className="m-0 mb-1 text-[13px] font-semibold text-[#00392D]">{title}</h4>
-        <p className="m-0 text-[12px] leading-relaxed text-[#00392D]/85">{body}</p>
+        <h4 className="m-0 mb-1 text-[13px] font-semibold text-[#1A5345]">{title}</h4>
+        <p className="m-0 text-[12px] leading-relaxed text-[#1A5345]/85">{body}</p>
       </div>
     </div>
   )
@@ -217,14 +217,9 @@ export function DateTimePicker({
   }
 
   return (
-    <div
-      className={cn(
-        "rounded-2xl border border-[#cfd9d5] bg-white p-6 shadow-[0_1px_4px_rgba(0,0,0,0.06)]",
-        className,
-      )}
-    >
-      <div className="mb-5 flex items-center justify-between">
-        <StepHeading step={2} title="Select Date & Time" />
+    <div className={cn(appointmentsBookingCardClassName, className)}>
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <StepHeading step={3} title="Select date & time" className="mb-0" />
         <MonthNav 
           label={monthLabel} 
           selectedDate={calendarDate}
