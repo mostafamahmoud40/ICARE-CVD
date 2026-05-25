@@ -74,13 +74,17 @@ export function DoctorCard({ doctor }: { doctor: DoctorProfile }) {
       {/* Actions */}
       <div className="flex items-center gap-2 mt-auto">
         <Button
-          variant="outline"
-          className="flex-1 h-9 rounded-lg text-[13px] font-semibold border-[#E8E6E0] text-[#1A1F1E] hover:bg-[#F9F8F5] hover:text-[#1A5345] transition-colors shadow-none"
+          size="sm"
+          className="flex-1 h-8 rounded-lg text-[12px] font-bold bg-[#1A5345] text-white hover:bg-[#133F34] transition-colors shadow-none border-0"
         >
           View Profile
           <ArrowRightIcon className="size-3.5 ml-1.5" />
         </Button>
-        <Button variant="outline" size="icon" className="size-9 rounded-lg border-[#E8E6E0] text-[#6B7870] hover:text-[#1A5345] hover:bg-[#F9F8F5] shadow-none">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="size-8 border-0 bg-transparent text-[#6B7870] hover:bg-transparent hover:text-[#1A5345] shadow-none"
+        >
           <MessageCircleIcon className="size-4" />
         </Button>
       </div>

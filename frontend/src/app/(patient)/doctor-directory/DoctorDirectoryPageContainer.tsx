@@ -3,11 +3,8 @@
 import { DoctorDirectory } from "./DoctorDirectory"
 
 export function DoctorDirectoryPageContainer() {
-  // In a real app, we would fetch data here
-  // const { data, isLoading } = useDoctorDirectoryQuery()
-  
   return (
-    <div className="w-full p-4 sm:p-6 lg:p-8">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
       <DoctorDirectory />
     </div>
   )

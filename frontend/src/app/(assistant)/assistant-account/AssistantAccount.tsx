@@ -1,8 +1,10 @@
 "use client"
 
+import Image from "next/image"
 import { useState, type ComponentType } from "react"
 import type {
   AssistantProfile,
+  AssistantWorkStats,
   ActivityEntry,
   SecurityInfo,
   AssistantPreferences,
@@ -22,11 +24,30 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import {
+  AccountStatCell,
+  accountStatCellClassName,
+  AccountCardHeaderIcon,
+  accountPageCardClassName,
+  accountSectionDescClassName,
+  accountSectionTitleClassName,
+  accountShiftStatusStyles,
+  accountWeeklyMetrics,
+  assistantAccountScrollbarCss,
+} from "./assistantAccount.shared"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
+import Link from "next/link"
+import {
   AlertTriangleIcon,
   CalendarDaysIcon,
   Building2Icon,
   BriefcaseIcon,
-  User2Icon,
   MailIcon,
   PhoneIcon,
   UsersIcon,
@@ -48,8 +69,11 @@ import {
   MonitorSmartphoneIcon,
   MessageCircleIcon,
   HistoryIcon,
+  PencilLineIcon,
   SlidersHorizontalIcon,
 } from "lucide-react"
+import { EditAssistantProfileDialog } from "./EditAssistantProfileDialog"
+import { useAssistantAccountProfile } from "./useAssistantAccountProfile"
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "long" }).format(new Date(iso))
@@ -74,51 +98,144 @@ function formatDateTimeShort(iso: string) {
   }).format(new Date(iso))
 }
 
+function assistantAvatarSrc(profile: AssistantProfile) {
+  if (profile.avatarUrl) return profile.avatarUrl
+  return `https://i.pravatar.cc/400?u=${encodeURIComponent(profile.id)}`
+}
+
 /* ────────────────────────────────────────────
    Existing cards (Profile, Professional, Stats, Actions)
    ──────────────────────────────────────────── */
 
-function ProfileHeaderCard({ profile }: { profile: AssistantProfile }) {
+function ProfileQuickStat({
+  label,
+  value,
+  icon: Icon,
+  iconColor,
+}: {
+  label: string
+  value: number
+  icon: ComponentType<{ className?: string }>
+  iconColor: string
+}) {
   return (
-    <Card className="border-[#E5EEEA] bg-white">
+    <div className="rounded-xl border border-[#E8E6E0]/60 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex items-center gap-1.5">
+        <Icon className={cn("size-3.5 shrink-0", iconColor)} aria-hidden />
+        <span className="text-[10px] font-medium text-[#6B7870]">{label}</span>
+      </div>
+      <p className="mt-1 text-[18px] font-bold leading-none tabular-nums text-[#1A1F1E]">{value}</p>
+    </div>
+  )
+}
+
+function ProfileHeaderCard({
+  profile,
+  workStats,
+  onEdit,
+}: {
+  profile: AssistantProfile
+  workStats: AssistantWorkStats
+  onEdit: () => void
+}) {
+  const avatarSrc = assistantAvatarSrc(profile)
+
+  return (
+    <Card className={accountPageCardClassName}>
       <CardContent className="p-5 sm:p-6">
-        <div className="flex items-start gap-4">
-          {/* Avatar */}
-          <div className="relative shrink-0">
-            <div className="flex size-14 items-center justify-center rounded-2xl bg-[#0A3D2E] shadow-lg sm:size-16">
-              <User2Icon className="size-7 text-white sm:size-8" />
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+          <div className="relative mx-auto shrink-0 sm:mx-0">
+            <div className="relative size-28 overflow-hidden rounded-2xl border border-[#E8E6E0]/60 bg-[#F4F3EF] shadow-sm sm:size-32">
+              <Image
+                src={avatarSrc}
+                alt={profile.fullName}
+                fill
+                unoptimized
+                sizes="(max-width: 640px) 112px, 128px"
+                className="object-cover"
+              />
             </div>
-            <div className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-[#F59E0B] shadow-md">
-              <span className="text-[9px] font-bold text-white">✓</span>
+            <div className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full border-2 border-white bg-emerald-500 shadow-sm">
+              <CheckCircleIcon className="size-3.5 text-white" aria-hidden />
             </div>
           </div>
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h2 className="text-[17px] font-bold text-[#0A3D2E] sm:text-[19px]">{profile.fullName}</h2>
-                <p className="text-[11px] text-[#6B7870] sm:text-[12px]">Care Assistant</p>
+          <div className="min-w-0 flex-1 space-y-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="font-serif text-[20px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[22px]">
+                  {profile.fullName}
+                </h2>
+                <p className="text-[12px] font-medium text-muted-foreground sm:text-[13px]">Care Assistant</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Badge
+                    variant="secondary"
+                    className="gap-1 rounded-lg border border-[#E8E6E0]/60 bg-white px-2 py-0.5 text-[10px] font-bold text-[#1A5345]"
+                  >
+                    <Building2Icon className="size-3" aria-hidden />
+                    {profile.department}
+                  </Badge>
+                  <span className="text-[11px] font-medium text-[#6B7870]">
+                    {profile.experienceYears} yrs · Since {formatDate(profile.joinedAt)}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-[10px] font-medium text-[#0A3D2E] sm:text-[11px]">
+              <div className="flex flex-col items-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onEdit}
+                  className="h-9 gap-2 rounded-xl border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A5345] shadow-sm hover:bg-[#F9F8F5]"
+                >
+                  <PencilLineIcon className="size-3.5" aria-hidden />
+                  Edit profile
+                </Button>
+                <span className="text-[10px] font-bold tabular-nums text-muted-foreground sm:text-[11px]">
                   ID: CVD-{profile.id.split("-").pop() ?? profile.id}
                 </span>
-                <span className="flex items-center gap-1 text-[10px] text-[#10B981] sm:text-[11px]">
-                  <span className="size-1.5 rounded-full bg-[#10B981]" />
+                <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 sm:text-[11px]">
+                  <span className="size-1.5 rounded-full bg-emerald-500" />
                   Online
                 </span>
               </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[#6B7870] sm:text-[12px]">
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-[#F3F5F4] px-2 py-1">
-                <MailIcon className="size-3.5 text-[#0A3D2E]" />
-                <span className="text-[#0A3D2E]">{profile.email}</span>
+            <div className="grid grid-cols-2 gap-2">
+              <ProfileQuickStat
+                label="Patients today"
+                value={workStats.patientsHandledToday}
+                icon={UsersIcon}
+                iconColor="text-[#1A5345]"
+              />
+              <ProfileQuickStat
+                label="Appointments"
+                value={workStats.appointmentsScheduled}
+                icon={CalendarClockIcon}
+                iconColor="text-[#1A5345]"
+              />
+              <ProfileQuickStat
+                label="Tasks done"
+                value={workStats.tasksCompleted}
+                icon={CheckCircleIcon}
+                iconColor="text-emerald-600"
+              />
+              <ProfileQuickStat
+                label="Queue managed"
+                value={workStats.queueManaged}
+                icon={ClipboardListIcon}
+                iconColor="text-amber-600"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex min-w-0 items-center gap-1.5 rounded-xl border border-[#E8E6E0]/70 bg-white px-2.5 py-1.5 text-[11px] font-medium text-[#1A1F1E] sm:text-[12px]">
+                <MailIcon className="size-3.5 shrink-0 text-[#1A5345]/70" />
+                <span className="truncate">{profile.email}</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-[#F3F5F4] px-2 py-1">
-                <PhoneIcon className="size-3.5 text-[#0A3D2E]" />
-                <span className="text-[#0A3D2E]">{profile.phone}</span>
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-[#E8E6E0]/70 bg-white px-2.5 py-1.5 text-[11px] font-medium text-[#1A1F1E] sm:text-[12px]">
+                <PhoneIcon className="size-3.5 shrink-0 text-[#1A5345]/70" />
+                {profile.phone}
               </span>
             </div>
           </div>
@@ -130,19 +247,19 @@ function ProfileHeaderCard({ profile }: { profile: AssistantProfile }) {
 
 function ProfessionalInfoCard({ profile }: { profile: AssistantProfile }) {
   return (
-    <Card className="border-[#E5EEEA] bg-[#FAFAF8]">
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-[#0A3D2E] sm:size-9">
-            <BriefcaseIcon className="size-4 text-white" />
-          </div>
+    <Card className={accountPageCardClassName}>
+      <CardHeader className="border-b border-[#E8E6E0]/40 px-5 pb-4 pt-5 sm:px-6">
+        <div className="flex items-center gap-3">
+          <AccountCardHeaderIcon icon={BriefcaseIcon} />
           <div>
-            <CardTitle className="text-[13px] font-semibold text-[#0A3D2E] sm:text-[15px]">Professional Information</CardTitle>
-            <CardDescription className="text-[10px] text-[#6B7870] sm:text-[11px]">Your work details and department info</CardDescription>
+            <CardTitle className={accountSectionTitleClassName}>Professional Information</CardTitle>
+            <CardDescription className={accountSectionDescClassName}>
+              Your work details and department info
+            </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
+      <CardContent className="space-y-4 p-5 sm:p-6">
         <InfoRow icon={Building2Icon} label="Department" value={profile.department} />
         <InfoRow icon={UsersIcon} label="Experience" value={`${profile.experienceYears} years`} />
         <InfoRow icon={CalendarDaysIcon} label="Joined" value={formatDate(profile.joinedAt)} />
@@ -159,33 +276,13 @@ function ProfessionalInfoCard({ profile }: { profile: AssistantProfile }) {
 function activityTypeConfig(type: ActivityEntry["type"]) {
   switch (type) {
     case "patient":
-      return {
-        icon: UsersIcon,
-        bg: "bg-[#0A3D2E]",
-        iconText: "text-white",
-        text: "text-[#0A3D2E]",
-      }
+      return { icon: UsersIcon, iconColor: "text-[#1A5345]" }
     case "appointment":
-      return {
-        icon: CalendarClockIcon,
-        bg: "bg-[#1A5345]",
-        iconText: "text-white",
-        text: "text-[#1A5345]",
-      }
+      return { icon: CalendarClockIcon, iconColor: "text-[#1A5345]" }
     case "queue":
-      return {
-        icon: ClipboardListIcon,
-        bg: "bg-[#F5DEB3]",
-        iconText: "text-[#8B6914]",
-        text: "text-[#8B6914]",
-      }
+      return { icon: ClipboardListIcon, iconColor: "text-amber-600" }
     case "document":
-      return {
-        icon: FileTextIcon,
-        bg: "bg-[#2D7A66]",
-        iconText: "text-white",
-        text: "text-[#2D7A66]",
-      }
+      return { icon: FileTextIcon, iconColor: "text-emerald-600" }
   }
 }
 
@@ -199,27 +296,20 @@ function formatDateTime(iso: string) {
 
 function ActivityLogCard({ activities }: { activities: ActivityEntry[] }) {
   return (
-    <Card className="border-[#E5EEEA] bg-[#FAFAF8] overflow-hidden">
-      <CardHeader className="border-b border-[#E5EEEA] pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-[#0A3D2E] sm:size-9">
-              <HistoryIcon className="size-4 text-white sm:size-[18px]" />
-            </div>
-            <div>
-              <CardTitle className="text-[13px] font-semibold text-[#0A3D2E] sm:text-[15px]">
-                Activity History
-              </CardTitle>
-              <CardDescription className="text-[10px] text-[#6B7870] sm:text-[11px]">
-                {activities.length} records
-              </CardDescription>
-            </div>
+    <Card className={accountPageCardClassName}>
+      <CardHeader className="border-b border-[#E8E6E0]/40 px-5 pb-4 pt-5 sm:px-6">
+        <div className="flex items-center gap-3">
+          <AccountCardHeaderIcon icon={HistoryIcon} />
+          <div>
+            <CardTitle className={accountSectionTitleClassName}>Activity History</CardTitle>
+            <CardDescription className={accountSectionDescClassName}>
+              {activities.length} records
+            </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="relative p-4 sm:p-6">
-        {/* Central tree trunk line */}
-        <div className="absolute left-1/2 top-4 bottom-4 w-0.5 -translate-x-1/2 bg-gradient-to-b from-[#0A3D2E] via-[#1A5345] to-[#0A3D2E] sm:top-6 sm:bottom-6" />
+      <CardContent className="relative p-5 sm:p-6">
+        <div className="absolute left-1/2 top-5 bottom-5 w-px -translate-x-1/2 bg-[#E8E6E0] sm:top-6 sm:bottom-6" />
 
         <div className="relative space-y-4 sm:space-y-6">
           {activities.slice(0, 6).map((entry, i) => {
@@ -240,41 +330,30 @@ function ActivityLogCard({ activities }: { activities: ActivityEntry[] }) {
                 <div className={cn("flex-1", isLeft ? "text-right" : "text-left")}>
                   <div
                     className={cn(
-                      "inline-flex max-w-full flex-col gap-1 rounded-xl border p-3 text-left",
-                      "bg-white shadow-sm transition-all hover:shadow-md",
-                      "border-[#E5EEEA] hover:border-[#1A5345]/30",
-                      isLeft ? "rounded-tr-none" : "rounded-tl-none",
+                      "inline-flex max-w-full flex-col gap-1.5 rounded-xl border border-[#E8E6E0]/60 bg-white p-3 text-left shadow-sm transition-shadow hover:shadow-md sm:p-3.5",
+                      isLeft ? "rounded-tr-md" : "rounded-tl-md",
                     )}
                   >
-                    {/* Header */}
                     <div className="flex items-center gap-2">
-                      <div className={cn("flex size-7 items-center justify-center rounded-lg", cfg.bg)}>
-                        <Icon className={cn("size-3.5", cfg.iconText)} />
-                      </div>
-                      <span className="text-[11px] font-semibold text-[#102F27] sm:text-[12px]">
-                        {entry.action}
-                      </span>
+                      <Icon className={cn("size-4 shrink-0", cfg.iconColor)} aria-hidden />
+                      <span className="text-[13px] font-semibold text-[#1A1F1E]">{entry.action}</span>
                     </div>
 
-                    {/* Description */}
-                    <p className="text-[11px] leading-relaxed text-[#6B7870] sm:text-[12px]">
-                      {entry.description}
-                    </p>
+                    <p className="text-[11px] font-medium leading-relaxed text-[#6B7870]">{entry.description}</p>
 
-                    {/* Date/Time */}
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
                       <Badge
                         variant="secondary"
-                        className="border border-[#E5EEEA] bg-[#F9FBFA] px-2 py-0 text-[9px] text-[#1A5345]"
+                        className="gap-1 border border-[#E8E6E0]/60 bg-white px-2 py-0 text-[9px] font-medium text-[#1A5345] shadow-none"
                       >
-                        <CalendarDaysIcon className="mr-1 size-3" />
+                        <CalendarDaysIcon className="size-3" aria-hidden />
                         {date}
                       </Badge>
                       <Badge
                         variant="secondary"
-                        className="border border-[#E5EEEA] bg-[#F9FBFA] px-2 py-0 text-[9px] text-[#6B7870]"
+                        className="gap-1 border border-[#E8E6E0]/60 bg-white px-2 py-0 text-[9px] font-medium text-[#6B7870] shadow-none"
                       >
-                        <ClockIcon className="mr-1 size-3" />
+                        <ClockIcon className="size-3" aria-hidden />
                         {time}
                       </Badge>
                     </div>
@@ -285,13 +364,10 @@ function ActivityLogCard({ activities }: { activities: ActivityEntry[] }) {
                 <div className="relative z-10 flex shrink-0 flex-col items-center">
                   <div
                     className={cn(
-                      "flex size-10 items-center justify-center rounded-full border-4 shadow-lg sm:size-12",
-                      "border-white bg-[#0A3D2E]",
+                      "flex size-10 items-center justify-center rounded-full border-2 border-white bg-[#1A5345] shadow-sm sm:size-11",
                     )}
                   >
-                    <span className="text-[10px] font-bold text-white sm:text-[11px]">
-                      {i + 1}
-                    </span>
+                    <span className="text-[10px] font-bold text-white sm:text-[11px]">{i + 1}</span>
                   </div>
                 </div>
 
@@ -314,14 +390,12 @@ export function AssistantSecuritySettingsCard({ security }: { security: Security
   const twoFactorOn = security.twoFactorEnabled
 
   return (
-    <Card className="overflow-hidden rounded-[24px] border-[#E8E6E0]/60 bg-white shadow-[0_8px_40px_rgb(0,0,0,0.03)] transition-all hover:shadow-[0_12px_50px_rgb(0,0,0,0.06)]">
-      <CardHeader className="space-y-1 border-b border-[#E8E6E0]/40 bg-gradient-to-br from-[#F8FAFA] to-white px-6 py-6 sm:px-8 sm:py-8">
-        <div className="flex items-center gap-4">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#1A5345] text-white shadow-lg shadow-[#1A5345]/20 ring-4 ring-[#1A5345]/5">
-            <ShieldCheckIcon className="size-6" aria-hidden />
-          </div>
+    <Card className={accountPageCardClassName}>
+      <CardHeader className="space-y-1 border-b border-[#E8E6E0]/40 bg-white px-5 py-5 sm:px-6 sm:py-6">
+        <div className="flex items-center gap-3">
+          <AccountCardHeaderIcon icon={ShieldCheckIcon} />
           <div>
-            <CardTitle className="font-serif text-[20px] font-bold tracking-tight text-[#102F27] sm:text-[24px]">Sign-in Protection</CardTitle>
+            <CardTitle className="font-serif text-[18px] font-bold tracking-tight text-[#1A1F1E] sm:text-[22px]">Sign-in Protection</CardTitle>
             <CardDescription className="text-[13px] font-medium text-[#6B7870] sm:text-[14px]">
               Strengthen your account security and monitor access
             </CardDescription>
@@ -330,14 +404,14 @@ export function AssistantSecuritySettingsCard({ security }: { security: Security
       </CardHeader>
 
       <CardContent className="space-y-8 p-6 sm:p-8">
-        <div className="group relative flex flex-col gap-5 rounded-2xl border border-[#E5EEEA] bg-[#FAFAF8] p-5 transition-all hover:bg-white hover:shadow-xl hover:shadow-[#1A5345]/5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="group relative flex flex-col gap-5 rounded-2xl border border-[#E8E6E0]/70 bg-[#FBFDFC]/50 p-5 transition-colors hover:border-[#1A5345]/20 hover:bg-white sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="flex min-w-0 items-start gap-4 sm:items-center">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-[#E5EEEA] transition-transform group-hover:scale-110">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-[#E8E6E0]/60 bg-white shadow-sm">
               <ShieldCheckIcon className="size-6 text-[#1A5345]" aria-hidden />
             </div>
             <div className="min-w-0 space-y-1.5">
               <div className="flex flex-wrap items-center gap-2.5">
-                <p className="text-[15px] font-bold text-[#102F27]">Two-factor authentication</p>
+                <p className="text-[15px] font-bold text-[#1A1F1E]">Two-factor authentication</p>
                 <Badge
                   variant="secondary"
                   className={cn(
@@ -429,7 +503,7 @@ function SecurityStatRow({
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-medium text-[#6B7870]">{label}</p>
-        <p className="truncate text-[13px] font-semibold text-[#102F27]">{value}</p>
+        <p className="truncate text-[13px] font-semibold text-[#1A1F1E]">{value}</p>
       </div>
     </div>
   )
@@ -528,14 +602,12 @@ export function AssistantNotificationsSettingsCard({
   ] as const
 
   return (
-    <Card className="overflow-hidden rounded-[24px] border-[#E8E6E0]/60 bg-white shadow-[0_8px_40px_rgb(0,0,0,0.03)] transition-all hover:shadow-[0_12px_50px_rgb(0,0,0,0.06)]">
-      <CardHeader className="space-y-1 border-b border-[#E8E6E0]/40 bg-gradient-to-br from-[#F8FAFA] to-white px-6 py-6 sm:px-8 sm:py-8">
-        <div className="flex items-center gap-4">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#1A5345] text-white shadow-lg shadow-[#1A5345]/20 ring-4 ring-[#1A5345]/5">
-            <BellIcon className="size-6" aria-hidden />
-          </div>
+    <Card className={accountPageCardClassName}>
+      <CardHeader className="space-y-1 border-b border-[#E8E6E0]/40 bg-white px-5 py-5 sm:px-6 sm:py-6">
+        <div className="flex items-center gap-3">
+          <AccountCardHeaderIcon icon={BellIcon} iconClassName="text-amber-600" />
           <div>
-            <CardTitle className="font-serif text-[20px] font-bold tracking-tight text-[#102F27] sm:text-[24px]">Notification Channels</CardTitle>
+            <CardTitle className="font-serif text-[18px] font-bold tracking-tight text-[#1A1F1E] sm:text-[22px]">Notification Channels</CardTitle>
             <CardDescription className="text-[13px] font-medium text-[#6B7870] sm:text-[14px]">
               Configure high-priority clinical alert delivery systems
             </CardDescription>
@@ -549,7 +621,7 @@ export function AssistantNotificationsSettingsCard({
             return (
               <div 
                 key={row.id} 
-                className="group relative flex items-center gap-4 px-2 py-5 transition-all hover:bg-[#F8FAFA] rounded-xl sm:px-4 sm:py-6"
+                className="group relative flex items-center gap-4 rounded-xl px-2 py-5 transition-colors hover:bg-[#F9F8F5] sm:px-4 sm:py-6"
               >
                 <div
                   className={cn(
@@ -560,7 +632,7 @@ export function AssistantNotificationsSettingsCard({
                   <Icon className={cn("size-5", row.iconClass)} />
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
-                  <p className="text-[15px] font-bold text-[#102F27] transition-colors group-hover:text-[#1A5345]">{row.title}</p>
+                  <p className="text-[15px] font-bold text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">{row.title}</p>
                   <p className="text-[13px] leading-relaxed text-[#6B7870]">
                     {row.description}
                   </p>
@@ -592,14 +664,12 @@ export function AssistantDisplayPreferencesCard({
         : LaptopIcon
 
   return (
-    <Card className="overflow-hidden rounded-[24px] border-[#E8E6E0]/60 bg-white shadow-[0_8px_40px_rgb(0,0,0,0.03)] transition-all hover:shadow-[0_12px_50px_rgb(0,0,0,0.06)]">
-      <CardHeader className="space-y-1 border-b border-[#E8E6E0]/40 bg-gradient-to-br from-[#F8FAFA] to-white px-6 py-6 sm:px-8 sm:py-8">
-        <div className="flex items-center gap-4">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#1A5345] text-white shadow-lg shadow-[#1A5345]/20 ring-4 ring-[#1A5345]/5">
-            <SlidersHorizontalIcon className="size-6" aria-hidden />
-          </div>
+    <Card className={accountPageCardClassName}>
+      <CardHeader className="space-y-1 border-b border-[#E8E6E0]/40 bg-white px-5 py-5 sm:px-6 sm:py-6">
+        <div className="flex items-center gap-3">
+          <AccountCardHeaderIcon icon={SlidersHorizontalIcon} />
           <div>
-            <CardTitle className="font-serif text-[20px] font-bold tracking-tight text-[#102F27] sm:text-[24px]">Display Preferences</CardTitle>
+            <CardTitle className="font-serif text-[18px] font-bold tracking-tight text-[#1A1F1E] sm:text-[22px]">Display Preferences</CardTitle>
             <CardDescription className="text-[13px] font-medium text-[#6B7870] sm:text-[14px]">
               Personalize your workspace aesthetic and localization
             </CardDescription>
@@ -607,32 +677,32 @@ export function AssistantDisplayPreferencesCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4 p-6 sm:p-8">
-        <div className="group flex items-center justify-between rounded-2xl border border-[#E5EEEA] bg-[#FAFAF8] p-4 transition-all hover:bg-white hover:shadow-lg hover:shadow-[#1A5345]/5 sm:p-5">
+        <div className="group flex items-center justify-between rounded-2xl border border-[#E8E6E0]/70 bg-[#FBFDFC]/50 p-4 transition-colors hover:border-[#1A5345]/20 hover:bg-white sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-[#E5EEEA] transition-transform group-hover:rotate-12">
+            <div className="flex size-10 items-center justify-center rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm">
               <ThemeIcon className="size-5 text-[#1A5345]" aria-hidden />
             </div>
             <div className="space-y-0.5">
-              <span className="text-[14px] font-bold text-[#102F27] sm:text-[15px]">Interface Theme</span>
+              <span className="text-[14px] font-bold text-[#1A1F1E] sm:text-[15px]">Interface Theme</span>
               <p className="text-[11px] font-medium text-[#6B7870]">Adapts to your environment</p>
             </div>
           </div>
-          <Badge variant="secondary" className="rounded-lg border border-[#E5EEEA] bg-white px-3 py-1 text-[11px] font-bold capitalize text-[#1A5345] shadow-sm transition-colors group-hover:bg-[#1A5345] group-hover:text-white">
+          <Badge variant="secondary" className="rounded-lg border border-[#E8E6E0]/80 bg-white px-3 py-1 text-[11px] font-bold capitalize text-[#1A5345]">
             {preferences.theme}
           </Badge>
         </div>
-        
-        <div className="group flex items-center justify-between rounded-2xl border border-[#E5EEEA] bg-[#FAFAF8] p-4 transition-all hover:bg-white hover:shadow-lg hover:shadow-[#1A5345]/5 sm:p-5">
+
+        <div className="group flex items-center justify-between rounded-2xl border border-[#E8E6E0]/70 bg-[#FBFDFC]/50 p-4 transition-colors hover:border-[#1A5345]/20 hover:bg-white sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-[#E5EEEA] transition-transform group-hover:-rotate-12">
+            <div className="flex size-10 items-center justify-center rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm">
               <GlobeIcon className="size-5 text-[#1A5345]" aria-hidden />
             </div>
             <div className="space-y-0.5">
-              <span className="text-[14px] font-bold text-[#102F27] sm:text-[15px]">Regional Language</span>
+              <span className="text-[14px] font-bold text-[#1A1F1E] sm:text-[15px]">Regional Language</span>
               <p className="text-[11px] font-medium text-[#6B7870]">Clinical terminology localization</p>
             </div>
           </div>
-          <Badge variant="secondary" className="rounded-lg border border-[#E5EEEA] bg-white px-3 py-1 text-[11px] font-bold text-[#1A5345] shadow-sm transition-colors group-hover:bg-[#1A5345] group-hover:text-white">
+          <Badge variant="secondary" className="rounded-lg border border-[#E8E6E0]/80 bg-white px-3 py-1 text-[11px] font-bold text-[#1A5345]">
             English (US)
           </Badge>
         </div>
@@ -646,123 +716,117 @@ export function AssistantDisplayPreferencesCard({
    ──────────────────────────────────────────── */
 
 function WeeklyStatsCard({ stats }: { stats: WeeklyStat[] }) {
-  const maxPatients = Math.max(...stats.map((s) => s.patients))
-  const maxAppointments = Math.max(...stats.map((s) => s.appointments))
-  const maxTasks = Math.max(...stats.map((s) => s.tasks))
   const totals = {
     patients: stats.reduce((a, s) => a + s.patients, 0),
     appointments: stats.reduce((a, s) => a + s.appointments, 0),
     tasks: stats.reduce((a, s) => a + s.tasks, 0),
   }
 
+  const summaryTiles = [
+    { key: "patients" as const, value: totals.patients, Icon: UsersIcon },
+    { key: "appointments" as const, value: totals.appointments, Icon: CalendarClockIcon },
+    { key: "tasks" as const, value: totals.tasks, Icon: CheckCircleIcon },
+  ]
+
   return (
-    <Card className="border-[#E5EEEA] bg-white">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-[#0A3D2E] shadow-md sm:size-10">
-              <BarChart3Icon className="size-4 text-white sm:size-5" />
-            </div>
-            <div>
-              <CardTitle className="text-[14px] font-bold text-[#0A3D2E] sm:text-[16px]">Weekly Performance</CardTitle>
-              <CardDescription className="text-[11px] text-[#6B7870] sm:text-[12px]">Last 6 working days overview</CardDescription>
-            </div>
+    <Card className={accountPageCardClassName}>
+      <CardHeader className="border-b border-[#E8E6E0]/40 px-5 pb-4 pt-5 sm:px-6">
+        <div className="flex items-center gap-3">
+          <AccountCardHeaderIcon icon={BarChart3Icon} />
+          <div>
+            <CardTitle className={accountSectionTitleClassName}>Weekly Performance</CardTitle>
+            <CardDescription className={accountSectionDescClassName}>Last 6 working days overview</CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-5 p-4 pt-0 sm:p-6 sm:pt-0">
-        {/* Stats Row */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
-          {/* Patients Stat */}
-          <div className="group flex flex-col items-center rounded-xl border border-[#E5EEEA] bg-white p-4 text-center shadow-sm transition-all hover:shadow-md sm:p-5">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-[#E8F0EE] shadow-lg sm:size-11">
-              <UsersIcon className="size-5 text-[#1A5345] sm:size-6" />
-            </div>
-            <p className="mt-2 text-[22px] font-bold leading-none text-[#1A5345] sm:text-[26px]">{totals.patients}</p>
-            <p className="mt-1 text-[11px] font-medium text-[#6B7870] sm:text-[12px]">Patients</p>
-          </div>
-
-          {/* Appointments Stat */}
-          <div className="group flex flex-col items-center rounded-xl border border-[#E5EEEA] bg-white p-4 text-center shadow-sm transition-all hover:shadow-md sm:p-5">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-[#EEF5F3] shadow-lg sm:size-11">
-              <CalendarClockIcon className="size-5 text-[#2D7A66] sm:size-6" />
-            </div>
-            <p className="mt-2 text-[22px] font-bold leading-none text-[#2D7A66] sm:text-[26px]">{totals.appointments}</p>
-            <p className="mt-1 text-[11px] font-medium text-[#6B7870] sm:text-[12px]">Appointments</p>
-          </div>
-
-          {/* Tasks Stat */}
-          <div className="group flex flex-col items-center rounded-xl border border-[#E5EEEA] bg-white p-4 text-center shadow-sm transition-all hover:shadow-md sm:p-5">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-[#F5DEB3] shadow-lg sm:size-11">
-              <CheckCircleIcon className="size-5 text-[#8B6914] sm:size-6" />
-            </div>
-            <p className="mt-2 text-[22px] font-bold leading-none text-[#8B6914] sm:text-[26px]">{totals.tasks}</p>
-            <p className="mt-1 text-[11px] font-medium text-[#6B7870] sm:text-[12px]">Tasks</p>
-          </div>
-        </div>
-
-        {/* Progress Bars */}
-        <div className="space-y-3">
-          {stats.map((day) => {
-            const total = day.patients + day.appointments + day.tasks
-            const pWidth = total ? (day.patients / total) * 100 : 0
-            const aWidth = total ? (day.appointments / total) * 100 : 0
-            const tWidth = total ? (day.tasks / total) * 100 : 0
-
+      <CardContent className="space-y-6 p-5 sm:p-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {summaryTiles.map(({ key, value, Icon }) => {
+            const metric = accountWeeklyMetrics[key]
             return (
-              <div key={day.day} className="flex items-center gap-3">
-                <span className="w-8 shrink-0 text-[11px] font-semibold text-[#0A3D2E] sm:w-10 sm:text-[12px]">
-                  {day.day}
-                </span>
-                <div className="flex-1">
-                  <div className="flex h-6 overflow-hidden rounded-lg bg-[#F3F5F4] sm:h-7">
-                    {day.patients > 0 && (
-                      <div
-                        className="flex items-center justify-center bg-[#1A5345] text-[9px] font-medium text-white sm:text-[10px]"
-                        style={{ width: `${pWidth}%` }}
-                      >
-                        {pWidth > 15 && day.patients}
-                      </div>
-                    )}
-                    {day.appointments > 0 && (
-                      <div
-                        className="flex items-center justify-center bg-[#2D7A66] text-[9px] font-medium text-white sm:text-[10px]"
-                        style={{ width: `${aWidth}%` }}
-                      >
-                        {aWidth > 15 && day.appointments}
-                      </div>
-                    )}
-                    {day.tasks > 0 && (
-                      <div
-                        className="flex items-center justify-center bg-[#F5DEB3] text-[9px] font-medium text-[#8B6914] sm:text-[10px]"
-                        style={{ width: `${tWidth}%` }}
-                      >
-                        {tWidth > 15 && day.tasks}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <span className="w-6 text-right text-[11px] font-bold text-[#0A3D2E] sm:w-8 sm:text-[12px]">
-                  {total}
-                </span>
-              </div>
+              <AccountStatCell
+                key={key}
+                icon={Icon}
+                iconColor={metric.textClass}
+                value={value}
+                label={metric.label.toLowerCase()}
+              />
             )
           })}
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-6 rounded-lg bg-[#F9FAF8] py-2">
-          <div className="flex items-center gap-2">
-            <div className="size-3 rounded bg-[#1A5345]" />
-            <span className="text-[10px] font-medium text-[#6B7870] sm:text-[11px]">Patients</span>
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] font-bold text-muted-foreground">Daily breakdown</p>
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+              {(Object.keys(accountWeeklyMetrics) as Array<keyof typeof accountWeeklyMetrics>).map((key) => {
+                const metric = accountWeeklyMetrics[key]
+                return (
+                  <span key={key} className="inline-flex items-center gap-1.5">
+                    <span className={cn("size-2 shrink-0 rounded-full", metric.dotClass)} aria-hidden />
+                    <span className="text-[10px] font-bold text-muted-foreground sm:text-[11px]">{metric.label}</span>
+                  </span>
+                )
+              })}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="size-3 rounded bg-[#2D7A66]" />
-            <span className="text-[10px] font-medium text-[#6B7870] sm:text-[11px]">Appointments</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="size-3 rounded bg-[#8B6914]" />
-            <span className="text-[10px] font-medium text-[#6B7870] sm:text-[11px]">Tasks</span>
+
+          <div className="space-y-4">
+            {stats.map((day) => {
+              const total = day.patients + day.appointments + day.tasks
+              const segments = [
+                { key: "patients" as const, count: day.patients },
+                { key: "appointments" as const, count: day.appointments },
+                { key: "tasks" as const, count: day.tasks },
+              ].filter((s) => s.count > 0)
+
+              return (
+                <div key={day.day} className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <span className="w-9 shrink-0 text-[11px] font-bold text-[#1A1F1E] sm:w-10 sm:text-[12px]">
+                      {day.day}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className="flex h-2.5 overflow-hidden rounded-full bg-[#E8E6E0]/50 sm:h-3"
+                        role="img"
+                        aria-label={`${day.day}: ${day.patients} patients, ${day.appointments} appointments, ${day.tasks} tasks`}
+                      >
+                        {segments.map((seg) => {
+                          const metric = accountWeeklyMetrics[seg.key]
+                          const width = total ? (seg.count / total) * 100 : 0
+                          return (
+                            <div
+                              key={seg.key}
+                              className={cn("h-full transition-all", metric.barClass)}
+                              style={{ width: `${width}%` }}
+                            />
+                          )
+                        })}
+                      </div>
+                    </div>
+                    <span className="inline-flex min-w-[2rem] shrink-0 items-center justify-center rounded-lg border border-[#E8E6E0]/70 bg-[#F9F8F5] px-2 py-0.5 text-[11px] font-bold tabular-nums text-[#1A1F1E] sm:min-w-[2.25rem] sm:text-[12px]">
+                      {total}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-12 sm:pl-[2.75rem]">
+                    {segments.map((seg) => {
+                      const metric = accountWeeklyMetrics[seg.key]
+                      return (
+                        <span
+                          key={seg.key}
+                          className={cn("inline-flex items-center gap-1 text-[10px] font-bold tabular-nums sm:text-[11px]", metric.textClass)}
+                        >
+                          <span className={cn("size-1.5 rounded-full", metric.dotClass)} aria-hidden />
+                          {seg.count} {metric.label.toLowerCase()}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </CardContent>
@@ -829,157 +893,99 @@ function shiftDetailPrimary(shift: ShiftEntry): string {
    8. Shift Schedule
    ──────────────────────────────────────────── */
 
-function shiftStatusMeta(status: ShiftEntry["status"]) {
+function shiftStatusIcon(status: ShiftEntry["status"]) {
   switch (status) {
     case "active":
-      return {
-        label: "Active",
-        badgeClass: "bg-[#E8F0EE] text-[#1A5345] border-[#D1E0DA]",
-        dotClass: "bg-[#1A5345]",
-        icon: CheckCircleIcon,
-      }
+      return CheckCircleIcon
     case "half-day":
-      return {
-        label: "Half day",
-        badgeClass: "bg-[#EEF5F3] text-[#2D7A66] border-[#C8DDD5]",
-        dotClass: "bg-[#4A9B85]",
-        icon: SunIcon,
-      }
+      return SunIcon
     case "holiday":
-      return {
-        label: "Day off",
-        badgeClass: "bg-[#F3F5F4] text-[#6B7870] border-[#E5EEEA]",
-        dotClass: "bg-[#9CA3AF]",
-        icon: MoonIcon,
-      }
+      return MoonIcon
   }
+}
+
+function isShiftToday(dayName: string) {
+  const todayName = SHIFT_FALLBACK_BY_INDEX[new Date().getDay()]?.dayName
+  return Boolean(todayName && dayName === todayName)
+}
+
+const SHIFT_STATUS_ICON_COLOR: Record<ShiftEntry["status"], string> = {
+  active: "text-[#1A5345]",
+  "half-day": "text-amber-600",
+  holiday: "text-muted-foreground",
+}
+
+function ShiftScheduleRow({ shift }: { shift: ShiftEntry }) {
+  const style = accountShiftStatusStyles[shift.status]
+  const StatusIcon = shiftStatusIcon(shift.status)
+  const detailPrimary = shiftDetailPrimary(shift)
+  const today = isShiftToday(shift.dayName)
+
+  return (
+    <div className={cn(accountStatCellClassName, "items-start")}>
+      <StatusIcon className={cn("size-5 shrink-0", SHIFT_STATUS_ICON_COLOR[shift.status])} aria-hidden />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[18px] font-bold leading-none tabular-nums text-[#1A1F1E]">{shift.dayBadge}</span>
+          <span className="text-[13px] font-semibold text-[#1A1F1E]">{shift.dayName}</span>
+          {today && (
+            <span className="rounded-md bg-[#1A5345] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+              Today
+            </span>
+          )}
+          <Badge
+            variant="default"
+            className={cn("ml-auto shrink-0 gap-1 rounded-lg px-2 py-0.5 text-[10px] font-bold", style.badgeClass)}
+          >
+            {style.label}
+          </Badge>
+        </div>
+        <p className="mt-0.5 text-[11px] font-medium text-[#6B7870]">{detailPrimary}</p>
+        {shift.note ? (
+          <p className="mt-0.5 truncate text-[11px] font-medium text-[#6B7870]">{shift.note}</p>
+        ) : null}
+      </div>
+    </div>
+  )
 }
 
 function ShiftScheduleCard({ shifts }: { shifts: ShiftEntry[] }) {
   const rows = shifts.map(normalizeShiftEntry)
+  const counts = {
+    active: rows.filter((r) => r.status === "active").length,
+    halfDay: rows.filter((r) => r.status === "half-day").length,
+    off: rows.filter((r) => r.status === "holiday").length,
+  }
 
   return (
-    <Card className="border-[#E5EEEA] bg-[#FAFAF8]">
-      <CardHeader className="pb-3">
+    <Card className={accountPageCardClassName}>
+      <CardHeader className="border-b border-[#E8E6E0]/40 px-5 pb-4 pt-5 sm:px-6">
         <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-[#0A3D2E] shadow-sm sm:size-10">
-            <CalendarDaysIcon className="size-4 text-white sm:size-5" />
-          </div>
+          <AccountCardHeaderIcon icon={CalendarDaysIcon} />
           <div>
-            <CardTitle className="text-[13px] font-semibold text-[#0A3D2E] sm:text-[15px]">
-              Work schedule
-            </CardTitle>
-            <CardDescription className="text-[10px] text-[#6B7870] sm:text-[11px]">
+            <CardTitle className={accountSectionTitleClassName}>Work schedule</CardTitle>
+            <CardDescription className={accountSectionDescClassName}>
               Your weekly shifts & availability
             </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-        <div className="relative">
-          {/* Timeline connector line */}
-          <div className="absolute left-[18px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-[#E5EEEA] via-[#D1E0DA] to-[#E5EEEA] sm:left-[20px]" />
+      <CardContent className="space-y-5 p-5 sm:p-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <AccountStatCell
+            icon={CheckCircleIcon}
+            iconColor="text-[#1A5345]"
+            value={counts.active}
+            label="active days"
+          />
+          <AccountStatCell icon={SunIcon} iconColor="text-amber-600" value={counts.halfDay} label="half days" />
+          <AccountStatCell icon={MoonIcon} iconColor="text-muted-foreground" value={counts.off} label="days off" />
+        </div>
 
-          {rows.map((shift, i) => {
-            const meta = shiftStatusMeta(shift.status)
-            const detailPrimary = shiftDetailPrimary(shift)
-            const StatusIcon = meta.icon
-            const isToday = i === new Date().getDay()
-
-            return (
-              <div key={shift.id} className={cn("relative flex gap-3 sm:gap-4", i > 0 && "mt-1")}>
-                {/* Timeline node */}
-                <div className="relative z-10 flex flex-col items-center">
-                  <div
-                    className={cn(
-                      "flex size-9 shrink-0 items-center justify-center rounded-xl border-2 text-[10px] font-bold uppercase leading-none tracking-tight sm:size-10 sm:text-[11px]",
-                      isToday
-                        ? "border-[#1A5345] bg-[#1A5345] text-white shadow-md"
-                        : "border-[#E5EEEA] bg-white text-[#102F27]",
-                      shift.status === "holiday" && !isToday && "border-[#E5EEEA] bg-[#F9FAFB] text-[#9CA3AF]",
-                    )}
-                  >
-                    {shift.dayBadge}
-                  </div>
-                  {/* Status dot */}
-                  <div
-                    className={cn(
-                      "mt-1.5 size-2 rounded-full",
-                      meta.dotClass,
-                      shift.status === "holiday" && "opacity-50",
-                    )}
-                  />
-                </div>
-
-                {/* Content card */}
-                <div
-                  className={cn(
-                    "flex-1 rounded-xl border p-3 transition-all sm:p-3.5",
-                    isToday
-                      ? "border-[#1A5345]/20 bg-gradient-to-r from-[#F6FBF9] to-white shadow-sm"
-                      : "border-[#E5EEEA] bg-white hover:border-[#D1E0DA]",
-                    shift.status === "holiday" && "bg-[#FAFAFA]",
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p
-                          className={cn(
-                            "text-[12px] font-semibold sm:text-[13px]",
-                            isToday ? "text-[#1A5345]" : "text-[#102F27]",
-                            shift.status === "holiday" && "text-[#6B7870]",
-                          )}
-                        >
-                          {shift.dayName}
-                        </p>
-                        {isToday && (
-                          <span className="rounded-full bg-[#1A5345] px-2 py-0.5 text-[9px] font-medium text-white">
-                            Today
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="mt-1.5 flex items-center gap-1.5">
-                        <ClockIcon
-                          className={cn(
-                            "size-3.5",
-                            shift.status === "holiday" ? "text-[#9CA3AF]" : "text-[#1A5345]",
-                          )}
-                        />
-                        <p
-                          className={cn(
-                            "text-[11px] font-medium sm:text-[12px]",
-                            shift.status === "holiday" ? "text-[#9CA3AF]" : "text-[#102F27]",
-                          )}
-                        >
-                          {detailPrimary}
-                        </p>
-                      </div>
-
-                      {shift.note && (
-                        <p className="mt-1.5 text-[10px] italic leading-snug text-[#6B7870] sm:text-[11px]">
-                          {shift.note}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Status badge */}
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "shrink-0 gap-1 border px-2 py-1 text-[9px] font-medium sm:text-[10px]",
-                        meta.badgeClass,
-                      )}
-                    >
-                      <StatusIcon className="size-3" />
-                      {meta.label}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+        <div className="space-y-2">
+          {rows.map((shift) => (
+            <ShiftScheduleRow key={shift.id} shift={shift} />
+          ))}
         </div>
       </CardContent>
     </Card>
@@ -992,11 +998,13 @@ function ShiftScheduleCard({ shifts }: { shifts: ShiftEntry[] }) {
 
 function InfoRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex size-8 items-center justify-center rounded-lg bg-[#0A3D2E]/10"><Icon className="size-4 text-[#0A3D2E]" /></div>
-      <div>
-        <p className="text-[10px] text-[#6B7870] sm:text-[11px]">{label}</p>
-        <p className="text-[12px] font-medium text-[#0A3D2E] sm:text-[13px]">{value}</p>
+    <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
+        <Icon className="size-4 text-[#1A5345]" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold text-muted-foreground sm:text-[11px]">{label}</p>
+        <p className="truncate text-[13px] font-semibold text-[#1A1F1E]">{value}</p>
       </div>
     </div>
   )
@@ -1007,32 +1015,78 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ cla
    ──────────────────────────────────────────── */
 
 export function AssistantAccount({
-  profile,
+  initialProfile,
+  workStats,
   activities,
   weeklyStats,
   shifts,
 }: {
-  profile: AssistantProfile
+  initialProfile: AssistantProfile
+  workStats: AssistantWorkStats
   activities: ActivityEntry[]
   weeklyStats: WeeklyStat[]
   shifts: ShiftEntry[]
 }) {
+  const { profile, editOpen, setEditOpen, saveProfile, isSaving, editDefaults } =
+    useAssistantAccountProfile(initialProfile)
+
   return (
-    <div className="space-y-4 p-3 sm:space-y-5 sm:p-4 lg:p-5">
-      {/* Row 1 */}
-      <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
-        <ProfileHeaderCard profile={profile} />
-        <ProfessionalInfoCard profile={profile} />
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
+      <EditAssistantProfileDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        initialValues={editDefaults}
+        onSubmit={saveProfile}
+        isPending={isSaving}
+      />
+      <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-white">
+        <div className="flex flex-col px-5 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5">
+          <div className="mb-2 flex items-center gap-2 sm:mb-2.5">
+            <Breadcrumb>
+              <BreadcrumbList className="text-[10px] sm:text-[11px]">
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href="/assistant-dashboard" className="text-[10px] font-medium sm:text-[11px]">
+                      Dashboard
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">Account</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+
+          <div className="min-w-0 space-y-0.5">
+            <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px] lg:text-[26px]">
+              My account
+            </h1>
+            <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
+              Profile, weekly schedule, performance, and recent activity.
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Row 2 */}
-      <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
-        <ShiftScheduleCard shifts={shifts} />
-        <WeeklyStatsCard stats={weeklyStats} />
+      <div className="relative flex-1 overflow-auto bg-[#F9F8F5] px-6 sm:px-8 account-custom-scrollbar">
+        <div className="custom-scrollbar w-full pb-6 pt-4">
+          <div className="grid gap-4 sm:gap-5 lg:grid-cols-2">
+            <ProfileHeaderCard profile={profile} workStats={workStats} onEdit={() => setEditOpen(true)} />
+            <ProfessionalInfoCard profile={profile} />
+          </div>
+
+          <div className="grid gap-4 sm:gap-5 lg:grid-cols-2">
+            <ShiftScheduleCard shifts={shifts} />
+            <WeeklyStatsCard stats={weeklyStats} />
+          </div>
+
+          <ActivityLogCard activities={activities} />
+        </div>
       </div>
 
-      {/* Row 3 - Full Width Activity History */}
-      <ActivityLogCard activities={activities} />
+      <style dangerouslySetInnerHTML={{ __html: assistantAccountScrollbarCss() }} />
     </div>
   )
 }

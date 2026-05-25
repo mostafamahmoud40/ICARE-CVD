@@ -230,13 +230,25 @@ function MessageDetail({
 
         <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                "flex size-10 shrink-0 items-center justify-center rounded-full ring-1 ring-black/5",
-                messageTypeStyles(message.type)
+            <div className="relative size-10 shrink-0">
+              {message.sender.name.toLowerCase().includes("system") || message.sender.name.toLowerCase().includes("records") ? (
+                <div
+                  className={cn(
+                    "flex size-10 items-center justify-center rounded-full border border-[#E8E6E0]/60 bg-transparent",
+                    messageTypeStyles(message.type).replace(/bg-\w+-\d+/, "bg-transparent")
+                  )}
+                >
+                  {TypeIcon}
+                </div>
+              ) : (
+                <div className="size-10 overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F5F5F3]">
+                  <img
+                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${message.sender.name.replace(/\s+/g, "")}`}
+                    alt={message.sender.name}
+                    className="size-full object-cover"
+                  />
+                </div>
               )}
-            >
-              {TypeIcon}
             </div>
             <div className="min-w-0">
               <div className="text-[14px] font-bold text-[#1A1F1E]">{message.sender.name}</div>
@@ -246,17 +258,39 @@ function MessageDetail({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" title="Star" className="size-9 rounded-md border-[#E8E6E0]/80 bg-slate-50/50 text-muted-foreground hover:bg-slate-100 hover:text-[#1A1F1E] shadow-sm">
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              title="Star" 
+              className="size-8 border-0 bg-transparent text-muted-foreground hover:bg-transparent hover:text-[#E89042] shadow-none transition-colors"
+            >
               <StarIcon className="size-4" />
             </Button>
-            <Button variant="outline" size="icon" title="Archive" className="size-9 rounded-md border-[#E8E6E0]/80 bg-slate-50/50 text-muted-foreground hover:bg-slate-100 hover:text-[#1A1F1E] shadow-sm" onClick={onArchive} disabled={isArchiving}>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              title="Archive" 
+              className="size-8 border-0 bg-transparent text-muted-foreground hover:bg-transparent hover:text-[#1A5345] shadow-none transition-colors" 
+              onClick={onArchive} 
+              disabled={isArchiving}
+            >
               <ArchiveIcon className="size-4" />
             </Button>
-            <Button variant="outline" size="icon" title="Delete" className="size-9 rounded-md border-[#E8E6E0]/80 bg-slate-50/50 text-muted-foreground hover:bg-slate-100 hover:text-[#1A1F1E] shadow-sm">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              title="Delete" 
+              className="size-8 border-0 bg-transparent text-muted-foreground hover:bg-transparent hover:text-red-600 shadow-none transition-colors"
+            >
               <Trash2Icon className="size-4" />
             </Button>
-            <Button variant="outline" size="icon" title="Reply" className="size-9 rounded-md border-[#E8E6E0]/80 bg-slate-50/50 text-muted-foreground hover:bg-slate-100 hover:text-[#1A1F1E] shadow-sm">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              title="Reply" 
+              className="size-8 border-0 bg-transparent text-muted-foreground hover:bg-transparent hover:text-[#1A5345] shadow-none transition-colors"
+            >
               <CornerUpLeftIcon className="size-4" />
             </Button>
           </div>
@@ -322,11 +356,11 @@ function MessageDetail({
 
         {/* Footer Actions */}
         <div className="mt-12 flex items-center justify-end gap-3">
-          <Button className="h-9 rounded-md bg-[#1A1F1E] px-5 text-[13px] font-bold text-white hover:bg-black shadow-sm">
+          <Button className="h-8 rounded-lg bg-[#1A5345] px-5 text-[12px] font-bold text-white hover:bg-[#133F34] shadow-sm border-0 transition-colors">
             <CornerUpLeftIcon className="mr-2 size-4" />
             Reply
           </Button>
-          <Button className="h-9 rounded-md bg-[#1677FF] px-5 text-[13px] font-bold text-white hover:bg-[#0F5ED6] shadow-sm">
+          <Button variant="outline" className="h-8 rounded-lg border-[#E8E6E0] bg-white px-5 text-[12px] font-bold text-[#1A1F1E] hover:bg-[#F9F8F5] hover:text-[#1A5345] shadow-none transition-colors">
             Forward
             <CornerUpRightIcon className="ml-2 size-4" />
           </Button>

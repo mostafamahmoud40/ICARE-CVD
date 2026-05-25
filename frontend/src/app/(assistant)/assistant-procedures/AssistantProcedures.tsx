@@ -57,9 +57,8 @@ function isSameDay(a: Date, b: Date): boolean {
     a.getDate() === b.getDate()
 }
 
-function dicebearAvatarUrl(name: string, id: string): string {
-  const seed = (name + id).replace(/\s+/g, "")
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`
+function pravatarAvatarUrl(id: string): string {
+  return `https://i.pravatar.cc/150?u=${encodeURIComponent(id)}`
 }
 
 /* ---------- Mock Schedule Data ---------- */
@@ -241,15 +240,15 @@ const SCHEDULED_OPERATIONS: ScheduledOperation[] = [
 ]
 
 const STATUS_CFG = {
-  completed: { dot: "bg-[#1A5345]", badge: "bg-[#E8F0EE] text-[#1A5345]", border: "border-l-[#1A5345]", label: "Completed" },
-  "in-progress": { dot: "bg-[#B8860B]", badge: "bg-[#FFF8E7] text-[#B8860B]", border: "border-l-[#B8860B]", label: "In progress" },
-  pending: { dot: "bg-[#9CA3AF]", badge: "bg-[#F5F5F3] text-[#6B7870]", border: "border-l-[#D1D5DB]", label: "Scheduled" },
+  completed: { dot: "bg-[#1A5345]", badge: "bg-[#1A5345] text-white shadow-sm", border: "border-l-[#1A5345]", label: "Completed" },
+  "in-progress": { dot: "bg-amber-600", badge: "bg-amber-600 text-white shadow-sm", border: "border-l-amber-600", label: "In progress" },
+  pending: { dot: "bg-[#6B7870]", badge: "bg-[#6B7870] text-white shadow-sm", border: "border-l-[#6B7870]", label: "Scheduled" },
 }
 
 const PRIORITY_CFG = {
   normal: { badge: "bg-[#E8F0EE] text-[#1A5345]", label: "Normal" },
-  urgent: { badge: "bg-[#FFF8E7] text-[#B8860B]", label: "Urgent" },
-  emergency: { badge: "bg-red-50 text-red-700", label: "Emergency" },
+  urgent: { badge: "bg-amber-600 text-white shadow-sm", label: "Urgent" },
+  emergency: { badge: "bg-red-600 text-white shadow-sm", label: "Emergency" },
 }
 
 function ScheduleView() {
@@ -281,24 +280,28 @@ function ScheduleView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F9F8F5]">
       {/* ── Header ── */}
-      <div className="shrink-0 border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/95 px-4 py-3 backdrop-blur-md sm:px-5">
+      <div className="shrink-0 border-b border-[#E8E6E0]/60 bg-white/50 px-4 py-4 backdrop-blur-md sm:px-6 sm:py-5">
         {/* Top row: title + nav */}
-        <div className="mb-2 flex flex-col justify-between gap-2 sm:flex-row sm:items-center sm:gap-3">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#1A5345] sm:text-[11px]">
-              Operating schedule
-            </p>
-            <h2 className="mt-0.5 font-serif text-[18px] font-bold leading-tight text-[#1A1F1E] sm:text-[20px]">
+        <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="size-1.5 rounded-full bg-[#1A5345]" />
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#1A5345]">
+                Operating schedule
+              </p>
+            </div>
+            <h2 className="font-serif text-[22px] font-bold leading-tight text-[#1A1F1E] sm:text-[26px]">
               {formattedDate}
             </h2>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center rounded-xl border border-[#E8E6E0] bg-white p-0.5 shadow-sm">
+          
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 rounded-xl border border-[#E8E6E0]/80 bg-white p-1 shadow-sm">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setWeekOffset((w) => w - 1)}
-                className="size-8 rounded-lg text-[#6B7870] transition-all hover:bg-[#F9F8F5]"
+                className="size-8 border-0 bg-transparent text-muted-foreground transition-all hover:bg-slate-50 hover:text-[#1A5345]"
                 aria-label="Previous two weeks"
               >
                 <ChevronLeftIcon className="size-4" />
@@ -306,7 +309,7 @@ function ScheduleView() {
               <Button
                 variant="ghost"
                 onClick={() => { setWeekOffset(0); setSelectedDate(today) }}
-                className="h-8 rounded-lg px-2.5 text-[11px] font-bold text-[#1A5345] transition-all hover:bg-[#F9F8F5] sm:px-3"
+                className="h-8 rounded-lg px-4 text-[12px] font-bold text-[#1A1F1E] transition-all hover:bg-slate-50 hover:text-[#1A5345]"
               >
                 Today
               </Button>
@@ -314,7 +317,7 @@ function ScheduleView() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setWeekOffset((w) => w + 1)}
-                className="size-8 rounded-lg text-[#6B7870] transition-all hover:bg-[#F9F8F5]"
+                className="size-8 border-0 bg-transparent text-muted-foreground transition-all hover:bg-slate-50 hover:text-[#1A5345]"
                 aria-label="Next two weeks"
               >
                 <ChevronRightIcon className="size-4" />
@@ -324,7 +327,7 @@ function ScheduleView() {
         </div>
 
         {/* Day pills */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide sm:gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide sm:gap-2.5">
           {days.map((day) => {
             const isSelected = isSameDay(day.date, selectedDate)
             const isToday = isSameDay(day.date, today)
@@ -333,23 +336,23 @@ function ScheduleView() {
                 key={day.date.toISOString()}
                 onClick={() => setSelectedDate(day.date)}
                 className={cn(
-                  "relative flex min-w-[52px] flex-col items-center justify-center gap-0.5 rounded-xl border py-2 transition-colors sm:min-w-[54px]",
+                  "relative flex min-w-[56px] flex-col items-center justify-center gap-1 rounded-2xl border py-3 transition-all duration-300 sm:min-w-[60px]",
                   isSelected
-                    ? "z-10 border-[#1A5345] bg-[#1A5345] text-white shadow-md shadow-[#1A5345]/15"
-                    : "border-[#E8E6E0]/80 bg-white text-[#6B7870] hover:border-[#1A5345]/30 hover:bg-[#F9F8F5]",
+                    ? "border-[#1A5345] bg-[#1A5345] text-white shadow-lg shadow-[#1A5345]/15 scale-[1.05] z-10"
+                    : "border-[#E8E6E0]/80 bg-white text-[#6B7870] hover:shadow-md",
                 )}
               >
                 {isToday && !isSelected && (
-                  <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-[#1A5345] ring-2 ring-white" />
+                  <span className="absolute right-2 top-2 size-1.5 rounded-full bg-[#1A5345]" />
                 )}
                 <span className={cn(
-                  "text-[9px] font-bold uppercase tracking-wide sm:text-[10px]",
-                  isSelected ? "text-white/80" : isToday ? "text-[#1A5345]" : "text-muted-foreground/80",
+                  "text-[10px] font-bold uppercase tracking-wider",
+                  isSelected ? "text-white/70" : "text-muted-foreground/60",
                 )}>
                   {day.dayName}
                 </span>
                 <span className={cn(
-                  "text-[16px] font-bold leading-none sm:text-[17px]",
+                  "text-[18px] font-bold leading-none",
                   isSelected ? "text-white" : isToday ? "text-[#1A5345]" : "text-[#1A1F1E]",
                 )}>
                   {day.dayNum}
@@ -360,50 +363,57 @@ function ScheduleView() {
         </div>
 
         {/* Bottom row: view toggle + stats */}
-        <div className="mt-2.5 flex flex-col items-stretch justify-between gap-2.5 sm:flex-row sm:items-center">
-          {/* View toggle */}
-          <div className="flex w-full items-center rounded-xl border border-[#E8E6E0] bg-white p-0.5 shadow-sm sm:w-auto">
+        <div className="mt-4 flex flex-col items-stretch justify-between gap-4 border-t border-[#E8E6E0]/40 pt-5 sm:flex-row sm:items-center">
+          {/* View toggle (Segmented control style) */}
+          <div className="flex w-fit items-center rounded-xl bg-[#F4F3ED] p-1 shadow-inner">
             <button
               onClick={() => setViewMode("list")}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all sm:flex-initial sm:px-3.5 sm:text-[12px]",
-                viewMode === "list" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-[#F9F8F5]",
+                "flex items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-[12px] font-bold transition-all",
+                viewMode === "list" 
+                  ? "bg-white text-[#1A5345] shadow-sm" 
+                  : "text-muted-foreground hover:text-[#1A1F1E]"
               )}
             >
-              <ListIcon className="size-3.5 sm:size-4" />
+              <ListIcon className="size-4" />
               <span>List</span>
             </button>
             <button
               onClick={() => setViewMode("timeline")}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all sm:flex-initial sm:px-3.5 sm:text-[12px]",
-                viewMode === "timeline" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-[#F9F8F5]",
+                "flex items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-[12px] font-bold transition-all",
+                viewMode === "timeline" 
+                  ? "bg-white text-[#1A5345] shadow-sm" 
+                  : "text-muted-foreground hover:text-[#1A1F1E]"
               )}
             >
-              <LayoutGridIcon className="size-3.5 sm:size-4" />
+              <LayoutGridIcon className="size-4" />
               <span>Timeline</span>
             </button>
           </div>
 
-          {/* Stats cards */}
-          <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+          {/* Stats summary cards */}
+          <div className="flex flex-wrap items-center gap-2">
             {[
-              { label: "Total", value: stats.total, color: "text-[#1A1F1E]", bg: "bg-white" },
-              { label: "Completed", value: stats.done, color: "text-[#1A5345]", bg: "bg-[#E8F0EE]/50" },
-              { label: "Active", value: stats.active, color: "text-[#B8860B]", bg: "bg-[#FFF8E7]/50" },
-              { label: "Pending", value: stats.pending, color: "text-[#6B7870]", bg: "bg-[#F5F5F3]/50" },
+              { label: "Total", value: stats.total, color: "text-[#1A1F1E]", bg: "bg-white", icon: ActivityIcon },
+              { label: "Done", value: stats.done, color: "text-emerald-600", bg: "bg-emerald-50/40", icon: CheckCircle2Icon },
+              { label: "Active", value: stats.active, color: "text-amber-600", bg: "bg-amber-50/40", icon: ClockIcon },
+              { label: "Pending", value: stats.pending, color: "text-blue-600", bg: "bg-blue-50/40", icon: HistoryIcon },
             ].map((s) => (
               <div
                 key={s.label}
                 className={cn(
-                  "flex min-w-[60px] flex-col items-center justify-center rounded-xl border border-[#E8E6E0]/80 px-2 py-1.5 shadow-sm sm:min-w-[64px] sm:px-2.5",
+                  "flex items-center gap-2.5 rounded-xl border border-[#E8E6E0]/60 px-3 py-1.5 shadow-sm transition-shadow hover:shadow-md",
                   s.bg
                 )}
               >
-                <span className={cn("text-[14px] font-bold leading-none sm:text-[15px]", s.color)}>{s.value}</span>
-                <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-tight text-muted-foreground/80 sm:text-[10px]">
-                  {s.label}
-                </span>
+                <s.icon className={cn("size-3.5", s.color)} />
+                <div className="flex items-baseline gap-1.5">
+                  <span className={cn("text-[14px] font-bold tabular-nums", s.color)}>{s.value}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground/70">
+                    {s.label}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
@@ -412,7 +422,7 @@ function ScheduleView() {
 
       {/* ── Content ── */}
       <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-[1400px]">
+        <div className="w-full">
           {viewMode === "list" ? (
             <ScheduleListView scheduledOperations={SCHEDULED_OPERATIONS} />
           ) : (
@@ -437,107 +447,107 @@ function ScheduleListView({ scheduledOperations }: { scheduledOperations: Schedu
           <div
             key={op.id}
             className={cn(
-              "group relative flex flex-col overflow-hidden rounded-3xl border border-[#E8E6E0]/80 bg-white shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.08)] sm:flex-row",
-              op.status === "in-progress" && "ring-1 ring-[#B8860B]/20",
+              "group relative overflow-hidden rounded-[24px] border border-[#E8E6E0]/70 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-[#1A5345]/20",
+              op.status === "in-progress" && "ring-1 ring-amber-500/20 bg-amber-50/[0.02]",
             )}
           >
-            {/* Left status stripe */}
-            <div className={cn("w-full h-1.5 shrink-0 sm:h-auto sm:w-1.5", sc.dot)} />
-
-            <div className="flex min-w-0 flex-1 flex-col gap-4 p-5 sm:flex-row sm:items-start sm:gap-6 sm:p-6">
-              {/* Time block */}
-              <div className="flex shrink-0 flex-row items-baseline gap-2 sm:w-[90px] sm:flex-col sm:items-start sm:gap-1">
-                <span className="font-serif text-[24px] font-bold leading-none text-[#1A1F1E] sm:text-[28px]">
-                  {op.startTime}
-                </span>
-                <div className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground sm:text-[13px]">
-                   <span>to</span>
-                   <span className="font-bold text-[#1A1F1E]/80">{endLabel}</span>
-                </div>
-              </div>
-
-              {/* Patient info & Procedure */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-3">
-                  <div className="size-11 shrink-0 rounded-full border border-[#E8E6E0] bg-[#F4F3ED] p-0.5 shadow-sm overflow-hidden">
-                    <img 
-                      src={dicebearAvatarUrl(op.patientName, op.patientId)} 
-                      alt="" 
-                      className="size-full object-cover"
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-[16px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors truncate">
-                        {op.patientName}
-                      </h3>
-                      <span className="rounded-md bg-[#F4F3ED] px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
-                        #{op.patientId}
-                      </span>
-                    </div>
-                    <p className="text-[13px] font-medium text-muted-foreground">
-                      {op.age} years · {op.gender === "M" ? "Male" : "Female"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  <p className="text-[15px] font-bold text-[#1A5345]">{op.procedureName}</p>
-                  <div className="flex flex-wrap items-center gap-3 text-[12px] font-medium text-[#6B7870]">
-                    <div className="flex items-center gap-1.5">
-                      <MapPinIcon className="size-3.5 text-[#1A5345]/60" />
-                      <span>{op.location}</span>
-                    </div>
-                    <span className="text-[#D4D1C9]">|</span>
-                    <div className="flex items-center gap-1.5">
-                      <ActivityIcon className="size-3.5 text-rose-500/60" />
-                      <span>{op.riskScore}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  {op.riskTags.map((tag, i) => (
-                    <Badge key={i} variant="outline" className="rounded-lg border-[#1A5345]/10 bg-[#E8F0EE]/50 px-2 py-0.5 text-[11px] font-bold text-[#1A5345]">
-                      {tag}
-                    </Badge>
-                  ))}
-                  {op.notes && (
-                    <Badge variant="outline" className="rounded-lg border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">
-                      {op.notes}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              {/* Status & Actions */}
-              <div className="flex shrink-0 flex-row flex-wrap items-center gap-3 border-t border-[#F4F3ED] pt-4 sm:flex-col sm:items-end sm:gap-4 sm:border-t-0 sm:pt-0">
-                <div className="flex items-center gap-2">
-                   <span className={cn("rounded-full px-3 py-1 text-[11px] font-bold tracking-wide shadow-sm", sc.badge)}>
-                    {sc.label}
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+              {/* 1. Time & Status Indicator */}
+              <div className="flex shrink-0 flex-row items-center gap-4 sm:flex-col sm:items-start sm:gap-1.5 sm:w-[100px]">
+                <div className="flex flex-col">
+                  <span className="font-serif text-[26px] font-bold leading-none text-[#1A1F1E] sm:text-[30px]">
+                    {op.startTime}
                   </span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/60 mt-1">
+                    Until {endLabel}
+                  </span>
+                </div>
+                <div className={cn("size-2 rounded-full", sc.dot, op.status === 'in-progress' && "animate-pulse")} />
+              </div>
+
+              {/* 2. Divider (Desktop only) */}
+              <div className="hidden h-12 w-px bg-[#E8E6E0]/60 sm:block" />
+
+              {/* 3. Patient Info */}
+              <div className="flex min-w-0 flex-1 items-center gap-4">
+                <div className="relative size-12 shrink-0 rounded-full border border-[#E8E6E0]/60 bg-[#F5F5F3] p-0.5">
+                  <img 
+                    src={pravatarAvatarUrl(op.patientId)} 
+                    alt="" 
+                    className="size-full rounded-full object-cover"
+                  />
+                </div>
+                <div className="min-w-0 space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <h3 className="truncate font-serif text-[17px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">
+                      {op.patientName}
+                    </h3>
+                    <span className="text-[11px] font-bold text-muted-foreground/60 tabular-nums">
+                      #{op.patientId}
+                    </span>
+                  </div>
+                  <p className="text-[13px] font-medium text-muted-foreground">
+                    {op.age}y · {op.gender === "M" ? "Male" : "Female"}
+                  </p>
+                </div>
+              </div>
+
+              {/* 4. Procedure & Location */}
+              <div className="flex flex-[1.2] flex-col gap-2 min-w-0 border-t border-[#F4F3ED] pt-4 sm:border-t-0 sm:pt-0">
+                <div className="flex items-center gap-2">
+                  <ActivityIcon className="size-4 text-[#1A5345]" />
+                  <span className="truncate text-[15px] font-bold text-[#1A5345]">
+                    {op.procedureName}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                  <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#6B7870]">
+                    <MapPinIcon className="size-3.5 text-muted-foreground/60" />
+                    <span>{op.location}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#6B7870]">
+                    <ClockIcon className="size-3.5 text-muted-foreground/60" />
+                    <span>{op.duration}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. Badges & Actions */}
+              <div className="flex shrink-0 flex-row items-center justify-between gap-4 border-t border-[#F4F3ED] pt-4 sm:flex-col sm:items-end sm:border-t-0 sm:pt-0">
+                <div className="flex items-center gap-2">
                   {op.priority !== "normal" && (
-                    <span className={cn("rounded-full px-3 py-1 text-[11px] font-bold tracking-wide shadow-sm", pc.badge)}>
+                    <span className={cn("rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", pc.badge)}>
                       {pc.label}
                     </span>
                   )}
+                  <span className={cn("rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", sc.badge)}>
+                    {sc.label}
+                  </span>
                 </div>
                 
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5 text-[12px] font-bold text-[#1A1F1E]/80">
-                    <ClockIcon className="size-3.5 text-[#1A5345]" />
-                    <span>{op.duration}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
-                    <div className={cn("size-2 rounded-full animate-pulse", sc.dot)} />
-                    <span>{op.teamStatus}</span>
-                  </div>
-                </div>
-
-                <Button variant="outline" className="h-9 w-full rounded-xl border-[#E8E6E0] bg-white text-[12px] font-bold text-[#1A1F1E] shadow-sm hover:bg-[#F9F8F5] sm:w-auto">
+                <Button 
+                  size="sm" 
+                  className="h-8 rounded-lg bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-all hover:bg-[#133F34] hover:shadow-md"
+                >
                   View Detail
                 </Button>
               </div>
+            </div>
+
+            {/* Subtle Team Status overlay (only if needed/important) */}
+            <div className="mt-4 flex items-center gap-2 border-t border-[#F4F3ED]/60 pt-3">
+              <div className={cn("size-1.5 rounded-full", sc.dot)} />
+              <span className="text-[11px] font-bold text-muted-foreground/80 uppercase tracking-tight">
+                Staff Status: {op.teamStatus}
+              </span>
+              {op.notes && (
+                <>
+                  <span className="text-[#D4D1C9]">|</span>
+                  <span className="text-[11px] font-medium text-amber-700 italic">
+                    Note: {op.notes}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         )
@@ -559,31 +569,36 @@ function ScheduleListView({ scheduledOperations }: { scheduledOperations: Schedu
 /* ---------- Schedule Timeline View ---------- */
 
 function ScheduleTimelineView({ scheduledOperations }: { scheduledOperations: ScheduledOperation[] }) {
-  const rooms = ["Cardiac OR-1", "Cardiac OR-2", "Hybrid Lab", "Cath Lab"]
+  const rooms = [
+    { name: "Cardiac OR-1", wing: "Main Wing", icon: "🏥" },
+    { name: "Cardiac OR-2", wing: "Main Wing", icon: "🏥" },
+    { name: "Hybrid Lab", wing: "Specialist Unit", icon: "🔬" },
+    { name: "Cath Lab", wing: "Interventional", icon: "🫀" }
+  ]
   const hours = Array.from({ length: 15 }, (_, i) => i + 7)
 
   const getOpStyle = (status: string) => {
     switch (status) {
       case "completed":
-        return "bg-[#E8F0EE] border-[#1A5345]/20 text-[#1A5345] shadow-sm"
+        return "bg-emerald-50 border-emerald-200 text-emerald-800 shadow-sm"
       case "in-progress":
-        return "bg-[#FFF8E7] border-[#B8860B]/20 text-[#B8860B] shadow-sm ring-1 ring-[#B8860B]/10"
+        return "bg-amber-50 border-amber-200 text-amber-800 shadow-md ring-1 ring-amber-500/20"
       default:
         return "bg-white border-[#E8E6E0] text-[#6B7870] shadow-sm"
     }
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden rounded-3xl border border-[#E8E6E0]/80 bg-white m-6 shadow-xl">
+    <div className="mx-6 my-8 flex flex-1 flex-col overflow-hidden rounded-[32px] border border-[#E8E6E0]/80 bg-white shadow-2xl">
       {/* Hour header */}
-      <div className="sticky top-0 z-10 flex border-b border-[#E8E6E0]/60 bg-[#FAFAF8] backdrop-blur-md">
-        <div className="w-32 shrink-0 border-r border-[#E8E6E0]/60 px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-[#1A5345]">
-          Facility / Room
+      <div className="sticky top-0 z-30 flex border-b border-[#E8E6E0]/80 bg-[#FAFAF8]/95 backdrop-blur-md">
+        <div className="w-40 shrink-0 border-r border-[#E8E6E0]/80 px-6 py-4">
+          <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#1A5345]">Facility Unit</span>
         </div>
         <div className="flex flex-1">
           {hours.map((hour) => (
-            <div key={hour} className="flex-1 border-r border-[#E8E6E0]/40 py-3 text-center text-[10px] font-bold text-[#6B7870]">
-              {hour}:00
+            <div key={hour} className="flex-1 border-r border-[#E8E6E0]/40 py-4 text-center">
+              <span className="text-[10px] font-bold text-[#6B7870] uppercase">{hour}:00</span>
             </div>
           ))}
         </div>
@@ -592,14 +607,17 @@ function ScheduleTimelineView({ scheduledOperations }: { scheduledOperations: Sc
       {/* Room rows */}
       <div className="flex-1 divide-y divide-[#E8E6E0]/60 overflow-y-auto">
         {rooms.map((room) => (
-          <div key={room} className="flex min-h-[100px]">
-            <div className="w-32 shrink-0 border-r border-[#E8E6E0]/60 bg-[#FAFAF8]/50 px-4 py-4">
-              <p className="text-[13px] font-bold text-[#1A1F1E] leading-tight">{room}</p>
-              <p className="mt-1 text-[10px] font-medium text-muted-foreground uppercase tracking-tight">Main Wing</p>
+          <div key={room.name} className="flex min-h-[140px] group/row hover:bg-[#F9F8F5]/30 transition-colors">
+            <div className="w-40 shrink-0 border-r border-[#E8E6E0]/60 bg-[#FAFAF8]/40 px-6 py-6 transition-colors group-hover/row:bg-[#F4F3ED]/50">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm" aria-hidden>{room.icon}</span>
+                <p className="text-[14px] font-bold text-[#1A1F1E] leading-tight">{room.name}</p>
+              </div>
+              <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">{room.wing}</p>
             </div>
             <div className="relative flex flex-1 bg-[linear-gradient(to_right,#E8E6E0_1px,transparent_1px)] bg-[size:calc(100%/15)_100%]">
               {scheduledOperations
-                .filter((op) => op.location === room)
+                .filter((op) => op.location === room.name)
                 .map((op) => {
                   const startH = parseInt(op.startTime.split(":")[0])
                   const startM = parseInt(op.startTime.split(":")[1])
@@ -614,22 +632,35 @@ function ScheduleTimelineView({ scheduledOperations }: { scheduledOperations: Sc
                     <div
                       key={op.id}
                       className={cn(
-                        "absolute inset-y-3 rounded-2xl border px-3 py-2 text-[10px] transition-all duration-300 hover:z-20 hover:scale-[1.02] hover:shadow-lg cursor-pointer overflow-hidden",
+                        "absolute inset-y-4 rounded-2xl border px-3.5 py-3 transition-shadow duration-300 hover:z-20 hover:shadow-lg cursor-pointer overflow-hidden",
                         getOpStyle(op.status),
                       )}
-                      style={{ left: `${startPos}%`, width: `${width}%`, minWidth: 80 }}
+                      style={{ left: `${startPos}%`, width: `${width}%`, minWidth: 120 }}
                     >
-                      <div className="flex flex-col h-full justify-between">
-                        <div className="min-w-0">
-                          <p className="truncate font-bold text-[11px]">{op.patientName}</p>
-                          <p className="truncate text-[10px] opacity-80 font-medium">{op.procedureName}</p>
+                      <div className="flex flex-col h-full">
+                        <div className="flex items-start gap-2.5 mb-auto">
+                          <div className="size-8 shrink-0 rounded-full border border-black/5 overflow-hidden shadow-sm">
+                            <img 
+                              src={pravatarAvatarUrl(op.patientId)} 
+                              alt="" 
+                              className="size-full object-cover" 
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-serif text-[12px] font-bold leading-tight">{op.patientName}</p>
+                            <p className="truncate text-[10px] opacity-70 font-bold uppercase tracking-tight">{op.procedureName}</p>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between mt-auto pt-1 border-t border-black/5">
-                           <span className="text-[9px] font-bold opacity-60">
-                            {op.startTime}–{op.endTimeActual ?? op.endTimeExpected ?? op.endTime}
-                          </span>
+                        
+                        <div className="flex items-center justify-between mt-auto pt-2 border-t border-black/5">
+                           <div className="flex items-center gap-1.5 opacity-70">
+                            <ClockIcon className="size-3" />
+                            <span className="text-[10px] font-bold tabular-nums">
+                              {op.startTime}–{op.endTimeActual ?? op.endTimeExpected ?? op.endTime}
+                            </span>
+                          </div>
                           {op.status === 'in-progress' && (
-                            <span className="flex size-1.5 rounded-full bg-[#B8860B] animate-ping" />
+                            <span className="flex size-2 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
                           )}
                         </div>
                       </div>
@@ -885,8 +916,12 @@ function HistoryView() {
                 <tr key={op.id} className="group hover:bg-[#F9F8F5]/50 transition-colors duration-200">
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-full border border-[#E8E6E0] overflow-hidden">
-                        <img src={dicebearAvatarUrl(op.patientName, op.patientId)} alt="" className="size-full object-cover" />
+                      <div className="size-10 shrink-0 rounded-full border border-[#E8E6E0]/60 bg-[#F5F5F3] p-0.5 overflow-hidden">
+                        <img 
+                          src={pravatarAvatarUrl(op.patientId)} 
+                          alt="" 
+                          className="size-full rounded-full object-cover" 
+                        />
                       </div>
                       <div className="min-w-0">
                         <p className="text-[14px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">{op.patientName}</p>

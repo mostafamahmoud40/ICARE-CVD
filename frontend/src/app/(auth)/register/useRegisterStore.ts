@@ -423,7 +423,11 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
       setAuthTokens({
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
-        user: data.user,
+        user: {
+          ...data.user,
+          phone: data.user.phone ?? "",
+          role: data.user.role as any,
+        },
       });
       set({
         isPending: false,
@@ -459,7 +463,11 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
       setAuthTokens({
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
-        user: data.user,
+        user: {
+          ...data.user,
+          phone: data.user.phone ?? "",
+          role: data.user.role as any,
+        },
       });
       set({
         isPending: false,

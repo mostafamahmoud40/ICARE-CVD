@@ -71,14 +71,7 @@ export function AssistantInsetHeader() {
       <div className="flex min-w-0 items-center gap-3">
         <SidebarTrigger className="shrink-0 text-[#1A5345] hover:bg-[#E8F0EE]" />
         <div className="flex min-w-0 items-center gap-2.5">
-          <div
-            className={cn(
-              "flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#1A5345] shadow-sm",
-              "ring-2 ring-white/20",
-            )}
-          >
-            <Icon className="size-[18px] text-white" aria-hidden />
-          </div>
+          <Icon className="size-[20px] text-[#1A5345] shrink-0" aria-hidden />
           <div className="min-w-0">
             <div className="truncate font-sans text-[13px] font-bold tracking-tight text-[#102F27] sm:text-[14px]">{title}</div>
             <div className="truncate font-sans text-[10px] text-[#6B7870] sm:text-[11px]">{subtitle}</div>

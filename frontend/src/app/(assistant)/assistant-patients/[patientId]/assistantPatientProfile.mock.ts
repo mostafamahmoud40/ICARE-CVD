@@ -342,6 +342,19 @@ export const MOCK_PRESCRIPTIONS: AssistantPrescriptionRow[] = [
     ]
   },
   {
+    id: "pres-1-extra",
+    date: "May 15, 2026",
+    status: "active",
+    doctor: {
+      name: "Dr. Andrew Clark",
+      department: "Internal Medicine",
+      avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Andrew",
+    },
+    medications: [
+      { name: "Vitamin D3", dosage: "1000 IU", frequency: "Once daily", duration: "Ongoing", quantity: "60 Tabs", instructions: "Take with fat-containing meal" },
+    ]
+  },
+  {
     id: "pres-2",
     date: "Feb 10, 2026",
     status: "completed",

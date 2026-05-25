@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useState, Suspense, type ReactNode } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Lora } from "next/font/google"
@@ -89,7 +89,9 @@ export default function AssistantLayout({
       className={`${assistantSerif.className} min-h-screen bg-sidebar text-foreground dark:bg-sidebar`}
     >
       <SidebarProvider defaultOpen>
-        <AssistantLayoutContent pathname={pathname} logout={logout} user={user} mounted={mounted}>{children}</AssistantLayoutContent>
+        <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center bg-[#F9F8F5]" />}>
+          <AssistantLayoutContent pathname={pathname} logout={logout} user={user} mounted={mounted}>{children}</AssistantLayoutContent>
+        </Suspense>
       </SidebarProvider>
     </div>
   )
@@ -119,7 +121,7 @@ function AssistantLayoutContent({
   const navItems = [
     {
       href: "/assistant-dashboard",
-      label: "Dashboard",
+      label: "Command Center",
       icon: LayoutDashboardIcon,
       isActive: pathname === "/assistant-dashboard",
     },
@@ -589,8 +591,8 @@ function AssistantLayoutContent({
                 <LayoutDashboardIcon className="size-4 text-white" />
               </div>
               <div className="flex flex-col">
-                <div className="font-sans text-[13px] font-bold text-[#102F27]">Assistant Dashboard</div>
-                <div className="font-sans text-[10px] text-[#6B7870]">Manage procedures & patient tasks</div>
+                <div className="font-sans text-[13px] font-bold text-[#102F27]">Assistant Command Center</div>
+                <div className="font-sans text-[10px] text-[#6B7870]">Live daily triage & clinical desk operations</div>
               </div>
             </div>
           </div>

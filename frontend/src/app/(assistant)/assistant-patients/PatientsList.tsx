@@ -21,7 +21,6 @@ import {
   MoreVerticalIcon,
   EditIcon,
   ArchiveIcon,
-  Heart,
   StethoscopeIcon,
   BrainIcon,
   BabyIcon,
@@ -65,6 +64,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { showIcareToast } from "@/components/shared/icare-toast"
 
 import type { CreatedPatient } from "./addPatient.types"
@@ -108,17 +115,16 @@ function formatDate(dateString: string | null): string {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const variants: Record<string, { bg: string; text: string; label: string }> = {
-    "in-treatment": { bg: "#1A534515", text: "#1A5345", label: "In Treatment" },
-    discharged: { bg: "#6B728015", text: "#6B7280", label: "Discharged" },
-    monitoring: { bg: "#1E40AF15", text: "#1E40AF", label: "Monitoring" },
+  const variants: Record<string, { className: string; label: string }> = {
+    "in-treatment": { className: "bg-[#1A5345] text-white", label: "In treatment" },
+    discharged: { className: "bg-[#6B7870] text-white", label: "Discharged" },
+    monitoring: { className: "bg-[#3B82F6] text-white", label: "Monitoring" },
   }
   const style = variants[status] || variants.monitoring
 
   return (
     <span
-      className="inline-flex max-w-full items-center justify-center rounded-full px-3 py-1 text-[12px] font-medium"
-      style={{ backgroundColor: style.bg, color: style.text }}
+      className={cn("inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-[10px] font-bold", style.className)}
     >
       {style.label}
     </span>
@@ -126,17 +132,16 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function RiskBadge({ level }: { level: string }) {
-  const variants: Record<string, { bg: string; text: string; label: string }> = {
-    high: { bg: "#FEE2E215", text: "#B91C1C", label: "High Risk" },
-    moderate: { bg: "#FEF3C715", text: "#B45309", label: "Moderate" },
-    stable: { bg: "#1A534515", text: "#1A5345", label: "Stable" },
+  const variants: Record<string, { className: string; label: string }> = {
+    high: { className: "bg-rose-500 text-white", label: "High risk" },
+    moderate: { className: "bg-amber-500 text-white", label: "Moderate" },
+    stable: { className: "bg-emerald-500 text-white", label: "Stable" },
   }
   const style = variants[level] || variants.stable
 
   return (
     <span
-      className="inline-flex max-w-full items-center justify-center rounded-full px-3 py-1 text-[12px] font-medium"
-      style={{ backgroundColor: style.bg, color: style.text }}
+      className={cn("inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-[10px] font-bold", style.className)}
     >
       {style.label}
     </span>
@@ -145,15 +150,22 @@ function RiskBadge({ level }: { level: string }) {
 
 type DepartmentConfig = {
   name: string
-  icon: React.ElementType
   color: string
+  emoji?: string
+  icon?: React.ElementType
 }
 
 function DepartmentBadge({ department }: { department: DepartmentConfig }) {
   const Icon = department.icon
   return (
     <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#6B7870]">
-      <Icon className="size-3.5" style={{ color: department.color }} strokeWidth={2} aria-hidden />
+      {department.emoji ? (
+        <span className="text-[14px] leading-none" aria-hidden>
+          {department.emoji}
+        </span>
+      ) : Icon ? (
+        <Icon className="size-3.5" style={{ color: department.color }} strokeWidth={2} aria-hidden />
+      ) : null}
       {department.name}
     </span>
   )
@@ -196,35 +208,52 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
 
   return (
     <div className="flex h-full flex-col bg-[#F9F8F5] animate-in fade-in duration-500 overflow-hidden">
+      {/* Premium Header — matching Medications page style */}
+      <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-white">
+        <div className="flex flex-col px-5 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5">
+          <div className="mb-2 flex items-center gap-2 sm:mb-2.5">
+            <Breadcrumb>
+              <BreadcrumbList className="text-[10px] sm:text-[11px]">
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href="/assistant-dashboard" className="text-[10px] font-medium sm:text-[11px]">
+                      Dashboard
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">Patients</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
 
-      {/* Sticky Top Section (Header + Toolbar) */}
-      <div className="flex-none border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/95 px-6 pt-4 pb-3 backdrop-blur-md z-20 sm:px-8">
-        <div className="w-full h-full">
-          {/* Header Row */}
-          <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-end">
-            <div>
-              <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[26px]">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+            <div className="min-w-0 space-y-0.5">
+              <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px] lg:text-[26px]">
                 Patient Directory
               </h1>
-              <p className="mt-0.5 text-[13px] font-medium text-muted-foreground sm:text-[14px]">
-                Managing <span className="font-bold text-[#1A1F1E]">{patients.length.toLocaleString()}</span> active
-                cardiovascular records
+              <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
+                Managing <span className="font-bold text-[#1A1F1E]">{patients.length.toLocaleString()}</span> cardiovascular records
               </p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               <Button
                 variant="outline"
-                className="h-9 gap-2 rounded-xl border border-[#E8E6E0] bg-white px-4 text-[13px] font-semibold text-[#1A1F1E] shadow-sm transition-all hover:bg-slate-50 hover:text-[#1A5345] sm:h-10 sm:px-5 sm:text-[14px]"
+                size="sm"
+                className="h-8 gap-2 rounded-lg border border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] shadow-sm transition-colors hover:bg-slate-50 hover:text-[#1A5345]"
               >
-                <DownloadIcon className="size-4 text-muted-foreground" strokeWidth={2} />
-                Export Data
+                <DownloadIcon className="size-3.5 text-muted-foreground" />
+                Export
               </Button>
               <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
                   <Button
-                    className="h-9 gap-2 rounded-xl border-0 bg-[#1A5345] px-4 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(26,83,69,0.2)] transition-all hover:-translate-y-0.5 hover:bg-[#133F34] hover:shadow-[0_6px_20px_rgba(26,83,69,0.25)] sm:h-10 sm:px-6 sm:text-[14px]"
+                    size="sm"
+                    className="h-8 gap-2 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]"
                   >
-                    <UserPlusIcon className="size-4 sm:size-[18px]" strokeWidth={2.5} />
+                    <UserPlusIcon className="size-3.5" strokeWidth={2.5} />
                     Add Patient
                   </Button>
                 </SheetTrigger>
@@ -239,134 +268,126 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
             </div>
           </div>
 
-          {/* Premium Analytics Banner — compact */}
-          <div className="mb-3 grid w-full grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
-            <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#E8E6E0]/60 shadow-sm transition-shadow hover:shadow-md sm:p-4">
+          {/* Premium Analytics Banner — matching Medication Detail Snapshot style */}
+          <div className="mt-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-[#E8E6E0] shadow-sm transition-shadow hover:shadow-md">
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-[12px] font-medium text-muted-foreground sm:text-[13px]">Total Patients</span>
+                <span className="text-[11px] font-bold text-[#6B7870] uppercase tracking-tight">Total Patients</span>
                 <div className="flex items-end gap-2">
-                  <span className="text-[22px] font-bold leading-none tracking-tight text-[#1A1F1E] sm:text-[26px]">
+                  <span className="text-[20px] font-bold leading-none tracking-tight text-[#1A1F1E] tabular-nums">
                     {patients.length.toLocaleString()}
                   </span>
-                  <span className="mb-0.5 rounded-md bg-[#1A5345]/10 px-1.5 py-0.5 text-[11px] font-bold text-[#1A5345]">
+                  <span className="mb-0.5 rounded-lg bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
                     +12%
                   </span>
                 </div>
               </div>
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F3ED] sm:size-10">
-                <UsersIcon
-                  className="size-4 text-[#1A5345] sm:size-[18px]"
-                  strokeWidth={2.5}
-                />
-              </div>
+              <UsersIcon className="size-5 text-[#1A5345] shrink-0" strokeWidth={2} />
             </div>
 
-            <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#E8E6E0]/60 shadow-sm transition-shadow hover:shadow-md sm:p-4">
+            <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-[#E8E6E0] shadow-sm transition-shadow hover:shadow-md">
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-[12px] font-medium text-muted-foreground sm:text-[13px]">High Risk</span>
+                <span className="text-[11px] font-bold text-[#6B7870] uppercase tracking-tight">High Risk</span>
                 <div className="flex items-end gap-2">
-                  <span className="text-[22px] font-bold leading-none tracking-tight text-[#1A1F1E] sm:text-[26px]">
+                  <span className="text-[20px] font-bold leading-none tracking-tight text-[#1A1F1E] tabular-nums">
                     {Math.floor(patients.length * 0.25) || 12}
                   </span>
-                  <span className="mb-0.5 rounded-md bg-[#E8345E]/10 px-1.5 py-0.5 text-[11px] font-bold text-[#E8345E]">
+                  <span className="mb-0.5 rounded-lg bg-rose-600 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
                     +4%
                   </span>
                 </div>
               </div>
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F3ED] sm:size-10">
-                <ActivityIcon
-                  className="size-4 text-[#E8345E] sm:size-[18px]"
-                  strokeWidth={2.5}
-                />
-              </div>
+              <ActivityIcon className="size-5 text-rose-600 shrink-0" strokeWidth={2} />
             </div>
 
-            <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#E8E6E0]/60 shadow-sm transition-shadow hover:shadow-md sm:p-4">
+            <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-[#E8E6E0] shadow-sm transition-shadow hover:shadow-md">
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-[12px] font-medium text-muted-foreground sm:text-[13px]">New This Week</span>
+                <span className="text-[11px] font-bold text-[#6B7870] uppercase tracking-tight">New This Week</span>
                 <div className="flex items-end gap-2">
-                  <span className="text-[22px] font-bold leading-none tracking-tight text-[#1A1F1E] sm:text-[26px]">
+                  <span className="text-[20px] font-bold leading-none tracking-tight text-[#1A1F1E] tabular-nums">
                     {Math.floor(patients.length * 0.1) || 4}
                   </span>
-                  <span className="mb-0.5 rounded-md bg-[#F4F3ED] px-1.5 py-0.5 text-[11px] font-bold text-muted-foreground">
+                  <span className="mb-0.5 rounded-lg bg-[#1A5345] px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
                     Steady
                   </span>
                 </div>
               </div>
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F3ED] sm:size-10">
-                <CalendarIcon
-                  className="size-4 text-[#E89042] sm:size-[18px]"
-                  strokeWidth={2.5}
-                />
-              </div>
+              <CalendarIcon className="size-5 text-[#CC5533] shrink-0" strokeWidth={2} />
             </div>
           </div>
 
-          {/* Minimalist Toolbar */}
-          <div className="flex flex-col gap-3 pb-0 md:flex-row md:items-center md:justify-between">
-            <div className="relative group w-full max-w-[320px]">
-              <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-[#1A5345] transition-colors" strokeWidth={2} />
+          {/* Minimalist Toolbar — matching standard Premium Compact style */}
+          <div className="mt-4 flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
+            <div className="group relative flex-1 sm:flex-none sm:w-[240px]">
+              <SearchIcon 
+                className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[#9CA3AF] transition-colors group-focus-within:text-[#1A5345]" 
+                strokeWidth={2}
+                aria-hidden
+              />
               <Input
+                type="search"
                 placeholder="Search by name or ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-10 w-full rounded-full border border-[#E8E6E0]/80 bg-white pl-10 pr-4 text-[14px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-1 focus-visible:ring-[#1A5345] transition-all placeholder:text-muted-foreground/70"
+                className="h-8 w-full rounded-lg border border-[#E8E6E0] bg-white pl-9 pr-3 text-[12px] font-medium text-[#1A1F1E] shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:border-[#1A5345]/30 focus-visible:ring-0"
               />
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="hidden sm:flex bg-white rounded-lg p-1 border border-[#E8E6E0]/80 shadow-sm mr-1">
+              <div className="hidden sm:flex bg-white rounded-lg p-0.5 border border-[#E8E6E0] shadow-sm">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setViewMode("grid")}
                   className={cn(
-                    "size-8 rounded-md transition-all",
-                    viewMode === "grid" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-slate-50 hover:text-[#1A1F1E]"
+                    "size-7 rounded-md transition-all",
+                    viewMode === "grid" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-slate-50"
                   )}
                 >
-                  <LayoutGridIcon className="size-4" />
+                  <LayoutGridIcon className="size-3.5" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setViewMode("list")}
                   className={cn(
-                    "size-8 rounded-md transition-all",
-                    viewMode === "list" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-slate-50 hover:text-[#1A1F1E]"
+                    "size-7 rounded-md transition-all",
+                    viewMode === "list" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-slate-50"
                   )}
                 >
-                  <ListIcon className="size-4" />
+                  <ListIcon className="size-3.5" />
                 </Button>
               </div>
 
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-                <SelectTrigger className="h-10 rounded-full border border-[#E8E6E0]/80 bg-white px-4 text-[14px] font-semibold text-[#1A1F1E] hover:bg-slate-50 shadow-sm transition-all focus:ring-1 focus:ring-[#1A5345] gap-2">
-                  <span className="text-muted-foreground font-medium">Status:</span>
-                  <SelectValue placeholder="All" />
+                <SelectTrigger className="h-8 w-full sm:w-[130px] rounded-lg border border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A1F1E] hover:bg-slate-50 shadow-sm transition-all focus:ring-0">
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-[#E8E6E0]/60 shadow-lg">
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="in-treatment">In Treatment</SelectItem>
-                  <SelectItem value="discharged">Discharged</SelectItem>
-                  <SelectItem value="monitoring">Monitoring</SelectItem>
+                <SelectContent className="rounded-lg border border-[#cfd9d5] bg-white shadow-lg">
+                  <SelectItem value="all" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">All status</SelectItem>
+                  <SelectItem value="in-treatment" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">In Treatment</SelectItem>
+                  <SelectItem value="discharged" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">Discharged</SelectItem>
+                  <SelectItem value="monitoring" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">Monitoring</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={riskFilter} onValueChange={(v) => setRiskFilter(v as RiskFilter)}>
-                <SelectTrigger className="h-10 rounded-full border border-[#E8E6E0]/80 bg-white px-4 text-[14px] font-semibold text-[#1A1F1E] hover:bg-slate-50 shadow-sm transition-all focus:ring-1 focus:ring-[#1A5345] gap-2">
-                  <span className="text-muted-foreground font-medium">Risk:</span>
-                  <SelectValue placeholder="All" />
+                <SelectTrigger className="h-8 w-full sm:w-[130px] rounded-lg border border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A1F1E] hover:bg-slate-50 shadow-sm transition-all focus:ring-0">
+                  <SelectValue placeholder="Risk level" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-[#E8E6E0]/60 shadow-lg">
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="high">High Risk</SelectItem>
-                  <SelectItem value="moderate">Moderate</SelectItem>
-                  <SelectItem value="stable">Stable</SelectItem>
+                <SelectContent className="rounded-lg border border-[#cfd9d5] bg-white shadow-lg">
+                  <SelectItem value="all" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">All risk</SelectItem>
+                  <SelectItem value="high" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">High Risk</SelectItem>
+                  <SelectItem value="moderate" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">Moderate</SelectItem>
+                  <SelectItem value="stable" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">Stable</SelectItem>
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" size="icon" className="size-10 rounded-full border border-[#E8E6E0]/80 bg-white text-muted-foreground hover:bg-slate-50 hover:text-[#1A5345] transition-colors shadow-sm ml-1">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="size-8 shrink-0 border-0 bg-transparent text-[#6B7870] hover:bg-transparent hover:text-[#1A5345] shadow-none transition-colors"
+              >
                 <RefreshCwIcon className="size-4" strokeWidth={2} />
               </Button>
             </div>
@@ -448,7 +469,7 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                       "2023-10-15",
                     ]
                     const mockDepartments: DepartmentConfig[] = [
-                      { name: "Cardiology", icon: Heart, color: "#E15C5C" },
+                      { name: "Cardiology", emoji: "🫀", color: "#E15C5C" },
                       { name: "Neurology", icon: BrainIcon, color: "#7C3AED" },
                       { name: "General Surgery", icon: StethoscopeIcon, color: "#1A5345" },
                       { name: "Pediatrics", icon: BabyIcon, color: "#0891B2" },
@@ -508,7 +529,11 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                           <AlertDialog>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground opacity-40 group-hover:opacity-100 transition-all hover:bg-white hover:shadow-sm hover:text-[#1A1F1E]">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="size-8 border-0 bg-transparent text-muted-foreground opacity-40 group-hover:opacity-100 transition-all hover:bg-transparent hover:text-[#1A5345] shadow-none"
+                                >
                                   <MoreHorizontalIcon className="size-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -561,7 +586,7 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
               </table>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 py-4 px-2">
+            <div className="grid grid-cols-1 items-start gap-6 py-4 px-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {addPatientState.isLoadingPatients ? (
                 Array.from({ length: 8 }).map((_, index) => (
                   <Card key={index} className="rounded-3xl border-[#E8E6E0]/60 shadow-sm bg-white overflow-hidden animate-pulse">
@@ -624,35 +649,39 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                     : "—"
 
                   return (
-                    <Card key={patient.id} className="rounded-3xl border-[#E8E6E0]/60 shadow-[0_4px_20px_-4px_rgba(26,83,69,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(26,83,69,0.12)] hover:border-[#1A5345]/20 transition-all bg-white group overflow-hidden relative">
-                      <CardContent className="p-5 flex flex-col items-center relative">
+                    <Card key={patient.id} className="group relative h-fit w-full gap-0 self-start overflow-hidden rounded-3xl border border-[#E8E6E0]/60 bg-white py-0 shadow-sm ring-0 transition-shadow hover:shadow-md">
+                      <CardContent className="flex flex-col p-5">
                         {/* Top row: Badge and More options */}
-                        <div className="flex w-full justify-between items-start mb-4">
+                        <div className="mb-4 flex w-full items-start justify-between">
                           <StatusBadge status={status} />
 
                           <AlertDialog>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-[#1A1F1E] hover:bg-slate-50 rounded-lg -mr-2 -mt-1 transition-all">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="size-8 border-0 bg-transparent text-muted-foreground transition-colors hover:bg-transparent hover:text-[#1A5345] shadow-none -mr-2 -mt-1"
+                                >
                                   <MoreVerticalIcon className="size-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48 rounded-xl border-[#E8E6E0]/60 shadow-lg p-1.5 bg-white">
-                                <DropdownMenuItem className="gap-2.5 text-[13px] font-medium text-[#1A1F1E] cursor-pointer rounded-lg focus:bg-slate-50 py-2">
-                                  <EditIcon className="size-3.5 text-muted-foreground" />
+                                <DropdownMenuItem className="gap-2.5 text-[13px] font-medium text-[#1A1F1E] cursor-pointer rounded-lg focus:bg-[#F9F8F5] py-2.5">
+                                  <EditIcon className="size-3.5 text-[#6B7870]" />
                                   Edit Patient
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="gap-2.5 text-[13px] font-medium text-[#1A1F1E] cursor-pointer rounded-lg focus:bg-slate-50 py-2">
-                                  <ActivityIcon className="size-3.5 text-muted-foreground" />
+                                <DropdownMenuItem className="gap-2.5 text-[13px] font-medium text-[#1A1F1E] cursor-pointer rounded-lg focus:bg-[#F9F8F5] py-2.5">
+                                  <ActivityIcon className="size-3.5 text-[#6B7870]" />
                                   Change Status
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="gap-2.5 text-[13px] font-medium text-[#1A1F1E] cursor-pointer rounded-lg focus:bg-slate-50 py-2">
-                                  <DownloadIcon className="size-3.5 text-muted-foreground" />
+                                <DropdownMenuItem className="gap-2.5 text-[13px] font-medium text-[#1A1F1E] cursor-pointer rounded-lg focus:bg-[#F9F8F5] py-2.5">
+                                  <DownloadIcon className="size-3.5 text-[#6B7870]" />
                                   Export Record
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-[#E8E6E0]/60 my-1" />
+                                <DropdownMenuSeparator className="bg-[#E8E6E0]/60 my-1.5" />
                                 <AlertDialogTrigger asChild>
-                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2.5 text-[13px] font-semibold text-red-600 focus:text-red-700 cursor-pointer rounded-lg focus:bg-red-50 py-2">
+                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2.5 text-[13px] font-bold text-red-600 focus:text-red-700 cursor-pointer rounded-lg focus:bg-red-50 py-2.5">
                                     <ArchiveIcon className="size-3.5" />
                                     Archive Patient
                                   </DropdownMenuItem>
@@ -660,16 +689,18 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                               </DropdownMenuContent>
                             </DropdownMenu>
 
-                            <AlertDialogContent className="rounded-2xl border-[#E8E6E0]/60 shadow-2xl p-6 sm:max-w-[425px]">
-                              <AlertDialogHeader className="mb-2">
-                                <AlertDialogTitle className="text-xl font-bold text-[#1A1F1E]">Archive Patient</AlertDialogTitle>
-                                <AlertDialogDescription className="text-[14px] text-muted-foreground leading-relaxed mt-2">
-                                  Are you sure you want to archive <span className="font-semibold text-[#1A1F1E]">{patient.fullName}</span>? This action requires doctor approval. A request will be sent to the assigned doctor.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter className="mt-4">
-                                <AlertDialogCancel className="rounded-xl px-5 border-[#E8E6E0]/60 text-[#1A1F1E] hover:bg-slate-50">Cancel</AlertDialogCancel>
-                                <AlertDialogAction className="rounded-xl px-5 bg-red-600 hover:bg-red-700 text-white shadow-md transition-all border-0">
+                            <AlertDialogContent className="rounded-3xl border-0 shadow-2xl bg-[#F9F8F5] p-0 sm:max-w-[440px] overflow-hidden">
+                              <div className="px-6 py-8 bg-white">
+                                <AlertDialogHeader className="mb-2">
+                                  <AlertDialogTitle className="text-[22px] font-bold text-[#1A1F1E] font-serif tracking-tight">Archive Patient</AlertDialogTitle>
+                                  <AlertDialogDescription className="text-[14px] text-muted-foreground leading-relaxed mt-2">
+                                    Are you sure you want to archive <span className="font-bold text-[#1A1F1E]">{patient.fullName}</span>? This action requires doctor approval. A request will be sent to the assigned doctor.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                              </div>
+                              <AlertDialogFooter className="px-6 py-4 border-t border-[#E8E6E0]/60 flex items-center justify-end gap-3 bg-[#F9F8F5]/50">
+                                <AlertDialogCancel className="h-10 rounded-xl px-5 border-[#E8E6E0]/80 bg-white text-[13px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-slate-50 transition-all m-0">Cancel</AlertDialogCancel>
+                                <AlertDialogAction className="h-10 rounded-xl border-0 bg-red-600 px-5 text-[13px] font-bold text-white shadow-sm transition-all hover:bg-red-700 m-0">
                                   Send Request
                                 </AlertDialogAction>
                               </AlertDialogFooter>
@@ -678,43 +709,45 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                         </div>
 
                         {/* Avatar & Name */}
-                        <div className="flex flex-col items-center gap-2 mb-6">
-                          <div className="relative size-[68px] rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-[#E8E6E0]">
+                        <div className="mb-4 flex flex-col items-center gap-2.5">
+                          <div className="relative size-16 overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF] shadow-sm">
                             <img src={`https://i.pravatar.cc/150?u=${patient.id}`} alt={patient.fullName} className="w-full h-full object-cover" />
                           </div>
-                          <div className="flex flex-col items-center text-center mt-2">
-                            <span className="text-[12px] font-semibold text-muted-foreground">#PT{String(patient.id).padStart(4, "0")}</span>
-                            <span className="text-[16px] font-bold text-[#1A1F1E] mt-0.5">{patient.fullName}</span>
+                          <div className="flex flex-col items-center text-center">
+                            <span className="text-[11px] font-bold tracking-wide text-[#1A5345]/70">#PT{String(patient.id).padStart(4, "0")}</span>
+                            <span className="mt-0.5 font-serif text-[18px] font-bold leading-tight text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">{patient.fullName}</span>
                           </div>
                         </div>
 
                         {/* Stats Grid */}
-                        <div className="w-full flex items-stretch border border-[#E8E6E0] rounded-xl py-2.5 mb-4">
-                          <div className="flex-1 flex flex-col items-center justify-center gap-1 px-1">
-                            <span className="text-[11px] font-bold text-[#1A1F1E]">Last Visit</span>
-                            <span className="text-[11px] font-medium text-muted-foreground text-center">{formatDate(lastVisit)}</span>
+                        <div className="mb-4 flex w-full items-center rounded-2xl border border-[#E8E6E0]/40 bg-[#F9F8F5] p-2.5">
+                          <div className="flex flex-1 flex-col items-center justify-center gap-0.5">
+                            <span className="text-[10px] font-semibold text-muted-foreground">Last visit</span>
+                            <span className="text-[12px] font-bold text-[#1A1F1E]">{formatDate(lastVisit)}</span>
                           </div>
-                          <div className="flex-1 flex flex-col items-center justify-center gap-1 px-1 border-x border-[#E8E6E0]">
-                            <span className="text-[11px] font-bold text-[#1A1F1E]">Gender</span>
-                            <span className="text-[11px] font-medium text-muted-foreground text-center">{patient.gender === "M" ? "Male" : patient.gender === "F" ? "Female" : "Male"}</span>
+                          <div className="h-7 w-px bg-[#E8E6E0]/80" />
+                          <div className="flex-1 flex flex-col items-center justify-center gap-1">
+                            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Gender</span>
+                            <span className="text-[13px] font-bold text-[#1A1F1E]">{patient.gender === "M" ? "Male" : patient.gender === "F" ? "Female" : "Male"}</span>
                           </div>
-                          <div className="flex-[1.5] flex flex-col items-center justify-center gap-1 px-2 min-w-0">
-                            <span className="text-[11px] font-bold text-[#1A1F1E]">Condition</span>
-                            <span className="text-[11px] font-medium text-muted-foreground truncate w-full text-center" title={condition}>{condition}</span>
+                          <div className="w-[1px] h-8 bg-[#E8E6E0]/80"></div>
+                          <div className="flex-[1.2] flex flex-col items-center justify-center gap-1 min-w-0 px-2">
+                            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Condition</span>
+                            <span className="text-[13px] font-bold text-[#1A1F1E] truncate w-full text-center" title={condition}>{condition}</span>
                           </div>
                         </div>
 
                         {/* Card Actions */}
-                        <div className="flex w-full gap-2">
+                        <div className="flex w-full gap-2 mt-auto">
                           <Link href={`/assistant-patients/${patient.id}`} className="flex-1">
-                            <Button className="w-full bg-[#0A0A0A] hover:bg-black text-white h-10 rounded-lg text-[13px] font-semibold transition-all">
+                            <Button size="sm" className="h-8 w-full rounded-lg bg-[#1A5345] px-4 text-[12px] font-bold text-white transition-colors hover:bg-[#133F34]">
                               View Record
                             </Button>
                           </Link>
-                          <Button variant="outline" size="icon" className="size-10 shrink-0 rounded-lg border-[#E8E6E0]/80 bg-white text-muted-foreground hover:text-[#E89042] hover:bg-[#E89042]/5 hover:border-[#E89042]/30 transition-all shadow-sm" title="Send Message">
+                          <Button variant="ghost" size="icon" className="size-8 shrink-0 rounded-lg border-0 bg-transparent text-muted-foreground shadow-none transition-colors hover:bg-transparent hover:text-[#1A5345]" title="Send Message">
                             <MessageSquareIcon className="size-4" />
                           </Button>
-                          <Button onClick={() => setScheduleVisitPatient(patient)} variant="outline" size="icon" className="size-10 shrink-0 rounded-lg border-[#E8E6E0]/80 bg-white text-muted-foreground hover:text-[#E8345E] hover:bg-[#E8345E]/5 hover:border-[#E8345E]/30 transition-all shadow-sm" title="Schedule Visit">
+                          <Button onClick={() => setScheduleVisitPatient(patient)} variant="ghost" size="icon" className="size-8 shrink-0 rounded-lg border-0 bg-transparent text-muted-foreground shadow-none transition-colors hover:bg-transparent hover:text-[#1A5345]" title="Schedule Visit">
                             <CalendarIcon className="size-4" />
                           </Button>
                         </div>
