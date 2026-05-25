@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import type { QueuePatient } from "../assistantQueue.types"
+import { STATUS_CONFIG } from "../assistantQueue.config"
 import { formatShortTime } from "../assistantQueue.liveBoard"
 import Image from "next/image"
 
@@ -72,16 +73,10 @@ export function QueueRow({
             {patient.condition || patient.visitType}
           </span>
           <span className={cn(
-            "shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ring-1 ring-inset",
-            patient.status === "in-consultation" ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
-            : patient.status === "waiting" ? "bg-amber-50 text-amber-700 ring-amber-600/20"
-            : patient.status === "arrived" ? "bg-blue-50 text-blue-700 ring-blue-600/20"
-            : patient.status === "no-show" ? "bg-red-50 text-red-600 ring-red-500/20"
-            : patient.status === "completed" ? "bg-[#E8F0EE] text-[#1A5345] ring-[#1A5345]/20"
-            : patient.status === "cancelled" ? "bg-slate-50 text-slate-600 ring-slate-500/20"
-            : "bg-gray-50 text-gray-600 ring-gray-500/20"
+            "shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-bold shadow-sm",
+            STATUS_CONFIG[patient.status].style
           )}>
-            {patient.status.replace('-', ' ')}
+            {STATUS_CONFIG[patient.status].label}
           </span>
         </div>
       </div>

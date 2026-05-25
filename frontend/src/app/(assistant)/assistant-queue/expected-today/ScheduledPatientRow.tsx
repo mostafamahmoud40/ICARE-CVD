@@ -25,20 +25,20 @@ export function ScheduledPatientRow({
   const minutesLate = isLate ? Math.floor((now.getTime() - scheduledDate.getTime()) / 60000) : 0
 
   return (
-    <div className="group flex w-full items-center gap-3 rounded-xl border bg-white p-3 transition-all hover:shadow-md hover:border-[#1A5345]/30">
+    <div className="group flex w-full items-center gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
       {/* Avatar with status ring */}
       <button
         onClick={() => onSelect(patient.queueEntryId)}
-        className="relative flex size-11 shrink-0 items-center justify-center rounded-full overflow-hidden transition-transform hover:scale-105"
+        className="relative flex size-11 shrink-0 items-center justify-center rounded-full overflow-hidden transition-transform hover:scale-105 active:scale-95"
       >
-        <div className={cn("absolute inset-0 rounded-full ring-2", isLate ? "ring-red-300" : "ring-[#E8F0EE]")} />
+        <div className={cn("absolute inset-0 rounded-full ring-2", isLate ? "ring-red-300" : "ring-[#E8E6E0]/60")} />
         <img
-          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${patient.id}&backgroundColor=e8f0ee`}
+          src={`https://i.pravatar.cc/150?u=${patient.id}`}
           alt={patient.fullName}
           className="size-full object-cover rounded-full"
         />
         {isLate && (
-          <div className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-white">
+          <div className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-red-600 text-white border-2 border-white">
             <AlertTriangleIcon className="size-2.5" />
           </div>
         )}
@@ -53,19 +53,22 @@ export function ScheduledPatientRow({
           <span className="text-[14px] font-semibold text-[#102F27] truncate">{patient.fullName}</span>
           <span className="text-[12px] text-muted-foreground">{patient.age}y</span>
           {patient.priority !== "normal" && (
-            <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-medium", PRIORITY_CONFIG[patient.priority].style)}>
+            <span className={cn("rounded-lg px-2 py-0.5 text-[10px] font-bold text-white shadow-sm bg-[#CC5533]")}>
               {PRIORITY_CONFIG[patient.priority].label}
             </span>
           )}
           {isLate && (
-            <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-medium text-red-600">
+            <span className="rounded-lg bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
               {minutesLate}m late
             </span>
           )}
         </div>
 
         <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[12px]">
-          <span className={cn("rounded-full px-2 py-0.5 font-medium", visitCfg.style)}>{visitCfg.label}</span>
+          <span className={cn("rounded-lg px-2 py-0.5 font-bold text-[10px] text-white shadow-sm", 
+            patient.visitType === 'walk-in' ? "bg-[#CC5533]" : "bg-[#1A5345]")}>
+            {visitCfg.label}
+          </span>
           {patient.condition && <span className="text-muted-foreground truncate max-w-[150px]">{patient.condition}</span>}
           {patient.phoneNumber && (
             <span className="flex items-center gap-1 text-muted-foreground">
@@ -78,12 +81,14 @@ export function ScheduledPatientRow({
 
       {/* Time & Actions */}
       <div className="flex flex-col items-end gap-2">
-        <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold",
-          isLate ? "bg-red-100 text-red-700" : "bg-[#E8F0EE] text-[#1A5345]"
+        <span className={cn(
+          "text-[11px] font-bold px-2 py-0.5 rounded-md shrink-0",
+          isLate 
+            ? "text-[#CC5533] bg-[#CC5533]/5" 
+            : "text-[#1A5345] bg-[#1A5345]/5"
         )}>
-          <ClockIcon className="size-3" />
           {formatShortTime(patient.scheduledTime)}
-        </div>
+        </span>
 
         {/* Quick Actions */}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -101,7 +106,7 @@ export function ScheduledPatientRow({
           )}
           <button
             onClick={() => onSelect(patient.queueEntryId)}
-            className="p-1.5 rounded-lg text-[#6B7870] hover:bg-[#E8F0EE] hover:text-[#1A5345] transition-colors"
+            className="p-1.5 rounded-lg text-[#6B7870] hover:bg-transparent hover:text-[#1A5345] transition-colors"
           >
             <ArrowRightIcon className="size-4" />
           </button>
