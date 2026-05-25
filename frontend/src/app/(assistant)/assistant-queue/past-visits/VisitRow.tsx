@@ -61,7 +61,7 @@ export function VisitRow({ patient, onSelect, onMarkArrived }: VisitRowProps) {
         <div className="flex min-w-0 items-center gap-3">
           <div className="relative flex size-10 shrink-0 overflow-hidden rounded-full border border-[#E8E6E0] bg-[#F5F5F3]">
             <Image
-              src={patient.avatarUrl || `https://i.pravatar.cc/150?u=${patient.id}`}
+              src={`https://i.pravatar.cc/150?u=${patient.id}`}
               alt={patient.fullName}
               fill
               className="object-cover"
@@ -75,7 +75,7 @@ export function VisitRow({ patient, onSelect, onMarkArrived }: VisitRowProps) {
               <span className="shrink-0 rounded-md bg-[#FAFAF8] px-1.5 py-0.5 text-[10px] font-semibold text-[#6B7870] ring-1 ring-inset ring-[#E8E6E0]/80">{patient.age}y</span>
               {aiReviewed && (
                 <span
-                  className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-700"
+                  className="inline-flex items-center gap-1 rounded-lg bg-violet-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm"
                   title="Visit reviewed by AI"
                 >
                   <SparklesIcon className="size-3 shrink-0" />
@@ -84,7 +84,7 @@ export function VisitRow({ patient, onSelect, onMarkArrived }: VisitRowProps) {
               )}
               {aiNote && (
                 <span
-                  className="inline-flex max-w-[160px] items-center gap-1 truncate rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800"
+                  className="inline-flex max-w-[160px] items-center gap-1 truncate rounded-lg bg-amber-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm"
                   title={aiNote}
                 >
                   <MessageSquareTextIcon className="size-3 shrink-0" />
@@ -95,8 +95,8 @@ export function VisitRow({ patient, onSelect, onMarkArrived }: VisitRowProps) {
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <span
                 className={cn(
-                  "rounded-md px-1.5 py-0.5 text-[9px] font-medium ring-1 ring-inset ring-black/5",
-                  visitCfg.style,
+                  "rounded-lg px-2 py-0.5 text-[10px] font-bold text-white shadow-sm",
+                  patient.visitType === 'walk-in' ? "bg-[#CC5533]" : "bg-[#1A5345]",
                 )}
               >
                 {visitCfg.label}
@@ -104,20 +104,19 @@ export function VisitRow({ patient, onSelect, onMarkArrived }: VisitRowProps) {
               {patient.priority !== "normal" && (
                 <span
                   className={cn(
-                    "rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ring-1 ring-inset",
-                    PRIORITY_CONFIG[patient.priority].style.replace('bg-', 'bg-').replace('text-', 'text-'),
+                    "rounded-lg px-2 py-0.5 text-[10px] font-bold text-white shadow-sm bg-[#CC5533]",
                   )}
                 >
                   {PRIORITY_CONFIG[patient.priority].label}
                 </span>
               )}
               {patient.hasAllergies && (
-                <span className="flex items-center gap-1 rounded-md bg-red-50 px-1.5 py-0.5 text-[9px] font-bold text-red-600 ring-1 ring-inset ring-red-500/10">
+                <span className="flex items-center gap-1 rounded-lg bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
                   Allergies
                 </span>
               )}
               {patient.vitalAlerts > 0 && (
-                <span className="flex items-center gap-0.5 rounded-md bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold text-amber-600 ring-1 ring-inset ring-amber-500/10">
+                <span className="flex items-center gap-1 rounded-lg bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
                   <AlertTriangleIcon className="size-2.5" />
                   {patient.vitalAlerts} Alert{patient.vitalAlerts > 1 ? "s" : ""}
                 </span>
@@ -181,7 +180,7 @@ export function VisitRow({ patient, onSelect, onMarkArrived }: VisitRowProps) {
                 {patient.phoneNumber && (
                   <a
                     href={`tel:${patient.phoneNumber.replace(/\s/g, "")}`}
-                    className={iconBtn}
+                    className="p-1.5 rounded-lg text-[#6B7870] hover:bg-transparent hover:text-[#1A5345] transition-colors"
                     title="Call patient"
                     aria-label="Call patient"
                   >
@@ -190,7 +189,7 @@ export function VisitRow({ patient, onSelect, onMarkArrived }: VisitRowProps) {
                 )}
                 <button
                   type="button"
-                  className={iconBtn}
+                  className="p-1.5 rounded-lg text-[#6B7870] hover:bg-transparent hover:text-[#1A5345] transition-colors"
                   title="Reschedule visit"
                   aria-label="Reschedule visit"
                 >
@@ -200,7 +199,7 @@ export function VisitRow({ patient, onSelect, onMarkArrived }: VisitRowProps) {
                   <button
                     type="button"
                     onClick={() => onMarkArrived(patient.queueEntryId)}
-                    className={cn(iconBtn, iconBtnStrong)}
+                    className="p-1.5 rounded-lg text-[#1A5345] hover:bg-transparent hover:text-[#0F3D32] transition-colors"
                     title="Mark arrived late"
                     aria-label="Mark arrived late"
                   >
@@ -210,7 +209,7 @@ export function VisitRow({ patient, onSelect, onMarkArrived }: VisitRowProps) {
                 <button
                   type="button"
                   onClick={() => onSelect(patient.queueEntryId)}
-                  className={iconBtn}
+                  className="p-1.5 rounded-lg text-[#6B7870] hover:bg-transparent hover:text-[#1A5345] transition-colors"
                   title="Open visit details"
                   aria-label="Open visit details"
                 >
@@ -223,7 +222,7 @@ export function VisitRow({ patient, onSelect, onMarkArrived }: VisitRowProps) {
                   <>
                     <button
                       type="button"
-                      className={iconBtn}
+                      className="p-1.5 rounded-lg text-[#6B7870] hover:bg-transparent hover:text-[#1A5345] transition-colors"
                       title="View visit report"
                       aria-label="View visit report"
                     >
@@ -231,7 +230,7 @@ export function VisitRow({ patient, onSelect, onMarkArrived }: VisitRowProps) {
                     </button>
                     <button
                       type="button"
-                      className={cn(iconBtn, iconBtnAi)}
+                      className="p-1.5 rounded-lg text-violet-500 hover:bg-transparent hover:text-violet-600 transition-colors"
                       title="AI visit summary"
                       aria-label="AI visit summary"
                     >
@@ -242,7 +241,7 @@ export function VisitRow({ patient, onSelect, onMarkArrived }: VisitRowProps) {
                 <button
                   type="button"
                   onClick={() => onSelect(patient.queueEntryId)}
-                  className={iconBtn}
+                  className="p-1.5 rounded-lg text-[#6B7870] hover:bg-transparent hover:text-[#1A5345] transition-colors"
                   title="Open visit details"
                   aria-label="Open visit details"
                 >

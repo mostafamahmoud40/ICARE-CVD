@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { QueuePatient } from "../assistantQueue.types"
 import { ScheduledPatientRow } from "./ScheduledPatientRow"
-import { TimeSlotHeader } from "./TimeSlotHeader"
 
 
 export function ExpectedTodayPanel({
@@ -71,39 +70,8 @@ export function ExpectedTodayPanel({
           <div>
             <h2 className="text-[18px] font-bold text-[#1A1F1E]">Expected Today</h2>
             <p className="text-[13px] text-muted-foreground mt-1">
-              {stats.total} patients · {stats.totalDoctors} doctors · {stats.urgent} urgent
+              Check-in patients scheduled for today's clinical sessions.
             </p>
-          </div>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="flex items-center gap-2 p-3 bg-white rounded-xl border border-[#E8E6E0]/60 shadow-sm transition-shadow hover:shadow-md">
-            <div className="flex size-8 items-center justify-center rounded-full bg-blue-100">
-              <CalendarDaysIcon className="size-4 text-blue-600" />
-            </div>
-            <div>
-              <div className="text-[16px] font-bold text-[#1A1F1E]">{stats.total}</div>
-              <div className="text-[10px] text-muted-foreground">Scheduled</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 p-3 bg-white rounded-xl border border-[#E8E6E0]/60 shadow-sm transition-shadow hover:shadow-md">
-            <div className="flex size-8 items-center justify-center rounded-full bg-[#E8F0EE]">
-              <StethoscopeIcon className="size-4 text-[#1A5345]" />
-            </div>
-            <div>
-              <div className="text-[16px] font-bold text-[#1A1F1E]">{stats.totalDoctors}</div>
-              <div className="text-[10px] text-muted-foreground">Doctors</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 p-3 bg-white rounded-xl border border-[#E8E6E0]/60 shadow-sm transition-shadow hover:shadow-md">
-            <div className="flex size-8 items-center justify-center rounded-full bg-red-100">
-              <AlertTriangleIcon className="size-4 text-red-600" />
-            </div>
-            <div>
-              <div className="text-[16px] font-bold text-[#1A1F1E]">{stats.urgent}</div>
-              <div className="text-[10px] text-muted-foreground">Urgent</div>
-            </div>
           </div>
         </div>
 
@@ -145,87 +113,37 @@ export function ExpectedTodayPanel({
       </div>
 
       {/* Content */}
-      <div className="p-4 sm:p-6 space-y-8">
+      <div className="p-4 sm:p-6 space-y-6">
         {Object.entries(byDoctor).map(([doctor, list]) => {
-          // Group by time slots
-          const morning = list.filter(p => {
-            const hour = new Date(p.scheduledTime).getHours()
-            return hour >= 6 && hour < 12
-          })
-          const afternoon = list.filter(p => {
-            const hour = new Date(p.scheduledTime).getHours()
-            return hour >= 12 && hour < 17
-          })
-          const evening = list.filter(p => {
-            const hour = new Date(p.scheduledTime).getHours()
-            return hour >= 17 || hour < 6
-          })
+          // Sort list by scheduled time to ensure consecutive order
+          const sortedList = [...list].sort((a, b) => 
+            new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime()
+          )
 
           return (
             <div key={doctor} className="bg-white rounded-2xl border border-[#E8E6E0]/60 p-4 shadow-sm">
               {/* Doctor Header */}
               <div className="flex items-center gap-3 mb-4 pb-3 border-b border-[#E8E6E0]/50">
-                <div className="flex size-9 items-center justify-center rounded-full bg-[#1A5345]">
-                  <StethoscopeIcon className="size-4 text-white" />
+                <StethoscopeIcon className="size-5 text-[#1A5345] shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[14px] font-bold text-[#1A1F1E] truncate">{doctor}</h3>
+                  <p className="text-[11px] font-medium text-muted-foreground">{list.length} scheduled today</p>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-[14px] font-semibold text-[#102F27]">{doctor}</h3>
-                  <p className="text-[11px] text-muted-foreground">{list.length} scheduled today</p>
-                </div>
-                <span className="rounded-full bg-[#E8F0EE] px-2.5 py-1 text-[11px] font-medium text-[#1A5345]">
+                <span className="rounded-lg bg-[#E8F0EE] px-2.5 py-1 text-[11px] font-bold text-[#1A5345] shadow-sm">
                   {list.filter(p => new Date(p.scheduledTime) < new Date()).length} waiting
                 </span>
               </div>
 
-              {/* Time Slots */}
-              <div className="space-y-4">
-                {morning.length > 0 && (
-                  <div>
-                    <TimeSlotHeader time="Morning" count={morning.length} isLate={morning.some(p => new Date(p.scheduledTime) < new Date())} />
-                    <div className="space-y-2">
-                      {morning.map((p) => (
-                        <ScheduledPatientRow
-                          key={p.queueEntryId}
-                          patient={p}
-                          onSelect={onSelectPatient}
-                          onMarkArrived={(id) => console.log("Mark arrived:", id)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {afternoon.length > 0 && (
-                  <div>
-                    <TimeSlotHeader time="Afternoon" count={afternoon.length} isLate={afternoon.some(p => new Date(p.scheduledTime) < new Date())} />
-                    <div className="space-y-2">
-                      {afternoon.map((p) => (
-                        <ScheduledPatientRow
-                          key={p.queueEntryId}
-                          patient={p}
-                          onSelect={onSelectPatient}
-                          onMarkArrived={(id) => console.log("Mark arrived:", id)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {evening.length > 0 && (
-                  <div>
-                    <TimeSlotHeader time="Evening" count={evening.length} isLate={evening.some(p => new Date(p.scheduledTime) < new Date())} />
-                    <div className="space-y-2">
-                      {evening.map((p) => (
-                        <ScheduledPatientRow
-                          key={p.queueEntryId}
-                          patient={p}
-                          onSelect={onSelectPatient}
-                          onMarkArrived={(id) => console.log("Mark arrived:", id)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
+              {/* Patient List */}
+              <div className="space-y-2.5">
+                {sortedList.map((p) => (
+                  <ScheduledPatientRow
+                    key={p.queueEntryId}
+                    patient={p}
+                    onSelect={onSelectPatient}
+                    onMarkArrived={(id) => console.log("Mark arrived:", id)}
+                  />
+                ))}
               </div>
             </div>
           )

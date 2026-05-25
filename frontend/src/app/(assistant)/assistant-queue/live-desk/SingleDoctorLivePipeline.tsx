@@ -38,7 +38,7 @@ export function SingleDoctorLivePipeline({
   // FORCE MOCK DATA for design review
   const USE_MOCK_DATA = true 
 
-  const mockSnapshot: DoctorLiveSnapshot = {
+  const mockSnapshot: any = {
     doctorId: "mock-doc",
     inConsultation: [
       {
@@ -166,12 +166,14 @@ export function SingleDoctorLivePipeline({
 
   if (!displaySnapshot) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-16 text-center">
-        <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-[#F5F5F3]">
-          <StethoscopeIcon className="size-6 text-[#9CA3AF]" />
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-16 text-center bg-white rounded-2xl border-2 border-dashed border-[#E5EEEA] m-6">
+        <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-[#F5F5F3]">
+          <StethoscopeIcon className="size-7 text-[#9CA3AF] stroke-[1.5]" />
         </div>
-        <p className="text-[13px] font-medium text-muted-foreground">No active visits yet</p>
-        <p className="mt-1 text-[11px] text-muted-foreground">The queue will update automatically once patients check in.</p>
+        <h3 className="text-[14px] font-bold text-[#1A1F1E]">No active visits yet</h3>
+        <p className="mt-1 text-[12px] font-medium text-muted-foreground max-w-[280px]">
+          The queue will update automatically once patients check in for this doctor.
+        </p>
       </div>
     )
   }
@@ -183,11 +185,12 @@ export function SingleDoctorLivePipeline({
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-[#F9F8F5] p-4 sm:p-6 lg:p-8 custom-scrollbar">
+    <div className="min-h-0 flex-1 overflow-y-auto bg-[#F9F8F5] p-4 sm:p-6 lg:p-6 custom-scrollbar">
       <div className="space-y-6">
 
         {USE_MOCK_DATA && (
-          <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-center text-[12px] font-medium text-blue-800 shadow-sm">
+          <div className="flex items-center justify-center gap-2 rounded-xl border border-[#CC5533]/20 bg-[#CC5533]/5 p-2 text-center text-[11px] font-bold text-[#CC5533] shadow-sm">
+            <div className="size-1.5 rounded-full bg-[#CC5533] animate-pulse" />
             Preview Mode Active: Showing mock data to preview the full UI design.
           </div>
         )}
@@ -208,7 +211,7 @@ export function SingleDoctorLivePipeline({
             <div className="flex-1 flex flex-col divide-y divide-[#E8E6E0]/40">
               {displaySnapshot.inConsultation.length > 0 ? (
                 <>
-                  {displaySnapshot.inConsultation.map((p) => (
+                  {displaySnapshot.inConsultation.map((p: any) => (
                     <PipelineRow
                       key={p.queueEntryId}
                       patient={p}
@@ -273,13 +276,13 @@ export function SingleDoctorLivePipeline({
                 icon={UsersIcon}
                 iconClass="text-amber-600"
                 title="Waiting queue"
-                count={displaySnapshot.waitingOrdered.filter(p => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length}
+                count={displaySnapshot.waitingOrdered.filter((p: any) => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length}
               />
             </div>
             <div className="flex-1 flex flex-col divide-y divide-[#E8E6E0]/40">
-              {displaySnapshot.waitingOrdered.filter(p => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length > 0 ? (
+              {displaySnapshot.waitingOrdered.filter((p: any) => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length > 0 ? (
                 <>
-                  {displaySnapshot.waitingOrdered.map((p) => {
+                  {displaySnapshot.waitingOrdered.map((p: any) => {
                     const turn = waitingTurnByQueueId.get(p.queueEntryId) ?? 0
                     if (displaySnapshot.nextPatient?.queueEntryId === p.queueEntryId) return null
                     return (
@@ -313,13 +316,13 @@ export function SingleDoctorLivePipeline({
                 icon={LogInIcon}
                 iconClass="text-blue-600"
                 title="Just arrived"
-                count={displaySnapshot.arrivedOrdered.filter(p => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length}
+                count={displaySnapshot.arrivedOrdered.filter((p: any) => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length}
               />
             </div>
             <div className="flex-1 flex flex-col divide-y divide-[#E8E6E0]/40">
-              {displaySnapshot.arrivedOrdered.filter(p => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length > 0 ? (
+              {displaySnapshot.arrivedOrdered.filter((p: any) => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length > 0 ? (
                 <>
-                  {displaySnapshot.arrivedOrdered.map((p) => {
+                  {displaySnapshot.arrivedOrdered.map((p: any) => {
                     if (displaySnapshot.nextPatient?.queueEntryId === p.queueEntryId) return null
                     return (
                       <PipelineRow
@@ -354,7 +357,7 @@ export function SingleDoctorLivePipeline({
             <div className="flex-1 flex flex-col divide-y divide-[#E8E6E0]/40">
               {displaySnapshot.scheduledOrdered.length > 0 ? (
                 <>
-                  {displaySnapshot.scheduledOrdered.map((p) => (
+                  {displaySnapshot.scheduledOrdered.map((p: any) => (
                     <PipelineRow
                       key={p.queueEntryId}
                       patient={p}

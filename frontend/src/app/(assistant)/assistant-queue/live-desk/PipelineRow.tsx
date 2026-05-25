@@ -98,13 +98,9 @@ export function PipelineRow({
       <div className="flex shrink-0 flex-col items-end gap-2.5">
         <StatusBadge status={patient.status} />
         {elapsed && (
-          <div className="flex items-center gap-1.5 rounded-md bg-[#1A5345]/5 px-2 py-1 text-[11px] font-bold tabular-nums text-[#1A5345] ring-1 ring-inset ring-[#1A5345]/10">
-            <span className="relative flex size-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#1A5345] opacity-75"></span>
-              <span className="relative inline-flex size-1.5 rounded-full bg-[#1A5345]"></span>
-            </span>
+          <span className="shrink-0 rounded-md bg-[#1A5345]/5 px-2 py-0.5 text-[11px] font-bold tabular-nums text-[#1A5345]">
             {elapsed}
-          </div>
+          </span>
         )}
       </div>
     </button>

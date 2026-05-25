@@ -9,11 +9,10 @@ export function StatusBadge({ status }: { status: QueueStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-medium sm:text-[10px]",
+        "inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-[10px] font-bold shadow-sm",
         cfg.style,
       )}
     >
-      <span className={cn("inline-block size-1.5 rounded-full", cfg.dot)} />
       {cfg.label}
     </span>
   )

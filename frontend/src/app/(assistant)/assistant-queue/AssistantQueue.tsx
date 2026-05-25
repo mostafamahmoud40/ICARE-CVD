@@ -124,61 +124,58 @@ export function AssistantQueue({
             </div>
           </div>
 
-          <span className="hidden items-center gap-1.5 rounded-full border border-emerald-200/60 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 shadow-sm sm:flex">
-            <span className="inline-block size-1.5 animate-pulse rounded-full bg-emerald-500" />
+          <span className="hidden items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm sm:flex">
+            <span className="relative flex size-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white/60 opacity-75"></span>
+              <span className="relative inline-flex rounded-full size-1.5 bg-white"></span>
+            </span>
             Live
           </span>
         </div>
       </div>
 
-      {queueNavMode !== "history" && (
+      {/* Stats Bar - Only shown in Operations (Live Desk) mode */}
+      {queueNavMode === "operations" && !selectedPatient && (
         <div className="shrink-0 border-b border-[#E8E6E0] bg-[#F9F8F5] p-4 sm:p-5">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
             <StatCell
               icon={UsersIcon}
-              iconBg="bg-[#E8F0EE]"
               iconColor="text-[#1A5345]"
               value={stats.totalToday}
               label="total today"
             />
             <StatCell
               icon={PlayCircleIcon}
-              iconBg="bg-[#D4E5E0]"
               iconColor="text-[#0F3D32]"
               value={stats.inConsultation}
               label="in consultation"
             />
             <StatCell
               icon={ClockIcon}
-              iconBg="bg-amber-100"
               iconColor="text-amber-600"
               value={stats.inWaiting}
               label="waiting"
             />
             <StatCell
               icon={LogInIcon}
-              iconBg="bg-[#F6EFE4]"
               iconColor="text-[#9A6B2F]"
               value={stats.arrived}
               label="arrived"
             />
             <StatCell
               icon={CalendarDaysIcon}
-              iconBg="bg-[#E8E6E0]"
               iconColor="text-[#4F6D64]"
               value={stats.scheduled}
               label="scheduled"
             />
             <StatCell
               icon={CheckCircle2Icon}
-              iconBg="bg-[#E8E0D4]"
               iconColor="text-[#8A6230]"
               value={stats.completed}
               label="completed"
             />
             <StatCell
               icon={TimerIcon}
-              iconBg="bg-[#E0E8E4]"
               iconColor="text-[#4F6D64]"
               value={`${stats.avgWaitMin}m`}
               label="avg wait"

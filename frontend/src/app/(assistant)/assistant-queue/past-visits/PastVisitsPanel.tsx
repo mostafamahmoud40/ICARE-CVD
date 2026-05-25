@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { showIcareSuccessToast } from "@/components/shared/icare-toast"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -46,11 +47,9 @@ type PastVisitsPanelProps = {
 function DateGroupHeader({ label, count }: { label: string; count: number }) {
   return (
     <div className="mb-3 flex items-center gap-2">
-      <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
-        <CalendarDaysIcon className="size-3.5 text-[#1A5345]" />
-      </div>
+      <CalendarDaysIcon className="size-4 text-[#1A5345]" />
       <h3 className="text-[13px] font-bold text-[#102F27]">{label}</h3>
-      <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-[#1A5345] ring-1 ring-[#E5EEEA]">
+      <span className="rounded-lg bg-[#E8F0EE] px-2 py-0.5 text-[10px] font-bold text-[#1A5345] shadow-sm">
         {count}
       </span>
     </div>
@@ -210,15 +209,16 @@ export function PastVisitsPanel({
         </div>
         <div className="flex items-center gap-2">
           {filteredStats.completed > 0 && <AiSmartAlertsPopover />}
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleExport}
             disabled={filteredPatients.length === 0}
-            className="flex size-10 items-center justify-center rounded-xl border border-[#E5EEEA] bg-white text-[#1A5345] transition-all hover:border-[#1A5345]/20 hover:bg-[#E8F0EE] disabled:opacity-50"
+            className="size-8 border-0 bg-transparent text-[#1A5345] hover:bg-transparent hover:text-[#0F3D32] shadow-none transition-colors disabled:opacity-50"
             title="Export CSV"
           >
             <FileTextIcon className="size-4" />
-          </button>
+          </Button>
         </div>
       </div>
 

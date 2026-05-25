@@ -10,6 +10,7 @@ import {
   PillIcon,
   SparklesIcon,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 type AlertTone = "follow-up" | "results" | "no-show" | "rx"
@@ -89,9 +90,10 @@ export function AiSmartAlertsPopover() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="relative flex size-10 items-center justify-center rounded-xl border border-[#E5EEEA] bg-white text-[#1A5345] transition-all hover:border-[#1A5345]/20 hover:bg-[#E8F0EE]"
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative size-8 border-0 bg-transparent text-[#1A5345] hover:bg-transparent hover:text-[#0F3D32] shadow-none"
           title="Smart alerts"
         >
           <SparklesIcon className="size-4" />
@@ -100,7 +102,7 @@ export function AiSmartAlertsPopover() {
               {count}
             </span>
           )}
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent
         align="end"
