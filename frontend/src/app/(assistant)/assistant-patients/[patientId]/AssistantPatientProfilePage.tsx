@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import {
   ArrowLeftIcon,
@@ -53,6 +54,7 @@ import {
   SendIcon,
   EyeIcon,
   CopyIcon,
+  SparklesIcon,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
@@ -166,34 +168,42 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
     setAppointmentDetail,
   } = useAssistantPatientProfilePage({ routePatientId })
 
+  const [prescriptionView, setPrescriptionView] = useState<"table" | "timeline">("timeline")
+
   return (
     <div className="flex h-full flex-col bg-[#F9F8F5] overflow-hidden animate-in fade-in duration-500">
       
       {/* Top bar + patient hub nav (reference: pill tabs under header) */}
       <div className="flex-none z-20 border-b border-[#E8E6E0]/60 bg-white">
-        <div className="flex w-full items-center justify-between px-8 py-4 backdrop-blur-md">
+        <div className="flex w-full items-center justify-between px-5 py-4 sm:px-8">
           <div className="flex items-center gap-4">
             <Link href="/assistant-patients">
-              <Button variant="ghost" size="icon" className="size-9 rounded-lg text-muted-foreground hover:bg-slate-50 hover:text-[#1A1F1E] border border-transparent hover:border-[#E8E6E0]/60 transition-all">
-                <ArrowLeftIcon className="size-4.5" strokeWidth={2} />
+              <Button variant="ghost" size="icon" className="size-8 rounded-lg text-[#6B7870] hover:bg-slate-50 hover:text-[#1A5345] border border-[#E8E6E0]/60 transition-all shadow-sm">
+                <ArrowLeftIcon className="size-4" strokeWidth={2.5} />
               </Button>
             </Link>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <h1 className="text-[18px] font-bold text-[#1A1F1E] tracking-tight">{patient.name}</h1>
-                <span className="inline-flex items-center rounded-full bg-[#1A5345]/10 px-2 py-0.5 text-[11px] font-bold text-[#1A5345]">
+            <div className="flex flex-col space-y-0.5">
+              <div className="flex items-center gap-2.5">
+                <h1 className="font-serif text-[20px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px]">
+                  {patient.name}
+                </h1>
+                <Badge className="rounded-lg bg-[#1A5345] px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
                   {patient.status}
-                </span>
+                </Badge>
               </div>
-              <span className="text-[13px] font-medium text-muted-foreground">Patient Profile &bull; {patient.mrn}</span>
+              <div className="flex items-center gap-2 text-[13px] font-medium text-muted-foreground sm:text-[14px]">
+                <span>Patient Profile</span>
+                <span className="text-[#E8E6E0]">&bull;</span>
+                <span className="font-bold text-[#1A1F1E] tabular-nums tracking-tight">{patient.mrn}</span>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="h-9 gap-2 rounded-lg border border-[#E8E6E0] bg-white px-4 text-[13px] font-semibold text-[#1A1F1E] hover:bg-slate-50 hover:text-[#1A5345] shadow-sm transition-all">
-              <DownloadIcon className="size-3.5" />
+            <Button variant="outline" className="h-8 gap-2 rounded-lg border border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] shadow-sm transition-colors hover:bg-slate-50 hover:text-[#1A5345]">
+              <DownloadIcon className="size-3.5 text-muted-foreground" />
               Export
             </Button>
-            <Button className="h-9 gap-2 rounded-lg bg-[#1A5345] px-4 text-[13px] font-bold text-white hover:bg-[#133F34] shadow-[0_2px_10px_rgba(26,83,69,0.2)] transition-all border-0">
+            <Button className="h-8 gap-2 rounded-lg bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34] border-0">
               <EditIcon className="size-3.5" />
               Edit Profile
             </Button>
@@ -228,6 +238,34 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+        {/* AI Clinical Summary (Persistent across tabs) */}
+        <div className="px-4 sm:px-6 pt-5 pb-1">
+           <Card className="rounded-2xl border border-[#E8E6E0]/80 bg-white shadow-[0_2px_8px_-4px_rgba(0,0,0,0.02)] overflow-hidden">
+             <CardContent className="px-4 py-4 sm:px-5 sm:py-4.5">
+               <div className="flex items-start gap-4">
+                 <SparklesIcon className="size-5.5 text-violet-600 mt-0.5" strokeWidth={2.5} />
+                 <div className="flex-1 min-w-0 flex flex-col">
+                   <div className="flex items-center gap-2 mb-1.5">
+                     <h3 className="text-[15px] font-bold text-[#1A1F1E]">AI Clinical Summary</h3>
+                     <Badge className="rounded-lg border-0 bg-violet-600 text-[10px] font-bold text-white px-2 py-0.5">
+                       Updated today
+                     </Badge>
+                   </div>
+                   <p className="text-[13px] font-medium text-muted-foreground leading-relaxed">
+                     Patient's cardiovascular risk profile has improved. LDL cholesterol is down 15% from last visit, aligning with the recent Atorvastatin dosage increase. Blood pressure remains stable. <strong className="text-[#1A1F1E]">Recommendation:</strong> Schedule follow-up lab panel in 3 months.
+                   </p>
+                   <div className="mt-2.5 flex justify-end">
+                     <Button className="h-6 rounded-lg bg-violet-50 text-violet-700 hover:bg-violet-100 border-0 text-[10px] font-bold px-2.5 transition-colors shadow-none">
+                       <FileTextIcon className="size-3 mr-1" strokeWidth={2.5} />
+                       View Full Analysis
+                     </Button>
+                   </div>
+                 </div>
+               </div>
+             </CardContent>
+           </Card>
+        </div>
+
         {showHubSoon ? (
           <div className="flex min-h-[min(520px,calc(100vh-200px))] flex-col items-center justify-center px-8 py-24">
             <ClockIcon className="mb-5 size-14 text-muted-foreground/35" strokeWidth={1.25} aria-hidden />
@@ -252,7 +290,7 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                     <button className="px-3 py-1.5 text-[12px] font-bold text-muted-foreground hover:text-[#1A1F1E]">Completed</button>
                     <button className="px-3 py-1.5 text-[12px] font-bold text-muted-foreground hover:text-[#1A1F1E]">Cancelled</button>
                  </div>
-                 <Button className="bg-[#1A5345] hover:bg-[#1A1F1E] text-white rounded-xl shadow-[0_2px_10px_rgba(26,83,69,0.2)] h-10 px-4 font-bold text-[13px] transition-all border-0">
+                 <Button className="h-8 rounded-lg bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-all hover:bg-[#0F3D32] border-0">
                     <PlusIcon className="size-4 mr-2" strokeWidth={2.5} />
                     New Visit
                  </Button>
@@ -266,18 +304,18 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
               {MOCK_VISIT_HISTORY.map((visit, index) => (
                 <div key={visit.id} className="relative flex flex-col md:flex-row gap-6 md:gap-14 group">
                   {/* Date & Node Panel */}
-                  <div className="md:w-[120px] shrink-0 md:text-right pt-1 relative">
-                    <p className="text-[15px] font-bold text-[#1A1F1E] leading-tight">{visit.date}</p>
-                    <p className="text-[12px] font-medium text-muted-foreground mt-1.5">{visit.timeAgo}</p>
+                  <div className="md:w-[130px] shrink-0 md:text-right pt-1 relative">
+                    <p className="text-[17px] font-bold text-[#1A1F1E] leading-tight">{visit.date}</p>
+                    <p className="text-[13px] font-medium text-muted-foreground mt-1.5">{visit.timeAgo}</p>
                     <div className="mt-4 flex md:justify-end">
-                      <Badge variant="outline" className="rounded-lg border-[#E8E6E0] bg-[#F9F8F5]/80 px-2 py-0.5 text-[10px] font-bold text-[#1A5345] shadow-sm">
+                      <Badge variant="outline" className="rounded-lg border-[#E8E6E0] bg-[#F9F8F5]/80 px-2.5 py-1 text-[11px] font-bold text-[#1A5345] shadow-sm">
                         {visit.type}
                       </Badge>
                     </div>
                     
                     {/* Timeline Node */}
-                    <div className="hidden md:flex absolute -right-[23px] top-[14px] size-4 items-center justify-center">
-                       <div className="size-3 rounded-full border-2 border-white bg-[#1A5345] shadow-[0_0_0_2px_rgba(26,83,69,0.1)] group-hover:scale-125 transition-transform duration-300"></div>
+                    <div className="hidden md:flex absolute -right-[23px] top-[14px] size-5 items-center justify-center">
+                       <div className="size-3.5 rounded-full border-2 border-white bg-[#1A5345] shadow-[0_0_0_2px_rgba(26,83,69,0.1)] group-hover:scale-125 transition-transform duration-300"></div>
                     </div>
                   </div>
 
@@ -294,7 +332,9 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                                  {visit.doctor.name}
                               </p>
                               <div className="flex items-center gap-2 mt-0.5">
-                                 <span className="text-[12px] font-medium text-muted-foreground">{visit.doctor.department}</span>
+                                 <div className="text-[14px] font-bold text-[#1A1F1E]">
+                                    {visit.doctor.department}
+                                 </div>
                                  <span className="size-1 rounded-full bg-muted-foreground/30"></span>
                                  <span className="text-[12px] font-bold text-[#1A5345]/80">Primary Care</span>
                               </div>
@@ -326,8 +366,8 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                                </div>
                             ))}
                          </div>
-                        <Button className="h-10 gap-1.5 rounded-lg bg-[#1A5345] px-5 text-[13px] font-semibold text-white hover:bg-[#133F34]">
-                          <FileTextIcon className="size-4" strokeWidth={2} />
+                        <Button className="h-8 gap-1.5 rounded-lg bg-[#1A5345] px-4 text-[12px] font-bold text-white hover:bg-[#133F34]">
+                          <FileTextIcon className="size-3.5" strokeWidth={2.5} />
                             View full visit
                          </Button>
                       </div>
@@ -345,11 +385,11 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                 <p className="text-[13px] font-medium text-muted-foreground mt-1">Sytematic record of laboratory investigations</p>
               </div>
               <div className="flex items-center gap-3">
-                 <Button variant="outline" className="rounded-xl border-[#E8E6E0] text-[#1A1F1E] font-bold h-10 px-4 text-[13px]">
+                 <Button variant="outline" className="h-8 rounded-lg border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A1F1E] hover:bg-[#F9F8F5] shadow-none">
                     <RefreshCwIcon className="size-4 mr-2" />
                     Sync Lab
                  </Button>
-                 <Button className="bg-[#1A5345] hover:bg-[#1A1F1E] text-white rounded-xl shadow-[0_2px_10px_rgba(26,83,69,0.2)] h-10 px-4 font-bold text-[13px] transition-all border-0">
+                 <Button className="h-8 rounded-lg bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-all hover:bg-[#0F3D32] border-0">
                     <PlusIcon className="size-4 mr-2" strokeWidth={2.5} />
                     Add Result
                  </Button>
@@ -372,20 +412,20 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                     {/* Report Header Row */}
                     <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1.2fr_auto] gap-4 px-6 py-5 items-center hover:bg-[#F9F8F5]/40 transition-colors">
                       <div className="flex items-center gap-4">
-                        <div className="flex size-10 items-center justify-center rounded-xl border border-[#E8E6E0] bg-[#F9F8F5] text-[#1A5345]">
-                          <DropletsIcon className="size-5" />
+                        <div className="flex size-10 shrink-0 items-center justify-center">
+                          <DropletsIcon className="size-6 text-[#1A5345] stroke-[2.5]" />
                         </div>
                         <h3 className="text-[15px] font-bold text-[#1A1F1E] truncate">{report.title}</h3>
                       </div>
                       
                       <div className="hidden md:block">
-                        <Badge variant="outline" className="rounded-lg border-[#E8E6E0] bg-white text-[11px] font-bold text-[#1A5345] px-2.5 py-0.5">
+                        <Badge className="rounded-lg border-0 bg-[#E8F0EE] text-[11px] font-bold text-[#1A5345] px-2.5 py-1">
                           {report.category}
                         </Badge>
                       </div>
 
                       <div className="hidden md:block">
-                        <span className="text-[14px] font-bold text-[#1A1F1E]">{report.date}</span>
+                        <span className="text-[14px] font-bold tabular-nums text-[#1A1F1E]">{report.date}</span>
                       </div>
 
                       <div className="hidden md:flex items-center gap-3 min-w-0">
@@ -393,7 +433,7 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                            <img src={report.doctor.avatar} alt="" className="size-full object-cover" />
                         </div>
                         <div className="flex flex-col min-w-0">
-                           <p className="min-w-0 truncate text-[14px] font-bold text-[#1A5345]">
+                           <p className="font-serif text-[14px] font-bold text-[#1A5345] truncate">
                              {report.doctor.name}
                            </p>
                            <p className="text-[10px] font-medium text-muted-foreground">{report.doctor.department}</p>
@@ -404,11 +444,11 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                         <Button 
                           onClick={() => setSelectedLabReport(report)}
                           variant="outline" 
-                          className="h-9 rounded-xl border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] hover:bg-[#F9F8F5] shadow-none"
+                          className="h-8 rounded-lg border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A1F1E] hover:bg-[#F9F8F5] shadow-none"
                         >
                           View Report
                         </Button>
-                        <Button variant="ghost" size="icon" className="size-9 rounded-xl border border-transparent text-muted-foreground hover:border-[#E8E6E0] hover:bg-[#F9F8F5] hover:text-[#1A1F1E]">
+                        <Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground hover:bg-[#F9F8F5] hover:text-[#1A5345]">
                           <DownloadIcon className="size-4" />
                         </Button>
                       </div>
@@ -435,88 +475,191 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                 <p className="text-[13px] font-medium text-muted-foreground mt-1">Manage and track patient medication orders</p>
               </div>
               <div className="flex items-center gap-3">
-                 <Button variant="outline" className="rounded-xl border-[#E8E6E0] text-[#1A1F1E] font-bold h-10 px-4 text-[13px]">
+                 <div className="hidden sm:flex items-center bg-white border border-[#E8E6E0] rounded-xl px-1.5 h-10">
+                    <button 
+                      onClick={() => setPrescriptionView("table")}
+                      className={cn(
+                        "px-3 py-1.5 text-[12px] font-bold rounded-lg transition-all",
+                        prescriptionView === "table" ? "text-[#1A5345] bg-[#F9F8F5]" : "text-muted-foreground hover:text-[#1A1F1E]"
+                      )}
+                    >
+                      Table
+                    </button>
+                    <button 
+                      onClick={() => setPrescriptionView("timeline")}
+                      className={cn(
+                        "px-3 py-1.5 text-[12px] font-bold rounded-lg transition-all",
+                        prescriptionView === "timeline" ? "text-[#1A5345] bg-[#F9F8F5]" : "text-muted-foreground hover:text-[#1A1F1E]"
+                      )}
+                    >
+                      Timeline
+                    </button>
+                 </div>
+                 <Button variant="outline" className="h-8 rounded-lg border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A1F1E] hover:bg-[#F9F8F5] shadow-none">
                     <DownloadIcon className="size-4 mr-2" />
                     Export All
                  </Button>
-                 <Button className="bg-[#1A5345] hover:bg-[#1A1F1E] text-white rounded-xl shadow-[0_2px_10px_rgba(26,83,69,0.2)] h-10 px-4 font-bold text-[13px] transition-all border-0">
+                 <Button className="h-8 rounded-lg bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-all hover:bg-[#0F3D32] border-0">
                     <PlusIcon className="size-4 mr-2" strokeWidth={2.5} />
                     New Prescription
                  </Button>
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/80 bg-white shadow-sm">
-              {/* Table Header Row */}
-              <div className="normal-case hidden md:grid grid-cols-[1.5fr_1.2fr_1fr_1fr_auto] gap-4 px-6 py-3.5 bg-[#FAFAF8] border-b border-[#E8E6E0]/80">
-                <span className="text-[14px] font-semibold !normal-case text-[#1A1F1E]">Prescription title</span>
-                <span className="text-[14px] font-semibold !normal-case text-[#1A1F1E]">Prescribed by</span>
-                <span className="text-[14px] font-semibold !normal-case text-[#1A1F1E]">Date</span>
-                <span className="text-[14px] font-semibold !normal-case text-[#1A1F1E]">Status</span>
-                <span className="sr-only">Actions</span>
+            {prescriptionView === "table" ? (
+              <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/80 bg-white shadow-sm">
+                {/* Table Header Row */}
+                <div className="hidden md:grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto] gap-4 px-6 py-3.5 bg-[#F9F8F5] border-b border-[#E8E6E0]/80">
+                  <span className="text-[13px] font-bold text-[#1A1F1E]">Prescription title</span>
+                  <span className="text-[13px] font-bold text-[#1A1F1E]">Prescribed by</span>
+                  <span className="text-[13px] font-bold text-[#1A1F1E]">Department</span>
+                  <span className="text-[13px] font-bold text-[#1A1F1E]">Date</span>
+                  <span className="text-[13px] font-bold text-[#1A1F1E]">Status</span>
+                  <span className="sr-only">Actions</span>
+                </div>
+
+                <div className="divide-y divide-[#E8E6E0]/60">
+                  {MOCK_PRESCRIPTIONS.map((pres) => (
+                    <div key={pres.id} className="group transition-all duration-200">
+                      <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto] gap-4 px-6 py-5 items-center hover:bg-[#F9F8F5]/40 transition-colors">
+                        {/* Title Column */}
+                        <div className="flex items-center gap-4">
+                          <div className="flex size-10 shrink-0 items-center justify-center">
+                            <PillIcon className="size-6 text-[#1A5345] stroke-[2.5]" />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-[14px] font-bold text-[#1A1F1E] truncate">Medication Order #{pres.id.split('-')[1]}</h3>
+                            <p className="text-[11px] font-medium text-muted-foreground">{pres.medications.length} items prescribed</p>
+                          </div>
+                        </div>
+
+                        {/* Prescribed By Column */}
+                        <div className="hidden md:flex items-center gap-3 min-w-0">
+                          <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F3F2F0]">
+                             <img src={pres.doctor.avatar} alt="" className="size-full object-cover" />
+                          </div>
+                          <p className="font-serif text-[14px] font-bold text-[#1A5345] truncate">
+                            {pres.doctor.name}
+                          </p>
+                        </div>
+
+                        {/* Department Column */}
+                        <div className="hidden md:flex items-center text-[14px] font-bold text-[#1A1F1E]">
+                           {pres.doctor.department}
+                        </div>
+
+                        {/* Date Column */}
+                        <div className="hidden md:block">
+                          <span className="text-[14px] font-bold tabular-nums text-[#1A1F1E]">{pres.date}</span>
+                        </div>
+
+                        {/* Status Column */}
+                        <div className="hidden md:block">
+                          <Badge className={cn(
+                            "rounded-lg px-2.5 py-0.5 text-[10px] font-bold shadow-sm",
+                            pres.status === "active" ? "bg-emerald-600 text-white" : "bg-slate-500 text-white"
+                          )}>
+                            {pres.status}
+                          </Badge>
+                        </div>
+
+                        {/* Actions Column */}
+                        <div className="flex items-center gap-2 justify-end">
+                          <Button 
+                            onClick={() => setSelectedPrescription(pres)}
+                            variant="outline" 
+                            className="h-8 rounded-lg border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A1F1E] hover:bg-[#F9F8F5] shadow-none"
+                          >
+                            View RX
+                          </Button>
+                          <Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground hover:bg-[#F9F8F5] hover:text-[#1A5345]">
+                            <ShareIcon className="size-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
+            ) : (
+              <div className="relative flex flex-col gap-10 pt-4">
+                {/* Vertical Timeline Line */}
+                <div className="absolute left-[144px] top-12 bottom-0 w-0.5 bg-gradient-to-b from-[#E8E6E0] via-[#E8E6E0] to-transparent hidden md:block"></div>
 
-              <div className="divide-y divide-[#E8E6E0]/60">
-                {MOCK_PRESCRIPTIONS.map((pres) => (
-                  <div key={pres.id} className="group transition-all duration-200">
-                    <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1.2fr_1fr_1fr_auto] gap-4 px-6 py-5 items-center hover:bg-[#F9F8F5]/40 transition-colors">
-                      {/* Title Column */}
-                      <div className="flex items-center gap-4">
-                        <div className="flex size-10 items-center justify-center rounded-xl border border-[#E8E6E0] bg-[#F9F8F5] text-[#1A5345]">
-                          <PillIcon className="size-5" />
+                {Object.entries(
+                  MOCK_PRESCRIPTIONS.reduce((acc, pres) => {
+                    if (!acc[pres.date]) acc[pres.date] = []
+                    acc[pres.date].push(pres)
+                    return acc
+                  }, {} as Record<string, typeof MOCK_PRESCRIPTIONS>)
+                ).map(([date, prescriptions]) => (
+                  <div key={date} className="relative flex flex-col md:flex-row gap-6 md:gap-14 group">
+                    {/* Date & Node Panel */}
+                    <div className="md:w-[130px] shrink-0 md:text-right pt-1 relative">
+                      <p className="text-[17px] font-bold tabular-nums text-[#1A1F1E] leading-tight">{date}</p>
+                      <p className="text-[12px] font-medium text-muted-foreground mt-1.5">{prescriptions.length} order{prescriptions.length > 1 ? 's' : ''}</p>
+                      
+                      {/* Timeline Node */}
+                      <div className="hidden md:flex absolute -right-[23px] top-[14px] size-5 items-center justify-center">
+                         <div className="size-3.5 rounded-full border-2 border-white bg-[#1A5345] shadow-[0_0_0_2px_rgba(26,83,69,0.1)] group-hover:scale-125 transition-transform duration-300"></div>
+                      </div>
+                    </div>
+
+                    {/* Stack of Cards for this Date */}
+                    <div className="flex-1 flex flex-col gap-4">
+                      {prescriptions.map((pres) => (
+                        <div key={pres.id} className="rounded-xl border border-[#ECEAE4] bg-white p-4 shadow-none hover:border-[#DDD9D0] transition-all">
+                          <div className="flex flex-col gap-4">
+                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] overflow-hidden">
+                                    <img src={pres.doctor.avatar} alt="" className="size-full object-cover" />
+                                 </div>
+                                 <div>
+                                    <p className="font-serif text-[15px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">
+                                       {pres.doctor.name}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                       <div className="text-[13px] font-bold text-[#1A1F1E]">
+                                          {pres.doctor.department}
+                                       </div>
+                                       <span className="size-1 rounded-full bg-muted-foreground/30"></span>
+                                       <span className="text-[11px] font-bold text-[#1A5345]">{pres.medications.length} items</span>
+                                       <Badge className={cn(
+                                          "ml-1.5 rounded-lg px-2 py-0.5 text-[10px] font-bold shadow-sm",
+                                          pres.status === "active" ? "bg-emerald-600 text-white" : "bg-slate-500 text-white"
+                                        )}>
+                                          {pres.status}
+                                        </Badge>
+                                    </div>
+                                 </div>
+                              </div>
+                              <div className="flex gap-1.5">
+                                 <Button 
+                                   onClick={() => setSelectedPrescription(pres)}
+                                   variant="ghost" 
+                                   size="icon" 
+                                   className="size-8 rounded-lg hover:bg-[#F9F8F5] text-[#1A5345] hover:text-[#0F3D32]"
+                                   title="View RX"
+                                 >
+                                    <FileTextIcon className="size-4" strokeWidth={2.5} />
+                                 </Button>
+                                 <Button variant="ghost" size="icon" className="size-8 rounded-lg hover:bg-[#F9F8F5] text-muted-foreground hover:text-[#1A5345]">
+                                    <ShareIcon className="size-4" />
+                                 </Button>
+                                 <Button variant="ghost" size="icon" className="size-8 rounded-lg hover:bg-[#F9F8F5] text-muted-foreground hover:text-[#1A1F1E]">
+                                    <MoreVerticalIcon className="size-4" />
+                                 </Button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="text-[15px] font-bold text-[#1A1F1E] truncate">Medication Order #{pres.id.split('-')[1]}</h3>
-                          <p className="text-[11px] font-medium text-muted-foreground">{pres.medications.length} items prescribed</p>
-                        </div>
-                      </div>
-
-                      {/* Prescribed By Column */}
-                      <div className="hidden md:flex items-center gap-3 min-w-0">
-                        <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F3F2F0]">
-                           <img src={pres.doctor.avatar} alt="" className="size-full object-cover" />
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                           <p className="min-w-0 truncate text-[14px] font-bold text-[#1A5345]">
-                             {pres.doctor.name}
-                           </p>
-                           <p className="text-[10px] font-medium text-muted-foreground">{pres.doctor.department}</p>
-                        </div>
-                      </div>
-
-                      {/* Date Column */}
-                      <div className="hidden md:block">
-                        <span className="text-[14px] font-bold text-[#1A1F1E]">{pres.date}</span>
-                      </div>
-
-                      {/* Status Column */}
-                      <div className="hidden md:block">
-                        <Badge variant="outline" className={cn(
-                          "rounded-lg border-[#E8E6E0] bg-white text-[11px] font-bold px-2.5 py-0.5",
-                          pres.status === "active" ? "text-emerald-700 border-emerald-100 bg-emerald-50/30" : "text-slate-500 border-slate-100 bg-slate-50/30"
-                        )}>
-                          {pres.status}
-                        </Badge>
-                      </div>
-
-                      {/* Actions Column */}
-                      <div className="flex items-center gap-2 justify-end">
-                        <Button 
-                          onClick={() => setSelectedPrescription(pres)}
-                          variant="outline" 
-                          className="h-9 rounded-xl border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] hover:bg-[#F9F8F5] shadow-none"
-                        >
-                          View RX
-                        </Button>
-                        <Button variant="ghost" size="icon" className="size-9 rounded-xl border border-transparent text-muted-foreground hover:border-[#E8E6E0] hover:bg-[#F9F8F5] hover:text-[#1A1F1E]">
-                          <ShareIcon className="size-4" />
-                        </Button>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
 
             {/* Prescription Formal Dialog */}
             <PrescriptionDialog 
@@ -534,7 +677,7 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
               </div>
               <Button 
                 onClick={() => setIsAddVitalsOpen(true)}
-                className="bg-[#1A5345] hover:bg-[#1A1F1E] text-white rounded-xl shadow-[0_2px_10px_rgba(26,83,69,0.2)] h-10 px-4 font-bold text-[13px] transition-all border-0"
+                className="h-8 rounded-lg bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-all hover:bg-[#0F3D32] border-0"
               >
                 <PlusIcon className="size-4 mr-2" strokeWidth={2.5} />
                 Add Reading
@@ -545,10 +688,10 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
             <div className="rounded-2xl border border-[#E8E6E0]/80 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] p-6 overflow-hidden">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-2.5">
-                  <ActivityIcon className="size-5 text-[#1A5345]" strokeWidth={2.5} />
+                  <ActivityIcon className="size-5 text-[#1A5345] stroke-[2.5]" />
                   <h3 className="text-[16px] font-bold text-[#1A1F1E]">Vitals trend</h3>
                 </div>
-                <Badge className="rounded-lg border-0 bg-[#1A5345] px-2.5 py-1 text-[11px] font-bold text-white hover:bg-[#1A5345]">
+                <Badge className="rounded-lg border-0 bg-[#1A5345] px-2.5 py-1 text-[11px] font-bold text-white">
                   All recorded measurements
                 </Badge>
               </div>
@@ -604,22 +747,22 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/80 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)]">
+            <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/80 bg-white shadow-sm">
               <div className="overflow-x-auto custom-scrollbar">
                 <div className="min-w-[1100px]">
                   <div
-                    className={`${VITALS_TABLE_GRID} border-b border-[#E8E6E0]/80 bg-[#F0EFEA] py-3.5 text-left`}
+                    className={`${VITALS_TABLE_GRID} border-b border-[#E8E6E0]/80 bg-[#F9F8F5] py-3.5 text-left`}
                     role="row"
                   >
-                    <span className="text-[15px] font-bold text-[#1A1F1E]">Date</span>
-                    <span className="text-[15px] font-bold text-[#1A1F1E]">Time</span>
-                    <span className="text-[15px] font-bold text-[#1A1F1E]">BP</span>
-                    <span className="text-[15px] font-bold text-[#1A1F1E]">HR</span>
-                    <span className="text-[15px] font-bold text-[#1A1F1E]">Temp</span>
-                    <span className="text-[15px] font-bold text-[#1A1F1E]">SpO2</span>
-                    <span className="text-[15px] font-bold text-[#1A1F1E]">Glu</span>
-                    <span className="text-[15px] font-bold text-[#1A1F1E]">Wgt</span>
-                    <span className="text-[15px] font-bold text-[#1A1F1E]">Taken by</span>
+                    <span className="text-[13px] font-bold text-[#1A1F1E] px-6">Date</span>
+                    <span className="text-[13px] font-bold text-[#1A1F1E]">Time</span>
+                    <span className="text-[13px] font-bold text-[#1A1F1E]">BP</span>
+                    <span className="text-[13px] font-bold text-[#1A1F1E]">HR</span>
+                    <span className="text-[13px] font-bold text-[#1A1F1E]">Temp</span>
+                    <span className="text-[13px] font-bold text-[#1A1F1E]">SpO2</span>
+                    <span className="text-[13px] font-bold text-[#1A1F1E]">Glu</span>
+                    <span className="text-[13px] font-bold text-[#1A1F1E]">Wgt</span>
+                    <span className="text-[13px] font-bold text-[#1A1F1E]">Taken by</span>
                     <span className="sr-only">Actions</span>
                   </div>
 
@@ -629,49 +772,49 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                       role="row"
                       className={`${VITALS_TABLE_GRID} group cursor-pointer border-b border-[#E8E6E0]/50 py-4 last:border-b-0 transition-colors hover:bg-[#F9F8F5]/70`}
                     >
-                      <div className="flex min-w-0 items-center gap-2">
+                      <div className="flex min-w-0 items-center gap-2 px-6">
                         <CalendarIcon className="size-4 shrink-0 text-[#1A5345]/70" aria-hidden />
-                        <span className="text-[14px] font-bold text-[#1A1F1E]">{vh.date}</span>
+                        <span className="text-[14px] font-bold tabular-nums text-[#1A1F1E]">{vh.date}</span>
                       </div>
                       <div className="flex min-w-0 items-center gap-2">
                         <ClockIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                        <span className="text-[13px] font-semibold text-[#1A1F1E]">{vh.time}</span>
+                        <span className="text-[13px] font-semibold tabular-nums text-[#1A1F1E]">{vh.time}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-bold text-[#1A5345]">{vh.bp}</span>
+                        <span className="text-[14px] font-bold tabular-nums text-[#1A5345]">{vh.bp}</span>
                         <span className="text-[10px] text-muted-foreground font-medium">mmHg</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-bold text-[#1A1F1E]">{vh.hr}</span>
+                        <span className="text-[14px] font-bold tabular-nums text-[#1A1F1E]">{vh.hr}</span>
                         <span className="text-[10px] text-muted-foreground font-medium">bpm</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-bold text-[#1A1F1E]">{vh.temp}</span>
+                        <span className="text-[14px] font-bold tabular-nums text-[#1A1F1E]">{vh.temp}</span>
                         <span className="text-[10px] text-muted-foreground font-medium">°C</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-bold text-[#1A1F1E]">{vh.spo2}</span>
+                        <span className="text-[14px] font-bold tabular-nums text-[#1A1F1E]">{vh.spo2}</span>
                         <span className="text-[10px] text-muted-foreground font-medium">%</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-bold text-[#1A1F1E]">{vh.glucose}</span>
+                        <span className="text-[14px] font-bold tabular-nums text-[#1A1F1E]">{vh.glucose}</span>
                         <span className="text-[10px] text-muted-foreground font-medium">mg/dL</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-bold text-[#1A1F1E]">{vh.weight}</span>
+                        <span className="text-[14px] font-bold tabular-nums text-[#1A1F1E]">{vh.weight}</span>
                         <span className="text-[10px] text-muted-foreground font-medium">kg</span>
                       </div>
                       <div className="flex min-w-0 items-center gap-2">
                         <UserIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                        <span className="min-w-0 truncate text-[13px] font-medium text-[#1A1F1E]">{vh.takenBy}</span>
+                        <span className="min-w-0 truncate text-[13px] font-medium font-serif text-[#1A1F1E]">{vh.takenBy}</span>
                       </div>
-                      <div className="flex justify-end">
+                      <div className="flex justify-end pr-6">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-9 rounded-xl text-muted-foreground group-hover:bg-white group-hover:text-[#1A1F1E]"
+                              className="size-8 rounded-lg text-muted-foreground group-hover:bg-white group-hover:text-[#1A1F1E]"
                               aria-label={`More actions for ${vh.date}`}
                             >
                               <MoreVerticalIcon className="size-4" />
@@ -1162,58 +1305,62 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
           <div className="w-full lg:w-[440px] shrink-0 flex flex-col gap-6">
             
             {/* Combined Identity & Details Card */}
-            <div className="rounded-2xl border border-[#E8E6E0]/80 bg-white shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] overflow-hidden flex flex-col">
-              {/* Header section */}
-              <div className="h-24 bg-gradient-to-br from-[#1A5345] to-[#133F34] relative">
-                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "16px 16px" }}></div>
+            <div className="rounded-2xl border border-[#E8E6E0]/80 bg-white shadow-sm overflow-hidden flex flex-col">
+              {/* Header section — matching premium Medication style */}
+              <div className="h-24 bg-[#F9F8F5] relative border-b border-[#E8E6E0]/60">
+                <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, #1A5345 1px, transparent 0)", backgroundSize: "16px 16px" }}></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/40"></div>
               </div>
               <div className="px-6 pb-6 pt-0 relative flex flex-col items-center text-center">
-                <div className="relative size-24 rounded-full border-4 border-white shadow-md bg-slate-100 overflow-hidden -mt-12 mb-3">
+                <div className="relative size-24 rounded-full border-4 border-white shadow-lg bg-slate-100 overflow-hidden -mt-12 mb-4">
                   <img src={`https://i.pravatar.cc/150?u=${patient.id}`} alt={patient.name} className="size-full object-cover" />
                 </div>
-                <h2 className="text-[20px] font-bold text-[#1A1F1E] font-serif">{patient.name}</h2>
-                <p className="text-[14px] font-medium text-muted-foreground mt-0.5">{patient.age} yrs &bull; {patient.gender}</p>
+                <h2 className="text-[22px] font-bold text-[#1A1F1E] font-serif leading-tight">{patient.name}</h2>
+                <div className="mt-1 flex items-center justify-center gap-2 text-[13px] font-medium text-[#6B7870]">
+                   <span>{patient.age} yrs</span>
+                   <span className="text-[#E8E6E0]">&bull;</span>
+                   <span>{patient.gender}</span>
+                </div>
                 
                 <div className="mt-5 w-full flex items-center justify-center gap-2">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-100">
-                    <AlertCircleIcon className="size-3.5" />
-                    <span className="text-[12px] font-bold">{patient.riskLevel}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 text-[#1A1F1E] border border-slate-200">
-                    <span className="text-[12px] font-bold tracking-widest">{patient.bloodType}</span>
+                  <Badge className="rounded-lg bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm border-0">
+                    <AlertCircleIcon className="mr-1 size-3.5" />
+                    {patient.riskLevel}
+                  </Badge>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F9F8F5] text-[#1A1F1E] border border-[#E8E6E0] shadow-none">
+                    <span className="text-[11px] font-bold tracking-widest">{patient.bloodType}</span>
                   </div>
                 </div>
               </div>
 
               {/* Divider */}
               <div className="px-6">
-                <hr className="border-[#E8E6E0]/60" />
+                <div className="h-px w-full bg-[#E8E6E0]/60" />
               </div>
 
               {/* Details List */}
-              <div className="p-6 flex flex-col gap-5">
-                <h3 className="text-[14px] font-bold text-[#1A1F1E]">Patient Details</h3>
+              <div className="p-6 flex flex-col gap-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[14px] font-bold text-[#1A1F1E]">Patient Details</h3>
+                  <div className="h-px flex-1 ml-4 bg-[#E8E6E0]/60" />
+                </div>
                 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-4">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-x-4">
                   <div className="flex min-w-0 items-start gap-3 sm:col-span-2">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-muted-foreground border border-[#E8E6E0]/60">
-                      <PhoneIcon className="size-3.5" />
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col pt-0.5">
-                      <span className="text-[12px] font-bold text-muted-foreground">Phone</span>
-                      <span className="text-[14px] font-medium text-[#1A1F1E]">{patient.phone}</span>
+                    <PhoneIcon className="size-4 text-[#1A5345] shrink-0 mt-0.5" />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">Phone</span>
+                      <span className="text-[14px] font-bold text-[#1A1F1E] tabular-nums">{patient.phone}</span>
                     </div>
                   </div>
                   
                   <div className="flex min-w-0 items-start gap-3 sm:col-span-2">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-muted-foreground border border-[#E8E6E0]/60">
-                      <MailIcon className="size-3.5" />
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col pt-0.5">
-                      <span className="text-[12px] font-bold text-muted-foreground">Email</span>
+                    <MailIcon className="size-4 text-[#1A5345] shrink-0 mt-0.5" />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">Email</span>
                       <a
                         href={`mailto:${patient.email}`}
-                        className="text-[14px] font-medium text-[#1A1F1E] break-words [overflow-wrap:anywhere] hover:text-[#1A5345] hover:underline"
+                        className="text-[14px] font-bold text-[#1A1F1E] break-words [overflow-wrap:anywhere] hover:text-[#1A5345] transition-colors"
                       >
                         {patient.email}
                       </a>
@@ -1221,102 +1368,85 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                   </div>
 
                   <div className="flex min-w-0 items-start gap-3 sm:col-span-2">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-muted-foreground border border-[#E8E6E0]/60">
-                      <MapPinIcon className="size-3.5" />
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col pt-0.5">
-                      <span className="text-[12px] font-bold text-muted-foreground">Address</span>
-                      <span className="text-[14px] font-medium text-[#1A1F1E] leading-snug">{patient.address}</span>
+                    <MapPinIcon className="size-4 text-[#1A5345] shrink-0 mt-0.5" />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">Address</span>
+                      <span className="text-[14px] font-bold text-[#1A1F1E] leading-snug">{patient.address}</span>
                     </div>
                   </div>
 
                   <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-muted-foreground border border-[#E8E6E0]/60">
-                      <HeartIcon className="size-3.5" />
-                    </div>
-                    <div className="flex min-w-0 flex-col pt-0.5">
-                      <span className="text-[12px] font-bold text-muted-foreground">Marital Status</span>
-                      <span className="text-[14px] font-medium text-[#1A1F1E]">{patient.maritalStatus}</span>
+                    <HeartIcon className="size-4 text-[#1A5345] shrink-0 mt-0.5" />
+                    <div className="flex min-w-0 flex-col">
+                      <span className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">Marital</span>
+                      <span className="text-[14px] font-bold text-[#1A1F1E] truncate">{patient.maritalStatus}</span>
                     </div>
                   </div>
 
                   <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-muted-foreground border border-[#E8E6E0]/60">
-                      <BriefcaseIcon className="size-3.5" />
-                    </div>
-                    <div className="flex min-w-0 flex-col pt-0.5">
-                      <span className="text-[12px] font-bold text-muted-foreground">Occupation</span>
-                      <span className="text-[14px] font-medium text-[#1A1F1E]">{patient.occupation}</span>
+                    <BriefcaseIcon className="size-4 text-[#1A5345] shrink-0 mt-0.5" />
+                    <div className="flex min-w-0 flex-col">
+                      <span className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">Occupation</span>
+                      <span className="text-[14px] font-bold text-[#1A1F1E] truncate">{patient.occupation}</span>
                     </div>
                   </div>
 
                   <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-muted-foreground border border-[#E8E6E0]/60">
-                      <CalendarPlusIcon className="size-3.5" />
-                    </div>
-                    <div className="flex min-w-0 flex-col pt-0.5">
-                      <span className="text-[12px] font-bold text-muted-foreground">Registered On</span>
-                      <span className="text-[14px] font-medium text-[#1A1F1E]">{patient.dateAdded}</span>
+                    <CalendarPlusIcon className="size-4 text-[#1A5345] shrink-0 mt-0.5" />
+                    <div className="flex min-w-0 flex-col">
+                      <span className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">Registered</span>
+                      <span className="text-[14px] font-bold text-[#1A1F1E] tabular-nums truncate">{patient.dateAdded}</span>
                     </div>
                   </div>
 
                   <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-muted-foreground border border-[#E8E6E0]/60">
-                      <HistoryIcon className="size-3.5" />
-                    </div>
-                    <div className="flex min-w-0 flex-col pt-0.5">
-                      <span className="text-[12px] font-bold text-muted-foreground">Last Visit</span>
-                      <span className="text-[14px] font-medium text-[#1A1F1E]">{patient.lastVisitDate}</span>
+                    <HistoryIcon className="size-4 text-[#1A5345] shrink-0 mt-0.5" />
+                    <div className="flex min-w-0 flex-col">
+                      <span className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">Last Visit</span>
+                      <span className="text-[14px] font-bold text-[#1A1F1E] tabular-nums truncate">{patient.lastVisitDate}</span>
                     </div>
                   </div>
-                  <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-muted-foreground border border-[#E8E6E0]/60">
-                      <ScaleIcon className="size-3.5" />
-                    </div>
-                    <div className="flex min-w-0 flex-col pt-0.5">
-                      <span className="text-[12px] font-bold text-muted-foreground">Height / BMI</span>
-                      <span className="text-[14px] font-medium text-[#1A1F1E]">{patient.height} • {patient.bmi}</span>
+                  
+                  <div className="flex min-w-0 items-start gap-3 sm:col-span-2">
+                    <ScaleIcon className="size-4 text-[#1A5345] shrink-0 mt-0.5" />
+                    <div className="flex min-w-0 flex-col">
+                      <span className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">Height / BMI</span>
+                      <span className="text-[14px] font-bold text-[#1A1F1E] tabular-nums">{patient.height} &bull; {patient.bmi}</span>
                     </div>
                   </div>
 
-                  <div className="flex min-w-0 items-start gap-3 sm:col-span-2 mt-2 pt-2 border-t border-[#E8E6E0]/50">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-500 border border-red-100">
-                      <AlertTriangleIcon className="size-3.5" />
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col pt-0.5">
-                      <span className="text-[12px] font-bold text-red-500">Allergies & Contraindications</span>
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  <div className="flex min-w-0 items-start gap-3 sm:col-span-2 mt-2 pt-4 border-t border-[#E8E6E0]/60">
+                    <AlertTriangleIcon className="size-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="text-[11px] font-bold uppercase tracking-tight text-rose-600">Allergies & Contraindications</span>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
                         {patient.allergies.map(allergy => (
-                           <span key={allergy} className="inline-flex items-center rounded-md bg-red-50 px-2 py-0.5 text-[12px] font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
+                           <Badge key={allergy} className="rounded-lg bg-rose-600 px-2 py-0.5 text-[11px] font-bold text-white shadow-sm border-0">
                              {allergy}
-                           </span>
+                           </Badge>
                         ))}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex min-w-0 items-start gap-3 sm:col-span-2 mt-2 pt-2 border-t border-[#E8E6E0]/50">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-muted-foreground border border-[#E8E6E0]/60">
-                      <UsersIcon className="size-3.5" />
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col pt-0.5">
-                      <span className="text-[12px] font-bold text-muted-foreground">Emergency Contact</span>
-                      <span className="text-[14px] font-medium text-[#1A1F1E]">{patient.emergencyContact.name} ({patient.emergencyContact.relation})</span>
-                      <span className="text-[13px] font-medium text-muted-foreground mt-0.5">{patient.emergencyContact.phone}</span>
+                  <div className="flex min-w-0 items-start gap-3 sm:col-span-2 mt-2 pt-4 border-t border-[#E8E6E0]/60">
+                    <UsersIcon className="size-4 text-[#1A5345] shrink-0 mt-0.5" />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">Emergency Contact</span>
+                      <span className="text-[14px] font-bold text-[#1A1F1E]">{patient.emergencyContact.name} <span className="text-[#6B7870] font-medium">({patient.emergencyContact.relation})</span></span>
+                      <span className="text-[13px] font-bold text-[#1A5345] tabular-nums mt-0.5">{patient.emergencyContact.phone}</span>
                     </div>
                   </div>
 
                   <div
                     id="patient-insurance"
-                    className="flex min-w-0 scroll-mt-28 items-start gap-3 sm:col-span-2 mt-2 pt-2 border-t border-[#E8E6E0]/50"
+                    className="flex min-w-0 scroll-mt-28 items-start gap-3 sm:col-span-2 mt-2 pt-4 border-t border-[#E8E6E0]/60"
                   >
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-muted-foreground border border-[#E8E6E0]/60">
-                      <ShieldIcon className="size-3.5" />
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col pt-0.5">
-                      <span className="text-[12px] font-bold text-muted-foreground">Insurance Info</span>
-                      <span className="text-[14px] font-medium text-[#1A1F1E]">{patient.insurance.provider}</span>
-                      <span className="text-[13px] font-medium text-muted-foreground mt-0.5">Policy: {patient.insurance.policyNumber}</span>
+                    <ShieldIcon className="size-4 text-[#1A5345] shrink-0 mt-0.5" />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">Insurance Info</span>
+                      <span className="text-[14px] font-bold text-[#1A1F1E]">{patient.insurance.provider}</span>
+                      <span className="text-[13px] font-medium text-[#6B7870] mt-0.5 uppercase tracking-wider text-[11px] font-bold">Policy: <span className="text-[#1A1F1E] tabular-nums font-bold">{patient.insurance.policyNumber}</span></span>
                     </div>
                   </div>
                 </div>
@@ -1324,31 +1454,31 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
             </div>
 
             {/* Care Team */}
-            <div className="rounded-2xl border border-[#1A5345]/10 bg-[#1A5345]/[0.02] p-5 flex flex-col gap-5 relative overflow-hidden">
+            <div className="rounded-2xl border border-[#1A5345]/10 bg-[#F9F8F5]/50 p-5 flex flex-col gap-5 relative overflow-hidden">
               <StethoscopeIcon className="absolute -right-4 -bottom-4 size-24 text-[#1A5345]/5" strokeWidth={1} />
-              <h3 className="text-[14px] font-bold text-[#1A1F1E] z-10 flex items-center justify-between">
-                Care Team
-                <Button variant="ghost" size="sm" className="h-6 text-[11px] font-semibold text-[#1A5345] hover:bg-[#1A5345]/10 px-2">Message All</Button>
-              </h3>
+              <div className="z-10 flex items-center justify-between">
+                <h3 className="text-[14px] font-bold text-[#1A1F1E]">Care Team</h3>
+                <Button variant="ghost" size="sm" className="h-6 rounded-md text-[11px] font-bold text-[#1A5345] hover:bg-[#1A5345]/10 px-2 transition-colors">Message All</Button>
+              </div>
               
               <div className="flex flex-col gap-4 z-10">
                 <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-full border border-white shadow-sm overflow-hidden bg-slate-200 shrink-0">
+                  <div className="size-10 rounded-2xl border-2 border-white shadow-sm overflow-hidden bg-slate-100 shrink-0">
                      <img src="https://i.pravatar.cc/150?u=dr" alt="Doctor" className="size-full object-cover" />
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="text-[14px] font-bold text-[#1A1F1E] truncate">{patient.primaryDoctor}</span>
-                    <span className="text-[12px] font-medium text-[#1A5345] truncate">Primary Cardiologist</span>
+                    <span className="text-[11px] font-bold uppercase tracking-tight text-[#1A5345]">Primary Cardiologist</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-full border border-white shadow-sm overflow-hidden bg-slate-200 shrink-0">
+                  <div className="size-10 rounded-2xl border-2 border-white shadow-sm overflow-hidden bg-slate-100 shrink-0">
                      <img src="https://i.pravatar.cc/150?u=nurse" alt="Nurse" className="size-full object-cover" />
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="text-[14px] font-bold text-[#1A1F1E] truncate">Emily Watson, RN</span>
-                    <span className="text-[12px] font-medium text-muted-foreground truncate">Cardiac Care Nurse</span>
+                    <span className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">Cardiac Care Nurse</span>
                   </div>
                 </div>
               </div>
@@ -1374,10 +1504,10 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                 {/* Upcoming Appointment */}
                 <div className="rounded-2xl border border-[#E8E6E0]/80 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] hover:border-[#1A5345]/30 hover:shadow-md transition-all group p-5 flex flex-col gap-4 relative overflow-hidden">
                   <div className="flex items-center justify-between z-10">
-                    <span className="inline-flex items-center rounded-lg bg-[#E89042]/15 px-2.5 py-1 text-[12px] font-bold text-[#D9772B]">
+                    <Badge className="rounded-lg bg-[#E89042] px-2.5 py-1 text-[11px] font-bold text-white shadow-sm border-0">
                       Upcoming
-                    </span>
-                    <div className="flex size-9 items-center justify-center rounded-xl border border-violet-200 bg-violet-50 text-violet-600 shadow-sm ring-4 ring-white">
+                    </Badge>
+                    <div className="flex size-9 items-center justify-center rounded-lg border border-[#E8E6E0] bg-[#F9F8F5] text-[#D9772B] shadow-sm">
                       <VideoIcon className="size-4" strokeWidth={2} />
                     </div>
                   </div>
@@ -1408,10 +1538,10 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-stretch">
                       <Button
                         type="button"
-                        className="h-10 flex-1 gap-2 rounded-lg bg-[#1A5345] px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-[#133F34] sm:h-9"
+                        className="h-8 flex-1 gap-2 rounded-lg bg-[#1A5345] px-3 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]"
                         aria-label="Reschedule this appointment"
                       >
-                        <CalendarClockIcon className="size-4 shrink-0 opacity-95" strokeWidth={2} />
+                        <CalendarClockIcon className="size-3.5 shrink-0" strokeWidth={2.5} />
                         Reschedule
                       </Button>
                       <AlertDialog>
@@ -1419,10 +1549,10 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                           <Button
                             type="button"
                             variant="outline"
-                            className="h-10 flex-1 gap-2 rounded-lg border-[#E8E6E0] bg-white px-3 text-[12px] font-semibold text-muted-foreground shadow-sm hover:border-red-200 hover:bg-red-50 hover:text-red-700 sm:h-9 sm:flex-initial sm:min-w-[7.5rem]"
+                            className="h-8 flex-1 gap-2 rounded-lg border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#6B7870] shadow-sm hover:bg-slate-50 hover:text-rose-600 sm:flex-initial sm:min-w-[7.5rem]"
                             aria-label="Cancel this appointment"
                           >
-                            <XIcon className="size-4 shrink-0" strokeWidth={2} />
+                            <XIcon className="size-3.5 shrink-0" strokeWidth={2.5} />
                             Cancel
                           </Button>
                         </AlertDialogTrigger>
@@ -1446,10 +1576,10 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                 {/* Completed Appointment */}
                 <div className="rounded-2xl border border-[#E8E6E0]/80 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] hover:border-[#1A5345]/30 hover:shadow-md transition-all group p-5 flex flex-col gap-4 relative overflow-hidden">
                   <div className="flex items-center justify-between z-10">
-                    <span className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[12px] font-bold text-emerald-600">
+                    <Badge className="rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm border-0">
                       Completed
-                    </span>
-                    <div className="flex size-9 items-center justify-center rounded-xl border border-[#A8C4BC] bg-[#E8F0EE] text-[#00392D] shadow-sm ring-4 ring-white">
+                    </Badge>
+                    <div className="flex size-9 items-center justify-center rounded-lg border border-[#E8E6E0] bg-[#F9F8F5] text-[#1A5345] shadow-sm">
                       <Building2Icon className="size-4" strokeWidth={2} />
                     </div>
                   </div>
@@ -1480,10 +1610,10 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                     </p>
                     <Button
                       type="button"
-                      className="h-10 w-full gap-2 rounded-lg bg-[#1A5345] px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-[#133F34] sm:h-9"
+                      className="h-8 w-full gap-2 rounded-lg bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]"
                       aria-label="View report for this completed appointment"
                     >
-                      <FileTextIcon className="size-4 shrink-0 opacity-95" strokeWidth={2} />
+                      <FileTextIcon className="size-3.5 shrink-0" strokeWidth={2.5} />
                       View Report
                     </Button>
                   </div>
@@ -1583,9 +1713,7 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                       <div className="flex min-h-[168px] flex-col justify-between rounded-xl border border-[#E8E6E0]/80 bg-white p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="flex min-w-0 items-start gap-2.5">
-                            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-500">
-                              <ShieldAlertIcon className="size-4" strokeWidth={2} aria-hidden />
-                            </div>
+                            <ShieldAlertIcon className="size-5 text-rose-600 shrink-0" strokeWidth={2.5} aria-hidden />
                             <div className="min-w-0">
                               <h4 className="text-[14px] font-bold leading-snug text-[#1A1F1E]">CVD risk score</h4>
                               <p className="mt-0.5 text-[11px] font-medium leading-snug text-muted-foreground">
@@ -1593,9 +1721,9 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                               </p>
                             </div>
                           </div>
-                          <span className="shrink-0 rounded-lg border border-red-100 bg-red-50 px-3 py-1.5 text-[12px] font-bold text-red-600">
+                          <Badge className="rounded-lg bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm border-0">
                             {patient.riskLevel}
-                          </span>
+                          </Badge>
                         </div>
 
                         <div className="mt-4 flex flex-col gap-4 sm:mt-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
@@ -1644,9 +1772,7 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                       {/* Medication Adherence */}
                       <div className="flex min-h-[168px] flex-col justify-between rounded-xl border border-[#E8E6E0]/80 bg-white p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
                         <div className="flex min-w-0 items-start gap-2.5">
-                          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
-                            <PillIcon className="size-4" strokeWidth={2} aria-hidden />
-                          </div>
+                          <PillIcon className="size-5 text-emerald-600 shrink-0" strokeWidth={2.5} aria-hidden />
                           <div className="min-w-0">
                             <h4 className="text-[14px] font-bold leading-snug text-[#1A1F1E]">Medication adherence</h4>
                             <p className="mt-0.5 text-[11px] font-medium leading-snug text-muted-foreground">
@@ -1728,38 +1854,66 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                           Lifestyle & risk factors
                         </h4>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          <div className="flex flex-col items-center justify-center text-center p-3 rounded-xl bg-[#F6F5F2] min-h-[90px]">
-                            <CigaretteIcon className="size-5 mb-2 text-[#4A4F4E]" strokeWidth={2} />
-                            <span className={`text-[13px] font-bold ${patient.lifestyle.smoking.color}`}>{patient.lifestyle.smoking.status}</span>
+                          <div className="flex flex-col items-center justify-center text-center p-3 rounded-xl bg-white border border-[#E8E6E0]/60 shadow-sm min-h-[90px] transition-shadow hover:shadow-md group/smoke">
+                            <div className="mb-2 relative size-8 flex items-center justify-center">
+                              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="size-full overflow-visible">
+                                {/* Enhanced Smoke Trails */}
+                                <g className="animate-pulse duration-[3000ms]">
+                                  <path d="M15 7C15 5 17 4.5 17 2.5" stroke="#94A3B8" strokeWidth="1.2" strokeLinecap="round" opacity="0.5" />
+                                  <path d="M18 9C18 7 20 6.5 20 4.5" stroke="#CBD5E1" strokeWidth="1" strokeLinecap="round" opacity="0.3" />
+                                </g>
+                                
+                                {/* Cigarette Shadow for UI depth */}
+                                <rect x="3" y="15.5" width="15" height="1.5" rx="0.75" fill="#1A5345" opacity="0.08" />
+                                
+                                {/* Main Body Construction */}
+                                <rect x="2" y="12.5" width="16" height="4" rx="1" fill="white" stroke="#E2E8F0" strokeWidth="0.5" />
+                                
+                                {/* Professional Filter Design */}
+                                <path d="M2 13.5a1 1 0 0 1 1-1h4v4h-4a1 1 0 0 1-1-1v-2z" fill="#D9772B" />
+                                <rect x="6.5" y="12.5" width="0.5" height="4" fill="#000" opacity="0.05" />
+                                
+                                {/* The Burning Tip (Ash) */}
+                                <path d="M16 12.5h2v4h-2v-4z" fill="#475569" />
+                                
+                                {/* The Ember Glow (Core UX improvement) */}
+                                <g className="animate-pulse duration-1000">
+                                  <rect x="18" y="12.5" width="1.5" height="4" rx="0.5" fill="#F43F5E" />
+                                  <circle cx="19" cy="14.5" r="2.5" fill="#F43F5E" opacity="0.2" />
+                                </g>
+                              </svg>
+                            </div>
+                            <span className={`text-[13px] font-bold ${patient.lifestyle.smoking.status.includes('Ex') || patient.lifestyle.smoking.status.includes('Never') ? 'text-emerald-600' : 'text-rose-600'}`}>{patient.lifestyle.smoking.status}</span>
                             <span className="text-[11px] font-medium text-muted-foreground mt-0.5">{patient.lifestyle.smoking.detail}</span>
                           </div>
                           
-                          <div className="flex flex-col items-center justify-center text-center p-3 rounded-xl bg-[#F6F5F2] min-h-[90px]">
-                            <ActivityIcon className="size-5 mb-2 text-[#4A4F4E]" strokeWidth={2} />
-                            <span className={`text-[13px] font-bold ${patient.lifestyle.exercise.color}`}>{patient.lifestyle.exercise.status}</span>
+                          <div className="flex flex-col items-center justify-center text-center p-3 rounded-xl bg-white border border-[#E8E6E0]/60 shadow-sm min-h-[90px] transition-shadow hover:shadow-md">
+                            <ActivityIcon className="size-5 mb-2 text-[#1A5345]" strokeWidth={2.5} />
+                            <span className={`text-[13px] font-bold ${['Low', 'Sedentary'].includes(patient.lifestyle.exercise.status) ? 'text-rose-600' : ['Moderate'].includes(patient.lifestyle.exercise.status) ? 'text-[#D9772B]' : 'text-emerald-600'}`}>{patient.lifestyle.exercise.status}</span>
                             <span className="text-[11px] font-medium text-muted-foreground mt-0.5">{patient.lifestyle.exercise.detail}</span>
                           </div>
                           
-                          <div className="flex flex-col items-center justify-center text-center p-3 rounded-xl bg-[#F6F5F2] min-h-[90px]">
-                            <SaladIcon className="size-5 mb-2 text-[#4A4F4E]" strokeWidth={2} />
-                            <span className={`text-[13px] font-bold ${patient.lifestyle.diet.color}`}>{patient.lifestyle.diet.status}</span>
+                          <div className="flex flex-col items-center justify-center text-center p-3 rounded-xl bg-white border border-[#E8E6E0]/60 shadow-sm min-h-[90px] transition-shadow hover:shadow-md">
+                            <SaladIcon className="size-5 mb-2 text-[#1A5345]" strokeWidth={2.5} />
+                            <span className={`text-[13px] font-bold ${['Poor', 'High Sodium'].includes(patient.lifestyle.diet.status) ? 'text-rose-600' : ['Moderate'].includes(patient.lifestyle.diet.status) ? 'text-[#D9772B]' : 'text-emerald-600'}`}>{patient.lifestyle.diet.status}</span>
                             <span className="text-[11px] font-medium text-muted-foreground mt-0.5">{patient.lifestyle.diet.detail}</span>
                           </div>
 
-                          <div className="flex flex-col items-center justify-center text-center p-3 rounded-xl bg-[#F6F5F2] min-h-[90px]">
-                            <span className={`text-[13px] font-bold mt-7 ${patient.lifestyle.alcohol.color}`}>{patient.lifestyle.alcohol.status}</span>
+                          <div className="flex flex-col items-center justify-center text-center p-3 rounded-xl bg-white border border-[#E8E6E0]/60 shadow-sm min-h-[90px] transition-shadow hover:shadow-md">
+                            <DropletsIcon className="size-5 mb-2 text-[#1A5345]" strokeWidth={2.5} />
+                            <span className={`text-[13px] font-bold ${['High', 'Heavy'].includes(patient.lifestyle.alcohol.status) ? 'text-rose-600' : ['None', 'Social', 'Low'].includes(patient.lifestyle.alcohol.status) ? 'text-emerald-600' : 'text-[#D9772B]'}`}>{patient.lifestyle.alcohol.status}</span>
                             <span className="text-[11px] font-medium text-muted-foreground mt-0.5">{patient.lifestyle.alcohol.detail}</span>
                           </div>
 
-                          <div className="flex flex-col items-center justify-center text-center p-3 rounded-xl bg-[#F6F5F2] min-h-[90px]">
-                            <MoonIcon className="size-5 mb-2 text-[#4A4F4E]" strokeWidth={2} />
-                            <span className={`text-[13px] font-bold ${patient.lifestyle.sleep.color}`}>{patient.lifestyle.sleep.status}</span>
+                          <div className="flex flex-col items-center justify-center text-center p-3 rounded-xl bg-white border border-[#E8E6E0]/60 shadow-sm min-h-[90px] transition-shadow hover:shadow-md">
+                            <MoonIcon className="size-5 mb-2 text-[#1A5345]" strokeWidth={2.5} />
+                            <span className={`text-[13px] font-bold ${['<4 hrs', '4-5 hrs'].includes(patient.lifestyle.sleep.status) ? 'text-rose-600' : ['5-6 hrs', '6-7 hrs'].includes(patient.lifestyle.sleep.status) ? 'text-[#D9772B]' : 'text-emerald-600'}`}>{patient.lifestyle.sleep.status}</span>
                             <span className="text-[11px] font-medium text-muted-foreground mt-0.5">{patient.lifestyle.sleep.detail}</span>
                           </div>
 
-                          <div className="flex flex-col items-center justify-center text-center p-3 rounded-xl bg-[#F6F5F2] min-h-[90px]">
-                            <BrainIcon className="size-5 mb-2 text-[#4A4F4E]" strokeWidth={2} />
-                            <span className={`text-[13px] font-bold ${patient.lifestyle.stress.color}`}>{patient.lifestyle.stress.status}</span>
+                          <div className="flex flex-col items-center justify-center text-center p-3 rounded-xl bg-white border border-[#E8E6E0]/60 shadow-sm min-h-[90px] transition-shadow hover:shadow-md">
+                            <BrainIcon className="size-5 mb-2 text-[#1A5345]" strokeWidth={2.5} />
+                            <span className={`text-[13px] font-bold ${['High', 'Very High'].includes(patient.lifestyle.stress.status) ? 'text-rose-600' : ['Moderate'].includes(patient.lifestyle.stress.status) ? 'text-[#D9772B]' : 'text-emerald-600'}`}>{patient.lifestyle.stress.status}</span>
                             <span className="text-[11px] font-medium text-muted-foreground mt-0.5">{patient.lifestyle.stress.detail}</span>
                           </div>
                         </div>

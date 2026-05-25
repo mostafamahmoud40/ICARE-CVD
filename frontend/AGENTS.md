@@ -12,6 +12,41 @@
 - Style with **Tailwind CSS** utility classes only — no custom CSS files or inline styles unless absolutely necessary.
 - Follow shadcn/ui theming conventions (CSS variables for colors, radius, etc.).
 
+### Icons — no background tiles
+
+**Default rule:** Lucide (and other inline) icons render **without a colored box, border, or shadow plate behind them**.
+
+- ✅ Colored icon only: `className="size-4 text-[#1A5345]"` (or another semantic color).
+- ✅ Icon-only actions: `Button` with `variant="ghost"`, `border-0`, `bg-transparent`, `shadow-none`; hover changes **icon color only** (`hover:bg-transparent hover:text-[#1A5345]`).
+- ✅ Section / card headers: icon beside title — **no** `bg-[#1A5345]` tile, **no** rounded square wrapper unless the whole row is a clickable stat cell.
+- ❌ Do **not** wrap icons in `bg-*` squares, `rounded-lg` icon wells, or `outline` icon buttons when the intent is a lightweight action or label.
+- ❌ Do **not** add `hover:-translate-y-*` or lift animations on icon buttons — use `transition-colors` only.
+
+```tsx
+// ❌ Wrong — icon inside a fake “button tile”
+<Button variant="outline" size="icon" className="border bg-white shadow-sm">
+  <MessageSquareIcon className="size-4" />
+</Button>
+
+// ✅ Correct — icon only
+<Button
+  variant="ghost"
+  size="icon"
+  className="size-8 border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-[#1A5345]"
+>
+  <MessageSquareIcon className="size-4" />
+</Button>
+
+// ✅ Correct — header / label icon (no container)
+<CalendarIcon className="size-5 text-emerald-600" aria-hidden />
+```
+
+**Documented exceptions** (do not copy these patterns elsewhere without good reason):
+
+- **Toasts** — circular icon badge is defined in [Toast Icon Container](#toast-icon-container) below.
+- **Empty states** — large centered illustration circle in [Empty States](#empty-states) below.
+- **Stat / snapshot cells** — the whole cell is the surface; the icon sits on white/card bg with **no extra icon-only tile** inside the cell.
+
 ## Data Fetching
 
 - Use **TanStack Query** for all client-side data fetching and server state management.
@@ -172,11 +207,13 @@ All pages and components must be fully responsive across screen sizes. Use Tailw
 
 | Element | Mobile (default) | `sm:` and up |
 |---------|-------------------|---------------|
-| Page header icon container | `size-8` | `sm:size-9` |
-| Stat card icon container | `size-7` | `sm:size-9` |
+| Page header icon (Lucide, no tile) | `size-4` | `sm:size-5` |
+| Stat card icon (Lucide, no tile) | `size-4` | `sm:size-5` |
 | Card avatar | `size-9` | `sm:size-11` |
-| Icons (Lucide) | `size-3` / `size-3.5` | `sm:size-4` / `sm:size-5` |
+| Inline / toolbar icons | `size-3.5` | `sm:size-4` |
 | Icons in badges | `size-2.5` | (same — badges are compact at all sizes) |
+
+> **Note:** Do not add separate “icon container” sizes with backgrounds — see [Icons — no background tiles](#icons--no-background-tiles).
 
 ### Text Truncation
 
@@ -251,3 +288,16 @@ For maintaining consistency across queue and status indicators, use the followin
 - **Walk-in (Visit Type):** `bg-orange-50 text-orange-700 border-orange-200/60`
 - **No Show (Status):** `bg-red-50 text-red-600`
 - **New (Status/Badge):** `bg-violet-50 text-violet-700 border-violet-200/60`
+
+### Solid Badges for Status & Risk
+When rendering Status, Risk, or similar important category badges, **always use the "Solid Design"** matching the medication pages. DO NOT use transparent backgrounds, thin borders, or colored dots.
+- **Background:** Solid color matching the semantic meaning (e.g., `bg-[#1A5345]`, `bg-rose-500`, `bg-amber-500`, `bg-[#3B82F6]`).
+- **Text:** White (`text-white`).
+- **Shape:** `rounded-lg` with `px-2 py-0.5`.
+- **Typography:** `text-[10px] font-bold` — **sentence case** labels (e.g. `In treatment`, `Discharged`). Do **not** use `uppercase` or `tracking-wider` on status badges.
+- **Example Usage:**
+  ```tsx
+  <span className="inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-[10px] font-bold bg-rose-500 text-white">
+    High risk
+  </span>
+  ```

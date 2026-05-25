@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import type { Medication, TimeOfDay } from "./medications.types"
+import type { Medication } from "./medications.types"
 import { cn } from "@/lib/utils"
 import {
   AlertTriangleIcon,
@@ -9,38 +8,22 @@ import {
   CheckCircle2Icon,
   ClockIcon,
   FileTextIcon,
-  MoonIcon,
   PillIcon,
-  SunriseIcon,
-  SunIcon,
   UserRoundIcon,
   RefreshCcwIcon,
 } from "lucide-react"
 import {
+  ComplianceBadge,
+  MedicationStatusBadge,
+  MedicationTypeBadge,
+  TimeOfDayBadge,
+} from "./patientMedications.shared"
+import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
+  DialogTitle,
 } from "@/components/ui/dialog"
-import { Separator } from "@/components/ui/separator"
-
-const TYPE_LABELS: Record<string, string> = {
-  antihypertensives: "Anti-hypertensives",
-  antiplatelets: "Antiplatelets",
-  anticoagulants: "Anticoagulants",
-  statins: "Statins",
-  antiarrhythmics: "Antiarrhythmics",
-  diuretics: "Diuretics",
-  diabetes_medications: "Diabetes",
-}
-
-const TIME_ICONS: Record<TimeOfDay, React.ElementType> = {
-  morning: SunriseIcon,
-  afternoon: SunIcon,
-  evening: MoonIcon,
-}
-
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(iso))
 }
@@ -50,6 +33,33 @@ function formatDateTime(iso: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(iso))
+}
+
+function DetailField({
+  icon: Icon,
+  label,
+  children,
+  className,
+}: {
+  icon: React.ElementType
+  label: string
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-[#E8E6E0]/60 bg-white p-3 shadow-sm transition-shadow hover:shadow-md",
+        className,
+      )}
+    >
+      <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[#6B7870]">
+        <Icon className="size-3.5 shrink-0 text-[#1A5345]" aria-hidden />
+        {label}
+      </div>
+      <div className="mt-2">{children}</div>
+    </div>
+  )
 }
 
 type MedicationDetailProps = {
@@ -62,173 +72,113 @@ export function MedicationDetail({ medication, onClose }: MedicationDetailProps)
 
   const isActive = medication.status === "active"
   const isPaused = medication.status === "paused"
+  const lowRefills = medication.remainingRefills <= 2
 
   return (
     <Dialog open={!!medication} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <PillIcon className="size-5 text-[#1A5345]" />
-            {medication.name}
-          </DialogTitle>
-          <DialogDescription>
-            {medication.dose} &middot; {medication.frequency}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[510px]">
+        <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-3.5 sm:px-6 sm:py-4">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <PillIcon
+              className="size-5 shrink-0 text-[#1A5345] sm:size-[22px]"
+              strokeWidth={2.25}
+              aria-hidden
+            />
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <DialogTitle className="text-left font-serif text-[17px] font-bold leading-tight text-[#1A1F1E] sm:text-[18px]">
+                {medication.name}
+              </DialogTitle>
+              <DialogDescription className="text-left text-[12px] font-medium leading-snug text-muted-foreground sm:text-[13px]">
+                <span className="font-bold text-[#1A1F1E]">{medication.dose}</span>
+                <span className="text-muted-foreground"> · </span>
+                {medication.frequency}
+              </DialogDescription>
+            </div>
+          </div>
+        </div>
 
-        <div className="space-y-4 py-4">
-          {/* Status & Type */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={cn(
-                "rounded-full px-2.5 py-0.5 text-xs font-medium",
-                medication.status === "active"
-                  ? "bg-[#E8F0EE] text-[#1A5345]"
-                  : medication.status === "paused"
-                    ? "bg-[#F6EFE4] text-[#9A6B2F]"
-                    : "bg-[#EEF2EF] text-[#738678]",
-              )}
-            >
-              {medication.status}
-            </span>
-            <span className="rounded-full bg-[#F5F5F3] px-2.5 py-0.5 text-xs text-[#6B7870]">
-              {TYPE_LABELS[medication.type] ?? medication.type}
-            </span>
-            {medication.compliance && (
-              <span
-                className={cn(
-                  "rounded-full px-2.5 py-0.5 text-xs font-medium",
-                  medication.compliance === "good"
-                    ? "bg-emerald-50 text-emerald-600"
-                    : "bg-red-50 text-red-500",
-                )}
-              >
-                {medication.compliance === "good" ? "Good compliance" : "Poor compliance"}
-              </span>
-            )}
+        <div className="flex max-h-[min(70vh,520px)] flex-col gap-4 overflow-y-auto p-5 sm:p-6">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <MedicationStatusBadge status={medication.status} />
+            <MedicationTypeBadge type={medication.type} size="md" />
+            {medication.compliance ? (
+              <ComplianceBadge compliance={medication.compliance} />
+            ) : null}
           </div>
 
-          {/* Prescribed By */}
-          <div className="flex items-start gap-3 rounded-lg bg-[#F9F8F5] p-3">
-            <div className="flex size-9 items-center justify-center rounded-full bg-[#E8F0EE]">
-              <UserRoundIcon className="size-4 text-[#1A5345]" />
+          <div className="flex items-start gap-3 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-3.5">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#E8E6E0] bg-white text-[#1A5345] shadow-sm">
+              <UserRoundIcon className="size-4" aria-hidden />
             </div>
-            <div>
-              <p className="text-[13px] font-medium text-[#1A1F1E]">
-                {medication.prescribedBy}
-              </p>
-              <p className="text-[12px] text-[#6B7870]">
+            <div className="min-w-0">
+              <p className="text-[13px] font-bold text-[#1A1F1E]">{medication.prescribedBy}</p>
+              <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">
                 Prescribed on {formatDate(medication.prescribedAt)}
               </p>
             </div>
           </div>
 
-          {/* Schedule Info */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg border border-[#E8E6E0] p-3">
-              <div className="flex items-center gap-1.5 text-[11px] uppercase text-[#6B7870]">
-                <ClockIcon className="size-3" />
-                Time of Day
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <DetailField icon={ClockIcon} label="Time of day">
+              <div className="flex flex-wrap gap-1.5">
+                {medication.timeOfDay.map((tod) => (
+                  <TimeOfDayBadge key={tod} timeOfDay={tod} size="md" />
+                ))}
               </div>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {medication.timeOfDay.map((tod) => {
-                  const Icon = TIME_ICONS[tod]
-                  return (
-                    <span
-                      key={tod}
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium",
-                        tod === "morning"
-                          ? "bg-amber-50 text-amber-600"
-                          : tod === "afternoon"
-                            ? "bg-orange-50 text-orange-500"
-                            : "bg-indigo-50 text-indigo-500",
-                      )}
-                    >
-                      <Icon className="size-3.5" />
-                      {tod.charAt(0).toUpperCase() + tod.slice(1)}
-                    </span>
-                  )
-                })}
-              </div>
-            </div>
-            <div className="rounded-lg border border-[#E8E6E0] p-3">
-              <div className="flex items-center gap-1.5 text-[11px] uppercase text-[#6B7870]">
-                <RefreshCcwIcon className="size-3" />
-                Refills
-              </div>
-              <p className="mt-1 text-[15px] font-semibold text-[#1A1F1E]">
+            </DetailField>
+
+            <DetailField icon={RefreshCcwIcon} label="Refills">
+              <p className="text-[15px] font-bold tabular-nums text-[#1A1F1E]">
                 {medication.remainingRefills} remaining
               </p>
-              {medication.remainingRefills <= 2 && (
-                <p className="mt-0.5 text-[11px] text-amber-600">
+              {lowRefills && (
+                <p className="mt-1 text-[11px] font-medium text-muted-foreground">
                   {medication.remainingRefills === 0
                     ? "No refills left — contact your doctor"
                     : "Running low — consider requesting a refill"}
                 </p>
               )}
-            </div>
-          </div>
+            </DetailField>
 
-          {/* Last Taken / Next Dose */}
-          <div className="grid grid-cols-2 gap-3">
             {medication.lastTakenAt && (
-              <div className="rounded-lg border border-[#E8E6E0] p-3">
-                <div className="flex items-center gap-1.5 text-[11px] uppercase text-[#6B7870]">
-                  <CheckCircle2Icon className="size-3" />
-                  Last Taken
-                </div>
-                <p className="mt-1 text-[13px] font-medium text-[#1A1F1E]">
+              <DetailField icon={CheckCircle2Icon} label="Last taken">
+                <p className="text-[13px] font-medium text-[#1A1F1E]">
                   {formatDateTime(medication.lastTakenAt)}
                 </p>
-              </div>
+              </DetailField>
             )}
+
             {medication.nextDoseAt && isActive && (
-              <div className="rounded-lg border border-[#E8E6E0] p-3">
-                <div className="flex items-center gap-1.5 text-[11px] uppercase text-[#6B7870]">
-                  <CalendarIcon className="size-3" />
-                  Next Dose
-                </div>
-                <p className="mt-1 text-[13px] font-medium text-[#1A1F1E]">
+              <DetailField icon={CalendarIcon} label="Next dose">
+                <p className="text-[13px] font-medium text-[#1A1F1E]">
                   {formatDateTime(medication.nextDoseAt)}
                 </p>
-              </div>
+              </DetailField>
             )}
           </div>
 
-          <Separator />
-
-          {/* Instructions */}
           {medication.instructions && (
-            <div className="rounded-lg border border-[#E8E6E0] p-3">
-              <div className="flex items-center gap-1.5 text-[11px] uppercase text-[#6B7870]">
-                <FileTextIcon className="size-3.5" />
-                Instructions
-              </div>
-              <p className="mt-1 text-[13px] text-[#1A1F1E]">{medication.instructions}</p>
-            </div>
+            <DetailField icon={FileTextIcon} label="Instructions" className="sm:col-span-2">
+              <p className="text-[13px] font-medium leading-relaxed text-[#1A1F1E]/90">
+                {medication.instructions}
+              </p>
+            </DetailField>
           )}
 
-          {/* Side Effects */}
           {medication.sideEffects && (
-            <div className="rounded-lg border border-[#E8E6E0] p-3">
-              <div className="flex items-center gap-1.5 text-[11px] uppercase text-[#6B7870]">
-                <AlertTriangleIcon className="size-3.5" />
-                Side Effects
-              </div>
-              <p className="mt-1 text-[13px] text-[#1A1F1E]">{medication.sideEffects}</p>
-            </div>
+            <DetailField icon={AlertTriangleIcon} label="Side effects">
+              <p className="text-[13px] font-medium leading-relaxed text-[#1A1F1E]/90">
+                {medication.sideEffects}
+              </p>
+            </DetailField>
           )}
 
-          {/* Paused Notice */}
           {isPaused && (
-            <div className="rounded-lg bg-[#F6EFE4] p-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangleIcon className="size-4 text-[#9A6B2F]" />
-                <p className="text-[12px] font-medium text-[#9A6B2F]">
-                  This medication is paused. Do not resume without your doctor&apos;s approval.
-                </p>
-              </div>
+            <div className="flex items-start gap-2.5 rounded-xl border border-[#E8E6E0]/60 bg-[#F6EFE4] px-3.5 py-3">
+              <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-[#9A6B2F]" aria-hidden />
+              <p className="text-[12px] font-medium leading-snug text-[#9A6B2F]">
+                This medication is paused. Do not resume without your doctor&apos;s approval.
+              </p>
             </div>
           )}
         </div>

@@ -1,39 +1,47 @@
-import { useState, useMemo } from "react"
+import { useMemo, useState } from "react"
+
 import { mockDoctors, specialties } from "./doctorDirectory.mock"
-import type { Doctor } from "./doctorDirectory.types"
+import type { DoctorAvailabilityFilter, DoctorSortOption } from "./doctorDirectory.types"
+import { filterAndSortDoctors } from "./doctorDirectory.utils"
 
 export function useDoctorDirectory() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null)
-  const [sortBy, setSortBy] = useState<"rating" | "experience" | "fee">("rating")
+  const [availabilityFilter, setAvailabilityFilter] = useState<DoctorAvailabilityFilter>("all")
+  const [sortBy, setSortBy] = useState<DoctorSortOption>("rating")
 
-  const filteredDoctors = useMemo(() => {
-    return mockDoctors
-      .filter((doctor) => {
-        const matchesSearch =
-          doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          doctor.specialty.name.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesSpecialty = selectedSpecialty
-          ? doctor.specialty.id === selectedSpecialty
-          : true
-        return matchesSearch && matchesSpecialty
-      })
-      .sort((a, b) => {
-        if (sortBy === "rating") return b.rating - a.rating
-        if (sortBy === "experience") return b.experience - a.experience
-        if (sortBy === "fee") return a.fee - b.fee
-        return 0
-      })
-  }, [searchQuery, selectedSpecialty, sortBy])
+  const doctors = useMemo(
+    () =>
+      filterAndSortDoctors(mockDoctors, {
+        searchQuery,
+        selectedSpecialty,
+        availabilityFilter,
+        sortBy,
+      }),
+    [searchQuery, selectedSpecialty, availabilityFilter, sortBy],
+  )
+
+  const hasActiveFilters =
+    selectedSpecialty !== null || availabilityFilter !== "all" || searchQuery.trim().length > 0
+
+  function resetFilters() {
+    setSearchQuery("")
+    setSelectedSpecialty(null)
+    setAvailabilityFilter("all")
+  }
 
   return {
-    doctors: filteredDoctors,
+    doctors,
     specialties,
     searchQuery,
     setSearchQuery,
     selectedSpecialty,
     setSelectedSpecialty,
+    availabilityFilter,
+    setAvailabilityFilter,
     sortBy,
     setSortBy,
+    hasActiveFilters,
+    resetFilters,
   }
 }

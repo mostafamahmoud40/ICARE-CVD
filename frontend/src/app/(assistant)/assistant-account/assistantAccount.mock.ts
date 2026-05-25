@@ -13,7 +13,7 @@ export const MOCK_PROFILE: AssistantProfile = {
   fullName: "Sara Ahmed",
   email: "sara.ahmed@icare-cvd.com",
   phone: "+20 100 234 5678",
-  avatarUrl: null,
+  avatarUrl: "https://i.pravatar.cc/400?u=sara-ahmed-care-assistant",
   role: "assistant",
   department: "Cardiology",
   experienceYears: 4,

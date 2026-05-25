@@ -81,6 +81,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { showIcareToast } from "@/components/shared/icare-toast"
 
 import type {
@@ -143,14 +151,10 @@ const statusLabel: Record<AssistantAppointmentStatus, string> = {
 }
 
 const appointmentStatusBadgeClass: Record<AssistantAppointmentStatus, string> = {
-  scheduled:
-    "w-fit border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-amber-800 shadow-sm hover:bg-amber-50",
-  confirmed:
-    "w-fit border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-blue-700 shadow-sm hover:bg-blue-50",
-  completed:
-    "w-fit border border-[#1A5345]/20 bg-[#E8F0EE] px-2 py-0.5 text-[11px] font-bold tracking-wide text-[#1A5345] shadow-sm hover:bg-[#E8F0EE]",
-  cancelled:
-    "w-fit border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-red-700 shadow-sm hover:bg-red-50",
+  scheduled: "border-0 bg-amber-500 text-white hover:bg-amber-500",
+  confirmed: "border-0 bg-blue-500 text-white hover:bg-blue-500",
+  completed: "border-0 bg-emerald-500 text-white hover:bg-emerald-500",
+  cancelled: "border-0 bg-rose-500 text-white hover:bg-rose-500",
 }
 
 const VISIT_REASON_OPTIONS: readonly string[] = [
@@ -214,12 +218,12 @@ function formatAppointmentDate(value: string): string {
   }).format(new Date(value))
 }
 
-function dicebearAvatarUrl(name: unknown, idFallback: unknown): string {
+function getAvatarUrl(name: unknown, idFallback: unknown): string {
   const fromName =
     typeof name === "string" ? name.trim() : name != null ? String(name).trim() : ""
   const fromId = idFallback != null && idFallback !== "" ? String(idFallback) : ""
   const raw = (fromName || fromId || "x").replace(/\s+/g, "")
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(raw)}`
+  return `https://i.pravatar.cc/150?u=${encodeURIComponent(raw)}`
 }
 
 function pickerDisplayName(name: unknown, fallback: string): string {
@@ -293,7 +297,7 @@ export function AssistantAppointments({
         id: String(p.id),
         name: pickerDisplayName(p.name, "Unnamed patient"),
         subtitle: p.phone != null ? String(p.phone) : null,
-        avatarSrc: dicebearAvatarUrl(p.name, p.id),
+        avatarSrc: getAvatarUrl(p.name, p.id),
       })),
     [patients],
   )
@@ -304,7 +308,7 @@ export function AssistantAppointments({
         id: String(d.id),
         name: pickerDisplayName(d.name, "Unnamed doctor"),
         subtitle: d.specialty != null ? String(d.specialty) : null,
-        avatarSrc: dicebearAvatarUrl(d.name, d.id),
+        avatarSrc: getAvatarUrl(d.name, d.id),
       })),
     [doctors],
   )
@@ -350,8 +354,8 @@ export function AssistantAppointments({
   const openEditDialog = (app: AssistantAppointment) => {
     setSelectedAppointment(app)
     setEditDraft({
-      patientId: app.patientId,
-      doctorId: app.doctorId,
+      patientId: app.patientId || "",
+      doctorId: app.doctorId || "",
       visitType: app.visitType,
       date: formatLocalDateInput(app.scheduledAt),
       timeSlot: formatLocalTimeHHMM(app.scheduledAt),
@@ -370,7 +374,6 @@ export function AssistantAppointments({
       await updateAppointment({
         appointmentId: selectedAppointment.id,
         payload: {
-          patientId: editDraft.patientId,
           doctorId: editDraft.doctorId,
           scheduledAt,
           visitType: editDraft.visitType,
@@ -396,18 +399,37 @@ export function AssistantAppointments({
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1))
 
   return (
-    <div className="flex h-full min-h-0 flex-col animate-in fade-in duration-700">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
       {/* Premium Header — compact */}
-      <div className="bg-transparent px-6 pb-3 pt-4 sm:px-8">
-        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-          <div className="space-y-0.5">
-            <h1 className="font-serif text-[22px] font-bold tracking-tight text-[#102F27] sm:text-[26px]">
-              Appointments management
-            </h1>
-            <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
-              Monitor and manage all patient clinical bookings and schedules.
-            </p>
+      <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-white">
+        <div className="flex flex-col px-5 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5">
+          <div className="mb-2 flex items-center gap-2 sm:mb-2.5">
+            <Breadcrumb>
+              <BreadcrumbList className="text-[10px] sm:text-[11px]">
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href="/assistant-dashboard" className="text-[10px] font-medium sm:text-[11px]">
+                      Dashboard
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">Appointments</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
+
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+            <div className="min-w-0 space-y-0.5">
+              <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px] lg:text-[26px]">
+                Appointments management
+              </h1>
+              <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
+                Monitor and manage all patient clinical bookings and schedules.
+              </p>
+            </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
              {/* View Mode Toggle */}
              <div className="mr-1 flex items-center rounded-xl border border-[#E8E6E0] bg-white p-0.5 shadow-sm sm:mr-2">
@@ -416,11 +438,11 @@ export function AssistantAppointments({
                   size="sm"
                   onClick={() => setViewMode("table")}
                   className={cn(
-                    "h-8 gap-1.5 rounded-lg px-2.5 text-[12px] font-bold transition-all sm:h-9 sm:gap-2 sm:px-3 sm:text-[13px]",
-                    viewMode === "table" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-[#F9F8F5]"
+                    "h-8 gap-1.5 rounded-lg px-2.5 text-[12px] font-bold transition-all",
+                    viewMode === "table" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-slate-50"
                   )}
                 >
-                   <ListIcon className="size-3.5 sm:size-4" />
+                   <ListIcon className="size-3.5" />
                    List
                 </Button>
                 <Button
@@ -428,34 +450,36 @@ export function AssistantAppointments({
                   size="sm"
                   onClick={() => setViewMode("calendar")}
                   className={cn(
-                    "h-8 gap-1.5 rounded-lg px-2.5 text-[12px] font-bold transition-all sm:h-9 sm:gap-2 sm:px-3 sm:text-[13px]",
-                    viewMode === "calendar" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-[#F9F8F5]"
+                    "h-8 gap-1.5 rounded-lg px-2.5 text-[12px] font-bold transition-all",
+                    viewMode === "calendar" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-slate-50"
                   )}
                 >
-                   <LayoutGridIcon className="size-3.5 sm:size-4" />
+                   <LayoutGridIcon className="size-3.5" />
                    Calendar
                 </Button>
              </div>
 
              <Button
                 variant="outline"
-                className="h-9 gap-2 rounded-xl border-[#E8E6E0] bg-white px-4 text-[13px] font-bold text-[#1A1F1E] shadow-sm transition-all hover:bg-[#F9F8F5] sm:h-10 sm:px-5 sm:text-[14px]"
+                size="sm"
+                className="h-8 gap-2 rounded-lg border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] shadow-sm transition-colors hover:bg-slate-50 hover:text-[#1A5345]"
              >
-                <DownloadIcon className="size-4 text-muted-foreground" />
-                Export data
+                <DownloadIcon className="size-3.5 text-muted-foreground" />
+                Export
              </Button>
              <Button
+                size="sm"
                 onClick={() => setIsCreateDialogOpen(true)}
-                className="h-9 gap-2 rounded-full border-0 bg-[#1A5345] px-4 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(26,83,69,0.2)] transition-all hover:-translate-y-0.5 hover:bg-[#133F34] hover:shadow-[0_6px_20px_rgba(26,83,69,0.25)] sm:h-10 sm:px-6 sm:text-[14px]"
+                className="h-8 gap-2 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]"
              >
-                <PlusIcon className="size-4 sm:size-[18px]" strokeWidth={2.5} />
+                <PlusIcon className="size-3.5" strokeWidth={2.5} />
                 New appointment
              </Button>
           </div>
         </div>
 
         {/* Filters and Stats Summary */}
-        <div className="mt-4 flex flex-col items-center justify-between gap-3 border-b border-[#E8E6E0]/60 pb-3 sm:flex-row">
+        <div className="mt-3 flex flex-col gap-2 pt-1 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:gap-2 sm:pb-0">
               {[
                 { id: "all", label: "All bookings" },
@@ -468,16 +492,16 @@ export function AssistantAppointments({
                   key={tab.id}
                   onClick={() => setStatusFilter(tab.id as any)}
                   className={cn(
-                    "whitespace-nowrap rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all sm:rounded-xl sm:px-4 sm:py-2 sm:text-[13px]",
+                    "h-8 whitespace-nowrap rounded-lg px-3 text-[12px] font-bold transition-all",
                     statusFilter === tab.id 
-                      ? "bg-[#1A5345] text-white shadow-md shadow-[#1A5345]/10" 
+                      ? "bg-[#1A5345] text-white shadow-sm" 
                       : "text-muted-foreground hover:bg-white hover:text-[#1A1F1E] hover:shadow-sm"
                   )}
                 >
                   {tab.label}
                   <span className={cn(
-                    "ml-1.5 rounded-md bg-black/5 px-1 py-0.5 text-[10px] font-medium opacity-70 sm:ml-2 sm:text-[11px]",
-                    statusFilter === tab.id ? "bg-white/10 text-white/80" : "text-muted-foreground"
+                    "ml-1.5 rounded-lg px-1.5 py-0.5 text-[10px] font-bold shadow-sm transition-colors",
+                    statusFilter === tab.id ? "bg-white/10 text-white" : "bg-black/5 text-[#1A5345]"
                   )}>
                     {tab.id === 'all' ? counts.total : counts[tab.id as keyof AppointmentStats]}
                   </span>
@@ -485,66 +509,79 @@ export function AssistantAppointments({
               ))}
            </div>
            
-           <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
-              {viewMode === "calendar" ? (
-                <div className="flex items-center gap-1 rounded-xl border border-[#E8E6E0] bg-white p-0.5 shadow-sm sm:gap-2">
-                   <Button variant="ghost" size="icon" className="size-8 rounded-lg sm:size-9" onClick={prevMonth}>
-                      <ChevronLeftIcon className="size-4" />
+            <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
+               {viewMode === "calendar" ? (
+                 <div className="flex h-8 items-center gap-1 rounded-lg border border-[#E8E6E0] bg-white p-0.5 shadow-sm">
+                    <Button variant="ghost" size="icon" className="size-7 rounded-md text-muted-foreground hover:bg-[#F9F8F5] hover:text-[#1A1F1E]" onClick={prevMonth}>
+                       <ChevronLeftIcon className="size-3.5" />
+                    </Button>
+                    <span className="min-w-[100px] px-1 text-center text-[12px] font-bold text-[#1A1F1E]">
+                       {format(currentMonth, "MMMM yyyy")}
+                    </span>
+                    <Button variant="ghost" size="icon" className="size-7 rounded-md text-muted-foreground hover:bg-[#F9F8F5] hover:text-[#1A1F1E]" onClick={nextMonth}>
+                       <ChevronRightIcon className="size-3.5" />
+                    </Button>
+                 </div>
+               ) : (
+                 <div className="group relative flex-1 sm:flex-none sm:w-[240px]">
+                   <SearchIcon 
+                     className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[#9CA3AF] transition-colors group-focus-within:text-[#1A5345]" 
+                     strokeWidth={2}
+                     aria-hidden
+                   />
+                   <Input
+                     type="search"
+                     placeholder="Search by name or ID..."
+                     value={searchTerm}
+                     onChange={(e) => setSearchTerm(e.target.value)}
+                     className="h-8 w-full rounded-lg border border-[#E8E6E0] bg-white pl-9 pr-3 text-[12px] font-medium text-[#1A1F1E] shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:border-[#1A5345]/30 focus-visible:ring-0"
+                   />
+                 </div>
+               )}
+               <Popover>
+                 <PopoverTrigger asChild>
+                   <Button 
+                     variant="ghost" 
+                     size="icon" 
+                     title="Filter view"
+                     className={cn(
+                       "size-8 shrink-0 border-0 bg-transparent text-[#6B7870] hover:bg-transparent hover:text-[#1A5345] shadow-none transition-colors",
+                       hasActiveAdvancedFilters && "text-[#1A5345]"
+                     )}
+                   >
+                     <FilterIcon className="size-4" strokeWidth={hasActiveAdvancedFilters ? 2.5 : 2} />
                    </Button>
-                   <span className="min-w-[108px] px-2 text-center text-[13px] font-bold sm:min-w-[120px] sm:px-3 sm:text-[14px]">
-                      {format(currentMonth, "MMMM yyyy")}
-                   </span>
-                   <Button variant="ghost" size="icon" className="size-8 rounded-lg sm:size-9" onClick={nextMonth}>
-                      <ChevronRightIcon className="size-4" />
-                   </Button>
-                </div>
-              ) : (
-                <div className="relative flex-1 sm:flex-none sm:w-[260px] lg:w-[280px]">
-                  <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by name or id..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="h-9 w-full rounded-xl border-[#E8E6E0] bg-white pl-9 text-[13px] shadow-sm focus-visible:border-[#1A5345]/40 focus-visible:ring-[#1A5345]/20 sm:h-10 sm:rounded-2xl sm:pl-10 sm:text-[14px]"
-                  />
-                </div>
-              )}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="icon" className={cn(
-                    "size-9 shrink-0 rounded-xl border-[#E8E6E0] bg-white text-muted-foreground shadow-sm hover:text-[#1A1F1E] sm:size-10 sm:rounded-2xl",
-                    hasActiveAdvancedFilters && "border-[#1A5345] bg-[#E8F0EE] text-[#1A5345]"
-                  )}>
-                    <FilterIcon className="size-4 sm:size-[18px]" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[340px] p-0 rounded-3xl border-0 shadow-2xl overflow-hidden" align="end">
-                   <div className="bg-[#1A5345] p-5 text-white">
+                 </PopoverTrigger>
+                <PopoverContent className="w-[340px] p-0 rounded-2xl border border-[#E8E6E0]/60 bg-white shadow-2xl overflow-hidden" align="end" sideOffset={8}>
+                   <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-3.5 sm:px-6">
                       <div className="flex items-center justify-between">
-                         <h4 className="text-[16px] font-bold font-serif">Advanced filters</h4>
+                         <div className="flex items-center gap-2">
+                           <FilterIcon className="size-4 text-[#1A5345]" />
+                           <h4 className="font-serif text-[16px] font-bold text-[#1A1F1E]">Advanced filters</h4>
+                         </div>
                          <Button 
                            variant="ghost" 
                            size="sm" 
-                           className="h-7 text-[11px] font-bold text-white/70 hover:text-white hover:bg-white/10 px-2"
+                           className="h-7 rounded-md px-2 text-[11px] font-bold text-[#6B7870] transition-colors hover:bg-transparent hover:text-[#1A5345]"
                            onClick={resetAdvancedFilters}
                          >
                             Reset all
                          </Button>
                       </div>
                    </div>
-                   <div className="p-6 space-y-6 bg-white">
+                   <div className="p-5 space-y-5 bg-white sm:p-6 sm:space-y-6">
                       <div className="space-y-2">
                         <Label className="text-[12px] font-bold text-[#102F27]">Department</Label>
                         <Select 
                           value={advancedFilters.department || FILTER_SELECT_ALL} 
                           onValueChange={(v) => setAdvancedFilters(f => ({ ...f, department: v === FILTER_SELECT_ALL ? "" : v }))}
                         >
-                          <SelectTrigger className="h-10 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/50">
+                          <SelectTrigger className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
                             <SelectValue placeholder="All departments" />
                           </SelectTrigger>
-                          <SelectContent className="rounded-xl">
-                             <SelectItem value={FILTER_SELECT_ALL}>All departments</SelectItem>
-                             {departmentOptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                          <SelectContent className="rounded-lg border-[#cfd9d5] bg-white shadow-lg">
+                             <SelectItem value={FILTER_SELECT_ALL} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">All departments</SelectItem>
+                             {departmentOptions.map(d => <SelectItem key={d} value={d} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">{d}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -555,24 +592,24 @@ export function AssistantAppointments({
                           value={advancedFilters.doctorName || FILTER_SELECT_ALL} 
                           onValueChange={(v) => setAdvancedFilters(f => ({ ...f, doctorName: v === FILTER_SELECT_ALL ? "" : v }))}
                         >
-                          <SelectTrigger className="h-10 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/50">
+                          <SelectTrigger className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
                             <SelectValue placeholder="All doctors" />
                           </SelectTrigger>
-                          <SelectContent className="rounded-xl">
-                             <SelectItem value={FILTER_SELECT_ALL}>All doctors</SelectItem>
-                             {doctorFilterOptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                          <SelectContent className="rounded-lg border-[#cfd9d5] bg-white shadow-lg">
+                             <SelectItem value={FILTER_SELECT_ALL} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">All doctors</SelectItem>
+                             {doctorFilterOptions.map(d => <SelectItem key={d} value={d} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">{d}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 pt-2">
+                      <div className="grid grid-cols-2 gap-4 pt-1">
                          <div className="space-y-2">
                             <Label className="text-[12px] font-bold text-[#102F27]">From date</Label>
                             <Input 
                               type="date" 
                               value={advancedFilters.dateFrom} 
                               onChange={(e) => setAdvancedFilters(f => ({ ...f, dateFrom: e.target.value }))}
-                              className="h-10 rounded-xl" 
+                              className="h-10 rounded-lg border-[#cfd9d5] bg-white text-[#152a24] focus:border-[#d9e5e1] focus:ring-0" 
                             />
                          </div>
                          <div className="space-y-2">
@@ -581,7 +618,7 @@ export function AssistantAppointments({
                               type="date" 
                               value={advancedFilters.dateTo} 
                               onChange={(e) => setAdvancedFilters(f => ({ ...f, dateTo: e.target.value }))}
-                              className="h-10 rounded-xl" 
+                              className="h-10 rounded-lg border-[#cfd9d5] bg-white text-[#152a24] focus:border-[#d9e5e1] focus:ring-0" 
                             />
                          </div>
                       </div>
@@ -591,15 +628,17 @@ export function AssistantAppointments({
            </div>
         </div>
       </div>
+      </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 px-8 pb-10">
+      <div className="relative flex-1 overflow-auto bg-[#F9F8F5] px-6 sm:px-8">
+        <div className="custom-scrollbar w-full pb-6 pt-4">
         {viewMode === "table" ? (
-          <div className="overflow-hidden rounded-3xl border border-[#E8E6E0]/80 bg-white shadow-[0_8px_40px_rgba(0,0,0,0.02)]">
+          <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1200px] border-collapse bg-white text-left">
-                <thead className="sticky top-0 z-10">
-                  <tr className="border-b border-[#E8E6E0]/60 bg-white text-[15px] font-serif font-bold text-[#1A1F1E] transition-colors">
+              <table className="w-full min-w-[1040px] border-collapse bg-white text-left">
+                <thead className="sticky top-0 z-10 bg-[#F4F3ED]/90 shadow-[0_1px_0_0_#E8E6E0] backdrop-blur-md">
+                  <tr className="font-serif text-[15px] font-bold text-[#1A1F1E] transition-colors">
                     <th className="py-4 pr-4 pl-4">Patient Name</th>
                     <th className="py-4 px-4">Condition</th>
                     <th className="py-4 px-4">Doctor</th>
@@ -632,87 +671,130 @@ export function AssistantAppointments({
                     </tr>
                   ) : (
                     appointments.map((appointment) => (
-                      <tr key={appointment.id} className="group hover:bg-[#F9F8F5]/30 transition-colors">
-                        <td className="py-4 pr-4 pl-4">
-                          <div className="flex items-center gap-3">
-                             <div className="size-10 rounded-full bg-[#F3F4F6] border border-[#E8E6E0]/60 overflow-hidden shrink-0">
+                      <tr key={appointment.id} className="group cursor-pointer border-t border-[#E8E6E0]/40 transition-colors hover:bg-[#F9F8F5]/50">
+                        <td className="py-4 pr-4 pl-4 align-middle">
+                          <div className="flex items-start gap-3">
+                             <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
                                 <img 
-                                  src={dicebearAvatarUrl(appointment.patientName, appointment.id)} 
+                                  src={getAvatarUrl(appointment.patientName, appointment.id)} 
                                   alt="" 
                                   className="size-full object-cover"
                                 />
                              </div>
                              <div className="min-w-0">
-                                <p className="text-[14px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors truncate">{appointment.patientName}</p>
-                                <p className="text-[11px] font-bold text-muted-foreground mt-0.5 tracking-tight">#{appointment.id.slice(0, 8).toUpperCase()}</p>
+                                <p className="truncate font-serif text-[15px] font-bold leading-snug text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">
+                                  {appointment.patientName}
+                                </p>
+                                <p className="mt-0.5 text-[12px] font-medium tabular-nums tracking-wide text-muted-foreground">
+                                  #{appointment.id.slice(0, 8).toUpperCase()}
+                                </p>
                              </div>
                           </div>
                         </td>
-                        <td className="py-4 px-4">
+                        <td className="py-4 px-4 align-middle">
                            <p className="text-[14px] font-medium text-[#1A1F1E]/80">{appointment.reason || "General checkup"}</p>
                         </td>
-                        <td className="py-4 px-4">
+                        <td className="py-4 px-4 align-middle">
                            <div className="flex items-center gap-2.5">
-                              <div className="size-8 rounded-full bg-[#E5EEEA] border border-[#1A5345]/10 overflow-hidden shrink-0">
+                              <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1A5345]/10 bg-[#E5EEEA]">
                                  <img 
-                                   src={dicebearAvatarUrl(appointment.doctorName, appointment.doctorId ?? appointment.id)} 
+                                   src={getAvatarUrl(appointment.doctorName, appointment.doctorId ?? appointment.id)} 
                                    alt="" 
                                    className="size-full object-cover"
                                  />
                               </div>
-                              <p className="text-[14px] font-bold text-[#1A1F1E] truncate">{appointment.doctorName}</p>
+                              <p className="truncate text-[14px] font-bold text-[#1A1F1E]">{appointment.doctorName}</p>
                            </div>
                         </td>
-                        <td className="py-4 px-4 text-[14px] font-medium text-[#1A1F1E]/70">
-                           37 / m
+                        <td className="py-4 px-4 align-middle">
+                           {(() => {
+                             const isMale = !appointment.patientName.toLowerCase().match(/a$/);
+                             const age = 30 + (appointment.id.charCodeAt(0) % 25);
+                             return (
+                               <div className="flex items-center gap-1.5 text-[13px]">
+                                  <span className="font-bold tabular-nums text-[#1A1F1E]">{age}</span>
+                                  <span className="text-muted-foreground">yrs</span>
+                                  <span className="mx-0.5 text-[#E8E6E0]">•</span>
+                                  <div className="flex items-center gap-1.5">
+                                     <span className={isMale ? "text-blue-500" : "text-pink-500"}>
+                                       {isMale ? (
+                                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="10" cy="14" r="5"/><path d="M14 10l5-5"/><path d="M15 5h4v4"/></svg>
+                                       ) : (
+                                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="10" r="5"/><path d="M12 15v7"/><path d="M9 19h6"/></svg>
+                                       )}
+                                     </span>
+                                     <span className="text-[13px] font-medium text-[#1A1F1E]/70">{isMale ? "Male" : "Female"}</span>
+                                  </div>
+                               </div>
+                             );
+                           })()}
                         </td>
-                        <td className="py-4 px-4 text-[14px] font-bold text-[#1A1F1E]">
-                           {formatAppointmentDate(appointment.scheduledAt)}
+                        <td className="py-4 px-4 align-middle">
+                           <span className="text-[14px] font-bold text-[#1A1F1E]">
+                             {formatAppointmentDate(appointment.scheduledAt)}
+                           </span>
                         </td>
-                        <td className="py-4 px-4">
-                           <Badge variant="outline" className={cn(
-                             "rounded-full px-3 py-1 text-[11px] font-bold",
+                        <td className="py-4 px-4 align-middle">
+                           <Badge variant="default" className={cn(
+                             "rounded-lg px-2 py-0.5 text-[10px] font-bold",
                              appointmentStatusBadgeClass[appointment.status]
                            )}>
                               {statusLabel[appointment.status]}
                            </Badge>
                         </td>
-                        <td className="py-4 px-4">
-                           <Badge variant="outline" className={cn(
-                             "rounded-lg border-[#E8E6E0] bg-white px-2.5 py-1 text-[11px] font-bold",
-                             appointment.visitType === "virtual" ? "text-amber-600" : "text-red-600"
+                        <td className="py-4 px-4 align-middle">
+                           <Badge variant="default" className={cn(
+                             "rounded-lg px-2 py-0.5 text-[10px] font-bold",
+                             appointment.visitType === "virtual" 
+                               ? "border-0 bg-amber-500 text-white hover:bg-amber-500" 
+                               : "border-0 bg-rose-500 text-white hover:bg-rose-500"
                            )}>
                               {appointment.visitType === "virtual" ? "Moderate risk" : "High risk"}
                            </Badge>
                         </td>
-                        <td className="py-4 pl-4 pr-4 text-right">
+                        <td className="py-4 pl-4 pr-4 text-right align-middle">
                            <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                  <Button variant="ghost" size="icon" className="size-9 rounded-xl text-muted-foreground hover:bg-[#F9F8F5] transition-all opacity-0 group-hover:opacity-100">
                                     <MoreVerticalIcon className="size-5" />
                                  </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-56 rounded-2xl border-[#E8E6E0]/60 p-1.5 shadow-xl">
-                                 <DropdownMenuItem onSelect={() => setSelectedAppointment(appointment)}>
-                                    <UserCircle2Icon className="size-4 mr-2.5" />
+                              <DropdownMenuContent align="end" className="w-[220px] rounded-2xl border-[#E8E6E0]/70 bg-white p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+                                 <DropdownMenuItem 
+                                    className="flex cursor-pointer items-center rounded-xl px-3 py-2.5 text-[13px] font-bold text-[#1A1F1E] transition-colors focus:bg-[#F9F8F5] focus:text-[#1A5345]"
+                                    onSelect={() => setSelectedAppointment(appointment)}
+                                 >
+                                    <UserCircle2Icon className="mr-3 size-[18px] opacity-70" />
                                     View details
                                  </DropdownMenuItem>
-                                 <DropdownMenuItem onSelect={() => openEditDialog(appointment)}>
-                                    <PencilLineIcon className="size-4 mr-2.5" />
+                                 <DropdownMenuItem 
+                                    className="flex cursor-pointer items-center rounded-xl px-3 py-2.5 text-[13px] font-bold text-[#1A1F1E] transition-colors focus:bg-[#F9F8F5] focus:text-[#1A5345]"
+                                    onSelect={() => openEditDialog(appointment)}
+                                 >
+                                    <PencilLineIcon className="mr-3 size-[18px] opacity-70" />
                                     Edit schedule
                                  </DropdownMenuItem>
-                                 <DropdownMenuSeparator className="bg-[#E8E6E0]/60 my-1" />
-                                 <DropdownMenuItem onSelect={() => updateStatus({ appointmentId: appointment.id, status: "confirmed" })} disabled={appointment.status === 'confirmed' || isUpdatingStatus}>
-                                    <CheckCircle2Icon className="size-4 mr-2.5 text-blue-600" />
+                                 <DropdownMenuSeparator className="mx-1 my-1.5 bg-[#E8E6E0]/60" />
+                                 <DropdownMenuItem 
+                                    className="flex cursor-pointer items-center rounded-xl px-3 py-2.5 text-[13px] font-bold text-blue-700 transition-colors focus:bg-blue-50 focus:text-blue-800 data-[disabled]:opacity-50"
+                                    onSelect={() => updateStatus({ appointmentId: appointment.id, status: "confirmed" })} disabled={appointment.status === 'confirmed' || isUpdatingStatus}
+                                 >
+                                    <CheckCircle2Icon className="mr-3 size-[18px]" />
                                     Confirm booking
                                  </DropdownMenuItem>
-                                 <DropdownMenuItem onSelect={() => updateStatus({ appointmentId: appointment.id, status: "completed" })} disabled={appointment.status === 'completed' || isUpdatingStatus}>
-                                    <CalendarCheck2Icon className="size-4 mr-2.5 text-emerald-600" />
+                                 <DropdownMenuItem 
+                                    className="flex cursor-pointer items-center rounded-xl px-3 py-2.5 text-[13px] font-bold text-emerald-700 transition-colors focus:bg-emerald-50 focus:text-emerald-800 data-[disabled]:opacity-50"
+                                    onSelect={() => updateStatus({ appointmentId: appointment.id, status: "completed" })} disabled={appointment.status === 'completed' || isUpdatingStatus}
+                                 >
+                                    <CalendarCheck2Icon className="mr-3 size-[18px]" />
                                     Mark as completed
                                  </DropdownMenuItem>
-                                 <DropdownMenuSeparator className="bg-[#E8E6E0]/60 my-1" />
-                                 <DropdownMenuItem onSelect={() => setCancellingAppointment(appointment)} disabled={appointment.status === 'cancelled' || isUpdatingStatus} className="text-red-600">
-                                    <XIcon className="size-4 mr-2.5" />
+                                 <DropdownMenuSeparator className="mx-1 my-1.5 bg-[#E8E6E0]/60" />
+                                 <DropdownMenuItem 
+                                    className="flex cursor-pointer items-center rounded-xl px-3 py-2.5 text-[13px] font-bold text-red-600 transition-colors focus:bg-red-50 focus:text-red-700 data-[disabled]:opacity-50"
+                                    onSelect={() => setCancellingAppointment(appointment)} disabled={appointment.status === 'cancelled' || isUpdatingStatus}
+                                 >
+                                    <XIcon className="mr-3 size-[18px]" />
                                     Cancel appointment
                                  </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -727,7 +809,7 @@ export function AssistantAppointments({
           </div>
         ) : (
           /* Calendar View */
-          <div className="h-full flex flex-col rounded-3xl border border-[#E8E6E0]/80 bg-white shadow-[0_8px_40px_rgba(0,0,0,0.02)] overflow-hidden animate-in zoom-in-95 duration-500">
+          <div className="h-full flex flex-col rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)] overflow-hidden animate-in zoom-in-95 duration-500">
              {/* Days of week header */}
              <div className="grid grid-cols-7 border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/50">
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
@@ -783,7 +865,7 @@ export function AssistantAppointments({
                                                 app.status === 'cancelled' ? "ring-red-300" : "ring-amber-200"
                                               )}>
                                                 <img
-                                                  src={dicebearAvatarUrl(app.patientName, app.id)}
+                                                  src={getAvatarUrl(app.patientName, app.id)}
                                                   alt={app.patientName ?? ""}
                                                   className="size-full object-cover"
                                                 />
@@ -797,7 +879,7 @@ export function AssistantAppointments({
                                            <div className="flex items-start gap-3">
                                               <div className="size-10 rounded-full bg-[#F3F4F6] overflow-hidden shrink-0">
                                                  <img
-                                                   src={dicebearAvatarUrl(app.patientName, app.id)}
+                                                   src={getAvatarUrl(app.patientName, app.id)}
                                                    alt=""
                                                    className="size-full"
                                                  />
@@ -805,7 +887,7 @@ export function AssistantAppointments({
                                               <div className="min-w-0">
                                                  <p className="text-[14px] font-bold text-[#1A1F1E] truncate">{app.patientName}</p>
                                                  <p className="text-[11px] font-bold text-muted-foreground mt-0.5">{formatLocalTimeRangeAmPm(app.scheduledAt)} · {app.doctorName}</p>
-                                                 <Badge variant="outline" className={cn("mt-2 rounded-lg text-[10px]", appointmentStatusBadgeClass[app.status])}>
+                                                 <Badge variant="default" className={cn("mt-2 rounded-lg px-2 py-0.5 text-[10px]", appointmentStatusBadgeClass[app.status])}>
                                                     {statusLabel[app.status]}
                                                  </Badge>
                                               </div>
@@ -885,7 +967,7 @@ export function AssistantAppointments({
                                         <div className="relative shrink-0">
                                            <div className="size-10 overflow-hidden rounded-md border border-[#E8E6E0] bg-[#F9F8F5]">
                                               <img
-                                                 src={dicebearAvatarUrl(app.patientName, app.id)}
+                                                 src={getAvatarUrl(app.patientName, app.id)}
                                                  alt=""
                                                  className="size-full object-cover"
                                               />
@@ -926,41 +1008,41 @@ export function AssistantAppointments({
                       </Popover>
                    )
                 })}
-             </div>
-          </div>
-        )}
+              </div>
+           </div>
+         )}
+        </div>
       </div>
 
-      {/* Appointment Details Dialog - Modern Clinical Dashboard Design */}
+      {/* Appointment Details Dialog - Premium Medical Design */}
       <Dialog open={Boolean(selectedAppointment && !isEditDialogOpen)} onOpenChange={(open) => !open && setSelectedAppointment(null)}>
-        <DialogContent className="sm:max-w-md rounded-[32px] border-0 bg-white p-0 shadow-2xl overflow-hidden">
+        <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden border border-[#E8E6E0]/60 bg-white shadow-2xl">
            {selectedAppointment && (
-             <div className="flex flex-col animate-in fade-in zoom-in-95 duration-400">
-               {/* Elegant Soft Header — compact */}
-               <div className="relative overflow-hidden bg-[#F0F5F3] px-5 py-4 sm:px-6 sm:py-5">
-                  <div className="absolute -right-14 -top-14 size-28 rounded-full bg-[#1A5345]/5 blur-3xl" />
-                  <div className="relative flex items-center justify-between gap-3 sm:gap-4">
-                     <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-                        <div className="size-12 shrink-0 overflow-hidden rounded-2xl border border-white bg-white p-0.5 shadow-md shadow-[#1A5345]/10 sm:size-14">
-                           <img
-                              src={dicebearAvatarUrl(selectedAppointment.patientName, selectedAppointment.id)}
+             <div className="flex flex-col">
+               {/* Detail Header — compact and premium */}
+               <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-4 sm:px-6">
+                  <div className="flex items-center justify-between gap-3">
+                     <div className="flex items-center gap-3">
+                        <div className="relative size-11 shrink-0 overflow-hidden rounded-full border border-[#E8E6E0] bg-white shadow-sm">
+                           <img 
+                              src={getAvatarUrl(selectedAppointment.patientName, selectedAppointment.id)} 
                               alt=""
                               className="size-full object-cover"
                            />
                         </div>
                         <div className="min-w-0">
-                           <DialogTitle className="font-serif text-[18px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[20px]">
+                           <DialogTitle className="font-serif text-[18px] font-bold leading-tight tracking-tight text-[#1A1F1E]">
                               {selectedAppointment.patientName}
                            </DialogTitle>
-                           <p className="mt-0.5 text-[11px] font-bold tracking-tight text-[#1A5345]/60 sm:text-[12px]">
-                              #{selectedAppointment.id.slice(0, 8)}
+                           <p className="mt-0.5 text-[11px] font-bold text-[#6B7870] tabular-nums">
+                              #{selectedAppointment.id.slice(0, 8).toUpperCase()}
                            </p>
                         </div>
                      </div>
                      <Badge
-                        variant="outline"
+                        variant="default"
                         className={cn(
-                           "shrink-0 rounded-full border-0 bg-white/80 px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm sm:text-[11px]",
+                           "shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-bold shadow-sm",
                            appointmentStatusBadgeClass[selectedAppointment.status],
                         )}
                      >
@@ -969,36 +1051,34 @@ export function AssistantAppointments({
                   </div>
                </div>
 
-               {/* Content Sections — compact */}
+               {/* Content Sections — matching premium medical style */}
                <div className="space-y-5 px-5 py-5 sm:space-y-6 sm:px-6 sm:py-6">
-                  {/* Section 1: Timeline & Physician */}
+                  {/* Section 1: Schedule & Physician */}
                   <div className="grid grid-cols-2 gap-x-5 sm:gap-x-8">
                      <div className="relative space-y-0.5 border-l-2 border-[#1A5345]/10 pl-4">
-                        <div className="absolute -left-[7px] top-0 size-3 rounded-full border-2 border-[#1A5345] bg-white shadow-sm" />
-                        <p className="text-[10px] font-bold tracking-tight text-muted-foreground sm:text-[11px]">
+                        <div className="absolute -left-[5px] top-0 size-2 rounded-full bg-[#1A5345]" />
+                        <p className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">
                            Schedule
                         </p>
-                        <p className="text-[14px] font-bold text-[#102F27] sm:text-[15px]">
+                        <p className="text-[14px] font-bold text-[#1A1F1E]">
                            {formatAppointmentDate(selectedAppointment.scheduledAt)}
                         </p>
-                        <p className="text-[12px] font-bold text-[#1A5345] sm:text-[13px]">
+                        <p className="text-[12px] font-bold text-[#1A5345]">
                            {formatLocalTimeRangeAmPm(selectedAppointment.scheduledAt)}
                         </p>
                      </div>
 
                      <div className="space-y-0.5">
-                        <p className="text-[10px] font-bold tracking-tight text-muted-foreground sm:text-[11px]">
+                        <p className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">
                            Practitioner
                         </p>
-                        <div className="flex items-center gap-2 pt-0.5">
-                           <div className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#E8E6E0] bg-[#F9F8F5] sm:size-8">
-                              <UserIcon className="size-3.5 text-[#1A5345]/40 sm:size-4" />
-                           </div>
+                        <div className="flex items-center gap-2 pt-1">
+                           <UserIcon className="size-4 text-[#1A5345] shrink-0" />
                            <div className="min-w-0">
-                              <p className="truncate text-[13px] font-bold leading-tight text-[#102F27] sm:text-[14px]">
+                              <p className="truncate text-[13px] font-bold leading-tight text-[#1A1F1E]">
                                  {selectedAppointment.doctorName}
                               </p>
-                              <p className="mt-0.5 truncate text-[10px] font-bold text-muted-foreground sm:text-[11px]">
+                              <p className="mt-0.5 truncate text-[11px] font-medium text-muted-foreground">
                                  {selectedAppointment.department}
                               </p>
                            </div>
@@ -1007,18 +1087,19 @@ export function AssistantAppointments({
                   </div>
 
                   {/* Section 2: Clinical Context */}
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                      <div className="flex items-center gap-2">
-                        <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#E8E6E0]/60" />
-                        <span className="shrink-0 text-[10px] font-bold tracking-tight text-muted-foreground sm:text-[11px]">
+                        <span className="shrink-0 text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">
                            Clinical context
                         </span>
-                        <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#E8E6E0]/60" />
+                        <div className="h-px flex-1 bg-[#E8E6E0]/60" />
                      </div>
-                     <div className="group relative rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/70 p-4 sm:rounded-2xl">
-                        <ActivityIcon className="absolute right-3 top-3 size-4 text-[#1A5345]/5 transition-colors group-hover:text-[#1A5345]/10 sm:right-4 sm:top-4 sm:size-5" />
-                        <p className="mb-1 text-[10px] font-bold text-[#1A5345]/50 sm:text-[11px]">Visit Reason</p>
-                        <p className="text-[13px] font-medium leading-snug text-[#102F27] sm:text-[14px] sm:leading-relaxed">
+                     <div className="rounded-xl border border-[#E8E6E0] bg-[#F9F8F5]/50 p-4">
+                        <div className="flex items-center gap-2 mb-1.5">
+                           <ActivityIcon className="size-3.5 text-[#1A5345]" />
+                           <p className="text-[11px] font-bold text-[#1A5345]/70">Visit Reason</p>
+                        </div>
+                        <p className="text-[13px] font-medium leading-relaxed text-[#1A1F1E]">
                            {selectedAppointment.reason ||
                               "General cardiovascular health assessment and vital signs monitoring."}
                         </p>
@@ -1026,17 +1107,17 @@ export function AssistantAppointments({
                   </div>
 
                   {/* Section 3: Interaction */}
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center gap-2.5 pt-1">
                      <Button
                         variant="ghost"
-                        className="h-9 flex-1 rounded-xl font-bold text-muted-foreground transition-all hover:bg-[#F9F8F5] hover:text-[#1A1F1E] sm:h-10 sm:rounded-2xl"
+                        className="h-8 flex-1 rounded-lg font-bold text-[#6B7870] transition-colors hover:bg-slate-50 hover:text-[#1A1F1E]"
                         onClick={() => setSelectedAppointment(null)}
                      >
                         Close
                      </Button>
                      <Button
                         asChild
-                        className="flex-[2] h-9 rounded-xl bg-[#1A5345] text-[12px] font-bold text-white shadow-lg shadow-[#1A5345]/15 transition-all hover:bg-[#133F34] sm:h-10 sm:rounded-2xl sm:text-[13px]"
+                        className="h-8 flex-[2] rounded-lg bg-[#1A5345] px-5 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]"
                      >
                         <Link href={`/assistant-patients/${selectedAppointment.patientId}`}>
                            Access Medical Chart
@@ -1188,17 +1269,15 @@ export function AssistantAppointments({
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="sm:max-w-lg rounded-3xl p-0 overflow-hidden border-0 shadow-2xl">
           <div className="space-y-5 bg-white p-5 sm:space-y-6 sm:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0 space-y-0.5">
-                <DialogTitle className="font-serif text-[20px] font-bold tracking-tight text-[#1A1F1E] sm:text-[22px]">
+            <div className="flex items-center gap-3">
+              <CalendarPlus2Icon className="size-6 text-[#1A5345] shrink-0" />
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <DialogTitle className="font-serif text-[18px] font-bold tracking-tight text-[#1A1F1E] sm:text-[20px]">
                   New appointment
                 </DialogTitle>
-                <DialogDescription className="text-[13px] font-medium text-muted-foreground">
+                <DialogDescription className="text-[12px] font-medium text-muted-foreground sm:text-[13px]">
                   Create a clinical booking for an existing patient.
                 </DialogDescription>
-              </div>
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] sm:size-11">
-                <CalendarPlus2Icon className="size-5 text-[#1A5345] sm:size-[22px]" />
               </div>
             </div>
 
@@ -1245,12 +1324,12 @@ export function AssistantAppointments({
                       }))
                     }
                   >
-                    <SelectTrigger className="h-10 w-full min-w-0 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/30">
+                    <SelectTrigger className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
                       <SelectValue placeholder="Select booking type" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl">
+                    <SelectContent className="rounded-lg border-[#cfd9d5] bg-white shadow-lg">
                       {BOOKING_TYPE_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
+                        <SelectItem key={opt.value} value={opt.value} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">
                           {opt.label}
                         </SelectItem>
                       ))}
@@ -1266,12 +1345,12 @@ export function AssistantAppointments({
                     value={bookingDraft.reason}
                     onValueChange={(val) => setBookingDraft((prev) => ({ ...prev, reason: val }))}
                   >
-                    <SelectTrigger className="h-10 w-full min-w-0 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/30">
+                    <SelectTrigger className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
                       <SelectValue placeholder="Select a reason..." />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl">
+                    <SelectContent className="rounded-lg border-[#cfd9d5] bg-white shadow-lg">
                       {VISIT_REASON_OPTIONS.map((opt) => (
-                        <SelectItem key={opt} value={opt}>
+                        <SelectItem key={opt} value={opt} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">
                           {opt}
                         </SelectItem>
                       ))}
@@ -1290,7 +1369,7 @@ export function AssistantAppointments({
                     type="date" 
                     value={bookingDraft.date} 
                     onChange={(e) => setBookingDraft(prev => ({ ...prev, date: e.target.value, timeSlot: "" }))} 
-                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/30 transition-all focus:bg-white focus:ring-[#1A5345]/20" 
+                    className="h-10 rounded-lg border-[#cfd9d5] bg-white text-[#152a24] focus:border-[#d9e5e1] focus:ring-0" 
                   />
                 </div>
                 <div className="space-y-2">
@@ -1299,11 +1378,15 @@ export function AssistantAppointments({
                     Time
                   </Label>
                   <Select value={bookingDraft.timeSlot} onValueChange={(value) => setBookingDraft(prev => ({ ...prev, timeSlot: value }))} disabled={!bookingDraft.date || !bookingDraft.doctorId}>
-                    <SelectTrigger className="h-10 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/30 transition-all focus:bg-white focus:ring-[#1A5345]/20">
+                    <SelectTrigger className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
                       <SelectValue placeholder="Choose slot" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-[#E8E6E0]/60 shadow-xl">
-                      {availableSlotsQuery.data?.map(slot => <SelectItem key={slot.value} value={slot.value} className="rounded-lg">{slot.label}</SelectItem>)}
+                    <SelectContent className="rounded-lg border-[#cfd9d5] bg-white shadow-lg">
+                      {availableSlotsQuery.data?.map(slot => (
+                        <SelectItem key={slot.value} value={slot.value} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">
+                          {slot.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1314,13 +1397,13 @@ export function AssistantAppointments({
                    type="button" 
                    variant="ghost" 
                    onClick={() => setIsCreateDialogOpen(false)} 
-                   className="h-10 flex-1 rounded-xl font-bold text-muted-foreground transition-all hover:bg-[#F9F8F5] sm:rounded-2xl"
+                   className="h-8 flex-1 rounded-lg font-bold text-[#6B7870] transition-colors hover:bg-slate-50"
                  >
                    Cancel
                  </Button>
                  <Button 
                    type="submit" 
-                   className="h-10 flex-1 rounded-xl bg-[#1A5345] font-bold text-white shadow-lg shadow-[#1A5345]/10 transition-all hover:-translate-y-0.5 hover:bg-[#133F34] active:translate-y-0 sm:rounded-2xl" 
+                   className="h-8 flex-1 rounded-lg bg-[#1A5345] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]" 
                    disabled={isCreating || !bookingDraft.patientId || !bookingDraft.doctorId || !bookingDraft.date || !bookingDraft.timeSlot || !bookingDraft.reason}
                  >
                    {isCreating ? "Processing..." : "Confirm booking"}

@@ -57,7 +57,7 @@ const primaryMetrics: DashboardMetric[] = [
     delta: "+2%",
     trend: "up",
     icon: HeartPulseIcon,
-    iconStyle: "bg-[#EEF5F3] text-[#1A5345]",
+    iconStyle: "text-[#1A5345]",
     sparkStyle: "bg-[#1A5345]/80",
   },
   {
@@ -66,7 +66,7 @@ const primaryMetrics: DashboardMetric[] = [
     delta: "This month",
     trend: "up",
     icon: CalendarClockIcon,
-    iconStyle: "bg-[#F9F2E8] text-[#C26D2A]",
+    iconStyle: "text-[#C26D2A]",
     sparkStyle: "bg-[#E89042]/80",
   },
   {
@@ -75,7 +75,7 @@ const primaryMetrics: DashboardMetric[] = [
     delta: "On track",
     trend: "up",
     icon: PillIcon,
-    iconStyle: "bg-[#F4F9F7] text-[#2E8B68]",
+    iconStyle: "text-[#2E8B68]",
     sparkStyle: "bg-[#2E8B68]/80",
   },
 ]
@@ -87,7 +87,7 @@ const secondaryMetrics: DashboardMetric[] = [
     delta: "Latest today",
     trend: "up",
     icon: ActivityIcon,
-    iconStyle: "bg-[#EEF5F3] text-[#3C57D0]",
+    iconStyle: "text-[#3C57D0]",
     sparkStyle: "bg-[#3C57D0]/70",
   },
   {
@@ -96,7 +96,7 @@ const secondaryMetrics: DashboardMetric[] = [
     delta: "Apr 12",
     trend: "up",
     icon: CalendarCheckIcon,
-    iconStyle: "bg-[#EEF8F7] text-[#08A89A]",
+    iconStyle: "text-[#08A89A]",
     sparkStyle: "bg-[#08A89A]/70",
   },
   {
@@ -105,7 +105,7 @@ const secondaryMetrics: DashboardMetric[] = [
     delta: "+2",
     trend: "up",
     icon: StethoscopeIcon,
-    iconStyle: "bg-[#EFF8F0] text-[#2E8B57]",
+    iconStyle: "text-[#2E8B57]",
     sparkStyle: "bg-[#2E8B57]/70",
   },
   {
@@ -114,7 +114,7 @@ const secondaryMetrics: DashboardMetric[] = [
     delta: "View now",
     trend: "up",
     icon: FileTextIcon,
-    iconStyle: "bg-[#FFF2F2] text-[#D33F3F]",
+    iconStyle: "text-[#D33F3F]",
     sparkStyle: "bg-[#D33F3F]/70",
   },
   {
@@ -123,7 +123,7 @@ const secondaryMetrics: DashboardMetric[] = [
     delta: "3 done",
     trend: "up",
     icon: ClockIcon,
-    iconStyle: "bg-[#EEF5F3] text-[#3577DA]",
+    iconStyle: "text-[#3577DA]",
     sparkStyle: "bg-[#3577DA]/70",
   },
   {
@@ -132,7 +132,7 @@ const secondaryMetrics: DashboardMetric[] = [
     delta: "Stable",
     trend: "up",
     icon: TrendingUpIcon,
-    iconStyle: "bg-[#EFF8F2] text-[#48A879]",
+    iconStyle: "text-[#48A879]",
     sparkStyle: "bg-[#48A879]/70",
   },
 ]
@@ -191,8 +191,8 @@ function MetricCard({ metric, compact = false }: { metric: DashboardMetric; comp
             <p className="text-sm font-semibold text-muted-foreground">{metric.label}</p>
             <div className="text-3xl font-semibold leading-none tracking-tight">{metric.value}</div>
           </div>
-          <div className={`flex size-8 items-center justify-center rounded-lg ${metric.iconStyle}`}>
-            <Icon className="size-4" />
+          <div className={`flex size-8 items-center justify-center ${metric.iconStyle}`}>
+            <Icon className="size-5" />
           </div>
         </div>
         <div className="flex h-8 items-end gap-1">
@@ -214,8 +214,8 @@ function VitalCard({ vital }: { vital: Vital }) {
     <Card className="h-full border border-black/5 shadow-sm">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#EEF5F3] text-[#1A5345]">
-            <ActivityIcon className="size-3.5" />
+          <div className="flex size-7 items-center justify-center text-[#1A5345]">
+            <ActivityIcon className="size-4.5" />
           </div>
           <CardDescription className="text-xs font-medium text-[#4F6D64]">{vital.label}</CardDescription>
         </div>
@@ -252,8 +252,8 @@ function AppointmentRow({ appt, isNext = false }: { appt: Appointment; isNext?: 
     <div className={`rounded-xl border p-4 transition-all ${isNext ? "border-[#1A5345] bg-[#E8F0EE]/50 shadow-md ring-1 ring-[#1A5345]/20" : "border-[#E5EEEA] bg-[#FBFDFC]"}`}>
       <div className="flex items-start gap-4">
         {/* Left: Icon */}
-        <div className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${isNext ? "bg-[#1A5345] text-white shadow-md" : "bg-[#E8F0EE] text-[#1A5345]"}`}>
-          <CalendarClockIcon className="size-6" />
+        <div className={`flex size-12 shrink-0 items-center justify-center ${isNext ? "text-[#1A5345]" : "text-[#1A5345]"}`}>
+          <CalendarClockIcon className={isNext ? "size-8" : "size-7"} />
         </div>
 
         {/* Middle: Info */}
@@ -305,21 +305,21 @@ function getMedicationStatusStyles(status: Medication["status"]) {
     case "taken":
       return {
         borderColor: "border-[#1A5345]",
-        iconBg: "bg-[#1A5345]",
-        iconColor: "text-white",
+        iconBg: "",
+        iconColor: "text-[#1A5345]",
         timeBadge: "bg-[#E8F0EE] text-[#1A5345]",
       }
     case "due":
       return {
         borderColor: "border-[#3577DA]",
-        iconBg: "bg-[#3577DA]/10",
+        iconBg: "",
         iconColor: "text-[#3577DA]",
         timeBadge: "bg-[#E8F2FF] text-[#3577DA]",
       }
     case "missed":
       return {
         borderColor: "border-[#C94B4B]",
-        iconBg: "bg-[#C94B4B]/10",
+        iconBg: "",
         iconColor: "text-[#C94B4B]",
         timeBadge: "bg-[#FFE5E5] text-[#C94B4B]",
       }
@@ -356,13 +356,13 @@ function MedicationRow({ med }: { med: Medication }) {
     <div className={`rounded-xl border-2 bg-white p-4 transition-all hover:shadow-sm ${styles.borderColor}`}>
       <div className="flex items-start gap-4">
         {/* Left: Status Icon */}
-        <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${styles.iconBg} ${styles.iconColor}`}>
+        <div className={`flex size-11 shrink-0 items-center justify-center ${styles.iconColor}`}>
           {med.status === "taken" ? (
-            <CheckIcon className="size-5" />
+            <CheckIcon className="size-7" />
           ) : med.status === "missed" ? (
-            <AlertCircleIcon className="size-5" />
+            <AlertCircleIcon className="size-7" />
           ) : (
-            <ClockIcon className="size-5" />
+            <ClockIcon className="size-7" />
           )}
         </div>
 
@@ -493,8 +493,8 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
         <CardHeader className="border-b border-[#E7EFEB] pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-[#EEF5F3] text-[#1A5345]">
-                <HeartPulseIcon className="size-4" />
+              <div className="flex size-8 items-center justify-center text-[#1A5345]">
+                <HeartPulseIcon className="size-6" />
               </div>
               <div>
                 <CardTitle className="text-base text-[#0F2D25]">Your Vital Signs</CardTitle>
@@ -549,8 +549,8 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
             <div className="grid gap-3 sm:grid-cols-2">
               {/* Heart Rate Card */}
               <div className="group flex items-center gap-4 rounded-xl border border-[#E7EFEB] bg-white p-4 shadow-sm transition-all duration-200 hover:border-[#1A5345]/30 hover:shadow-md">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#E8F0EE] text-[#1A5345] transition-colors group-hover:bg-[#1A5345] group-hover:text-white">
-                  <HeartPulseIcon className="size-6" />
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center text-[#1A5345]">
+                  <HeartPulseIcon className="size-8" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
@@ -573,8 +573,8 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
 
               {/* Blood Pressure Card */}
               <div className="group flex items-center gap-4 rounded-xl border border-[#E7EFEB] bg-white p-4 shadow-sm transition-all duration-200 hover:border-[#E89042]/30 hover:shadow-md">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#F6EFE4] text-[#B0783C] transition-colors group-hover:bg-[#E89042] group-hover:text-white">
-                  <GaugeIcon className="size-6" />
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center text-[#B0783C]">
+                  <GaugeIcon className="size-8" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
@@ -655,8 +655,8 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
         <Card className="border-0 shadow-sm ring-1 ring-[#DDE9E4]">
           <CardHeader className="border-b border-[#E7EFEB] pb-3">
             <div className="flex items-center gap-2">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-[#EEF5F3] text-[#1A5345]">
-                <FileTextIcon className="size-4" />
+              <div className="flex size-8 items-center justify-center text-[#1A5345]">
+                <FileTextIcon className="size-6" />
               </div>
               <CardTitle className="text-base text-[#0F2D25]">Care Summary</CardTitle>
             </div>
@@ -666,8 +666,8 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
             <div className="grid gap-3">
               <div className="flex items-center justify-between rounded-lg border border-[#E7EFEB] bg-[#FBFDFC] p-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex size-7 items-center justify-center rounded-md bg-[#E8F0EE] text-[#1A5345]">
-                    <StethoscopeIcon className="size-3.5" />
+                  <div className="flex size-7 items-center justify-center text-[#1A5345]">
+                    <StethoscopeIcon className="size-4.5" />
                   </div>
                   <span className="text-sm text-[#6A7F77]">Last check-up</span>
                 </div>
@@ -677,8 +677,8 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
               </div>
               <div className="flex items-center justify-between rounded-lg border border-[#E7EFEB] bg-[#FBFDFC] p-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex size-7 items-center justify-center rounded-md bg-[#F6EFE4] text-[#9A6B2F]">
-                    <CalendarClockIcon className="size-3.5" />
+                  <div className="flex size-7 items-center justify-center text-[#9A6B2F]">
+                    <CalendarClockIcon className="size-4.5" />
                   </div>
                   <span className="text-sm text-[#6A7F77]">Next follow-up</span>
                 </div>
@@ -688,8 +688,8 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
               </div>
               <div className="flex items-center justify-between rounded-lg border border-[#E7EFEB] bg-[#FBFDFC] p-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex size-7 items-center justify-center rounded-md bg-[#EEF8F0] text-[#2E8B57]">
-                    <ActivityIcon className="size-3.5" />
+                  <div className="flex size-7 items-center justify-center text-[#2E8B57]">
+                    <ActivityIcon className="size-4.5" />
                   </div>
                   <span className="text-sm text-[#6A7F77]">Status</span>
                 </div>
@@ -714,8 +714,8 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
           <CardHeader className="relative border-b border-[#1A5345]/10 pb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-[#1A5345] text-white shadow-lg shadow-[#1A5345]/25">
-                  <CalendarClockIcon className="size-5" />
+                <div className="flex size-10 items-center justify-center text-[#1A5345]">
+                  <CalendarClockIcon className="size-7" />
                 </div>
                 <div>
                   <CardTitle className="text-lg font-semibold text-[#0F2D25]">Upcoming Appointments</CardTitle>

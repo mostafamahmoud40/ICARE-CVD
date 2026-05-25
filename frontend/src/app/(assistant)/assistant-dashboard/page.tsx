@@ -3,8 +3,8 @@ import type { Metadata } from "next"
 import { AssistantDashboardPageContainer } from "./AssistantDashboardPageContainer"
 
 export const metadata: Metadata = {
-  title: "Assistant Dashboard | ICARE-CVD",
-  description: "Your assistant overview and task management.",
+  title: "Today's Command Center | ICARE-CVD",
+  description: "Live reception queue, upcoming appointments, and urgent triage desk.",
 }
 
 export default function AssistantDashboardPage() {

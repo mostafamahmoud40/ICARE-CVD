@@ -127,9 +127,20 @@ function documentUsesImageIcon(type: PatientDocument["type"]): boolean {
 const documentCategoryChipClass =
   "inline-flex h-[22px] shrink-0 items-center rounded-md border border-[#E8E6E0] bg-white px-2 font-sans text-[11px] font-semibold leading-none tracking-tight text-[#1A1F1E] shadow-[0_1px_1px_rgba(0,0,0,0.04)]"
 
-/** Neutral format chip — same for all extensions (PDF / JPG / …) */
+/** Color mapping for file extensions — no background, just bold text */
+const getFileFormatColor = (type: PatientDocument["type"]) => {
+  switch (type) {
+    case "pdf": return "text-red-600"
+    case "jpg": return "text-blue-600"
+    case "png": return "text-emerald-600"
+    case "doc": return "text-indigo-600"
+    default: return "text-[#1A5345]"
+  }
+}
+
+/** Neutral format chip — transparent background, colored text */
 const documentFormatChipClass =
-  "inline-flex h-[22px] shrink-0 items-center rounded-md border border-[#E5E3DD] bg-[#F5F4F1] px-1.5 font-mono text-[10px] font-semibold uppercase leading-none tracking-wider text-muted-foreground tabular-nums"
+  "inline-flex h-[22px] shrink-0 items-center px-1 font-mono text-[10px] font-bold uppercase leading-none tracking-wider tabular-nums bg-transparent border-0 shadow-none"
 
 export function Documents() {
   const [searchQuery, setSearchQuery] = React.useState("")
@@ -163,21 +174,21 @@ export function Documents() {
           
           <div className="flex flex-col sm:flex-row items-center gap-3">
             <div className="relative w-full sm:w-[240px]">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input 
                 placeholder="Search documents..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-10 rounded-xl border-[#E8E6E0] bg-white focus-visible:ring-[#1A5345] shadow-sm"
+                className="pl-9 h-8 rounded-lg border-[#E8E6E0] bg-white focus-visible:ring-[#1A5345] shadow-sm text-[12px]"
               />
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" className="h-10 rounded-xl border-[#E8E6E0] bg-white px-4 text-[13px] font-bold text-[#1A1F1E] hover:bg-[#F9F8F5] shadow-sm">
-                <DownloadIcon className="mr-2 size-4 text-muted-foreground" />
+              <Button variant="outline" className="h-8 rounded-lg border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] hover:bg-[#F9F8F5] shadow-sm transition-all">
+                <DownloadIcon className="mr-2 size-3.5 text-muted-foreground" strokeWidth={2.5} />
                 Download All
               </Button>
-              <Button className="h-10 rounded-xl bg-[#1A5345] px-5 text-[13px] font-bold text-white hover:bg-[#133F34] shadow-md border-0 transition-all hover:-translate-y-0.5">
-                <PlusIcon className="mr-2 size-4" />
+              <Button className="h-8 rounded-lg bg-[#1A5345] px-5 text-[12px] font-bold text-white hover:bg-[#133F34] shadow-sm border-0 transition-all">
+                <PlusIcon className="mr-2 size-3.5" strokeWidth={2.5} />
                 Upload New
               </Button>
             </div>
@@ -277,15 +288,12 @@ export function Documents() {
                     >
                       <div className="flex items-start justify-between">
                         <div
-                          className={cn(
-                            "flex size-12 shrink-0 items-center justify-center rounded-xl transition-colors",
-                            DOCUMENT_THUMB_ICON_WRAP[doc.type]
-                          )}
+                          className="flex size-12 shrink-0 items-center justify-center transition-colors"
                         >
                           {documentUsesImageIcon(doc.type) ? (
-                            <FileImageIcon className="size-6" strokeWidth={2} aria-hidden />
+                            <FileImageIcon className="size-6 text-[#1A5345]" strokeWidth={2.5} aria-hidden />
                           ) : (
-                            <FileTextIcon className="size-6" strokeWidth={2} aria-hidden />
+                            <FileTextIcon className="size-6 text-[#1A5345]" strokeWidth={2.5} aria-hidden />
                           )}
                         </div>
                         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity translate-y-1 group-hover:translate-y-0 duration-200">
@@ -336,7 +344,7 @@ export function Documents() {
                             </Badge>
                             <Badge
                               variant="outline"
-                              className={documentFormatChipClass}
+                              className={cn(documentFormatChipClass, getFileFormatColor(doc.type))}
                               title="File format"
                             >
                               {fileFormatLabel(doc.type)}
@@ -387,15 +395,12 @@ export function Documents() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div
-                            className={cn(
-                              "flex size-11 shrink-0 items-center justify-center rounded-lg",
-                              DOCUMENT_THUMB_ICON_WRAP[doc.type]
-                            )}
+                            className="flex size-11 shrink-0 items-center justify-center transition-colors"
                           >
                             {documentUsesImageIcon(doc.type) ? (
-                              <FileImageIcon className="size-5.5" strokeWidth={2} aria-hidden />
+                              <FileImageIcon className="size-5.5 text-[#1A5345]" strokeWidth={2.5} aria-hidden />
                             ) : (
-                              <FileTextIcon className="size-5.5" strokeWidth={2} aria-hidden />
+                              <FileTextIcon className="size-5.5 text-[#1A5345]" strokeWidth={2.5} aria-hidden />
                             )}
                           </div>
                           <div className="min-w-0">
@@ -414,7 +419,7 @@ export function Documents() {
                           </Badge>
                           <Badge
                             variant="outline"
-                            className={documentFormatChipClass}
+                            className={cn(documentFormatChipClass, getFileFormatColor(doc.type))}
                             title="File format"
                           >
                             {fileFormatLabel(doc.type)}

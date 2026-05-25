@@ -3,6 +3,7 @@
 import { type ReactNode, useSyncExternalStore } from "react"
 import { BellIcon, Settings2Icon, ShieldCheckIcon, SlidersHorizontalIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { assistantAccountScrollbarCss } from "./assistantAccount.shared"
 
 const SECTIONS = [
   { id: "security" as const, label: "Security", icon: ShieldCheckIcon },
@@ -33,61 +34,49 @@ export function AssistantSettingsPageContainer({ children }: { children: ReactNo
   const active = useSyncExternalStore(subscribeHash, getHashSection, () => "security")
 
   return (
-    <div className="flex w-full max-w-5xl flex-col gap-6 p-4 sm:gap-10 sm:p-6 lg:mx-auto lg:p-10">
-      <header className="flex flex-col gap-6">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <div className="h-1 w-8 rounded-full bg-[#1A5345]" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#1A5345]">System Control</span>
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
+      <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-white">
+        <div className="flex flex-col gap-4 px-5 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-5">
+          <div className="min-w-0 space-y-0.5">
+            <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px] lg:text-[26px]">
+              Settings
+            </h1>
+            <p className="max-w-2xl text-[13px] font-medium text-muted-foreground sm:text-[14px]">
+              Security, notification channels, and display preferences for your assistant workspace.
+            </p>
           </div>
-          <h1 className="font-serif text-[32px] font-bold tracking-tight text-[#102F27] sm:text-[40px] lg:text-[44px]">
-            Portal Settings
-          </h1>
+
+          <nav
+            aria-label="Settings sections"
+            className="flex gap-1.5 overflow-x-auto rounded-2xl border border-[#E8E6E0]/70 bg-[#F9F8F5] p-1.5"
+          >
+            {SECTIONS.map(({ id, label, icon: Icon }) => {
+              const isActive = active === id
+              return (
+                <a
+                  key={id}
+                  href={`#${id}`}
+                  className={cn(
+                    "inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-[12px] font-bold transition-colors sm:px-5 sm:text-[13px]",
+                    isActive
+                      ? "bg-[#1A5345] text-white shadow-sm"
+                      : "text-muted-foreground hover:bg-white hover:text-[#1A1F1E]",
+                  )}
+                >
+                  <Icon className="size-4 shrink-0" aria-hidden />
+                  <span className="whitespace-nowrap">{label}</span>
+                </a>
+              )
+            })}
+          </nav>
         </div>
+      </div>
 
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="flex size-14 shrink-0 items-center justify-center rounded-[20px] bg-gradient-to-br from-[#1A5345] to-[#0A3D2E] shadow-xl shadow-[#1A5345]/20 ring-4 ring-white/50">
-              <Settings2Icon className="size-6 text-white" aria-hidden />
-            </div>
-            <div className="space-y-1">
-              <p className="max-w-md text-[14px] font-medium leading-relaxed text-[#6B7870] sm:text-[15px]">
-                Manage your security protocols, notification channels, and personalized display preferences.
-              </p>
-              <div className="flex items-center gap-2 text-[11px] font-semibold text-[#1A5345]">
-                <div className="size-1.5 rounded-full bg-[#10B981] animate-pulse" />
-                Preferences synced across 2 devices
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <div className="relative flex-1 overflow-auto bg-[#F9F8F5] px-6 sm:px-8 account-custom-scrollbar">
+        <div className="mx-auto w-full max-w-3xl space-y-8 py-4 sm:space-y-10 sm:py-6">{children}</div>
+      </div>
 
-      <nav
-        aria-label="Settings sections"
-        className="sticky top-4 z-20 -mx-1 flex gap-1.5 overflow-x-auto rounded-2xl border border-[#E8E6E0]/60 bg-white/70 p-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl sm:mx-0 sm:p-2"
-      >
-        {SECTIONS.map(({ id, label, icon: Icon }) => {
-          const isActive = active === id
-          return (
-            <a
-              key={id}
-              href={`#${id}`}
-              className={cn(
-                "inline-flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl px-4 py-2 text-[13px] font-bold transition-all duration-300 sm:px-6 sm:text-[14px]",
-                isActive
-                  ? "bg-[#1A5345] text-white shadow-lg shadow-[#1A5345]/20"
-                  : "text-[#6B7870] hover:bg-[#E8F0EE] hover:text-[#1A5345]",
-              )}
-            >
-              <Icon className={cn("size-4 shrink-0 transition-transform duration-300", isActive && "scale-110")} aria-hidden />
-              <span className="whitespace-nowrap tracking-tight">{label}</span>
-            </a>
-          )
-        })}
-      </nav>
-
-      <div className="flex flex-col gap-10 sm:gap-14">{children}</div>
+      <style dangerouslySetInnerHTML={{ __html: assistantAccountScrollbarCss() }} />
     </div>
   )
 }

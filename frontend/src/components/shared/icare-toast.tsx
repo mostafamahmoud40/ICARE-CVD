@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 const ICON_WRAP_BASE =
-  "flex size-10 shrink-0 items-center justify-center rounded-full ring-4 mt-0.5"
+  "flex size-10 shrink-0 items-center justify-center rounded-full ring-4"
 
 const ICON_WRAP_DEFAULT = cn(ICON_WRAP_BASE, "bg-[#1A5345]/10 text-[#1A5345] ring-[#1A5345]/5")
 
@@ -59,7 +59,7 @@ export function showIcareToast({
 
   toast.custom(
     () => (
-      <div className="flex items-start gap-3.5 w-full">
+      <div className="flex items-center gap-3.5 w-full">
         <div className={wrapClass}>
           <Icon className="size-[18px]" strokeWidth={2.5} />
         </div>

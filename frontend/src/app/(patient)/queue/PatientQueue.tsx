@@ -1,21 +1,20 @@
 "use client"
 
-import Image from "next/image"
 import Link from "next/link"
+import { useMemo } from "react"
 
 import { toast } from "sonner"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -24,22 +23,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import type { LucideIcon } from "lucide-react"
 import {
+  ArmchairIcon,
   ArrowRightIcon,
   BellIcon,
-  CalendarDaysIcon,
+  BriefcaseMedicalIcon,
   CheckIcon,
   ClockIcon,
   FileTextIcon,
   HeartPulseIcon,
   InfoIcon,
   ListOrderedIcon,
+  MapPinIcon,
+  MegaphoneIcon,
   MessageCircleIcon,
+  FilePenLineIcon,
   RefreshCwIcon,
+  RouteIcon,
+  ScanLineIcon,
   ShieldIcon,
+  StethoscopeIcon,
+  TicketIcon,
+  TimerIcon,
+  UserRoundCheckIcon,
+  UsersIcon,
 } from "lucide-react"
 
 import type {
@@ -51,10 +61,29 @@ import type {
   PatientVisitStageStatus,
 } from "./patientQueue.types"
 import {
+  aheadThresholdAppliesNow,
+  estimateWaitAtAheadThreshold,
+  formatApproxCallTime,
+  formatQueueWaitMinutes,
+  getQueueSlotMinutes,
+} from "./patientQueue.utils"
+import {
   PATIENT_QUEUE_ALERT_AHEAD_MAX,
   PATIENT_QUEUE_ALERT_AHEAD_MIN,
   usePatientQueueAlertThreshold,
 } from "./usePatientQueueAlertThreshold"
+import {
+  queuePanelCardClassName,
+  queuePanelBodyClassName,
+  queueScrollbarCss,
+  queueInstructionTileClassName,
+  queuePrimaryButtonClassName,
+  queueOutlineButtonClassName,
+  queueSelectTriggerClassName,
+  QueuePanel,
+  QueueProfileAvatar,
+  QueueStatCell,
+} from "./patientQueue.shared"
 
 function resolvePageContext(
   page: PatientQueuePageContext | null | undefined,
@@ -88,27 +117,20 @@ function formatTodayHeaderDate() {
   })
 }
 
-function doctorInitials(name: string) {
-  const parts = name.replace(/^Dr\.\s*/i, "").split(/\s+/).filter(Boolean)
-  const a = parts[0]?.[0] ?? ""
-  const b = parts[1]?.[0] ?? ""
-  return `${a}${b}`.toUpperCase() || "DR"
-}
-
 function InstructionIcon({ kind }: { kind: PatientQueueInstructionIcon }) {
-  const cls = "size-4 text-[#1A5345] sm:size-[18px]"
+  let IconComponent = InfoIcon
   switch (kind) {
-    case "shield":
-      return <ShieldIcon className={cls} />
-    case "file":
-      return <FileTextIcon className={cls} />
-    case "clock":
-      return <ClockIcon className={cls} />
-    case "heart":
-      return <HeartPulseIcon className={cls} />
-    default:
-      return <InfoIcon className={cls} />
+    case "shield": IconComponent = ShieldIcon; break;
+    case "file": IconComponent = FileTextIcon; break;
+    case "clock": IconComponent = ClockIcon; break;
+    case "heart": IconComponent = HeartPulseIcon; break;
   }
+  
+  return (
+    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#F4F3EF] border border-[#E8E6E0]/60 shadow-sm">
+      <IconComponent className="size-4.5 sm:size-5 text-[#1A5345]" strokeWidth={2} />
+    </div>
+  )
 }
 
 type TicketStripKind = "cancelled" | "completed" | "calling" | "waiting" | "yours" | "queued"
@@ -138,30 +160,30 @@ function ticketStripVisual(
 }
 
 const TICKET_STRIP_CIRCLE: Record<TicketStripKind, string> = {
-  cancelled: "border-2 border-dashed border-red-300 bg-red-50 shadow-inner ring-1 ring-red-100",
-  completed: "border-muted bg-muted/35 text-muted-foreground",
-  calling: "border-[#1A5345] bg-[#1A5345] text-white shadow-sm ring-2 ring-[#1A5345]/25",
-  waiting: "border-amber-200 bg-amber-50 text-amber-950 shadow-sm ring-1 ring-amber-100",
-  yours: "border-[#1A5345] bg-[#EEF5F3] text-[#1A5345] shadow-sm ring-2 ring-[#1A5345]/40",
-  queued: "border-[#E8E6E0] bg-[#FBFDFC] text-muted-foreground",
+  cancelled: "border border-rose-200 bg-rose-50/50 opacity-70",
+  completed: "border border-[#E8E6E0] bg-[#F4F3EF] opacity-60",
+  calling: "border-2 border-[#1A5345] bg-[#1A5345] shadow-[0_4px_12px_rgba(26,83,69,0.25)]",
+  waiting: "border border-[#E8E6E0] bg-white shadow-sm",
+  yours: "border-2 border-[#1A5345] bg-[#F9F8F5] shadow-md ring-4 ring-[#1A5345]/10",
+  queued: "border border-dashed border-[#E8E6E0] bg-transparent opacity-60",
 }
 
 const TICKET_STRIP_NUMBER: Record<TicketStripKind, string> = {
-  cancelled: "text-red-800",
+  cancelled: "text-rose-600 line-through decoration-rose-300",
   completed: "text-muted-foreground",
-  calling: "text-white",
-  waiting: "text-amber-950",
-  yours: "text-[#1A5345]",
+  calling: "text-white font-serif text-[18px] sm:text-[20px]",
+  waiting: "text-[#1A1F1E]",
+  yours: "text-[#1A5345] font-serif text-[18px] sm:text-[20px]",
   queued: "text-muted-foreground",
 }
 
 const TICKET_STRIP_LABEL: Record<TicketStripKind, string> = {
-  cancelled: "text-red-600",
-  completed: "text-muted-foreground",
-  calling: "text-[#1A5345]",
-  waiting: "text-amber-800",
-  yours: "text-[#1A5345]",
-  queued: "text-muted-foreground",
+  cancelled: "text-rose-600 font-semibold",
+  completed: "text-muted-foreground font-medium",
+  calling: "text-[#1A5345] font-bold",
+  waiting: "text-[#6B7870] font-medium",
+  yours: "text-[#1A5345] font-bold",
+  queued: "text-muted-foreground font-medium",
 }
 
 function QueueTicketStrip({
@@ -180,7 +202,7 @@ function QueueTicketStrip({
   for (let n = start; n <= end; n++) tickets.push(n)
 
   return (
-    <div className="flex min-h-[92px] items-center gap-2 overflow-x-auto pb-1 pt-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:min-h-[100px]">
+    <div className="flex min-h-[88px] items-end gap-3 overflow-x-auto pb-1 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:min-h-[96px] sm:gap-4">
       {tickets.map((n) => {
         const v = ticketStripVisual(n, nowCalling, yourTurn, cancelled)
         const circleClass = TICKET_STRIP_CIRCLE[v.kind]
@@ -189,29 +211,26 @@ function QueueTicketStrip({
         return (
           <div
             key={n}
-            className="flex w-[50px] shrink-0 flex-col items-center gap-0.5 sm:w-[54px]"
+            className="flex w-[68px] shrink-0 flex-col items-center gap-2 sm:w-[72px]"
             aria-label={`Ticket ${n}, ${v.label}`}
           >
             <div
               className={cn(
-                "relative flex size-10 items-center justify-center rounded-full border-2 text-[11px] font-bold tabular-nums transition-colors sm:size-11 sm:text-[12px]",
+                "relative flex size-14 items-center justify-center rounded-full text-[15px] font-bold tabular-nums transition-colors sm:size-16 sm:text-[16px]",
                 circleClass,
               )}
               aria-current={v.kind === "yours" ? "step" : undefined}
             >
               <span className={cn("tabular-nums", TICKET_STRIP_NUMBER[v.kind])}>{n}</span>
               {showCallingPulse ? (
-                <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-white text-[#1A5345] shadow-sm ring-2 ring-[#1A5345]/20">
-                  <CheckIcon className="size-2.5 sm:size-3" aria-hidden />
+                <span className="absolute -right-0.5 -top-0.5 flex size-5 items-center justify-center rounded-full bg-white text-[#1A5345] shadow-sm ring-2 ring-[#1A5345]/20">
+                  <CheckIcon className="size-3 sm:size-3.5" aria-hidden />
                 </span>
               ) : null}
             </div>
-            <span className={cn("tabular-nums text-[11px] font-bold leading-none sm:text-[12px]", TICKET_STRIP_LABEL[v.kind])}>
-              {n}
-            </span>
             <span
               className={cn(
-                "max-w-[52px] text-center text-[10px] font-semibold leading-tight sm:max-w-[56px] sm:text-[11px]",
+                "max-w-[68px] text-center text-[11px] font-bold leading-tight sm:max-w-[72px] sm:text-[12px]",
                 TICKET_STRIP_LABEL[v.kind],
               )}
             >
@@ -224,257 +243,364 @@ function QueueTicketStrip({
   )
 }
 
-function StageDot({ status }: { status: PatientVisitStageStatus }) {
-  if (status === "done") {
+function resolveStageIcon(stage: Pick<PatientVisitStage, "id" | "title">): LucideIcon {
+  const key = `${stage.id} ${stage.title}`.toLowerCase()
+
+  if (key.includes("check-in") || key.includes("check in") || key.includes("reception")) {
+    return UserRoundCheckIcon
+  }
+  if (key.includes("lab") || key.includes("imaging") || key.includes("test") || key.includes("scan")) {
+    return ScanLineIcon
+  }
+  if (key.includes("wait") || key.includes("queue") || key.includes("lounge")) {
+    return ArmchairIcon
+  }
+  if (key.includes("exam") || key.includes("consult") || key.includes("consultation")) {
+    return BriefcaseMedicalIcon
+  }
+  if (key.includes("prescription") || key.includes("rx") || key.includes("medication")) {
+    return FilePenLineIcon
+  }
+
+  return RouteIcon
+}
+
+function StageStepNode({ stage }: { stage: PatientVisitStage }) {
+  const Icon = resolveStageIcon(stage)
+
+  if (stage.status === "done") {
     return (
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1A5345] text-white shadow-sm ring-2 ring-[#1A5345]/20">
-        <CheckIcon className="size-4" />
+      <div
+        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1A5345] text-white shadow-sm"
+        aria-label={`${stage.title}: completed`}
+      >
+        <Icon className="size-4 sm:size-[18px]" strokeWidth={2.25} aria-hidden />
       </div>
     )
   }
-  if (status === "in-progress") {
+
+  if (stage.status === "in-progress") {
     return (
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-amber-400 bg-amber-50 text-amber-700 shadow-sm">
-        <ClockIcon className="size-4" />
+      <div
+        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white shadow-sm ring-4 ring-amber-500/15"
+        aria-label={`${stage.title}: in progress`}
+      >
+        <Icon className="size-4 sm:size-[18px]" strokeWidth={2.25} aria-hidden />
       </div>
     )
   }
-  return <div className="size-8 shrink-0 rounded-full border-2 border-[#E5EEEA] bg-white shadow-inner" />
+
+  return (
+    <div
+      className="flex size-10 shrink-0 items-center justify-center rounded-full border border-[#E8E6E0] bg-[#F4F3EF] text-[#9CA3AF]"
+      aria-label={`${stage.title}: pending`}
+    >
+      <Icon className="size-4 sm:size-[18px]" strokeWidth={2} aria-hidden />
+    </div>
+  )
+}
+
+function StageConnector({ completed }: { completed: boolean }) {
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        "my-1.5 w-0.5 min-h-[28px] flex-1 rounded-full sm:min-h-[36px]",
+        completed ? "bg-[#1A5345]" : "bg-[#E8E6E0]",
+      )}
+    />
+  )
 }
 
 function StageStatusBadge({ status }: { status: PatientVisitStageStatus }) {
-  if (status === "done") {
-    return (
-      <Badge className="border-0 bg-emerald-50 text-[9px] font-semibold text-emerald-700 hover:bg-emerald-50 sm:text-[10px]">
-        Done
-      </Badge>
-    )
+  const config: Record<PatientVisitStageStatus, { label: string; className: string }> = {
+    done: { label: "Done", className: "bg-emerald-600 text-white" },
+    "in-progress": { label: "In progress", className: "bg-amber-500 text-white" },
+    pending: { label: "Pending", className: "bg-[#6B7870] text-white" },
   }
-  if (status === "in-progress") {
-    return (
-      <Badge className="border-0 bg-amber-50 text-[9px] font-semibold text-amber-700 hover:bg-amber-50 sm:text-[10px]">
-        In progress
-      </Badge>
-    )
-  }
+  const { label, className } = config[status]
+
   return (
-    <Badge variant="secondary" className="text-[9px] font-semibold text-muted-foreground sm:text-[10px]">
-      Pending
-    </Badge>
+    <span
+      className={cn(
+        "inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-[10px] font-bold shadow-sm",
+        className,
+      )}
+    >
+      {label}
+    </span>
   )
 }
 
 function VisitStagesCard({ stages }: { stages: PatientVisitStage[] }) {
   return (
-    <Card className="border-[#E5EEEA] bg-white shadow-sm">
-      <CardHeader className="pb-3 sm:pb-4">
-        <CardTitle className="text-[12px] font-bold text-[#1A1F1E] sm:text-[13px]">Your visit stages</CardTitle>
-        <CardDescription className="text-[10px] sm:text-[11px]">Track each step of today&apos;s pathway through the clinic.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ul className="space-y-0">
-          {stages.map((stage, i) => (
-            <li key={stage.id} className="flex gap-3">
-              <div className="flex flex-col items-center">
-                <StageDot status={stage.status} />
-                {i < stages.length - 1 ? (
-                  <div className="my-1 min-h-[28px] w-px flex-1 bg-[#E5EEEA] sm:min-h-[36px]" aria-hidden />
-                ) : null}
+    <QueuePanel
+      title="Your visit stages"
+      description="Track each step of today's pathway through the clinic."
+    >
+      <ul className="space-y-0">
+        {stages.map((stage, i) => (
+          <li key={stage.id} className="flex gap-4">
+            <div className="flex w-10 shrink-0 flex-col items-center">
+              <StageStepNode stage={stage} />
+              {i < stages.length - 1 ? <StageConnector completed={stage.status === "done"} /> : null}
+            </div>
+            <div className={cn("min-w-0 flex-1", i < stages.length - 1 ? "pb-6 sm:pb-7" : "")}>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-serif text-[13px] font-bold text-[#1A1F1E] sm:text-[14px]">{stage.title}</p>
+                <StageStatusBadge status={stage.status} />
               </div>
-              <div className={cn("min-w-0 flex-1", i < stages.length - 1 ? "pb-5 sm:pb-6" : "")}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[11px] font-semibold text-[#102F27] sm:text-[12px]">{stage.title}</p>
-                  <StageStatusBadge status={stage.status} />
+              <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground sm:text-[13px]">{stage.detail}</p>
+              {(stage.timeLabel || stage.locationLabel) && (
+                <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] text-muted-foreground sm:text-[13px]">
+                  {stage.timeLabel ? (
+                    <span className="inline-flex items-center gap-1.5 font-medium text-[#1A1F1E]/85">
+                      <ClockIcon className="size-3.5 shrink-0 text-[#1A5345]" />
+                      {stage.timeLabel}
+                    </span>
+                  ) : null}
+                  {stage.locationLabel ? (
+                    <span className="inline-flex items-center gap-1.5 font-medium text-[#1A1F1E]/85">
+                      <MapPinIcon className="size-3.5 shrink-0 text-[#1A5345]" />
+                      {stage.locationLabel}
+                    </span>
+                  ) : null}
                 </div>
-                <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground sm:text-[11px]">{stage.detail}</p>
-                {(stage.timeLabel || stage.locationLabel) && (
-                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[9px] text-muted-foreground sm:text-[10px]">
-                    {stage.timeLabel ? (
-                      <span className="inline-flex items-center gap-1 font-medium text-[#102F27]/80">
-                        <ClockIcon className="size-3 shrink-0" />
-                        {stage.timeLabel}
-                      </span>
-                    ) : null}
-                    {stage.locationLabel ? (
-                      <span className="inline-flex items-center gap-1 font-medium text-[#102F27]/80">
-                        <ListOrderedIcon className="size-3 shrink-0" />
-                        {stage.locationLabel}
-                      </span>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </QueuePanel>
   )
 }
 
-function InstructionsCard({ items }: { items: PatientQueueInstruction[] }) {
-  if (!items.length) return null
+function SidebarVisitCard({
+  patientDisplayName,
+  ctx,
+  visit,
+}: {
+  patientDisplayName: string
+  ctx: PatientQueuePageContext
+  visit: PatientQueueVisit
+}) {
   return (
-    <Card className="border-[#E5EEEA] bg-white shadow-sm">
-      <CardHeader className="pb-3 sm:pb-4">
-        <CardTitle className="text-[12px] font-bold text-[#1A1F1E] sm:text-[13px]">Important reminders</CardTitle>
-        <CardDescription className="text-[10px] sm:text-[11px]">Stay comfortable and prepared while you wait.</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-3 sm:gap-4">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="flex gap-3 rounded-xl border border-[#E8E6E0] bg-[#F9F8F5]/80 p-3 sm:p-4"
-          >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#EEF5F3] sm:size-10">
-              <InstructionIcon kind={item.icon} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold text-[#102F27] sm:text-[12px]">{item.title}</p>
-              <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground sm:text-[11px]">{item.body}</p>
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+    <QueuePanel title="Today's visit">
+      <div className="flex gap-4 sm:gap-5">
+        <QueueProfileAvatar seed={patientDisplayName} />
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="font-serif text-[14px] font-bold text-[#1A1F1E] sm:text-[15px]">{patientDisplayName}</p>
+          <p className="text-[12px] font-medium text-muted-foreground sm:text-[13px]">
+            File <span className="font-bold text-[#1A1F1E]">{ctx.fileNumber}</span>
+            {ctx.age > 0 ? (
+              <>
+                <span className="text-muted-foreground"> · </span>
+                {ctx.genderLabel} · {ctx.age} yrs
+              </>
+            ) : null}
+          </p>
+          <p className="text-[12px] font-medium text-[#1A5345] sm:text-[13px]">{visit.visitTypeLabel}</p>
+          <p className="text-[11px] text-muted-foreground">{ctx.clinicName}</p>
+        </div>
+      </div>
+    </QueuePanel>
   )
 }
 
 function SidebarDoctorCard({ visit }: { visit: PatientQueueVisit }) {
   return (
-    <Card className="border-[#E5EEEA] bg-white shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[11px] font-bold text-[#1A1F1E] sm:text-[12px]">Your clinician today</CardTitle>
-      </CardHeader>
-      <CardContent className="flex gap-3">
-        <Avatar size="lg" className="ring-2 ring-[#E5EEEA]">
-          <AvatarFallback className="bg-[#EEF5F3] text-[11px] font-bold text-[#1A5345]">
-            {doctorInitials(visit.doctorName)}
-          </AvatarFallback>
-        </Avatar>
+    <QueuePanel title="Your clinician today">
+      <div className="flex gap-4 sm:gap-5">
+        <QueueProfileAvatar seed={visit.doctorName} />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[12px] font-semibold text-[#102F27] sm:text-[13px]">{visit.doctorName}</p>
-          <p className="mt-0.5 text-[10px] text-muted-foreground sm:text-[11px]">{visit.doctorTitle ?? visit.visitTypeLabel}</p>
-          <p className="mt-2 text-[10px] leading-snug text-[#102F27]/85 sm:text-[11px]">
+          <div className="flex items-start gap-2">
+            <StethoscopeIcon className="mt-0.5 size-5 shrink-0 text-[#1A5345] sm:size-6" strokeWidth={2} />
+            <div className="min-w-0">
+              <p className="truncate font-serif text-[14px] font-bold text-[#1A1F1E] sm:text-[15px]">{visit.doctorName}</p>
+              <p className="mt-0.5 text-[12px] font-medium text-muted-foreground sm:text-[13px]">
+                {visit.doctorTitle ?? visit.visitTypeLabel}
+              </p>
+            </div>
+          </div>
+          <p className="mt-3 flex items-start gap-1.5 text-[12px] leading-snug text-[#1A1F1E]/85 sm:text-[13px]">
+            <MapPinIcon className="mt-0.5 size-4 shrink-0 text-[#1A5345]" />
             {visit.doctorLocationDetail ??
               ([visit.roomNumber, visit.department].filter(Boolean).join(" · ") || "Location confirmed at check-in")}
           </p>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </QueuePanel>
   )
 }
 
 function SidebarStatsCard({ visit }: { visit: PatientQueueVisit }) {
-  const rows: { label: string; value: string }[] = [
-    { label: "Now calling", value: visit.nowCallingNumber !== null ? String(visit.nowCallingNumber) : "—" },
-    { label: "Your number", value: visit.yourTurnNumber !== null ? String(visit.yourTurnNumber) : "—" },
-    { label: "People ahead", value: visit.peopleAhead !== null ? String(visit.peopleAhead) : "—" },
-    {
-      label: "Avg. visit length",
-      value: visit.averageExamMin !== null ? `~${visit.averageExamMin} min` : "—",
-    },
-    {
-      label: "Est. wait",
-      value: visit.estimatedWaitMin !== null ? `~${visit.estimatedWaitMin} min` : "—",
-    },
-    {
-      label: "Est. finish",
-      value: visit.estimatedFinishTime ? formatIsoTime(visit.estimatedFinishTime, true) : "—",
-    },
-  ]
-
   return (
-    <Card className="border-[#E5EEEA] bg-white shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[11px] font-bold text-[#1A1F1E] sm:text-[12px]">Queue snapshot</CardTitle>
-        <CardDescription className="text-[10px] sm:text-[11px]">Numbers only — identities stay private.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {rows.map((row) => (
-          <div key={row.label} className="flex items-center justify-between gap-3 text-[10px] sm:text-[11px]">
-            <span className="text-muted-foreground">{row.label}</span>
-            <span className="font-semibold tabular-nums text-[#102F27]">{row.value}</span>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+    <QueuePanel title="Visit timing" description="Estimated milestones for today's visit.">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <QueueStatCell
+          icon={ClockIcon}
+          value={formatIsoTime(visit.scheduledTime, true)}
+          label="Scheduled"
+          iconColor="text-sky-600"
+        />
+        <QueueStatCell
+          icon={TimerIcon}
+          value={visit.averageExamMin !== null ? `~${visit.averageExamMin} min` : "—"}
+          label="Avg. visit length"
+          iconColor="text-amber-600"
+        />
+        <QueueStatCell
+          icon={ClockIcon}
+          value={visit.estimatedFinishTime ? formatIsoTime(visit.estimatedFinishTime, true) : "—"}
+          label="Est. finish"
+          iconColor="text-[#1A5345]"
+        />
+        <QueueStatCell
+          icon={MapPinIcon}
+          value={visit.roomNumber ?? visit.department ?? "—"}
+          label="Room / area"
+          iconColor="text-[#1A5345]"
+        />
+      </div>
+    </QueuePanel>
   )
 }
 
-function SidebarAlertsCard({ note }: { note: string | null | undefined }) {
+function aheadThresholdCountLabel(threshold: number): string {
+  return threshold === 1 ? "1 patient ahead" : `${threshold} patients ahead or fewer`
+}
+
+function AheadThresholdSelectLabel({
+  threshold,
+  slotMin,
+  className,
+}: {
+  threshold: number
+  slotMin: number
+  className?: string
+}) {
+  const timeLabel = formatQueueWaitMinutes(estimateWaitAtAheadThreshold(threshold, slotMin))
+
+  return (
+    <span className={cn("inline-flex min-w-0 flex-wrap items-center gap-x-1.5 text-[13px] leading-snug sm:text-[14px]", className)}>
+      <span className="font-medium text-[#1A1F1E]">{aheadThresholdCountLabel(threshold)}</span>
+      <span className="text-[#9CA39E]" aria-hidden>
+        ·
+      </span>
+      <span className="font-semibold text-[#1A5345]">{timeLabel}</span>
+    </span>
+  )
+}
+
+function SidebarAlertsCard({
+  note,
+  visit,
+}: {
+  note: string | null | undefined
+  visit: PatientQueueVisit
+}) {
   const { aheadThreshold, setAheadThreshold } = usePatientQueueAlertThreshold()
+
+  const slotMin = useMemo(() => getQueueSlotMinutes(visit), [visit])
+  const waitAtThreshold = useMemo(
+    () => estimateWaitAtAheadThreshold(aheadThreshold, slotMin),
+    [aheadThreshold, slotMin],
+  )
+  const appliesNow = aheadThresholdAppliesNow(aheadThreshold, visit.peopleAhead)
+  const displayWaitMin =
+    appliesNow && visit.estimatedWaitMin != null ? visit.estimatedWaitMin : waitAtThreshold
+  const approxCallTime = formatApproxCallTime(displayWaitMin)
 
   const thresholdHint =
     aheadThreshold <= 1
       ? "We'll remind you when you're next (at most one patient still ahead)."
       : `We'll remind you when there are ${aheadThreshold} or fewer patients ahead of you.`
 
+  const aheadLabel = aheadThresholdCountLabel(aheadThreshold)
+
   return (
-    <Card className="border-[#E5EEEA] bg-white shadow-sm">
-      <CardHeader className="space-y-2 pb-3">
-        <CardTitle className="text-[11px] font-bold text-[#1A1F1E] sm:text-[12px]">Alerts & actions</CardTitle>
-        <CardDescription className="text-[10px] leading-relaxed sm:text-[11px]">{thresholdHint}</CardDescription>
-        {note ? (
-          <p className="text-[10px] leading-relaxed text-muted-foreground sm:text-[11px]">{note}</p>
-        ) : null}
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+    <QueuePanel title="Alerts & actions" description={thresholdHint}>
+      {note ? (
+        <p className="mb-3 text-[12px] leading-relaxed text-muted-foreground sm:text-[13px]">{note}</p>
+      ) : null}
+      <div className="flex flex-col gap-3">
         <div className="space-y-1.5">
-          <Label htmlFor="patient-queue-alert-ahead" className="text-[10px] font-semibold text-[#102F27] sm:text-[11px]">
+          <Label htmlFor="patient-queue-alert-ahead" className="text-[12px] font-bold text-[#1A1F1E]">
             Notify when ahead count is at most
           </Label>
           <Select value={String(aheadThreshold)} onValueChange={(v) => setAheadThreshold(Number.parseInt(v, 10))}>
             <SelectTrigger
               id="patient-queue-alert-ahead"
-              className="h-9 border-[#E5EEEA] bg-[#FBFDFC] text-[11px] font-medium text-[#102F27]"
+              className={cn(queueSelectTriggerClassName, "h-auto min-h-9 w-full py-2")}
             >
-              <SelectValue placeholder="Choose threshold" />
+              <SelectValue asChild>
+                <span className="min-w-0 flex-1">
+                  <AheadThresholdSelectLabel threshold={aheadThreshold} slotMin={slotMin} />
+                </span>
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {Array.from({ length: PATIENT_QUEUE_ALERT_AHEAD_MAX - PATIENT_QUEUE_ALERT_AHEAD_MIN + 1 }, (_, i) => {
                 const n = PATIENT_QUEUE_ALERT_AHEAD_MIN + i
-                const label =
-                  n === 1
-                    ? "1 patient ahead (you're almost up)"
-                    : `${n} patients ahead or fewer`
                 return (
-                  <SelectItem key={n} value={String(n)} className="text-[11px]">
-                    {label}
+                  <SelectItem key={n} value={String(n)} className="py-2 text-[13px] sm:text-[14px]">
+                    <AheadThresholdSelectLabel threshold={n} slotMin={slotMin} />
                   </SelectItem>
                 )
               })}
             </SelectContent>
           </Select>
-          <p className="text-[10px] leading-snug text-muted-foreground sm:text-[11px]">
+
+          <div className="rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/90 px-3 py-2.5">
+            <p className="text-[12px] font-bold leading-snug text-[#1A1F1E]">
+              {formatQueueWaitMinutes(displayWaitMin)} in front of you when {aheadLabel}
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+              {appliesNow ? (
+                <>
+                  This matches your queue now — you may be called around{" "}
+                  <span className="font-semibold text-[#1A5345]">{approxCallTime}</span>.
+                </>
+              ) : (
+                <>
+                  Based on ~{slotMin} min per visit slot — around{" "}
+                  <span className="font-semibold text-[#1A5345]">{approxCallTime}</span> when the queue reaches
+                  this point.
+                </>
+              )}
+            </p>
+          </div>
+
+          <p className="text-[11px] leading-snug text-muted-foreground">
             Preference is saved on this device. Push alerts still require clinic integration.
           </p>
         </div>
 
         <Button
           type="button"
-          variant="outline"
           size="sm"
-          className="h-auto justify-start gap-2 border-[#E5EEEA] py-2 text-left text-[11px] hover:bg-[#F6FBF9]"
+          className={queuePrimaryButtonClassName}
           onClick={() =>
-            toast.success(`Reminder armed — we'll notify when you're down to ${aheadThreshold} ahead or fewer.`)
+            toast.success(
+              `Reminder armed — we'll notify at ${aheadLabel} (${formatQueueWaitMinutes(displayWaitMin)} est.).`,
+            )
           }
         >
-          <BellIcon className="size-4 shrink-0 text-[#1A5345]" />
+          <BellIcon className="size-3.5 shrink-0" />
           Alert me when my turn is close
         </Button>
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="h-auto justify-start gap-2 border-[#E5EEEA] py-2 text-left text-[11px] hover:bg-[#F6FBF9]"
+          className={queueOutlineButtonClassName}
           onClick={() => toast.message("Message routing will be available when messaging is enabled.")}
         >
-          <MessageCircleIcon className="size-4 shrink-0 text-[#1A5345]" />
+          <MessageCircleIcon className="size-3.5 shrink-0 text-[#1A5345]" />
           Question or note for my clinician
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </QueuePanel>
   )
 }
 
@@ -486,110 +612,142 @@ function QueueStatusMainCard({ visit }: { visit: PatientQueueVisit }) {
   const callingRoom = visit.callingLocationLabel
 
   return (
-    <Card className="border-[#E5EEEA] bg-white shadow-sm">
-      <CardHeader className="space-y-2 pb-3 sm:pb-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle className="text-[12px] font-bold text-[#1A1F1E] sm:text-[13px]">Your place in line</CardTitle>
-            <CardDescription className="mt-1 text-[10px] sm:text-[11px]">
-              Live ticket updates for today&apos;s clinic queue.
-            </CardDescription>
-          </div>
-          {nowCalling !== null ? (
-            <Badge className="border-0 bg-[#1A5345] px-2 py-1 text-[10px] font-semibold text-white hover:bg-[#1A5345] sm:text-[11px]">
-              Now calling: {nowCalling}
-            </Badge>
-          ) : null}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="rounded-xl border border-[#E8E6E0] bg-[#FAFAF8] px-3 py-3 sm:px-4">
-          <p className="text-[11px] font-semibold leading-snug text-[#102F27] sm:text-[12px]">
-            {nowCalling !== null ? (
-              <>
-                Now calling number <span className="tabular-nums">{nowCalling}</span>
-                {callingRoom ? (
-                  <>
-                    {" "}
-                    — <span className="font-normal text-muted-foreground">{callingRoom}</span>
-                  </>
-                ) : null}
-              </>
-            ) : (
-              "Waiting for the clinic to publish the next ticket."
-            )}
-          </p>
-          {yourTurn !== null ? (
-            <p className="mt-2 text-[10px] text-muted-foreground sm:text-[11px]">
-              Your turn number is <span className="font-semibold tabular-nums text-[#102F27]">{yourTurn}</span>
-              {peopleAhead !== null ? (
-                <>
-                  {" "}
-                  — <span className="tabular-nums">{peopleAhead}</span> {peopleAhead === 1 ? "person" : "people"} ahead of you
-                </>
-              ) : null}
-              .
+    <QueuePanel
+      title="Your place in line"
+      description="Live queue position and estimated wait"
+      action={
+        nowCalling !== null ? (
+          <span className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#1A5345] px-3.5 py-2 text-[12px] font-bold tracking-wide text-white shadow-sm transition-all hover:bg-[#133F34] sm:text-[13px]">
+            <MegaphoneIcon className="size-4" strokeWidth={2.5} />
+            Calling {nowCalling}
+          </span>
+        ) : undefined
+      }
+      bodyClassName="space-y-6"
+    >
+      {yourTurn !== null ? (
+        <div className="relative overflow-hidden rounded-2xl border border-[#E8E6E0]/80 bg-[#F4F3EF]/50 px-6 py-8 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8)] sm:py-10">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col items-center">
+            <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.15em] text-[#6B7870] shadow-sm border border-[#E8E6E0]/60 sm:text-[12px]">
+              Your ticket number
+            </span>
+            <p className="mt-4 font-serif text-[72px] font-bold leading-none tabular-nums tracking-tight text-[#1A5345] sm:text-[84px] lg:text-[96px] drop-shadow-sm">
+              {yourTurn}
             </p>
-          ) : null}
-        </div>
-
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
-          <div className="flex shrink-0 flex-col justify-center rounded-xl border border-[#E5EEEA] bg-[#EEF5F3]/70 px-4 py-5 text-center lg:w-[148px]">
-            <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-[10px]">Est. wait</p>
-            <p className="mt-2 text-2xl font-bold tabular-nums text-[#1A5345] sm:text-3xl">{waitMin !== null ? `${waitMin}` : "—"}</p>
-            {waitMin !== null ? (
-              <p className="text-[10px] font-medium text-[#102F27]/80 sm:text-[11px]">minutes</p>
-            ) : (
-              <p className="text-[10px] text-muted-foreground sm:text-[11px]">Unavailable</p>
-            )}
-          </div>
-
-          <div className="min-w-0 flex-1 rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] px-3 py-4 sm:px-4">
-            {nowCalling !== null && yourTurn !== null ? (
-              <>
-                <QueueTicketStrip
-                  nowCalling={nowCalling}
-                  yourTurn={yourTurn}
-                  cancelledTicketNumbers={visit.cancelledTicketNumbers ?? []}
-                />
-                <p className="mt-3 border-t border-[#E8E6E0] pt-3 text-[10px] leading-snug text-muted-foreground sm:text-[11px]">
-                  Each ticket shows its state: <span className="font-medium text-[#102F27]/85">Finished</span> (already seen),{" "}
-                  <span className="font-medium text-[#102F27]/85">Calling now</span>,{" "}
-                  <span className="font-medium text-[#102F27]/85">Waiting here</span> (in clinic, not yet called),{" "}
-                  <span className="font-medium text-[#102F27]/85">Your ticket</span>,{" "}
-                  <span className="font-medium text-[#102F27]/85">Queued</span> (later today),{" "}
-                  <span className="font-medium text-red-700/90">Cancelled</span> (visit dropped off the queue).
-                </p>
-              </>
-            ) : (
-              <p className="text-center text-[10px] text-muted-foreground sm:text-[11px]">Ticket visualization appears when numbers are assigned.</p>
+            {(peopleAhead !== null || waitMin !== null) && (
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-[13px] font-medium sm:text-[14px]">
+                {peopleAhead !== null ? (
+                  <span className="flex items-center gap-2 rounded-full bg-white/60 px-4 py-1.5 text-[#6B7870] border border-[#E8E6E0]/40">
+                    <UsersIcon className="size-4.5 text-[#D97706]" strokeWidth={2.5} />
+                    <span className="font-semibold text-[#1A1F1E]">{peopleAhead}</span>
+                    <span>{peopleAhead === 1 ? "person" : "people"} ahead</span>
+                  </span>
+                ) : null}
+                {waitMin !== null ? (
+                  <span className="flex items-center gap-2 rounded-full bg-white/60 px-4 py-1.5 text-[#6B7870] border border-[#E8E6E0]/40">
+                    <ClockIcon className="size-4.5 text-[#1A5345]" strokeWidth={2.5} />
+                    <span className="font-semibold text-[#1A1F1E]">~{waitMin} min</span>
+                    <span>wait</span>
+                  </span>
+                ) : null}
+              </div>
             )}
           </div>
         </div>
+      ) : null}
 
-        <p className="text-[10px] leading-relaxed text-muted-foreground sm:text-[11px]">
-          Only queue ticket numbers are shown to protect patient privacy — names stay visible only on your profile above.
-        </p>
-      </CardContent>
-    </Card>
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-3 sm:grid-cols-2",
+          yourTurn !== null ? "xl:grid-cols-3" : "xl:grid-cols-4",
+        )}
+      >
+        <QueueStatCell
+          icon={MegaphoneIcon}
+          value={nowCalling !== null ? String(nowCalling) : "—"}
+          label="Now calling"
+          hint={callingRoom}
+          iconColor="text-[#1A5345]"
+        />
+        {yourTurn === null ? (
+          <QueueStatCell
+            icon={TicketIcon}
+            value="—"
+            label="Your ticket"
+            iconColor="text-[#1A5345]"
+          />
+        ) : null}
+        <QueueStatCell
+          icon={UsersIcon}
+          value={peopleAhead !== null ? String(peopleAhead) : "—"}
+          label="Ahead of you"
+          hint={peopleAhead === 1 ? "person" : peopleAhead !== null ? "people" : undefined}
+          iconColor="text-[#D97706]"
+        />
+        <QueueStatCell
+          icon={ClockIcon}
+          value={waitMin !== null ? `${waitMin} min` : "—"}
+          label="Est. wait"
+          iconColor="text-[#0284C7]"
+        />
+      </div>
+
+      {nowCalling !== null && yourTurn !== null ? (
+        <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
+          <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-3.5 sm:px-6 sm:py-4">
+            <p className="font-serif text-[14px] font-bold text-[#1A1F1E] sm:text-[15px]">Queue preview</p>
+            <p className="mt-0.5 text-[12px] font-medium text-muted-foreground sm:text-[13px]">
+              Tickets near your place in line
+            </p>
+          </div>
+          <div className="px-5 py-5 sm:px-6 sm:py-6">
+            <QueueTicketStrip
+              nowCalling={nowCalling}
+              yourTurn={yourTurn}
+              cancelledTicketNumbers={visit.cancelledTicketNumbers ?? []}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-[#E8E6E0]/80 bg-[#F9F8F5]/40 px-6 py-10 text-center">
+          <ListOrderedIcon className="mx-auto size-8 text-muted-foreground/60" strokeWidth={1.75} />
+          <p className="mt-3 text-[14px] font-medium text-muted-foreground sm:text-[15px]">
+            Ticket numbers will appear when the clinic assigns your place in line.
+          </p>
+        </div>
+      )}
+
+      <p className="text-[12px] font-medium leading-relaxed text-muted-foreground sm:text-[13px]">
+        Only queue ticket numbers are shown here to protect patient privacy.
+      </p>
+    </QueuePanel>
   )
 }
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-4 p-3 sm:p-4 lg:p-5">
-      <Skeleton className="h-14 w-full rounded-xl" />
-      <Skeleton className="h-36 w-full rounded-xl" />
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
-          <Skeleton className="h-[280px] w-full rounded-xl" />
-          <Skeleton className="h-[240px] w-full rounded-xl" />
-          <Skeleton className="h-[200px] w-full rounded-xl" />
-        </div>
-        <div className="space-y-4">
-          <Skeleton className="h-[140px] w-full rounded-xl" />
-          <Skeleton className="h-[220px] w-full rounded-xl" />
-          <Skeleton className="h-[160px] w-full rounded-xl" />
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
+      <div className="shrink-0 border-b border-[#E8E6E0]/60 bg-white px-5 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5">
+        <Skeleton className="mb-2 h-3 w-32" />
+        <Skeleton className="h-7 w-48 sm:h-8" />
+        <Skeleton className="mt-1.5 h-4 w-56" />
+      </div>
+      <div className="flex-1 overflow-auto px-6 py-4 sm:px-8">
+        <div className="space-y-5 sm:space-y-6">
+          <Skeleton className="h-36 w-full rounded-2xl" />
+          <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
+            <div className="space-y-5 lg:col-span-2 lg:space-y-6">
+              <Skeleton className="h-[420px] w-full rounded-2xl" />
+              <Skeleton className="h-[280px] w-full rounded-2xl" />
+            </div>
+            <div className="space-y-5 lg:space-y-6">
+              <Skeleton className="h-[180px] w-full rounded-2xl" />
+              <Skeleton className="h-[240px] w-full rounded-2xl" />
+              <Skeleton className="h-[220px] w-full rounded-2xl" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -623,12 +781,12 @@ export function PatientQueue({
 
   if (isError) {
     return (
-      <div className="p-3 sm:p-4 lg:p-5">
-        <Alert variant="destructive" className="max-w-lg">
-          <AlertTitle className="text-[11px] sm:text-[13px]">Could not load queue status</AlertTitle>
-          <AlertDescription className="text-[10px] sm:text-[11px]">{error?.message ?? "Something went wrong."}</AlertDescription>
-          <Button type="button" variant="outline" size="sm" className="mt-3 text-[11px]" onClick={onRetry}>
-            <RefreshCwIcon className="size-3.5" />
+      <div className="flex h-full min-h-0 flex-col items-center justify-center bg-[#F9F8F5] p-6 sm:p-8">
+        <Alert variant="destructive" className="max-w-lg rounded-2xl">
+          <AlertTitle className="text-[15px] sm:text-[16px]">Could not load queue status</AlertTitle>
+          <AlertDescription className="text-[13px] sm:text-[14px]">{error?.message ?? "Something went wrong."}</AlertDescription>
+          <Button type="button" variant="outline" size="sm" className={cn("mt-4", queueOutlineButtonClassName, "w-auto")} onClick={onRetry}>
+            <RefreshCwIcon className="size-4" />
             Try again
           </Button>
         </Alert>
@@ -638,23 +796,19 @@ export function PatientQueue({
 
   if (!visit) {
     return (
-      <div className="p-3 sm:p-4 lg:p-5">
-        <div className="mx-auto max-w-lg rounded-xl border-2 border-dashed border-[#E5EEEA] bg-white py-8 text-center sm:py-12">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-[#F5F5F3] sm:size-14">
-            <ListOrderedIcon className="size-5 text-muted-foreground sm:size-6" />
+      <div className="flex h-full min-h-0 flex-col items-center justify-center bg-[#F9F8F5] p-6 sm:p-8">
+        <div className="mx-auto max-w-lg rounded-2xl border border-dashed border-[#E8E6E0]/80 bg-white px-6 py-10 text-center sm:py-12">
+          <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-[#EEF5F3] sm:size-20">
+            <ListOrderedIcon className="size-7 text-[#1A5345] sm:size-8" strokeWidth={1.75} />
           </div>
-          <h2 className="mt-4 text-[12px] font-bold text-[#1A1F1E] sm:text-[13px]">No clinic queue entry today</h2>
-          <p className="mx-auto mt-2 max-w-sm px-4 text-[10px] leading-relaxed text-muted-foreground sm:text-[11px]">
+          <h2 className="mt-5 font-serif text-[20px] font-bold text-[#1A1F1E] sm:text-[22px]">No clinic queue entry today</h2>
+          <p className="mx-auto mt-3 max-w-sm text-[14px] leading-relaxed text-muted-foreground sm:text-[15px]">
             When you have an in-person visit added to today&apos;s queue, your ticket and wait estimate will appear here.
           </p>
-          <Button
-            asChild
-            className="mt-6 bg-[#1A5345] text-[11px] hover:bg-[#0F3D32] sm:text-[12px]"
-            size="sm"
-          >
+          <Button asChild size="sm" className={cn("mt-8", queuePrimaryButtonClassName, "w-auto px-6")}>
             <Link href="/appointments">
               View appointments
-              <ArrowRightIcon className="size-3.5" />
+              <ArrowRightIcon className="size-4" />
             </Link>
           </Button>
         </div>
@@ -699,91 +853,79 @@ export function PatientQueue({
   const instructions = visit.instructions ?? []
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#F9F8F5] pb-8">
-      {/* Top clinic strip */}
-      <div className="border-b border-[#E8E6E0] bg-[#FAFAF8]">
-        <div className="mx-auto flex max-w-[1400px] flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 lg:px-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-[#E5EEEA] sm:size-10">
-              <Image src="/images/logo/logo.png" alt="ICARE-CVD" width={40} height={40} className="size-9 object-cover sm:size-10" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-[12px] font-bold text-[#1A1F1E] sm:text-[13px]">{ctx.clinicName}</p>
-              <p className="truncate text-[10px] text-muted-foreground sm:text-[11px]">{ctx.departmentLabel}</p>
-            </div>
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
+      <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-white">
+        <div className="flex flex-col px-5 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5">
+          <div className="mb-2 flex items-center gap-2 sm:mb-2.5">
+            <Breadcrumb>
+              <BreadcrumbList className="text-[10px] sm:text-[11px]">
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href="/dashboard" className="text-[10px] font-medium sm:text-[11px]">
+                      Dashboard
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">
+                    Clinic queue
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-            <Badge variant="secondary" className="border border-[#E5EEEA] bg-white text-[10px] font-semibold text-[#102F27]">
-              File {ctx.fileNumber}
-            </Badge>
-            <div className="inline-flex items-center gap-1.5 rounded-md border border-[#E5EEEA] bg-white px-2 py-1 text-[10px] text-muted-foreground sm:text-[11px]">
-              <CalendarDaysIcon className="size-3.5 shrink-0 text-[#1A5345]" />
-              {formatTodayHeaderDate()}
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            <div className="min-w-0 space-y-0.5">
+              <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px]">
+                Clinic queue
+              </h1>
+              <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
+                {formatTodayHeaderDate()}
+                {visit.yourTurnNumber !== null ? (
+                  <>
+                    <span className="text-muted-foreground"> · </span>
+                    <span className="font-bold text-[#1A5345]">Ticket {visit.yourTurnNumber}</span>
+                  </>
+                ) : null}
+              </p>
             </div>
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              className="border-[#E5EEEA] text-[11px]"
+              variant="ghost"
+              size="icon"
+              title="Refresh queue"
+              aria-label="Refresh queue"
+              className="size-8 shrink-0 rounded-lg text-muted-foreground hover:bg-transparent hover:text-[#1A5345] sm:size-9"
               onClick={onRetry}
               disabled={isFetching}
             >
-              <RefreshCwIcon className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
-              Refresh
+              <RefreshCwIcon className={cn("size-4", isFetching && "animate-spin")} />
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1400px] space-y-4 px-3 pt-4 sm:space-y-5 sm:px-4 lg:px-5 lg:pt-5">
-        {/* Patient identity strip */}
-        <Card className="overflow-hidden border-[#E5EEEA] bg-white shadow-sm">
-          <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
-            <div className="min-w-0 flex-1 space-y-3">
-              <div>
-                <h1 className="text-[17px] font-bold tracking-tight text-[#1A1F1E] sm:text-[20px] lg:text-[22px]">{patientDisplayName}</h1>
-                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground sm:text-[11px]">
-                  <span>
-                    File <span className="font-semibold text-[#102F27]">{ctx.fileNumber}</span>
-                  </span>
-                  <Separator orientation="vertical" className="hidden !h-3 sm:block" />
-                  <span>{ctx.genderLabel}</span>
-                  <Separator orientation="vertical" className="hidden !h-3 sm:block" />
-                  <span>{ctx.age > 0 ? `${ctx.age} yrs` : "—"}</span>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Badge className="border-0 bg-[#EEF5F3] text-[10px] font-semibold text-[#1A5345] hover:bg-[#EEF5F3]">{visit.visitTypeLabel}</Badge>
-                <Badge variant="secondary" className="border border-[#E5EEEA] bg-white text-[10px] font-semibold text-[#102F27]">
-                  {visit.doctorName}
-                  {visit.doctorTitle ? ` · ${visit.doctorTitle}` : ""}
-                </Badge>
-              </div>
-            </div>
-            {visit.yourTurnNumber !== null ? (
-              <div className="flex shrink-0 flex-col items-center justify-center rounded-xl border-2 border-[#1A5345]/35 bg-[#EEF5F3]/80 px-6 py-4 text-center shadow-sm sm:min-w-[112px]">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#1A5345]/90">Your ticket</p>
-                <p className="mt-1 text-2xl font-bold tabular-nums leading-none text-[#1A5345] sm:text-3xl">{visit.yourTurnNumber}</p>
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        {/* Two-column dashboard */}
-        <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
-          <div className="space-y-4 lg:col-span-2 lg:space-y-5">
+      <div className="relative flex-1 overflow-auto bg-[#F9F8F5] px-6 sm:px-8">
+        <div className="custom-scrollbar w-full space-y-5 pb-8 pt-4 sm:space-y-6">
+        <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
+          <div className="space-y-5 lg:col-span-2 lg:space-y-6">
             <QueueStatusMainCard visit={visit} />
             {stages.length > 0 ? <VisitStagesCard stages={stages} /> : null}
-            {instructions.length > 0 ? <InstructionsCard items={instructions} /> : null}
           </div>
 
-          <aside className="space-y-4 lg:space-y-5">
+          <aside className="space-y-5 lg:space-y-6">
+            <SidebarVisitCard patientDisplayName={patientDisplayName} ctx={ctx} visit={visit} />
             <SidebarDoctorCard visit={visit} />
             <SidebarStatsCard visit={visit} />
-            <SidebarAlertsCard note={visit.alertsNote} />
+            <SidebarAlertsCard note={visit.alertsNote} visit={visit} />
           </aside>
         </div>
+        </div>
       </div>
+
+      <style dangerouslySetInnerHTML={{ __html: queueScrollbarCss() }} />
     </div>
   )
 }

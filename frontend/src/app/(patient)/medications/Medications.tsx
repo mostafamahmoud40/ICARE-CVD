@@ -15,7 +15,7 @@ export function Medications() {
     : null
 
   return (
-    <main className="flex flex-1 flex-col space-y-6 overflow-x-hidden bg-[#F9F8F5] px-4 py-6 md:px-6">
+    <main className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#F9F8F5]">
       <MedicationList
         medications={data.medications}
         stats={data.stats}

@@ -5,42 +5,34 @@ import type {
   Medication,
   MedicationStats,
   MedicationTypeFilter,
-  TimeOfDay,
 } from "./medications.types"
 import { cn } from "@/lib/utils"
 import {
-  AlertTriangleIcon,
   CheckCircle2Icon,
   ClockIcon,
   PillIcon,
   SearchIcon,
   SkipForwardIcon,
-  SunriseIcon,
-  SunIcon,
-  SunsetIcon,
-  MoonIcon,
   XIcon,
   CheckIcon,
-  AlertCircleIcon,
+  EyeIcon,
+  TimerIcon,
 } from "lucide-react"
+import {
+  MedicationTypeBadge,
+  TimeOfDayBadge,
+  TYPE_LABELS,
+} from "./patientMedications.shared"
+import { StatCell } from "@/app/(assistant)/assistant-queue/shared/StatCell"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-
-const TYPE_LABELS: Record<string, string> = {
-  antihypertensives: "Anti-hypertensives",
-  antiplatelets: "Antiplatelets",
-  anticoagulants: "Anticoagulants",
-  statins: "Statins",
-  antiarrhythmics: "Antiarrhythmics",
-  diuretics: "Diuretics",
-  diabetes_medications: "Diabetes",
-}
-
-const TIME_ICONS: Record<TimeOfDay, React.ElementType> = {
-  morning: SunriseIcon,
-  afternoon: SunIcon,
-  evening: MoonIcon,
-}
+import { Badge } from "@/components/ui/badge"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 function formatTimeOnly(iso: string) {
   return new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(new Date(iso))
@@ -51,250 +43,233 @@ function isOverdue(nextDoseAt?: string, status?: string): boolean {
   return new Date(nextDoseAt) < new Date()
 }
 
-type StatCardProps = {
-  icon: React.ReactNode
-  label: string
-  value: number | string
-  sub: string
-  accent: string
-}
-
-function StatCard({ icon, label, value, sub, accent }: StatCardProps) {
+function MedicationDots({ history }: { history: boolean[] }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-3">
-      <div className={cn("flex size-9 items-center justify-center rounded-lg", accent)}>
-        {icon}
-      </div>
-      <div>
-        <p className="text-2xl font-bold leading-none text-[#102F27]">{value}</p>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">{label}</p>
-        <p className="text-[10px] text-muted-foreground/70">{sub}</p>
-      </div>
+    <div className="flex items-center gap-1">
+      {history.map((taken, i) => (
+        <div
+          key={i}
+          title={taken ? "Taken" : "Missed"}
+          className={cn(
+            "size-2.5 rounded-full border",
+            taken ? "border-emerald-600 bg-emerald-500" : "border-rose-200 bg-rose-50",
+          )}
+        />
+      ))}
     </div>
   )
 }
 
-type MedicationCardProps = {
+function adherencePctFromHistory(history: boolean[] | undefined, fallback: number) {
+  if (!history?.length) return fallback
+  const taken = history.filter(Boolean).length
+  return Math.round((taken / history.length) * 100)
+}
+
+type PatientMedicationRowProps = {
   medication: Medication
   onMarkTaken: (id: string) => void
   onMarkSkipped: (id: string) => void
-  onClick: () => void
+  onViewDetails: () => void
 }
 
-function getTimeIcon(timeOfDay: TimeOfDay) {
-  switch (timeOfDay) {
-    case "morning":
-      return SunriseIcon
-    case "afternoon":
-      return SunIcon
-    case "evening":
-      return MoonIcon
-  }
-}
-
-function getMedCardStyles(overdue: boolean, status: Medication["status"], lastTakenAt?: string) {
-  if (status === "discontinued") {
-    return {
-      borderColor: "border-[#E5EEEA]",
-      iconBg: "bg-[#EEF2EF]",
-      iconColor: "text-[#738678]",
-      statusBadge: "bg-[#EEF2EF] text-[#738678]",
-    }
-  }
-  if (status === "paused") {
-    return {
-      borderColor: "border-[#E5EEEA]",
-      iconBg: "bg-[#F6EFE4]",
-      iconColor: "text-[#9A6B2F]",
-      statusBadge: "bg-[#F6EFE4] text-[#9A6B2F]",
-    }
-  }
-  if (lastTakenAt && !overdue) {
-    // Taken today
-    return {
-      borderColor: "border-[#1A5345]",
-      iconBg: "bg-[#1A5345]",
-      iconColor: "text-white",
-      statusBadge: "bg-[#E8F0EE] text-[#1A5345]",
-    }
-  }
-  if (overdue) {
-    return {
-      borderColor: "border-[#C94B4B]",
-      iconBg: "bg-[#C94B4B]/10",
-      iconColor: "text-[#C94B4B]",
-      statusBadge: "bg-[#FFE5E5] text-[#C94B4B]",
-    }
-  }
-  // Due
-  return {
-    borderColor: "border-[#E5EEEA]",
-    iconBg: "bg-[#3577DA]/10",
-    iconColor: "text-[#3577DA]",
-    statusBadge: "bg-[#E8F2FF] text-[#3577DA]",
-  }
-}
-
-function MedicationCard({
+function PatientMedicationRow({
   medication,
   onMarkTaken,
   onMarkSkipped,
-  onClick,
-}: MedicationCardProps) {
+  onViewDetails,
+}: PatientMedicationRowProps) {
   const overdue = isOverdue(medication.nextDoseAt, medication.status)
   const isPaused = medication.status === "paused"
   const isDiscontinued = medication.status === "discontinued"
   const isActive = medication.status === "active"
-  const takenToday = medication.lastTakenAt && new Date(medication.lastTakenAt).toDateString() === new Date().toDateString()
+  const takenToday =
+    !!medication.lastTakenAt &&
+    new Date(medication.lastTakenAt).toDateString() === new Date().toDateString()
+  const adherenceHistory = medication.adherenceHistory ?? [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+  ]
+  const adherencePct = adherencePctFromHistory(
+    medication.adherenceHistory,
+    medication.adherencePercent,
+  )
 
-  const styles = getMedCardStyles(overdue, medication.status, takenToday ? medication.lastTakenAt : undefined)
-  const adherence = medication.adherenceHistory || [true, true, true, true, true, true, true]
+  const scheduleLine = [
+    medication.frequency,
+    takenToday && medication.lastTakenAt
+      ? `Taken at ${formatTimeOnly(medication.lastTakenAt)}`
+      : overdue
+        ? "Missed dose — due now"
+        : medication.nextDoseAt
+          ? `Next dose ${formatTimeOnly(medication.nextDoseAt)}`
+          : null,
+  ]
+    .filter(Boolean)
+    .join(" · ")
 
   return (
-    <div className={`rounded-xl border bg-white p-4 transition-all hover:shadow-sm ${styles.borderColor}`}>
-      <div className="flex items-start gap-4">
-        {/* Left: Status Icon */}
+    <tr className="group transition-colors hover:bg-[#F9F8F5]/30">
+      <td className="px-5 py-4">
         <button
-          onClick={onClick}
-          className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${styles.iconBg} ${styles.iconColor}`}
+          type="button"
+          onClick={onViewDetails}
+          className="text-left transition-colors"
         >
-          {takenToday ? (
-            <CheckIcon className="size-5" />
-          ) : overdue ? (
-            <AlertCircleIcon className="size-5" />
-          ) : (
-            <PillIcon className="size-5" />
-          )}
+          <p className="text-[14px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345]">
+            {medication.name}
+          </p>
+          <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+            {medication.dose}
+          </p>
         </button>
-
-        {/* Middle: Info */}
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={onClick}
-              className="font-semibold text-[#102F27] text-base hover:underline"
-            >
-              {medication.name} <span className="text-muted-foreground font-normal">{medication.dose}</span>
-            </button>
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${styles.statusBadge}`}>
-              {TYPE_LABELS[medication.type] ?? medication.type}
+        <MedicationTypeBadge type={medication.type} className="mt-2" />
+      </td>
+      <td className="px-5 py-4">
+        <p className="max-w-[220px] text-[13px] font-medium leading-relaxed text-[#1A1F1E]/80">
+          {scheduleLine}
+        </p>
+        {medication.instructions ? (
+          <p className="mt-1 max-w-[220px] text-[11px] leading-snug text-muted-foreground line-clamp-2">
+            {medication.instructions}
+          </p>
+        ) : null}
+        <div className="mt-2 flex flex-wrap gap-1">
+          {medication.timeOfDay.map((tod) => (
+            <TimeOfDayBadge key={tod} timeOfDay={tod} />
+          ))}
+        </div>
+      </td>
+      <td className="px-5 py-4">
+        <div className="flex max-w-[148px] flex-col gap-1.5">
+          <MedicationDots history={adherenceHistory} />
+          <div className="flex items-center gap-2">
+            <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-[#E8E6E0]">
+              <div
+                className={cn(
+                  "h-full rounded-full bg-emerald-500",
+                  adherencePct < 85 && "bg-amber-500",
+                  adherencePct < 65 && "bg-rose-500",
+                )}
+                style={{ width: `${adherencePct}%` }}
+              />
+            </div>
+            <span className="shrink-0 text-[10px] font-bold tabular-nums text-muted-foreground">
+              {adherencePct}%
             </span>
           </div>
-
-          {/* Time info */}
-          <div className="mt-1 text-sm text-muted-foreground">
-            {takenToday && medication.lastTakenAt ? (
-              <span>Taken at {formatTimeOnly(medication.lastTakenAt)}</span>
-            ) : overdue ? (
-              <span className="text-[#C94B4B]">Missed dose &mdash; Due now</span>
-            ) : medication.nextDoseAt ? (
-              <span>Next dose at {formatTimeOnly(medication.nextDoseAt)}</span>
-            ) : (
-              <span>{medication.frequency}</span>
-            )}
-            {medication.duration && (
-              <span className="ml-2 rounded-full bg-[#F0F7F5] px-1.5 py-0.5 text-[11px] text-[#1A5345]">
-                {medication.duration}
-              </span>
-            )}
-          </div>
-
-          {/* Divider */}
-          <div className="my-2 border-t border-[#E7EFEB]" />
-
-          {/* Last 7 days adherence */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground">Last 7 days:</span>
-              <div className="flex gap-0.5">
-                {adherence.map((taken, idx) => (
-                  <div
-                    key={idx}
-                    className={`size-2.5 rounded-full ${
-                      taken ? "bg-[#1A5345]" : "bg-[#C94B4B]"
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
-
-        {/* Right: Time Badge & Action */}
-        <div className="flex flex-col items-end gap-2 shrink-0">
-          {/* Time of day badges */}
-          <div className="flex flex-wrap justify-end gap-1">
-            {medication.timeOfDay.map((tod) => {
-              const Icon = getTimeIcon(tod)
-              return (
-                <span
-                  key={tod}
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium flex items-center gap-1 ${styles.statusBadge}`}
-                >
-                  <Icon className="size-3" />
-                  {tod.charAt(0).toUpperCase() + tod.slice(1)}
-                </span>
-              )
-            })}
-          </div>
-
-          {/* Action buttons */}
-          {isActive && (
-            <>
-              {takenToday ? (
-                <span className="rounded-lg border border-[#1A5345]/20 bg-white px-3 py-1.5 text-xs font-medium text-[#1A5345]">
-                  Taken today
-                </span>
-              ) : overdue ? (
-                <div className="flex flex-col items-end gap-1">
-                  <span className="text-xs text-[#C94B4B] font-medium">Overdue</span>
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      className="h-7 gap-1 bg-[#1A5345] px-2 text-[11px] hover:bg-[#0F3D32]"
-                      onClick={() => onMarkTaken(medication.id)}
-                    >
-                      <CheckIcon className="size-3" />
-                      Take
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    className="h-7 gap-1 bg-[#1A5345] px-2 text-[11px] hover:bg-[#0F3D32]"
-                    onClick={() => onMarkTaken(medication.id)}
-                  >
-                    <CheckIcon className="size-3" />
-                    Take
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 gap-1 px-2 text-[11px]"
-                    onClick={() => onMarkSkipped(medication.id)}
-                  >
-                    <SkipForwardIcon className="size-3" />
-                    Skip
-                  </Button>
-                </div>
-              )}
-            </>
+      </td>
+      <td className="px-5 py-4 text-right">
+        <div className="flex items-center justify-end gap-1.5">
+          {isActive && !takenToday && overdue && (
+            <span className="rounded-lg bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-600">
+              Overdue
+            </span>
           )}
           {isPaused && (
-            <span className="rounded-lg bg-[#F6EFE4] px-2.5 py-1 text-[11px] font-medium text-[#9A6B2F]">
+            <span className="inline-flex h-8 items-center rounded-lg bg-amber-50 px-2.5 text-[10px] font-bold text-amber-700">
               Paused
             </span>
           )}
           {isDiscontinued && (
-            <span className="rounded-lg bg-[#EEF2EF] px-2.5 py-1 text-[11px] font-medium text-[#738678]">
+            <span className="inline-flex h-8 items-center rounded-lg bg-[#F4F3ED] px-2.5 text-[10px] font-bold text-muted-foreground">
               Discontinued
             </span>
           )}
+
+          <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+            {isActive && takenToday && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled
+                    className="size-8 rounded-lg text-emerald-600 hover:bg-emerald-50 disabled:opacity-100"
+                    aria-label="Taken today"
+                  >
+                    <CheckCircle2Icon className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-[11px] font-semibold">
+                  Taken today
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {isActive && !takenToday && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "size-8 rounded-lg",
+                      overdue
+                        ? "bg-[#1A5345] text-white hover:bg-[#133F34] hover:text-white"
+                        : "text-[#1A5345] hover:bg-[#1A5345]/10",
+                    )}
+                    onClick={() => onMarkTaken(medication.id)}
+                    aria-label={`Mark ${medication.name} as taken`}
+                  >
+                    <CheckIcon className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-[11px] font-semibold">
+                  Mark as taken
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {isActive && !takenToday && !overdue && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 rounded-lg text-muted-foreground hover:bg-[#F9F8F5] hover:text-[#1A5345]"
+                    onClick={() => onMarkSkipped(medication.id)}
+                    aria-label={`Skip dose for ${medication.name}`}
+                  >
+                    <SkipForwardIcon className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-[11px] font-semibold">
+                  Skip dose
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 rounded-lg text-[#1A5345] hover:bg-[#1A5345]/5"
+                  onClick={onViewDetails}
+                  aria-label={`View details for ${medication.name}`}
+                >
+                  <EyeIcon className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-[11px] font-semibold">
+                View details
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
-      </div>
-    </div>
+      </td>
+    </tr>
   )
 }
 
@@ -357,101 +332,96 @@ export function MedicationList({
   }, [medications])
 
   return (
-    <div className={cn("w-full space-y-4", className)}>
-      {/* Header */}
-      <div className="border-b border-[#E8E6E0] bg-[#FAFAF8] px-4 py-3">
-        <div className="flex items-center justify-between">
+    <div className={cn("flex h-full min-h-0 w-full flex-col overflow-hidden", className)}>
+      {/* Header — matches AssistantQueue */}
+      <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-gradient-to-br from-white via-[#FFFCFA] to-[#E8F0EE]/30 px-4 py-3 sm:px-6 sm:py-4 md:px-8">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#1A5345]/15 via-[#CC5533]/35 to-[#1A5345]/15"
+          aria-hidden
+        />
+        <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-[#1A5345]">
-              <PillIcon className="size-5 text-white" />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1A5345] shadow-sm">
+              <PillIcon className="size-5 text-white" strokeWidth={2.25} />
             </div>
             <div>
-              <h2 className="text-[15px] font-bold text-[#1A1F1E]">My Medications</h2>
-              <p className="text-[11px] text-[#6B7870]">
-                {stats.totalActive} active &middot; {stats.takenToday}/{stats.dueToday} taken today
+              <h1 className="font-serif text-[18px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[20px]">
+                My Medications
+              </h1>
+              <p className="text-[12px] font-medium text-muted-foreground">
+                {new Intl.DateTimeFormat(undefined, { dateStyle: "full" }).format(new Date())}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-bold",
-                stats.adherencePercent >= 80
-                  ? "bg-[#E8F0EE] text-[#1A5345]"
-                  : stats.adherencePercent >= 50
-                    ? "bg-[#F6EFE4] text-[#9A6B2F]"
-                    : "bg-red-50 text-red-500",
-              )}
-            >
-              {stats.adherencePercent}% adherence
-            </span>
-          </div>
         </div>
+      </div>
 
-        {/* Stats Row */}
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <StatCard
-            icon={<PillIcon className="size-4 text-[#1A5345]" />}
-            label="Active"
+      <div className="shrink-0 border-b border-[#E8E6E0] bg-[#F9F8F5] p-4 sm:p-5 md:px-8">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCell
+            icon={PillIcon}
+            iconBg="bg-[#E8F0EE]"
+            iconColor="text-[#1A5345]"
             value={stats.totalActive}
-            sub="medications"
-            accent="bg-[#E8F0EE]"
+            label="active medications"
           />
-          <StatCard
-            icon={<CheckCircle2Icon className="size-4 text-emerald-500" />}
-            label="Taken Today"
+          <StatCell
+            icon={CheckCircle2Icon}
+            iconBg="bg-[#D4E5E0]"
+            iconColor="text-[#0F3D32]"
             value={stats.takenToday}
-            sub={`of ${stats.dueToday} doses`}
-            accent="bg-emerald-50"
+            label={`taken today · of ${stats.dueToday} doses`}
           />
-          <StatCard
-            icon={<ClockIcon className="size-4 text-[#C26D2A]" />}
-            label="Remaining"
+          <StatCell
+            icon={ClockIcon}
+            iconBg="bg-amber-100"
+            iconColor="text-amber-600"
             value={Math.max(0, stats.dueToday - stats.takenToday)}
-            sub="doses left"
-            accent="bg-[#F9F2E8]"
+            label="doses remaining"
           />
-          <StatCard
-            icon={<AlertTriangleIcon className="size-4 text-amber-500" />}
-            label="Adherence"
+          <StatCell
+            icon={TimerIcon}
+            iconBg="bg-[#E0E8E4]"
+            iconColor="text-[#4F6D64]"
             value={`${stats.adherencePercent}%`}
-            sub="last 7 days"
-            accent="bg-amber-50"
+            label="7-day adherence"
           />
         </div>
+      </div>
 
-        {/* Search + Type Filter */}
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <div className="relative w-full md:w-80 lg:w-96">
-            <SearchIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-[#9CA3AF]" />
+      <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-white">
+        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:px-6 sm:py-4 md:px-8">
+          <div className="relative w-full sm:w-[min(100%,320px)] lg:w-[360px]">
+            <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name, dose, or doctor..."
-              className="h-8 border-[#E8E6E0] bg-white pl-9 text-[13px] placeholder:text-[#9CA3AF]"
+              className="h-9 rounded-xl border-[#E8E6E0] bg-white pl-9 text-[13px] shadow-sm focus-visible:border-[#1A5345]/40 focus-visible:ring-[#1A5345]/20 sm:h-10 sm:rounded-2xl sm:pl-10 sm:text-[14px]"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7870]"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-[#1A5345]"
               >
                 <XIcon className="size-4" />
               </button>
             )}
           </div>
-          <div className="no-scrollbar w-full overflow-x-auto md:ml-auto md:w-auto">
+          <div className="no-scrollbar w-full overflow-x-auto sm:ml-auto sm:w-auto">
             <style>{`
               .no-scrollbar::-webkit-scrollbar { display: none; }
               .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
-            <div className="flex min-w-max gap-1">
+            <div className="flex min-w-max gap-1.5">
               <button
+                type="button"
                 onClick={() => setTypeFilter("all")}
                 className={cn(
-                  "rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors",
+                  "rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors",
                   typeFilter === "all"
-                    ? "bg-[#1A5345] text-white"
-                    : "bg-[#E8E6E0]/50 text-[#6B7870] hover:bg-[#E8E6E0]",
+                    ? "bg-[#1A5345] text-white shadow-sm"
+                    : "border border-[#E8E6E0]/80 bg-white text-muted-foreground hover:bg-[#F9F8F5] hover:text-[#1A1F1E]",
                 )}
               >
                 All
@@ -459,12 +429,13 @@ export function MedicationList({
               {availableTypes.map((type) => (
                 <button
                   key={type}
+                  type="button"
                   onClick={() => setTypeFilter(type)}
                   className={cn(
-                    "rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors",
+                    "rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors",
                     typeFilter === type
-                      ? "bg-[#1A5345] text-white"
-                      : "bg-[#E8E6E0]/50 text-[#6B7870] hover:bg-[#E8E6E0]",
+                      ? "bg-[#1A5345] text-white shadow-sm"
+                      : "border border-[#E8E6E0]/80 bg-white text-muted-foreground hover:bg-[#F9F8F5] hover:text-[#1A1F1E]",
                   )}
                 >
                   {TYPE_LABELS[type] ?? type}
@@ -475,30 +446,63 @@ export function MedicationList({
         </div>
       </div>
 
-      {/* Medication Cards */}
-      <div className="space-y-3 px-4">
-        {filteredMedications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-[#F5F5F3]">
-              <PillIcon className="size-7 text-[#9CA3AF]" />
+      <div className="relative min-h-0 flex-1 overflow-auto bg-[#F9F8F5] px-5 pb-8 pt-6 sm:px-6 md:px-8">
+        <section className="w-full">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <PillIcon className="size-5 text-[#1A5345]" aria-hidden />
+              <h2 className="text-[18px] font-bold text-[#1A1F1E]">Your medications</h2>
             </div>
-            <p className="text-[14px] text-[#6B7870]">
-              {searchQuery
-                ? "No medications match your search."
-                : "No medications found for this filter."}
-            </p>
+            <Badge
+              variant="outline"
+              className="rounded-lg border-[#E8E6E0] bg-[#F9F8F5] px-2.5 py-0.5 text-[11px] font-bold text-[#1A5345]"
+            >
+              {filteredMedications.length} total
+            </Badge>
           </div>
-        ) : (
-          filteredMedications.map((med) => (
-            <MedicationCard
-              key={med.id}
-              medication={med}
-              onMarkTaken={onMarkTaken}
-              onMarkSkipped={onMarkSkipped}
-              onClick={() => onSelectMedication(med)}
-            />
-          ))
-        )}
+
+          {filteredMedications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#E8E6E0] bg-white py-12 text-center sm:py-16">
+              <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-[#F4F3ED]">
+                <PillIcon className="size-7 text-muted-foreground/50" strokeWidth={1.75} />
+              </div>
+              <p className="text-[15px] font-bold text-[#1A1F1E]">No medications found</p>
+              <p className="mt-1 max-w-xs text-[13px] font-medium text-muted-foreground">
+                {searchQuery
+                  ? "No medications match your search."
+                  : "Try another category filter."}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/80 bg-white shadow-sm">
+              <TooltipProvider delay={200}>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] border-collapse text-left">
+                  <thead className="sticky top-0 z-10 bg-[#F4F3ED]/90 shadow-[0_1px_0_0_#E8E6E0] backdrop-blur-md">
+                    <tr className="font-serif text-[15px] font-bold text-[#1A1F1E] transition-colors">
+                      <th className="py-4 pl-4 pr-4">Drug name</th>
+                      <th className="px-4 py-4">Schedule</th>
+                      <th className="px-4 py-4">7-day adherence</th>
+                      <th className="px-4 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E8E6E0]/40">
+                    {filteredMedications.map((med) => (
+                      <PatientMedicationRow
+                        key={med.id}
+                        medication={med}
+                        onMarkTaken={onMarkTaken}
+                        onMarkSkipped={onMarkSkipped}
+                        onViewDetails={() => onSelectMedication(med)}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              </TooltipProvider>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   )
