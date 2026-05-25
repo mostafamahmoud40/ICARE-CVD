@@ -93,9 +93,7 @@ export function EscalateMedicationDialog({
       <DialogContent className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[480px]">
         <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-3.5 sm:px-6 sm:py-4">
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#E8E6E0] bg-white text-[#1A5345] shadow-sm sm:size-10">
-              <StethoscopeIcon className="size-[18px] sm:size-5" aria-hidden />
-            </div>
+            <StethoscopeIcon className="size-6 text-[#1A5345] shrink-0" aria-hidden />
             <div className="min-w-0 flex-1 space-y-0.5">
               <DialogTitle className="text-left text-[17px] font-bold font-serif leading-tight text-[#1A1F1E]">
                 Escalate to doctor
@@ -137,17 +135,17 @@ export function EscalateMedicationDialog({
               >
                 <SelectTrigger
                   id="escalate-medication"
-                  className="h-10 w-full min-w-0 rounded-xl border-[#E8E6E0] bg-white text-[13px] shadow-sm focus-visible:ring-[#1A5345]"
+                  className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0"
                 >
                   <SelectValue placeholder="Choose scope" />
                 </SelectTrigger>
                 <SelectContent
                   alignItemWithTrigger={false}
-                  className="rounded-xl border-[#E8E6E0]/60 shadow-lg"
+                  className="rounded-lg border-[#cfd9d5] bg-white shadow-lg"
                 >
-                  <SelectItem value={PATIENT_LEVEL_VALUE}>Patient-level issue</SelectItem>
+                  <SelectItem value={PATIENT_LEVEL_VALUE} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">Patient-level issue</SelectItem>
                   {profile?.medications.map((med) => (
-                    <SelectItem key={med.id} value={med.id}>
+                    <SelectItem key={med.id} value={med.id} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">
                       {med.name} {med.strength}
                     </SelectItem>
                   ))}
@@ -165,17 +163,17 @@ export function EscalateMedicationDialog({
               >
                 <SelectTrigger
                   id="escalate-priority"
-                  className="h-10 w-full min-w-0 rounded-xl border-[#E8E6E0] bg-white text-[13px] shadow-sm focus-visible:ring-[#1A5345]"
+                  className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0"
                 >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent
                   alignItemWithTrigger={false}
-                  className="rounded-xl border-[#E8E6E0]/60 shadow-lg"
+                  className="rounded-lg border-[#cfd9d5] bg-white shadow-lg"
                 >
-                  <SelectItem value="routine">Routine — review within routine cadence</SelectItem>
-                  <SelectItem value="urgent">Urgent — needs attention soon</SelectItem>
-                  <SelectItem value="critical">Critical — potential safety risk</SelectItem>
+                  <SelectItem value="routine" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">Routine — review within routine cadence</SelectItem>
+                  <SelectItem value="urgent" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">Urgent — needs attention soon</SelectItem>
+                  <SelectItem value="critical" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">Critical — potential safety risk</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -228,7 +226,7 @@ export function EscalateMedicationDialog({
           <Button
             type="button"
             variant="outline"
-            className="h-10 rounded-xl border-[#E8E6E0]/80 px-4 text-[13px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-white"
+            className="h-8 rounded-lg border border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] shadow-sm transition-colors hover:bg-slate-50 hover:text-[#1A5345]"
             onClick={() => onOpenChange(false)}
             disabled={isPending}
           >
@@ -236,13 +234,13 @@ export function EscalateMedicationDialog({
           </Button>
           <Button
             type="button"
-            className="h-10 rounded-xl border-0 bg-[#1A5345] px-5 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(26,83,69,0.2)] transition-all hover:bg-[#133F34] hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none"
+            className="h-8 rounded-lg border-0 bg-[#1A5345] px-5 text-[12px] font-bold text-white shadow-sm transition-all hover:bg-[#133F34] disabled:opacity-50 disabled:shadow-none"
             onClick={() => void handleSubmit()}
             disabled={isPending || !profile}
           >
             {isPending ? (
               <>
-                <Loader2Icon className="mr-2 size-4 animate-spin" aria-hidden />
+                <Loader2Icon className="mr-2 size-3.5 animate-spin" aria-hidden />
                 Queuing…
               </>
             ) : (

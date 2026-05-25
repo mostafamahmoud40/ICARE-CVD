@@ -12,10 +12,13 @@ export type ContactHistoryStatus = "queued" | "delivered" | "failed" | "replied"
 
 export type DoctorEscalationPriority = "routine" | "urgent" | "critical";
 
+export type MedicationType = "pill" | "injection" | "solution";
+
 export type MedicationLine = {
   id: string;
   name: string;
   strength: string;
+  type?: MedicationType;
   dosageInstructions: string;
   frequencyLabel: string;
   adherencePct7d: number;
