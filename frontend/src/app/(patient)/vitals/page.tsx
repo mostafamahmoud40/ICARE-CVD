@@ -45,7 +45,7 @@ export default function VitalsPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-6 lg:p-8">
+    <div className="flex flex-1 flex-col gap-6 bg-[#F9F8F5] p-6 lg:p-8">
       {/* Header Area */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="mb-1">
@@ -53,11 +53,9 @@ export default function VitalsPage() {
             <h1 className="text-3xl font-bold tracking-tight text-[#1A1F1E] dark:text-foreground">
               Vitals & Measurements
             </h1>
-            <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#E8F0ED] px-2 py-0.5 border border-[#C8D9D3] dark:border-emerald-900/50 dark:bg-emerald-950/30">
-              <SparklesIcon className="size-3 text-[#1a5345] dark:text-emerald-400" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.05em] text-[#1a5345] dark:text-emerald-400">
-                AI-Powered Analysis
-              </span>
+            <div className="inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden whitespace-nowrap rounded-lg bg-violet-600 px-2 py-0.5 text-[10px] font-bold text-white">
+              <SparklesIcon className="size-3" />
+              <span>AI-Powered Analysis</span>
             </div>
           </div>
           <p className="m-0 max-w-xl text-[15px] leading-relaxed text-[#6B7870] dark:text-muted-foreground">

@@ -10,13 +10,6 @@ import {
 } from "recharts"
 
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -54,14 +47,14 @@ export function HeartRateChart({ data, className }: HeartRateChartProps) {
   )
 
   return (
-    <Card className={cn("col-span-1 border-border/50 shadow-sm", className)}>
-      <CardHeader>
-        <CardTitle>Heart Rate Progression</CardTitle>
-        <CardDescription>
+    <div className={cn("overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]", className)}>
+      <div className="border-b border-[#E8E6E0]/40 px-5 py-4 sm:px-6">
+        <h3 className="font-serif text-[17px] font-bold text-[#1A1F1E]">Heart Rate Progression</h3>
+        <p className="mt-1 text-[13px] font-medium text-muted-foreground">
           Your resting heart rate measurements (bpm).
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+        </p>
+      </div>
+      <div className="px-5 pb-6 pt-4 sm:px-6">
         <ChartContainer config={chartConfig} className="aspect-auto h-[300px] w-full">
           <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="hsl(var(--border)/0.5)" />
@@ -97,7 +90,7 @@ export function HeartRateChart({ data, className }: HeartRateChartProps) {
             />
           </LineChart>
         </ChartContainer>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
