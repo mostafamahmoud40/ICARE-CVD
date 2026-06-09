@@ -11,10 +11,10 @@ import {
 } from "lucide-react"
 
 const STATUS_STYLES: Record<string, string> = {
-  scheduled: "bg-[#F6EFE4] text-[#9A6B2F] border border-[#E9D9BF]",
-  confirmed: "bg-[#E8F0EE] text-[#1A5345] border border-[#A8C4BC]",
-  completed: "bg-[#EEF2EF] text-[#738678] border border-[#DDE5E0]",
-  cancelled: "bg-red-50 text-red-500 border border-red-200",
+  scheduled: "border-0 bg-amber-500 text-white hover:bg-amber-500",
+  confirmed: "border-0 bg-blue-500 text-white hover:bg-blue-500",
+  completed: "border-0 bg-emerald-500 text-white hover:bg-emerald-500",
+  cancelled: "border-0 bg-rose-500 text-white hover:bg-rose-500",
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -62,8 +62,8 @@ export function AppointmentDayList({
     <div className="flex flex-col rounded-xl border border-[#E5EEEA] bg-white">
       {/* Date header */}
       <div className="border-b border-[#E8E6E0] bg-[#FAFAF8] px-4 py-3">
-        <h3 className="text-[14px] font-semibold text-[#1A1F1E]">{formattedDate}</h3>
-        <p className="text-[11px] text-[#6B7870]">
+        <h3 className="text-[15px] font-bold text-[#1A1F1E]">{formattedDate}</h3>
+        <p className="text-[12px] font-medium text-[#6B7870]">
           {appointments.length} appointment{appointments.length !== 1 ? "s" : ""}
         </p>
       </div>
@@ -115,10 +115,10 @@ export function AppointmentDayList({
 
                 {/* Patient info */}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-semibold text-[#1A1F1E]">
+                  <p className="truncate font-serif text-[14px] font-bold text-[#1A1F1E]">
                     {appointment.patient.name}
                   </p>
-                  <p className="truncate text-[11px] text-[#6B7870]">
+                  <p className="truncate text-[12px] text-[#6B7870]">
                     {appointment.patient.age != null ? `${appointment.patient.age}y, ` : ""}
                     {appointment.patient.gender}
                     {appointment.reason ? ` — ${appointment.reason}` : ""}

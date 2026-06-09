@@ -21,7 +21,7 @@ function SectionTitle({ icon: Icon, title, className }: { icon: React.ElementTyp
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <Icon className="size-3.5 text-[#1A5345]" />
-      <span className="text-[12px] font-semibold text-[#1A5345]">{title}</span>
+      <span className="text-[13.5px] font-bold text-[#1A5345]">{title}</span>
     </div>
   )
 }
@@ -45,13 +45,13 @@ function PatientHeader({
         <UserRoundIcon className="size-5 text-[#1A5345]" />
       </div>
       <div className="min-w-0 flex-1 text-left">
-        <p className="truncate text-[14px] font-semibold text-[#102F27]">{name}</p>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+        <p className="truncate font-serif text-[16px] font-bold text-[#102F27]">{name}</p>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-muted-foreground">
           <span>{age} yrs</span>
           <span className="text-[#E8E6E0]">|</span>
           <span className="capitalize">{gender}</span>
           <span className="text-[#E8E6E0]">|</span>
-          <span className="rounded-full bg-red-50 px-1.5 py-0.5 font-medium text-red-600">{bloodType}</span>
+          <span className="rounded-full bg-red-50 px-1.5 py-0.5 font-semibold text-red-600">{bloodType}</span>
         </div>
       </div>
     </>
@@ -82,9 +82,9 @@ function AllergiesList({ allergies }: { allergies: Allergy[] }) {
           <div key={a.id} className="flex items-start gap-2 rounded-lg border border-red-100 bg-red-50/50 px-2 py-1.5">
             <AlertTriangleIcon className="mt-0.5 size-3 shrink-0 text-red-500" />
             <div className="min-w-0">
-              <span className="text-[11px] font-medium text-red-700">{a.allergen}</span>
-              <span className="ml-1 text-[10px] text-red-500">({a.category})</span>
-              <p className="text-[10px] text-red-600">{a.reaction}</p>
+              <span className="text-[13px] font-medium text-red-700">{a.allergen}</span>
+              <span className="ml-1 text-[11px] text-red-500">({a.category})</span>
+              <p className="text-[11px] text-red-600">{a.reaction}</p>
             </div>
           </div>
         ))}
@@ -101,8 +101,8 @@ function MedicationsList({ medications }: { medications: ActiveMedication[] }) {
       <div className="space-y-1">
         {medications.map((m) => (
           <div key={m.id} className="rounded-lg border border-[#E5EEEA] bg-[#FBFDFC] px-2 py-1.5">
-            <p className="text-[11px] font-medium text-[#102F27]">{m.name}</p>
-            <p className="text-[10px] text-muted-foreground">{m.dose} &middot; {m.frequency}</p>
+            <p className="text-[13px] font-medium text-[#102F27]">{m.name}</p>
+            <p className="text-[12px] text-muted-foreground">{m.dose} &middot; {m.frequency}</p>
           </div>
         ))}
       </div>
@@ -118,8 +118,8 @@ function ConditionsList({ conditions }: { conditions: ExistingCondition[] }) {
       <div className="space-y-1">
         {conditions.map((c) => (
           <div key={c.id} className="rounded-lg border border-[#E5EEEA] bg-[#FBFDFC] px-2 py-1.5">
-            <p className="text-[11px] font-medium text-[#102F27]">{c.name}</p>
-            <p className="text-[10px] text-muted-foreground">{c.details}</p>
+            <p className="text-[13px] font-medium text-[#102F27]">{c.name}</p>
+            <p className="text-[12px] text-muted-foreground">{c.details}</p>
           </div>
         ))}
       </div>
@@ -136,10 +136,10 @@ function FamilyHistoryList({ items }: { items: FamilyHistoryItem[] }) {
         {items.map((fh) => (
           <div key={fh.id} className="rounded-lg border border-[#E5EEEA] bg-[#FBFDFC] px-2 py-1.5">
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-[#EEF5F3] px-1.5 py-0.5 text-[10px] font-medium text-[#2C6A5B]">{fh.relationship}</span>
-              <span className="text-[11px] font-medium text-[#102F27]">{fh.condition}</span>
+              <span className="rounded-full bg-[#EEF5F3] px-1.5 py-0.5 text-[11px] font-semibold text-[#2C6A5B]">{fh.relationship}</span>
+              <span className="text-[13px] font-semibold text-[#102F27]">{fh.condition}</span>
             </div>
-            <p className="mt-0.5 text-[10px] text-muted-foreground">{fh.details}</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground">{fh.details}</p>
           </div>
         ))}
       </div>
@@ -167,9 +167,9 @@ function LifestyleFlagsList({ flags }: { flags: LifestyleFlag[] }) {
           <div key={f.label} className={cn("flex items-center justify-between rounded-lg border px-2 py-1.5", riskStyles[f.riskLevel])}>
             <div className="flex items-center gap-1.5">
               <span className={cn("size-1.5 rounded-full", riskDots[f.riskLevel])} />
-              <span className="text-[11px] font-medium">{f.label}</span>
+              <span className="text-[13px] font-semibold">{f.label}</span>
             </div>
-            <span className="text-[10px] opacity-80">{f.value}</span>
+            <span className="text-[12px] opacity-80">{f.value}</span>
           </div>
         ))}
       </div>
@@ -226,7 +226,7 @@ export function PatientSidebar({
       style={{ width: widthPx, minWidth: widthPx, maxWidth: widthPx }}
     >
       <div className="flex items-center justify-between gap-1 border-b border-white/10 bg-transparent px-2 py-2 backdrop-blur-sm sm:px-4 sm:py-3">
-        <p className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-wider text-[#6B7870]">Patient Summary</p>
+        <p className="min-w-0 truncate text-[12.5px] font-bold uppercase tracking-wider text-[#6B7870]">Patient Summary</p>
         <div className="flex shrink-0 items-center gap-0.5">
           {onNudgeWidth ? (
             <>

@@ -72,6 +72,8 @@ export class AssistantAppointmentService {
         patientName: user.name,
         patientPhone: user.phone,
         patientEmail: user.email,
+        patientDateOfBirth: patient.dateOfBirth,
+        patientGender: patient.gender,
         doctorId: doctor.id,
         doctorSpecialty: doctor.specialty,
       })
@@ -86,10 +88,13 @@ export class AssistantAppointmentService {
 
     return rows.map((row) => ({
       id: row.id,
+      confirmationCode: row.confirmationCode,
       patientId: row.patientId,
       patientName: row.patientName,
       patientPhone: row.patientPhone,
       patientEmail: row.patientEmail,
+      patientAge: this.computeAge(row.patientDateOfBirth),
+      patientGender: row.patientGender,
       doctorId: row.doctorId,
       doctorName: doctorNames.get(row.doctorId) ?? 'Unknown',
       department: row.doctorSpecialty ?? 'Cardiology',
@@ -119,6 +124,8 @@ export class AssistantAppointmentService {
         patientName: user.name,
         patientPhone: user.phone,
         patientEmail: user.email,
+        patientDateOfBirth: patient.dateOfBirth,
+        patientGender: patient.gender,
         doctorId: doctor.id,
         doctorSpecialty: doctor.specialty,
       })
@@ -142,6 +149,8 @@ export class AssistantAppointmentService {
       patientName: a.patientName,
       patientPhone: a.patientPhone,
       patientEmail: a.patientEmail,
+      patientAge: this.computeAge(a.patientDateOfBirth),
+      patientGender: a.patientGender,
       doctorName: doctorNames.get(a.doctorId) ?? 'Unknown',
       department: a.doctorSpecialty ?? 'Cardiology',
       scheduledAt: a.scheduledAt.toISOString(),
@@ -459,6 +468,17 @@ export class AssistantAppointmentService {
     const hour = parts.find((p) => p.type === 'hour')?.value ?? '00';
     const minute = parts.find((p) => p.type === 'minute')?.value ?? '00';
     return `${hour}:${minute}`;
+  }
+
+  private computeAge(dob: Date | null): number | null {
+    if (!dob) return null;
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age -= 1;
+    }
+    return age;
   }
 
   private fromAmPmToHHMM(time: string) {
