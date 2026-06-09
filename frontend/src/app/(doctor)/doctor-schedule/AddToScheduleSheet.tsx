@@ -170,32 +170,32 @@ export function AddToScheduleSheet({
           "data-[side=center]:p-0"
         )}
       >
-        <SheetHeader className="space-y-3 border-b border-border/60 px-6 pb-5 pt-8 text-left">
-          <SheetTitle className="font-serif text-2xl font-semibold leading-tight tracking-tight text-[#1A1F1E] dark:text-foreground">
+        <SheetHeader className="space-y-1.5 border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/80 px-5 pb-4 pt-6 text-left">
+          <SheetTitle className="font-sans text-[15px] sm:text-[16px] font-bold text-[#1A1F1E]">
             Add to schedule
           </SheetTitle>
-          <SheetDescription className="text-left text-[15px] leading-relaxed text-[#6B7870] dark:text-muted-foreground">
+          <SheetDescription className="text-left text-[11px] sm:text-[12px] text-muted-foreground">
             Quickly append a working period or a blocked break to one day. You can still edit
             everything in the section below.
           </SheetDescription>
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col">
-          <div className="space-y-5 px-6 py-6">
+          <div className="space-y-5 px-5 py-5">
             <div className="space-y-2">
-              <Label htmlFor="add-day" className="text-sm font-medium text-[#1A1F1E] dark:text-foreground">
+              <Label htmlFor="add-day" className="text-[11px] sm:text-[12px] font-semibold text-[#1A1F1E]">
                 Day
               </Label>
               <Select value={weekday} onValueChange={(v) => setWeekday(v as WeekdayId)}>
                 <SelectTrigger
                   id="add-day"
-                  className="h-11 rounded-lg border-[#C5D0CC]/90 font-medium shadow-xs dark:border-white/15"
+                  className="h-10 rounded-lg border-[#E8E6E0] text-[12px] font-medium shadow-sm focus:ring-[#1A5345]"
                 >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {days.map((d) => (
-                    <SelectItem key={d.weekday} value={d.weekday}>
+                    <SelectItem key={d.weekday} value={d.weekday} className="text-[12px]">
                       {d.label}
                     </SelectItem>
                   ))}
@@ -204,19 +204,19 @@ export function AddToScheduleSheet({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="add-type" className="text-sm font-medium text-[#1A1F1E] dark:text-foreground">
+              <Label htmlFor="add-type" className="text-[11px] sm:text-[12px] font-semibold text-[#1A1F1E]">
                 Type
               </Label>
               <Select value={kind} onValueChange={(v) => setKind(v as EntryKind)}>
                 <SelectTrigger
                   id="add-type"
-                  className="h-11 rounded-lg border-[#C5D0CC]/90 font-medium shadow-xs dark:border-white/15"
+                  className="h-10 rounded-lg border-[#E8E6E0] text-[12px] font-medium shadow-sm focus:ring-[#1A5345]"
                 >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="block">Blocked time (break / admin)</SelectItem>
-                  <SelectItem value="period">Working period</SelectItem>
+                  <SelectItem value="block" className="text-[12px]">Blocked time (break / admin)</SelectItem>
+                  <SelectItem value="period" className="text-[12px]">Working period</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -227,18 +227,18 @@ export function AddToScheduleSheet({
             </div>
           </div>
 
-          <SheetFooter className="flex flex-row justify-end gap-3 border-t border-border/60 bg-muted/15 px-6 py-4">
+          <SheetFooter className="flex flex-row justify-end gap-3 border-t border-[#E8E6E0]/60 bg-[#F9F8F5]/80 px-5 py-4">
             <Button
               type="button"
               variant="outline"
-              className="h-10 min-w-[100px] rounded-lg border-[#C5D0CC] bg-background font-medium text-foreground hover:bg-muted/50"
+              className="h-9 min-w-[100px] rounded-lg border-[#E8E6E0] bg-white text-[12px] font-semibold text-[#1A1F1E] hover:bg-[#F9F8F5] shadow-sm"
               onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="h-10 min-w-[100px] rounded-lg bg-[#00392D] font-semibold text-white shadow-sm hover:bg-[#002620]"
+              className="h-9 min-w-[100px] rounded-lg bg-[#1A5345] text-[12px] font-semibold text-white shadow-sm hover:bg-[#0F3D32]"
             >
               Add
             </Button>

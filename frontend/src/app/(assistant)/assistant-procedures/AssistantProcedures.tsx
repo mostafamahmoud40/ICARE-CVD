@@ -900,42 +900,49 @@ function HistoryView() {
 
       {/* History Table */}
       <div className="flex-1 overflow-auto p-6">
-        <div className="overflow-hidden rounded-3xl border border-[#E8E6E0]/80 bg-white shadow-xl">
-          <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 z-10">
-              <tr className="bg-[#FAFAF8] text-[13px] font-serif font-bold text-[#1A5345] uppercase tracking-wider">
-                <th className="py-4 px-6 border-b border-[#E8E6E0]/60">Patient</th>
-                <th className="py-4 px-6 border-b border-[#E8E6E0]/60">Procedure</th>
-                <th className="py-4 px-6 border-b border-[#E8E6E0]/60">Location / Risk</th>
-                <th className="py-4 px-6 border-b border-[#E8E6E0]/60">Duration</th>
-                <th className="py-4 px-6 border-b border-[#E8E6E0]/60 text-right">Actions</th>
+        <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1040px] border-collapse bg-white text-left">
+            <thead className="sticky top-0 z-10 bg-[#F4F3ED]/90 shadow-[0_1px_0_0_#E8E6E0] backdrop-blur-md">
+              <tr className="font-serif text-[15px] font-bold text-[#1A1F1E] transition-colors">
+                <th className="py-4 pr-4 pl-4">Patient</th>
+                <th className="py-4 px-4">Procedure</th>
+                <th className="py-4 px-4">Location / Risk</th>
+                <th className="py-4 px-4">Duration</th>
+                <th className="py-4 pl-4 pr-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E8E6E0]/40">
               {filteredOperations.map((op) => (
-                <tr key={op.id} className="group hover:bg-[#F9F8F5]/50 transition-colors duration-200">
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 shrink-0 rounded-full border border-[#E8E6E0]/60 bg-[#F5F5F3] p-0.5 overflow-hidden">
-                        <img 
-                          src={pravatarAvatarUrl(op.patientId)} 
-                          alt="" 
-                          className="size-full rounded-full object-cover" 
+                <tr key={op.id} className="group border-t border-[#E8E6E0]/40 transition-colors hover:bg-[#F9F8F5]/50">
+                  <td className="py-4 pr-4 pl-4 align-middle">
+                    <div className="flex items-start gap-3">
+                      <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
+                        <img
+                          src={pravatarAvatarUrl(op.patientId)}
+                          alt=""
+                          className="size-full object-cover"
                         />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[14px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">{op.patientName}</p>
-                        <p className="text-[11px] font-medium text-muted-foreground uppercase">#{op.patientId}</p>
+                        <p className="truncate font-serif text-[15px] font-bold leading-snug text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">
+                          {op.patientName}
+                        </p>
+                        <p className="mt-0.5 text-[12px] font-medium tabular-nums tracking-wide text-muted-foreground">
+                          #{op.patientId}
+                        </p>
                       </div>
                     </div>
                   </td>
-                  <td className="py-4 px-6">
-                    <p className="text-[14px] font-bold text-[#1A5345]">{op.procedureName}</p>
-                    <p className="text-[11px] font-medium text-muted-foreground mt-0.5">{op.startTime} – {op.endTimeActual}</p>
+                  <td className="py-4 px-4 align-middle">
+                    <p className="text-[14px] font-medium text-[#1A1F1E]/80">{op.procedureName}</p>
+                    <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">
+                      {op.startTime} – {op.endTimeActual}
+                    </p>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-4 px-4 align-middle">
                     <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#1A1F1E]">
+                      <div className="flex items-center gap-1.5 text-[13px] font-medium text-[#1A1F1E]/80">
                         <MapPinIcon className="size-3.5 text-muted-foreground" />
                         <span>{op.location}</span>
                       </div>
@@ -944,13 +951,13 @@ function HistoryView() {
                       </Badge>
                     </div>
                   </td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-2 text-[13px] font-bold text-[#1A1F1E]">
+                  <td className="py-4 px-4 align-middle">
+                    <div className="flex items-center gap-2 text-[14px] font-bold text-[#1A1F1E]">
                       <ClockIcon className="size-4 text-[#1A5345]" />
                       <span>{op.duration}</span>
                     </div>
                   </td>
-                  <td className="py-4 px-6 text-right">
+                  <td className="py-4 pl-4 pr-4 text-right align-middle">
                     <Button variant="ghost" size="sm" className="rounded-xl font-bold text-[#1A5345] hover:bg-[#E8F0EE]">
                       View Report
                     </Button>
@@ -967,6 +974,7 @@ function HistoryView() {
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>

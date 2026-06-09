@@ -92,10 +92,10 @@ export function BlockedDatesSection({ blockedDates, onChange }: BlockedDatesSect
   }, [blockedDates])
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border/60 bg-card">
-      <div className="border-b border-border/60 bg-muted/30 px-4 py-3">
-        <h2 className="text-base font-semibold">Blocked Dates</h2>
-        <p className="text-sm text-muted-foreground">
+    <section className="overflow-hidden rounded-xl border border-[#E8E6E0] bg-white shadow-sm animate-in fade-in duration-500">
+      <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/80 px-4 py-3 sm:px-5 sm:py-4">
+        <h2 className="font-sans text-[12px] sm:text-[14px] font-bold text-[#1A1F1E]">Blocked Dates</h2>
+        <p className="mt-0.5 text-[10px] sm:text-[11px] text-muted-foreground">
           Select dates on the calendar when you&apos;re unavailable (click multiple dates)
         </p>
       </div>
@@ -113,17 +113,17 @@ export function BlockedDatesSection({ blockedDates, onChange }: BlockedDatesSect
               blocked: blockedDateObjects,
             }}
             modifiersClassNames={{
-              blocked: "bg-[#A8C4BC] text-[#00392D] hover:bg-[#8FB0A6] rounded-lg",
+              blocked: "bg-[#1A5345] text-white hover:bg-[#0F3D32] rounded-md",
             }}
-            className="rounded-lg border p-4"
+            className="rounded-lg border border-[#E8E6E0] p-4 bg-[#F9F8F5]/50 shadow-sm"
             classNames={{
-              day: "h-10 w-10 text-sm cursor-pointer",
-              caption: "text-base mb-4",
-              nav_button: "h-8 w-8",
+              day: "h-9 w-9 sm:h-10 sm:w-10 text-[11px] sm:text-[12px] cursor-pointer rounded-md hover:bg-[#E8E6E0]/50 transition-colors",
+              caption: "text-[13px] sm:text-[14px] font-bold mb-4",
+              nav_button: "h-8 w-8 hover:bg-[#E8E6E0]/50 rounded-md transition-colors",
             }}
           />
 
-          <div className="text-xs text-muted-foreground">
+          <div className="text-[10px] sm:text-[11px] text-muted-foreground px-1">
             Click any date to block/unblock. Days appear in the order you select them.
           </div>
         </div>
@@ -131,8 +131,8 @@ export function BlockedDatesSection({ blockedDates, onChange }: BlockedDatesSect
         {/* Controls & List */}
         <div className="flex-1 space-y-4">
           {/* Reason input - applies to newly blocked dates */}
-          <div className="space-y-2 rounded-lg border p-3">
-            <Label htmlFor="block-reason" className="text-sm font-medium">
+          <div className="space-y-2 rounded-lg border border-[#E8E6E0] bg-[#F9F8F5]/50 p-4 shadow-sm">
+            <Label htmlFor="block-reason" className="text-[11px] sm:text-[12px] font-semibold text-[#1A1F1E]">
               Default Reason (for newly blocked dates)
             </Label>
             <Input
@@ -141,23 +141,24 @@ export function BlockedDatesSection({ blockedDates, onChange }: BlockedDatesSect
               placeholder="e.g., Vacation, Conference, Sick leave"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
+              className="bg-white border-[#E8E6E0] h-9 text-[11px] sm:text-[12px] focus-visible:ring-[#1A5345]"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground pt-1">
               Click any date in the calendar to block it. Click again to unblock.
             </p>
           </div>
 
           {/* Blocked dates list */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-muted-foreground">Blocked dates:</h3>
+              <h3 className="text-[11px] sm:text-[12px] font-semibold text-[#1A1F1E]">Blocked dates:</h3>
               {blockedDates.length > 0 && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={handleClearAll}
-                  className="h-7 text-xs text-destructive hover:text-destructive"
+                  className="h-7 text-[10px] sm:text-[11px] font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md px-2"
                 >
                   Clear all
                 </Button>
@@ -165,34 +166,34 @@ export function BlockedDatesSection({ blockedDates, onChange }: BlockedDatesSect
             </div>
 
             {blockedDates.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
+              <div className="text-[11px] sm:text-[12px] text-muted-foreground italic bg-[#F9F8F5]/50 p-4 rounded-lg border border-[#E8E6E0] border-dashed text-center">
                 No blocked dates. Click dates on the calendar to block them.
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {Object.entries(groupedDates).map(([groupReason, dates]) => (
                   <div
                     key={groupReason}
-                    className="rounded-lg border border-[#A8C4BC]/50 bg-[#E8F0EE]/50 p-2"
+                    className="rounded-lg border border-[#E8E6E0] bg-[#F9F8F5]/80 p-3 shadow-sm"
                   >
-                    <div className="mb-1 text-xs font-medium text-[#00392D]">
+                    <div className="mb-2 text-[10px] sm:text-[11px] font-bold text-[#1A5345] uppercase tracking-wide">
                       {groupReason}
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-2">
                       {dates.map((bd) => (
                         <div
                           key={bd.id}
-                          className="flex items-center gap-1 rounded-md bg-white px-2 py-1 text-sm shadow-sm"
+                          className="flex items-center gap-1.5 rounded-md border border-[#E8E6E0] bg-white pl-2.5 pr-1 py-1 text-[11px] sm:text-[12px] font-medium text-[#1A1F1E] shadow-sm"
                         >
                           <span>{formatDateDisplay(bd.date)}</span>
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-5 w-5 text-muted-foreground hover:text-destructive"
+                            className="h-6 w-6 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                             onClick={() => handleRemove(bd.id)}
                           >
-                            <Trash2Icon className="size-3" />
+                            <Trash2Icon className="size-3.5" />
                           </Button>
                         </div>
                       ))}

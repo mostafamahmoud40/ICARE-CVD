@@ -50,20 +50,18 @@ const VISIT_TYPE_CONFIG: Record<string, { label: string; style: string }> = {
 
 type QueueFilter = "active" | "scheduled" | "completed" | "no-show"
 
-function StatCard({ icon: Icon, iconStyle, value, label }: {
+function StatCard({ icon: Icon, iconColor, value, label }: {
   icon: React.ElementType
-  iconStyle: string
+  iconColor: string
   value: number | string
   label: string
 }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
-      <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg sm:size-9", iconStyle)}>
-        <Icon className="size-3.5 sm:size-4" />
-      </div>
+    <div className="flex items-center gap-2.5 rounded-xl border border-[#E8E6E0]/60 bg-white px-3 py-2.5 shadow-sm sm:gap-3 sm:px-4 sm:py-3">
+      <Icon className={cn("size-4 sm:size-5 shrink-0", iconColor)} aria-hidden />
       <div className="min-w-0">
-        <div className="text-lg font-bold text-[#102F27] sm:text-xl">{value}</div>
-        <div className="text-[10px] text-muted-foreground sm:text-[11px]">{label}</div>
+        <div className="text-[16px] font-bold text-[#1A1F1E] sm:text-lg leading-tight">{value}</div>
+        <div className="text-[9px] font-bold text-muted-foreground sm:text-[10px] uppercase tracking-wider">{label}</div>
       </div>
     </div>
   )
@@ -73,7 +71,7 @@ function QueuePositionBadge({ index, status }: { index: number; status: QueueSta
   if (status === "completed" || status === "no-show" || status === "cancelled" || status === "scheduled" || status === "arrived") return null
   if (status === "in-consultation") {
     return (
-      <div className="flex size-6 items-center justify-center rounded-full bg-[#1A5345] text-[10px] font-bold text-white sm:size-7 sm:text-[11px]">
+      <div className="flex size-6 items-center justify-center rounded-full bg-[#1A5345] text-white sm:size-7">
         <PlayCircleIcon className="size-3.5 sm:size-4" />
       </div>
     )
@@ -142,103 +140,94 @@ function QueuePatientCard({
   return (
     <div
       className={cn(
-        "rounded-xl border-2 bg-white p-3 transition-all sm:p-4",
+        "rounded-xl border bg-white p-3 transition-all sm:p-4 shadow-sm",
         patient.status === "in-consultation"
-          ? "border-[#1A5345]/30 bg-[#F6FBF9] ring-1 ring-[#1A5345]/10"
+          ? "border-[#1A5345]/40 bg-[#F6FBF9] ring-1 ring-[#1A5345]/10"
           : patient.priority === "emergency"
             ? "border-red-200 bg-red-50/30"
             : patient.priority === "urgent" && (patient.status === "waiting" || patient.status === "arrived")
               ? "border-amber-200"
-              : patient.status === "completed" || patient.status === "no-show" || patient.status === "cancelled"
-                ? "border-[#E5EEEA] opacity-70"
-                : "border-[#E5EEEA] hover:border-[#A8C4BC]",
+              : "border-[#E8E6E0]/60 hover:border-[#A8C4BC]/60 hover:shadow-md",
+        (patient.status === "completed" || patient.status === "no-show" || patient.status === "cancelled") && "opacity-75"
       )}
     >
-      <div className="flex items-start gap-2 sm:gap-3">
-        <div className="flex flex-col items-center gap-1 sm:gap-1.5">
+      <div className="flex items-start gap-2.5 sm:gap-4">
+        <div className="flex flex-col items-center gap-1.5 sm:gap-2">
           <QueuePositionBadge index={position} status={patient.status} />
-          <div className="flex size-8 items-center justify-center rounded-full bg-[#E8F0EE] sm:size-10">
-            <UserRoundIcon className="size-4 text-[#1A5345] sm:size-5" />
-          </div>
+          <UserRoundIcon className="size-4 text-[#1A5345] sm:size-5" />
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
-            <h3 className="text-[12px] font-semibold text-[#102F27] sm:text-[13px]">{patient.fullName}</h3>
-            <span className="text-[10px] text-muted-foreground sm:text-[11px]">{patient.age}y &middot; <span className="capitalize">{patient.gender}</span></span>
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <h3 className="text-[12px] font-bold text-[#1A1F1E] sm:text-[14px]">{patient.fullName}</h3>
+            <span className="text-[10px] font-medium text-muted-foreground sm:text-[11px]">{patient.age}y &middot; <span className="capitalize">{patient.gender}</span></span>
           </div>
 
-          <div className="mt-1 flex flex-wrap items-center gap-1 sm:mt-1.5 sm:gap-1.5">
-            <span className={cn("flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium sm:text-[10px]", statusCfg.style)}>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <span className={cn("flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[9px] font-bold sm:text-[10px]", statusCfg.style)}>
               <span className={cn("inline-block size-1.5 rounded-full", statusCfg.dot)} />
               {statusCfg.label}
             </span>
             {patient.priority !== "normal" && (
-              <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-medium sm:text-[10px]", priorityCfg.style)}>
+              <span className={cn("rounded-full px-2 py-0.5 text-[9px] font-bold sm:text-[10px]", priorityCfg.style)}>
                 {priorityCfg.label}
               </span>
             )}
-            <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-medium sm:text-[10px]", visitCfg.style)}>
+            <span className={cn("rounded-full px-2 py-0.5 text-[9px] font-bold sm:text-[10px]", visitCfg.style)}>
               {visitCfg.label}
             </span>
             {patient.hasAllergies && (
-              <span className="flex items-center gap-0.5 rounded-full bg-red-50 px-1.5 py-0.5 text-[9px] font-medium text-red-600 sm:text-[10px]">
-                <ShieldAlertIcon className="size-2.5" />
+              <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[9px] font-bold text-red-600 sm:text-[10px]">
+                <ShieldAlertIcon className="size-3" />
                 Allergies
               </span>
             )}
             {patient.vitalAlerts > 0 && (
-              <span className="flex items-center gap-0.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[9px] font-medium text-amber-600 sm:text-[10px]">
-                <AlertTriangleIcon className="size-2.5" />
+              <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-600 sm:text-[10px]">
+                <AlertTriangleIcon className="size-3" />
                 {patient.vitalAlerts} alert{patient.vitalAlerts > 1 ? "s" : ""}
               </span>
             )}
           </div>
 
-          <p className="mt-1 text-[10px] text-muted-foreground sm:text-[11px]">{patient.condition}</p>
+          <p className="mt-1.5 text-[10px] font-medium text-muted-foreground sm:text-[11px] leading-relaxed">{patient.condition}</p>
 
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground sm:mt-1.5 sm:gap-3 sm:text-[11px]">
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground sm:mt-2.5 sm:gap-4 sm:text-[11px]">
             {patient.scheduledTime && (
-              <span className="flex items-center gap-1">
-                <CalendarDaysIcon className="size-2.5 sm:size-3" />
+              <span className="flex items-center gap-1.5 font-medium">
+                <CalendarDaysIcon className="size-3 text-[#1A5345]/70" />
                 {patient.scheduledTime}
               </span>
             )}
             {patient.arrivedAt && (
-              <span className="flex items-center gap-1">
-                <LogInIcon className="size-2.5 text-blue-500 sm:size-3" />
+              <span className="flex items-center gap-1.5 font-medium">
+                <LogInIcon className="size-3 text-blue-500/70" />
                 <span className="hidden sm:inline">Arrived </span>{patient.arrivedAt}
               </span>
             )}
             {patient.roomNumber && (
-              <span className="flex items-center gap-1">
-                <MapPinIcon className="size-2.5 sm:size-3" />
+              <span className="flex items-center gap-1.5 font-medium">
+                <MapPinIcon className="size-3 text-[#1A5345]/70" />
                 {patient.roomNumber}
               </span>
             )}
-            <span className="flex items-center gap-1">
-              <TimerIcon className="size-2.5 sm:size-3" />
+            <span className="flex items-center gap-1.5 font-medium">
+              <TimerIcon className="size-3 text-[#1A5345]/70" />
               ~{patient.estimatedDurationMin} min
             </span>
-            {patient.activeMedications > 0 && (
-              <span className="flex items-center gap-1">
-                <PillIcon className="size-2.5 sm:size-3" />
-                {patient.activeMedications} Rx
-              </span>
-            )}
           </div>
 
-          <div className="mt-1.5 flex items-center justify-between gap-2">
+          <div className="mt-2 flex items-center justify-between gap-3 border-t border-[#E8E6E0]/40 pt-2 sm:mt-3 sm:pt-2.5">
             <TimelineIndicator patient={patient} />
-            <span className="flex items-center gap-1 text-[9px] text-muted-foreground sm:text-[10px]">
+            <span className="flex items-center gap-1 text-[9px] font-medium text-muted-foreground sm:text-[10px]">
               <PhoneIcon className="size-2.5" />
               {patient.phoneNumber}
             </span>
           </div>
 
           {patient.notes && (
-            <div className="mt-1.5 rounded-lg bg-[#FAFAF8] px-2 py-1 text-[10px] text-muted-foreground sm:mt-2 sm:px-2.5 sm:py-1.5 sm:text-[11px]">
-              {patient.notes}
+            <div className="mt-2 rounded-lg bg-[#F9F8F5] px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground sm:mt-2.5 sm:text-[11px] border border-[#E8E6E0]/30 italic">
+              &quot;{patient.notes}&quot;
             </div>
           )}
         </div>
@@ -246,13 +235,12 @@ function QueuePatientCard({
 
       {patient.status !== "completed" && patient.status !== "cancelled" && (
         <>
-          <Separator className="my-2 bg-[#E8E6E0] sm:my-3" />
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="mt-3 flex flex-col gap-2 border-t border-[#E8E6E0]/60 pt-3 sm:mt-4 sm:flex-row sm:items-center sm:pt-4">
             {patient.status === "scheduled" && (
               <>
                 <Button
                   size="sm"
-                  className="flex-1 gap-1.5 bg-blue-600 text-[10px] hover:bg-blue-700 sm:text-[11px]"
+                  className="flex-1 h-8 sm:h-9 gap-1.5 bg-blue-600 text-[10px] font-bold hover:bg-blue-700 sm:text-[11px] rounded-lg shadow-sm"
                   onClick={() => onMarkArrived(patient.queueEntryId)}
                 >
                   <LogInIcon className="size-3 sm:size-3.5" />
@@ -261,7 +249,7 @@ function QueuePatientCard({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="gap-1.5 text-[10px] text-red-600 hover:bg-red-50 hover:text-red-700 sm:text-[11px]"
+                  className="h-8 sm:h-9 gap-1.5 text-[10px] font-bold text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700 sm:text-[11px] rounded-lg shadow-sm"
                   onClick={() => onNoShow(patient.queueEntryId)}
                 >
                   <XCircleIcon className="size-3 sm:size-3.5" />
@@ -272,7 +260,7 @@ function QueuePatientCard({
             {patient.status === "arrived" && (
               <Button
                 size="sm"
-                className="flex-1 gap-1.5 bg-amber-600 text-[10px] hover:bg-amber-700 sm:text-[11px]"
+                className="flex-1 h-8 sm:h-9 gap-1.5 bg-amber-600 text-[10px] font-bold hover:bg-amber-700 sm:text-[11px] rounded-lg shadow-sm"
                 onClick={() => onStart(patient.queueEntryId)}
               >
                 <ClockIcon className="size-3 sm:size-3.5" />
@@ -280,19 +268,17 @@ function QueuePatientCard({
               </Button>
             )}
             {patient.status === "waiting" && (
-              <>
-                <Link href={`/doctor-queue/${patient.queueEntryId}/consultation/new`} className="flex-1">
-                  <Button size="sm" className="w-full gap-1.5 bg-[#1A5345] text-[10px] hover:bg-[#0F3D32] sm:text-[11px]">
-                    <StethoscopeIcon className="size-3 sm:size-3.5" />
-                    Start Consultation
-                  </Button>
-                </Link>
-              </>
+              <Link href={`/doctor-queue/${patient.queueEntryId}/consultation/new`} className="flex-1">
+                <Button size="sm" className="w-full h-8 sm:h-9 gap-1.5 bg-[#1A5345] text-[10px] font-bold hover:bg-[#0F3D32] sm:text-[11px] rounded-lg shadow-sm">
+                  <StethoscopeIcon className="size-3 sm:size-3.5" />
+                  Start Consultation
+                </Button>
+              </Link>
             )}
             {patient.status === "in-consultation" && (
               <>
                 <Link href={`/doctor-queue/${patient.queueEntryId}/consultation/new`} className="flex-1">
-                  <Button size="sm" className="w-full gap-1.5 bg-[#1A5345] text-[10px] hover:bg-[#0F3D32] sm:text-[11px]">
+                  <Button size="sm" className="w-full h-8 sm:h-9 gap-1.5 bg-[#1A5345] text-[10px] font-bold hover:bg-[#0F3D32] sm:text-[11px] rounded-lg shadow-sm">
                     <EyeIcon className="size-3 sm:size-3.5" />
                     Continue Consultation
                   </Button>
@@ -300,7 +286,7 @@ function QueuePatientCard({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="gap-1.5 text-[10px] text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 sm:text-[11px]"
+                  className="h-8 sm:h-9 gap-1.5 text-[10px] font-bold text-emerald-700 border-emerald-100 hover:bg-emerald-50 hover:text-emerald-800 sm:text-[11px] rounded-lg shadow-sm"
                   onClick={() => onComplete(patient.queueEntryId)}
                 >
                   <CheckCircle2Icon className="size-3 sm:size-3.5" />
@@ -312,7 +298,7 @@ function QueuePatientCard({
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 text-[10px] text-blue-600 hover:bg-blue-50 hover:text-blue-700 sm:text-[11px]"
+                className="flex-1 h-8 sm:h-9 gap-1.5 text-[10px] font-bold text-blue-600 border-blue-100 hover:bg-blue-50 hover:text-blue-700 sm:text-[11px] rounded-lg shadow-sm"
                 onClick={() => onMarkArrived(patient.queueEntryId)}
               >
                 <LogInIcon className="size-3 sm:size-3.5" />
@@ -380,11 +366,9 @@ export function DoctorQueue({
   return (
     <main className="flex-1 overflow-y-auto bg-[#F9F8F5] p-3 sm:p-4 lg:p-5">
       <div className="space-y-4 sm:space-y-5">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-[#1A5345] sm:size-9">
-              <UsersIcon className="size-4 text-white sm:size-5" />
-            </div>
+            <UsersIcon className="size-4 sm:size-5 text-[#1A5345]" aria-hidden />
             <div>
               <h2 className="text-[13px] font-bold text-[#1A1F1E] sm:text-[15px]">Today&apos;s Queue</h2>
               <p className="text-[10px] text-muted-foreground sm:text-[11px]">
@@ -399,37 +383,38 @@ export function DoctorQueue({
         </div>
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7 sm:gap-3">
-          <StatCard icon={CalendarDaysIcon} iconStyle="bg-[#E8F0EE] text-[#1A5345]" value={stats.totalToday} label="Total Today" />
-          <StatCard icon={CalendarDaysIcon} iconStyle="bg-[#E8F0EE] text-[#4F6D64]" value={stats.scheduled} label="Scheduled" />
-          <StatCard icon={LogInIcon} iconStyle="bg-blue-50 text-blue-600" value={stats.arrived} label="Arrived" />
-          <StatCard icon={UsersIcon} iconStyle="bg-amber-50 text-amber-600" value={stats.inWaiting} label="Waiting" />
-          <StatCard icon={PlayCircleIcon} iconStyle="bg-[#E8F0EE] text-[#1A5345]" value={stats.inConsultation} label="In Consultation" />
-          <StatCard icon={CheckCircle2Icon} iconStyle="bg-emerald-50 text-emerald-600" value={stats.completed} label="Completed" />
-          <StatCard icon={TimerIcon} iconStyle="bg-violet-50 text-violet-600" value={`${stats.avgWaitMin}m`} label="Avg Wait" />
+          <StatCard icon={CalendarDaysIcon} iconColor="text-[#1A5345]" value={stats.totalToday} label="Total Today" />
+          <StatCard icon={CalendarDaysIcon} iconColor="text-[#4F6D64]" value={stats.scheduled} label="Scheduled" />
+          <StatCard icon={LogInIcon} iconColor="text-blue-600" value={stats.arrived} label="Arrived" />
+          <StatCard icon={UsersIcon} iconColor="text-amber-600" value={stats.inWaiting} label="Waiting" />
+          <StatCard icon={PlayCircleIcon} iconColor="text-[#1A5345]" value={stats.inConsultation} label="In Consultation" />
+          <StatCard icon={CheckCircle2Icon} iconColor="text-emerald-600" value={stats.completed} label="Completed" />
+          <StatCard icon={TimerIcon} iconColor="text-violet-600" value={`${stats.avgWaitMin}m`} label="Avg Wait" />
         </div>
 
-        <div className="overflow-x-auto">
-          <div className="inline-flex w-full rounded-full border border-[#D6E6DF] bg-[#F8FCFA] p-0.5 sm:w-auto">
+        <div className="overflow-x-auto pb-1">
+          <div className="inline-flex min-w-full sm:min-w-0 rounded-xl border border-[#E8E6E0] bg-white p-1 shadow-sm">
             {([
-              { key: "active" as const, label: "Active", shortLabel: "Active", count: tabCounts.active ?? 0 },
-              { key: "scheduled" as const, label: "Not Yet Arrived", shortLabel: "Pending", count: tabCounts.scheduled ?? 0 },
-              { key: "completed" as const, label: "Completed", shortLabel: "Done", count: tabCounts.completed ?? 0 },
-              { key: "no-show" as const, label: "No Show / Cancelled", shortLabel: "No Show", count: tabCounts["no-show"] ?? 0 },
+              { key: "active" as const, label: "Active Queue", shortLabel: "Active", icon: UsersIcon, count: tabCounts.active ?? 0 },
+              { key: "scheduled" as const, label: "Not Arrived", shortLabel: "Pending", icon: CalendarDaysIcon, count: tabCounts.scheduled ?? 0 },
+              { key: "completed" as const, label: "Completed", shortLabel: "Done", icon: CheckCircle2Icon, count: tabCounts.completed ?? 0 },
+              { key: "no-show" as const, label: "No Show", shortLabel: "No Show", icon: XCircleIcon, count: tabCounts["no-show"] ?? 0 },
             ]).map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setFilter(tab.key)}
                 className={cn(
-                  "flex-1 rounded-full px-2.5 py-1.5 text-[10px] font-medium transition-colors sm:flex-none sm:px-3.5 sm:text-[11px]",
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all sm:flex-none sm:px-4 sm:text-[11px] whitespace-nowrap",
                   filter === tab.key
-                    ? "bg-[#1A5345] text-white"
-                    : "text-[#4F6D64] hover:bg-[#E8F0EE]",
+                    ? "bg-[#1A5345] text-white shadow-sm"
+                    : "text-[#4F6D64] hover:bg-[#F9F8F5] hover:text-[#1A5345]",
                 )}
               >
+                <tab.icon className={cn("size-3 sm:size-3.5", filter === tab.key ? "text-white" : "text-[#4F6D64]")} aria-hidden />
                 <span className="sm:hidden">{tab.shortLabel}</span>
                 <span className="hidden sm:inline">{tab.label}</span>
                 <span className={cn(
-                  "ml-1 rounded-full px-1 py-0.5 text-[8px] sm:ml-1.5 sm:px-1.5 sm:py-0.5 sm:text-[9px]",
+                  "ml-1 rounded-full px-1.5 py-0.5 text-[8px] sm:ml-2 sm:text-[9px] font-black",
                   filter === tab.key ? "bg-white/20 text-white" : "bg-[#E8F0EE] text-[#1A5345]",
                 )}>
                   {tab.count}
@@ -458,11 +443,11 @@ export function DoctorQueue({
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#E5EEEA] bg-white py-8 sm:py-12">
-            <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-[#F5F5F3] sm:size-14">
+          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#E5EEEA] bg-white py-12 sm:py-16 shadow-sm">
+            <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-[#F5F5F3] sm:size-16">
               <UsersIcon className="size-6 text-[#9CA3AF] sm:size-7" />
             </div>
-            <p className="px-4 text-center text-[12px] text-[#6B7870] sm:text-[13px]">
+            <p className="px-4 text-center text-[12px] font-medium text-[#6B7870] sm:text-[13px]">
               {filter === "active"
                 ? "No active patients right now."
                 : filter === "scheduled"

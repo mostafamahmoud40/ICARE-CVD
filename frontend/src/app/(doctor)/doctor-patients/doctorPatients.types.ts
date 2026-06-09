@@ -89,6 +89,9 @@ export type MedicationRecord = {
   adherencePercent: number
   sideEffects: string | null
   lastTakenAt: string | null
+  flagReason?: string | null
+  adherenceHistory7d?: boolean[][]
+  adherenceHistory30d?: boolean[][]
 }
 
 export type DiagnosisRecord = {
