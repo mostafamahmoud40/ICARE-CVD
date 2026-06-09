@@ -112,44 +112,41 @@ export function DoctorSchedule() {
 
   if (isLoading || !draft) {
     return (
-      <main className="w-full space-y-6 p-4">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-4 w-full max-w-xl" />
-        </div>
-        <Skeleton className="h-56 w-full rounded-2xl" />
-        <Skeleton className="h-96 w-full rounded-xl" />
-      </main>
+      <div className="min-h-[calc(100vh-4rem)] bg-[#F9F8F5]">
+        <main className="w-full space-y-4 sm:space-y-5 p-3 sm:p-4 lg:p-5">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64 bg-[#E8E6E0]/50" />
+            <Skeleton className="h-4 w-full max-w-xl bg-[#E8E6E0]/50" />
+          </div>
+          <Skeleton className="h-56 w-full rounded-2xl bg-[#E8E6E0]/50" />
+          <Skeleton className="h-96 w-full rounded-xl bg-[#E8E6E0]/50" />
+        </main>
+      </div>
     )
   }
 
   return (
-    <>
-      <main className="w-full space-y-8 p-4">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-primary">
-              <CalendarClockIcon className="size-5" aria-hidden />
-              <span className="text-xs font-semibold uppercase tracking-wide">
-                Clinic hours
-              </span>
+    <div className="min-h-[calc(100vh-4rem)] bg-[#F9F8F5]">
+      <main className="w-full space-y-4 sm:space-y-5 p-3 sm:p-4 lg:p-5">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <CalendarClockIcon className="size-4 sm:size-5 text-[#1A5345]" aria-hidden />
+              <h1 className="font-sans text-[13px] sm:text-[15px] font-bold text-[#1A1F1E]">
+                Weekly Schedule
+              </h1>
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Weekly schedule
-            </h1>
-            <p className="max-w-2xl text-sm text-muted-foreground">
-              Your default week is shown first. Use{" "}
-              <span className="font-medium text-foreground">Add to schedule</span> for quick
-              entries, then adjust details below.
+            <p className="font-sans text-[10px] sm:text-[11px] text-muted-foreground">
+              Your default week is shown first. Use <span className="font-medium text-[#1A1F1E]">Add to schedule</span> for quick entries.
             </p>
           </div>
           <Button
             type="button"
-            className="h-11 shrink-0 gap-2 shadow-sm"
+            className="h-9 shrink-0 gap-1.5 shadow-sm rounded-lg bg-[#1A5345] hover:bg-[#0F3D32] text-white"
             onClick={() => setAddOpen(true)}
           >
-            <PlusIcon className="size-4" aria-hidden />
-            Add to schedule
+            <PlusIcon className="size-3.5" aria-hidden />
+            <span className="text-[11px] sm:text-[12px] font-semibold">Add to schedule</span>
           </Button>
         </header>
 
@@ -174,26 +171,24 @@ export function DoctorSchedule() {
           }
         />
 
-        <div className="flex justify-end gap-3 pt-4">
+        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-2 sm:pt-4">
           <Button
             type="button"
             variant="outline"
-            size="lg"
-            className="min-w-[140px] gap-2"
+            className="h-9 min-w-[120px] gap-1.5 rounded-lg border-[#E8E6E0] bg-white text-[#1A1F1E] shadow-sm hover:bg-[#F9F8F5]"
             disabled={isDeleting}
             onClick={() => setDeleteDialogOpen(true)}
           >
-            <RotateCcwIcon className="size-4" />
-            {isDeleting ? "Deleting…" : "Reset schedule"}
+            <RotateCcwIcon className="size-3.5" />
+            <span className="text-[11px] sm:text-[12px] font-semibold">{isDeleting ? "Deleting…" : "Reset schedule"}</span>
           </Button>
           <Button
             type="button"
-            size="lg"
-            className="min-w-[180px] shadow-md"
+            className="h-9 min-w-[140px] shadow-sm rounded-lg bg-[#1A5345] hover:bg-[#0F3D32] text-white"
             onClick={() => void handleSave()}
             disabled={isSaving}
           >
-            {isSaving ? "Saving…" : "Save schedule"}
+            <span className="text-[11px] sm:text-[12px] font-semibold">{isSaving ? "Saving…" : "Save schedule"}</span>
           </Button>
         </div>
       </main>
@@ -206,21 +201,21 @@ export function DoctorSchedule() {
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent size="sm">
+        <AlertDialogContent size="sm" className="rounded-xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Reset schedule?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="font-sans text-[15px] font-bold text-[#1A1F1E]">Reset schedule?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[12px] text-muted-foreground">
               This will clear all your working hours and settings. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void handleDelete()}>
+            <AlertDialogCancel className="h-9 rounded-lg border-[#E8E6E0] text-[12px] font-semibold">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void handleDelete()} className="h-9 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[12px] font-semibold shadow-sm">
               Reset
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   )
 }

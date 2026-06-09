@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { useChat } from "@/components/shared/chat/use-chat"
 import { ChatSidebar } from "@/components/shared/chat/chat-sidebar"
 import { ChatWindow } from "@/components/shared/chat/chat-window"
+import { ContactInfoPanel } from "@/components/shared/chat/contact-info-panel"
 
 export default function ChatPage() {
   const {
@@ -15,8 +17,10 @@ export default function ChatPage() {
     startNewChat,
   } = useChat()
 
+  const [showInfoPanel, setShowInfoPanel] = useState(true)
+
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col bg-muted/30 p-2 md:p-6 lg:flex-row gap-4">
+    <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-[#F9F8F5] w-full">
       <ChatSidebar 
         contacts={contacts} 
         activeContactId={activeContactId} 
@@ -28,7 +32,15 @@ export default function ChatPage() {
         activeContact={activeContact} 
         messages={messages} 
         onSendMessage={sendMessage} 
+        onToggleInfo={() => setShowInfoPanel((prev) => !prev)}
       />
+
+      {showInfoPanel && activeContact && (
+        <ContactInfoPanel 
+          contact={activeContact} 
+          onClose={() => setShowInfoPanel(false)}
+        />
+      )}
       
       <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar {
@@ -38,11 +50,11 @@ export default function ChatPage() {
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: hsl(var(--muted-foreground) / 0.3);
+          background: hsl(var(--muted-foreground) / 0.2);
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: hsl(var(--muted-foreground) / 0.5);
+          background: hsl(var(--muted-foreground) / 0.4);
         }
       `}} />
     </div>

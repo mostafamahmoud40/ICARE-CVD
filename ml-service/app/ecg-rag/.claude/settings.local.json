@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(streamlit run *)",
+      "Bash(python -c \"from initialize import retrieved, features; from llm_service import generate_diagnosis; from preprocessing import extract_text_from_pdf; print\\('imports ok'\\)\")"
+    ]
+  }
+}

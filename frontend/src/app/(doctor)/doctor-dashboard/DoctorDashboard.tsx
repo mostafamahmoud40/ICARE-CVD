@@ -26,18 +26,24 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 import * as RechartsPrimitive from "recharts"
+import { cn } from "@/lib/utils"
+import Link from "next/link"
 import {
+  ActivityIcon,
+  AlertCircleIcon,
   AlertTriangleIcon,
+  ArrowRightIcon,
   ArrowUpRightIcon,
   CalendarCheck2Icon,
   CalendarClockIcon,
   ClipboardPlusIcon,
   FlaskConicalIcon,
   HeartPulseIcon,
-  StethoscopeIcon,
   RefreshCcwIcon,
+  StethoscopeIcon,
   TrendingUpIcon,
   UserRoundIcon,
+  UsersIcon,
   VideoIcon,
   XCircleIcon,
 } from "lucide-react"
@@ -189,63 +195,71 @@ function severityStyles(severity: VitalSeverity) {
 
 function PatientRow({ patient }: { patient: DoctorPatient }) {
   return (
-    <div className="rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-3">
-      <div className="mb-2 flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-full bg-[#E8F0EE] text-[#1A5345]">
-          <UserRoundIcon className="size-4" />
+    <div className="rounded-lg border border-[#E8E6E0]/60 bg-[#F9F8F5]/30 p-2.5 shadow-sm transition-all hover:border-[#1A5345]/30 hover:bg-white group">
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2">
+          <UserRoundIcon className="size-3.5 text-[#1A5345]" />
+          <span className="text-[12px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">{patient.fullName}</span>
         </div>
-        <span className="text-xs text-muted-foreground">Patient profile</span>
+        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight font-mono">{patient.id}</span>
       </div>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="font-medium text-[#102F27]">{patient.fullName}</span>
-        <span className="rounded-full bg-[#EEF5F3] px-2 py-0.5 text-xs text-[#2C6A5B]">{patient.id}</span>
-      </div>
-      <div className="mt-1 text-sm text-muted-foreground">{patient.condition}</div>
-      <div className="mt-1 text-xs text-muted-foreground">
-        Last seen: {formatDateTime(patient.lastSeenAt)}
+      <div className="text-[10px] font-medium text-[#6B7870] line-clamp-1">{patient.condition}</div>
+      <div className="mt-1.5 pt-1.5 border-t border-[#E8E6E0]/40 flex items-center justify-between">
+        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Last seen</span>
+        <span className="text-[9px] font-black text-[#1A5345]">{formatDateTime(patient.lastSeenAt)}</span>
       </div>
     </div>
   )
 }
 
 function AppointmentRow({ appt }: { appt: DoctorAppointment }) {
-  const statusStyle =
-    appt.status === "confirmed"
-      ? "bg-[#E8F0EE] text-[#1A5345]"
-      : appt.status === "completed"
-        ? "bg-[#EEF2EF] text-[#5B6D63]"
-        : "bg-[#F6EFE4] text-[#9A6B2F]"
+  const statusCfg = 
+    appt.status === "confirmed" ? { style: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-400" } :
+    appt.status === "completed" ? { style: "bg-blue-50 text-blue-700", dot: "bg-blue-400" } :
+    { style: "bg-amber-50 text-amber-700", dot: "bg-amber-400" }
 
   return (
-    <div className="rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-3">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="font-medium text-[#102F27]">{appt.patientName}</span>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusStyle}`}>
+    <div className="rounded-lg border border-[#E8E6E0]/60 bg-[#F9F8F5]/30 p-2.5 shadow-sm transition-all hover:border-[#1A5345]/30 hover:bg-white group">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[12px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">{appt.patientName}</span>
+        <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md flex items-center gap-1", statusCfg.style)}>
+          <span className={cn("size-1 rounded-full", statusCfg.dot)} />
           {appt.status}
         </span>
       </div>
-      <div className="mt-1 text-sm text-muted-foreground">
-        {formatDateTime(appt.scheduledAt)} • {appt.department}
+      <div className="flex items-center gap-3 text-[10px] font-medium text-[#6B7870]">
+        <div className="flex items-center gap-1">
+          <CalendarClockIcon className="size-3 text-[#1A5345]/70" />
+          {formatDateTime(appt.scheduledAt)}
+        </div>
+        <span>&middot;</span>
+        <span>{appt.department}</span>
       </div>
-      <div className="mt-1 text-sm">{appt.location}</div>
+      <div className="mt-1.5 text-[10px] font-bold text-[#1A5345] flex items-center gap-1">
+        <ArrowUpRightIcon className="size-3" />
+        {appt.location}
+      </div>
     </div>
   )
 }
 
 function AlertRow({ alert }: { alert: VitalAlert }) {
+  const style = severityStyles(alert.severity)
+  
   return (
-    <div className="rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-3">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="font-medium text-[#102F27]">{alert.patientName}</span>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${severityStyles(alert.severity)}`}>
+    <div className="rounded-lg border border-[#E8E6E0]/60 bg-[#F9F8F5]/30 p-2.5 shadow-sm transition-all hover:border-red-200 hover:bg-white group">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[12px] font-bold text-[#1A1F1E] group-hover:text-red-700 transition-colors">{alert.patientName}</span>
+        <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md", style)}>
           {alert.severity}
         </span>
       </div>
-      <div className="mt-1 text-sm text-muted-foreground">
-        {alert.label}: {alert.value}
-      </div>
-      <div className="mt-1 text-xs text-muted-foreground">
-        Updated: {formatDateTime(alert.at)}
+      <div className="flex items-center justify-between">
+        <div className="text-[10px] font-bold text-[#1A1F1E] flex items-center gap-1.5">
+          <ActivityIcon className="size-3 text-red-600" />
+          {alert.label}: <span className="text-red-600">{alert.value}</span>
+        </div>
+        <span className="text-[9px] font-medium text-muted-foreground">{formatDateTime(alert.at)}</span>
       </div>
     </div>
   )
@@ -253,46 +267,52 @@ function AlertRow({ alert }: { alert: VitalAlert }) {
 
 function DoctorHeader({ data }: { data: DoctorDashboardData }) {
   return (
-    <div className="space-y-2">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        Welcome, Dr. {data.doctor.fullName}
-      </h1>
-      <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:items-center sm:gap-3">
-        <span>Department: {data.doctor.department}</span>
-        <span>•</span>
-        <span>
-          Workload: {data.workload.patientsPerWeek} patients/week
+    <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-700">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <StethoscopeIcon className="size-4 sm:size-5 text-[#1A5345]" aria-hidden />
+        <div>
+          <h1 className="text-[13px] font-bold text-[#1A1F1E] sm:text-[15px]">
+            Welcome, Dr. {data.doctor.fullName}
+          </h1>
+          <p className="text-[10px] text-muted-foreground sm:text-[11px]">
+            {data.doctor.department} Department &middot; Workload: {data.workload.patientsPerWeek} patients/week
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 self-start sm:self-auto">
+        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 sm:text-[11px]">
+          <span className="mr-1.5 inline-block size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          Shift Active
         </span>
       </div>
-    </div>
+    </header>
   )
 }
 
-function MetricCard({ metric, compact = false }: { metric: DashboardMetric; compact?: boolean }) {
-  const Icon = metric.icon
+function MetricCard({ icon: Icon, iconColor, value, label, delta, trend }: { 
+  icon: React.ElementType; 
+  iconColor: string;
+  value: number | string;
+  label: string;
+  delta: string;
+  trend: "up" | "down";
+}) {
   return (
-    <Card className="border border-black/5 shadow-sm">
-      <CardContent className={compact ? "space-y-2 pt-4" : "space-y-3 pt-4"}>
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">{metric.label}</p>
-            <div className="text-3xl font-semibold leading-none tracking-tight">{metric.value}</div>
-          </div>
-          <div className={`flex size-8 items-center justify-center rounded-lg ${metric.iconStyle}`}>
-            <Icon className="size-4" />
-          </div>
+    <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white px-4 py-3.5 shadow-sm group hover:shadow-md transition-all duration-300">
+      <Icon className={cn("size-4 sm:size-5 shrink-0 transition-colors duration-300", iconColor)} aria-hidden />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-1">
+          <div className="text-[18px] font-bold text-[#1A1F1E] sm:text-[20px] leading-none transition-colors group-hover:text-[#1A5345]">{value}</div>
+          <span className={cn(
+            "text-[9px] font-bold px-1.5 py-0.5 rounded-md transition-all duration-300",
+            trend === "up" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
+          )}>
+            {delta}
+          </span>
         </div>
-        <div className="flex h-8 items-end gap-1">
-          {[10, 16, 9, 14, 20, 12, 18].map((h, idx) => (
-            <span key={idx} className={`w-1.5 rounded ${metric.sparkStyle}`} style={{ height: `${h}px` }} />
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground">
-          <span className={metric.trend === "up" ? "text-emerald-600" : "text-rose-600"}>{metric.delta}</span>{" "}
-          in last 7 days
-        </p>
-      </CardContent>
-    </Card>
+        <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-1">{label}</div>
+      </div>
+    </div>
   )
 }
 
@@ -310,156 +330,153 @@ function DoctorDashboardContent({ data }: { data: DoctorDashboardData }) {
   }, [activeRange])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-5">
       <DoctorHeader data={data} />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {primaryMetrics.map((metric) => (
-          <MetricCard key={metric.label} metric={metric} />
+      <div className="grid gap-2 sm:grid-cols-3 sm:gap-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
+        {primaryMetrics.map((m) => (
+          <MetricCard 
+            key={m.label} 
+            icon={m.icon} 
+            iconColor={m.iconStyle.split(" ").find(c => c.startsWith("text-")) || "text-[#1A5345]"} 
+            value={m.value} 
+            label={m.label} 
+            delta={m.delta} 
+            trend={m.trend} 
+          />
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-        {secondaryMetrics.map((metric) => (
-          <MetricCard key={metric.label} metric={metric} compact />
+      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6 sm:gap-3">
+        {secondaryMetrics.map((m) => (
+          <MetricCard 
+            key={m.label} 
+            icon={m.icon} 
+            iconColor={m.iconStyle.split(" ").find(c => c.startsWith("text-")) || "text-[#1A5345]"} 
+            value={m.value} 
+            label={m.label} 
+            delta={m.delta} 
+            trend={m.trend} 
+          />
         ))}
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="overflow-hidden border-0 bg-gradient-to-br from-white via-white to-[#F7FBF9] shadow-sm ring-1 ring-[#DDE9E4] xl:col-span-2">
-          <CardHeader className="border-b border-[#E7EFEB] pb-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <CardTitle className="text-base text-[#0F2D25]">Appointments Performance</CardTitle>
-                <CardDescription>Scheduled vs completed consultations (last 7 days).</CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="inline-flex rounded-full border border-[#D6E6DF] bg-[#F8FCFA] p-1">
-                  {rangeOptions.map((range) => (
-                    <button
-                      key={range.key}
-                      onClick={() => setActiveRange(range.key)}
-                      className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                        activeRange === range.key
-                          ? "bg-[#1A5345] text-white"
-                          : "text-[#4F6D64] hover:bg-[#E8F0EE]"
-                      }`}
-                    >
-                      {range.label}
-                    </button>
-                  ))}
-                </div>
-                <span className="rounded-full bg-[#E8F0EE] px-3 py-1 text-xs font-semibold text-[#1A5345]">
-                  {activeRange === "1D" ? "Daily" : activeRange === "1M" ? "Monthly" : "Weekly"} analytics
-                </span>
+        <div className="overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm xl:col-span-2">
+          <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/50 px-4 py-3 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-[12px] sm:text-[14px] font-bold text-[#1A1F1E]">Appointments Performance</h2>
+              <p className="text-[10px] sm:text-[11px] text-muted-foreground">Scheduled vs completed consultations</p>
+            </div>
+            <div className="mt-2 flex items-center gap-2 sm:mt-0">
+              <div className="inline-flex rounded-full border border-[#E8E6E0] bg-white p-1">
+                {rangeOptions.map((range) => (
+                  <button
+                    key={range.key}
+                    onClick={() => setActiveRange(range.key)}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-[10px] font-bold transition-all",
+                      activeRange === range.key
+                        ? "bg-[#1A5345] text-white shadow-sm"
+                        : "text-[#4F6D64] hover:bg-[#F9F8F5]"
+                    )}
+                  >
+                    {range.label}
+                  </button>
+                ))}
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-4">
+          </div>
+          <div className="p-4 space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-[#DCE9E4] bg-[#F6FBF9] p-3">
-                <div className="text-xs text-[#6A7F77]">Total scheduled</div>
-                <div className="mt-1 text-3xl font-semibold tracking-tight text-[#10382E]">78</div>
-                <div className="mt-1 text-xs text-[#2A7D66]">+12% vs previous week</div>
+              <div className="rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/30 p-3">
+                <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Total scheduled</div>
+                <div className="mt-1 text-2xl font-bold text-[#1A1F1E]">78</div>
+                <div className="mt-1 text-[10px] font-bold text-emerald-700">+12% vs last week</div>
               </div>
-              <div className="rounded-xl border border-[#E9DFD2] bg-[#FDF8F2] p-3">
-                <div className="text-xs text-[#7F7568]">Total completed</div>
-                <div className="mt-1 text-3xl font-semibold tracking-tight text-[#3A2F22]">54</div>
-                <div className="mt-1 text-xs text-[#A06A36]">Completion rate 69%</div>
+              <div className="rounded-xl border border-[#E8E6E0]/60 bg-[#FDF8F2]/50 p-3">
+                <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Total completed</div>
+                <div className="mt-1 text-2xl font-bold text-[#1A1F1E]">54</div>
+                <div className="mt-1 text-[10px] font-bold text-amber-700">69% completion rate</div>
               </div>
             </div>
-            <div className="rounded-xl border border-[#E7EFEB] bg-white p-3">
+            <div className="rounded-lg border border-[#E8E6E0]/40 p-3 bg-white">
               <ChartContainer config={workloadChartConfig} className="h-60 w-full">
-              <RechartsPrimitive.BarChart accessibilityLayer data={chartData}>
-                <RechartsPrimitive.CartesianGrid vertical={false} />
-                <RechartsPrimitive.XAxis
-                  dataKey="date"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={10}
-                  tickFormatter={(value) => {
-                    return new Date(value).toLocaleDateString("en-US", { weekday: "short" })
-                  }}
-                />
-                <RechartsPrimitive.YAxis hide />
-                <ChartTooltip
-                  cursor={false}
-                  defaultIndex={1}
-                  content={
-                    <ChartTooltipContent
-                      labelFormatter={(value) => {
-                        return new Date(value).toLocaleDateString("en-US", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })
-                      }}
-                    />
-                  }
-                />
-                <RechartsPrimitive.Bar
-                  dataKey="scheduled"
-                  stackId="appointments"
-                  fill="var(--color-scheduled)"
-                  radius={[0, 0, 4, 4]}
-                />
-                <RechartsPrimitive.Bar
-                  dataKey="completed"
-                  stackId="appointments"
-                  fill="var(--color-completed)"
-                  radius={[4, 4, 0, 0]}
-                />
-              </RechartsPrimitive.BarChart>
+                <RechartsPrimitive.BarChart accessibilityLayer data={chartData}>
+                  <RechartsPrimitive.CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#E8E6E0" />
+                  <RechartsPrimitive.XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={10}
+                    tick={{ fontSize: 10, fontWeight: 600, fill: "#6B7870" }}
+                    tickFormatter={(value) => {
+                      return new Date(value).toLocaleDateString("en-US", { weekday: "short" })
+                    }}
+                  />
+                  <RechartsPrimitive.YAxis hide />
+                  <ChartTooltip
+                    cursor={{ fill: "#F9F8F5" }}
+                    content={<ChartTooltipContent />}
+                  />
+                  <RechartsPrimitive.Bar
+                    dataKey="scheduled"
+                    stackId="appointments"
+                    fill="var(--color-scheduled)"
+                    radius={[0, 0, 4, 4]}
+                  />
+                  <RechartsPrimitive.Bar
+                    dataKey="completed"
+                    stackId="appointments"
+                    fill="var(--color-completed)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </RechartsPrimitive.BarChart>
               </ChartContainer>
-              <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <span className="size-2 rounded-full bg-[var(--color-scheduled)]" />
-                  Scheduled
+              <div className="mt-4 flex items-center gap-4 px-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-[#E5C9AA]" />
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Scheduled</span>
                 </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <span className="size-2 rounded-full bg-[var(--color-completed)]" />
-                  Completed
+                <div className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-[#1A5345]" />
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Completed</span>
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Overall Information</CardTitle>
-            <CardDescription>Quick operational snapshot.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-lg border p-2 text-center">
-                <div className="text-xs text-muted-foreground">Patients</div>
-                <div className="text-lg font-semibold">312</div>
-              </div>
-              <div className="rounded-lg border p-2 text-center">
-                <div className="text-xs text-muted-foreground">Consults</div>
-                <div className="text-lg font-semibold">184</div>
-              </div>
-              <div className="rounded-lg border p-2 text-center">
-                <div className="text-xs text-muted-foreground">Orders</div>
-                <div className="text-lg font-semibold">96</div>
-              </div>
+        <div className="rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm overflow-hidden flex flex-col">
+          <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/50 px-4 py-3">
+            <h2 className="text-[12px] sm:text-[14px] font-bold text-[#1A1F1E]">Distribution</h2>
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground">Patient type breakdown</p>
+          </div>
+          <div className="p-4 flex-1 flex flex-col justify-center">
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {[
+                { label: "Patients", val: "312", icon: UsersIcon, color: "text-[#1A5345]" },
+                { label: "Consults", val: "184", icon: StethoscopeIcon, color: "text-blue-600" },
+                { label: "Orders", val: "96", icon: ClipboardPlusIcon, color: "text-amber-600" }
+              ].map((i) => (
+                <div key={i.label} className="rounded-lg border border-[#E8E6E0]/60 bg-[#F9F8F5]/30 p-2 text-center">
+                  <i.icon className={cn("size-3 mx-auto mb-1", i.color)} />
+                  <div className="text-[14px] font-bold text-[#1A1F1E]">{i.val}</div>
+                  <div className="text-[8px] font-bold text-muted-foreground uppercase tracking-tight">{i.label}</div>
+                </div>
+              ))}
             </div>
 
-            <div className="rounded-lg border p-3">
-              <div className="space-y-1 text-center">
-                <div className="text-sm font-medium">Patients Overview</div>
-                <div className="text-xs text-muted-foreground">Current month distribution</div>
-              </div>
+            <div className="relative rounded-xl border border-[#E8E6E0]/40 p-4 bg-white">
               <ChartContainer
                 config={patientOverviewChartConfig}
-                className="mx-auto mt-2 aspect-square max-h-[190px]"
+                className="mx-auto aspect-square max-h-[180px]"
               >
                 <RechartsPrimitive.RadialBarChart
                   data={patientOverviewData}
-                  innerRadius={26}
-                  outerRadius={96}
-                  barSize={10}
+                  innerRadius={30}
+                  outerRadius={100}
+                  barSize={12}
                   startAngle={90}
                   endAngle={-270}
                 >
@@ -471,152 +488,144 @@ function DoctorDashboardContent({ data }: { data: DoctorDashboardData }) {
                   <RechartsPrimitive.RadialBar
                     dataKey="newPatients"
                     fill="var(--color-newPatients)"
-                    background
+                    background={{ fill: "#F9F8F5" }}
                     cornerRadius={999}
                   />
                   <RechartsPrimitive.RadialBar
                     dataKey="followUp"
                     fill="var(--color-followUp)"
-                    background
+                    background={{ fill: "#F9F8F5" }}
                     cornerRadius={999}
                   />
                 </RechartsPrimitive.RadialBarChart>
               </ChartContainer>
-              <div className="mt-2 space-y-1 text-sm">
-                <div className="flex items-center justify-center gap-2 font-medium">
-                  Trending up by 6.4% this month <TrendingUpIcon className="size-4 text-[#1A5345]" />
+              <div className="mt-4 text-center space-y-1">
+                <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-[#1A1F1E]">
+                  <TrendingUpIcon className="size-3.5 text-[#1A5345]" />
+                  Trending up by 6.4%
                 </div>
-                <div className="text-center text-xs text-muted-foreground">
-                  Follow-up 62% · New 38%
+                <div className="text-[10px] font-medium text-muted-foreground">
+                  Follow-up 62% &middot; New 38%
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-0 shadow-sm ring-1 ring-[#DDE9E4]">
-          <CardHeader className="border-b border-[#E7EFEB] pb-3">
-            <div className="flex items-center justify-between gap-2">
+        <div className="rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm overflow-hidden flex flex-col">
+          <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/50 px-4 py-3 sm:flex sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <UserRoundIcon className="size-4 text-[#1A5345]" />
               <div>
-                <CardTitle className="flex items-center gap-2 text-[#0F2D25]">
-                  <UserRoundIcon className="size-4 text-[#1A5345]" />
-                  Assigned Patients
-                </CardTitle>
-                <CardDescription>Your current patient list.</CardDescription>
+                <h2 className="text-[12px] sm:text-[14px] font-bold text-[#1A1F1E]">Assigned Patients</h2>
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground">Your active patient directory</p>
               </div>
-              <Button size="sm" variant="outline" className="gap-1">
-                View all <ArrowUpRightIcon className="size-3.5" />
-              </Button>
             </div>
-          </CardHeader>
-          <CardContent className="max-h-[360px] space-y-3 overflow-y-auto">
-            {data.assignedPatients.map((p, idx) => (
-              <div key={p.id}>
-                <PatientRow patient={p} />
-              </div>
+            <Button asChild size="sm" variant="outline" className="h-7 rounded-lg border-[#E8E6E0] bg-white px-3 text-[10px] font-bold text-[#1A1F1E] shadow-sm hover:bg-[#F9F8F5]">
+              <Link href="/doctor-patients" className="flex items-center gap-1.5">
+                View All <ArrowUpRightIcon className="size-3" />
+              </Link>
+            </Button>
+          </div>
+          <div className="p-4 flex-1 space-y-3 max-h-[400px] overflow-y-auto">
+            {data.assignedPatients.map((p) => (
+              <PatientRow key={p.id} patient={p} />
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="border-0 shadow-sm ring-1 ring-[#DDE9E4]">
-          <CardHeader className="border-b border-[#E7EFEB] pb-3">
-            <div className="flex items-center justify-between gap-2">
+        <div className="rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm overflow-hidden flex flex-col">
+          <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/50 px-4 py-3 sm:flex sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <ActivityIcon className="size-4 text-[#1A5345]" />
               <div>
-                <CardTitle className="flex items-center gap-2 text-[#0F2D25]">
-                  <StethoscopeIcon className="size-4 text-[#1A5345]" />
-                  Workload
-                </CardTitle>
-                <CardDescription>Capacity and availability.</CardDescription>
-              </div>
-              <span className="rounded-full bg-[#E8F0EE] px-2.5 py-1 text-xs font-medium text-[#1A5345]">
-                Live
-              </span>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-xl border border-[#DCE9E4] bg-[#F6FBF9] p-3">
-              <div className="text-sm text-muted-foreground">Patients / week</div>
-              <div className="text-3xl font-semibold tracking-tight text-[#0F2D25]">
-                {data.workload.patientsPerWeek}
-              </div>
-              <div className="mt-2 h-2 w-full rounded-full bg-[#E4F0EB]">
-                <div className="h-2 w-[68%] rounded-full bg-[#1A5345]" />
+                <h2 className="text-[12px] sm:text-[14px] font-bold text-[#1A1F1E]">Current Workload</h2>
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground">Capacity & clinic efficiency</p>
               </div>
             </div>
-            <div className="rounded-xl border border-[#E9DFD2] bg-[#FDF8F2] p-3">
-              <div className="text-sm text-muted-foreground">Hours available</div>
-              <div className="text-3xl font-semibold tracking-tight text-[#3A2F22]">
-                {data.workload.hoursAvailable}
+            <span className="rounded-full bg-[#E8F0EE] px-2 py-0.5 text-[10px] font-bold text-[#1A5345]">
+              Live Stats
+            </span>
+          </div>
+          <div className="p-4 flex-1 space-y-5">
+            <div className="rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/30 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Patients / week</span>
+                <span className="text-[12px] font-bold text-[#1A1F1E]">{data.workload.patientsPerWeek}</span>
               </div>
-              <div className="mt-2 h-2 w-full rounded-full bg-[#F1E6D8]">
-                <div className="h-2 w-[45%] rounded-full bg-[#C58A4B]" />
+              <div className="h-2 w-full rounded-full bg-[#E8E6E0]/40 overflow-hidden">
+                <div className="h-full w-[68%] rounded-full bg-[#1A5345] shadow-sm" />
               </div>
-              <div className="mt-2 text-xs text-muted-foreground">Updated from the latest schedule snapshot.</div>
+              <p className="mt-2 text-[9px] font-medium text-muted-foreground">Utilization rate: 68%</p>
             </div>
-            <div className="flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full bg-[#EEF5F3] px-2.5 py-1 text-[#2C6A5B]">Clinic focus</span>
-              <span className="rounded-full bg-[#FDF8F2] px-2.5 py-1 text-[#9A6B2F]">Balanced shifts</span>
+            <div className="rounded-xl border border-[#E9DFD2]/60 bg-[#FDF8F2]/40 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold text-[#7F7568] uppercase tracking-wider">Available Slots</span>
+                <span className="text-[12px] font-bold text-[#3A2F22]">{data.workload.hoursAvailable} hrs</span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-[#E9DFD2]/40 overflow-hidden">
+                <div className="h-full w-[45%] rounded-full bg-[#C58A4B] shadow-sm" />
+              </div>
+              <p className="mt-2 text-[9px] font-medium text-[#7F7568]">Next availability in 24 hours</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex flex-wrap gap-2">
+              {["Clinic Focus", "Balanced Shift", "Priority Tier"].map(tag => (
+                <span key={tag} className="rounded-full bg-white border border-[#E8E6E0] px-2 py-0.5 text-[10px] font-bold text-[#1A1F1E] shadow-sm">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-0 shadow-sm ring-1 ring-[#DDE9E4]">
-          <CardHeader className="border-b border-[#E7EFEB] pb-3">
-            <div className="flex items-center justify-between gap-2">
+        <div className="rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm overflow-hidden flex flex-col">
+          <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/50 px-4 py-3 sm:flex sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarClockIcon className="size-4 text-[#1A5345]" />
               <div>
-                <CardTitle className="flex items-center gap-2 text-[#0F2D25]">
-                  <CalendarClockIcon className="size-4 text-[#1A5345]" />
-                  Upcoming Appointments
-                </CardTitle>
-                <CardDescription>Next visits scheduled for your department.</CardDescription>
+                <h2 className="text-[12px] sm:text-[14px] font-bold text-[#1A1F1E]">Upcoming Visits</h2>
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground">Next 12 hours</p>
               </div>
-              <Button size="sm" variant="outline" className="gap-1">
-                Manage <ArrowUpRightIcon className="size-3.5" />
-              </Button>
             </div>
-          </CardHeader>
-          <CardContent className="max-h-[360px] space-y-3 overflow-y-auto">
-            {data.upcomingAppointments.map((appt, idx) => (
-              <div key={appt.id}>
-                <AppointmentRow appt={appt} />
-              </div>
+            <Button asChild size="sm" variant="outline" className="h-7 rounded-lg border-[#E8E6E0] bg-white px-3 text-[10px] font-bold text-[#1A1F1E] shadow-sm hover:bg-[#F9F8F5]">
+              <Link href="/doctor-appointments" className="flex items-center gap-1.5">
+                Manage <ArrowUpRightIcon className="size-3" />
+              </Link>
+            </Button>
+          </div>
+          <div className="p-4 flex-1 space-y-3 max-h-[400px] overflow-y-auto">
+            {data.upcomingAppointments.map((appt) => (
+              <AppointmentRow key={appt.id} appt={appt} />
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="border-0 shadow-sm ring-1 ring-[#DDE9E4]">
-          <CardHeader className="border-b border-[#E7EFEB] pb-3">
-            <div className="flex items-center justify-between gap-2">
+        <div className="rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm overflow-hidden flex flex-col">
+          <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/50 px-4 py-3 sm:flex sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <AlertCircleIcon className="size-4 text-red-600" />
               <div>
-                <CardTitle className="flex items-center gap-2 text-[#0F2D25]">
-                  <HeartPulseIcon className="size-4 text-[#1A5345]" />
-                  Recent Vital Alerts
-                </CardTitle>
-                <CardDescription>Needs attention based on current severity.</CardDescription>
+                <h2 className="text-[12px] sm:text-[14px] font-bold text-[#1A1F1E]">Vital Health Alerts</h2>
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground">Patients requiring immediate review</p>
               </div>
-              <Button size="sm" variant="outline" className="gap-1">
-                Review <ArrowUpRightIcon className="size-3.5" />
-              </Button>
             </div>
-          </CardHeader>
-          <CardContent className="max-h-[360px] space-y-3 overflow-y-auto">
-            <div className="rounded-lg border border-[#F2E1C7] bg-[#FFF8EB] px-3 py-2 text-xs text-[#8C5B1E]">
-              <span className="inline-flex items-center gap-1 font-medium">
-                <AlertTriangleIcon className="size-3.5" />
-                Prioritize critical alerts first.
-              </span>
+            <span className="rounded-lg bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+              {data.recentAlerts.length} Critical
+            </span>
+          </div>
+          <div className="p-4 flex-1 space-y-3 max-h-[400px] overflow-y-auto">
+            <div className="rounded-lg border border-amber-100 bg-amber-50/50 p-2 text-center text-[10px] font-bold text-amber-700 uppercase tracking-tight flex items-center justify-center gap-2">
+              <AlertTriangleIcon className="size-3" /> Prioritize critical status alerts first
             </div>
-            {data.recentAlerts.map((alert, idx) => (
-              <div key={alert.id}>
-                <AlertRow alert={alert} />
-              </div>
+            {data.recentAlerts.map((alert) => (
+              <AlertRow key={alert.id} alert={alert} />
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -631,33 +640,35 @@ export type DoctorDashboardProps = {
 
 export function DoctorDashboard({ data, isLoading, isError, error }: DoctorDashboardProps) {
   return (
-    <main className="w-full space-y-6 p-4">
+    <main className="flex-1 overflow-y-auto bg-[#F9F8F5] p-3 sm:p-4 lg:p-5 min-h-[calc(100vh-4rem)]">
       {isLoading ? (
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-2/3" />
-            <Skeleton className="h-4 w-1/2" />
+        <div className="space-y-4 sm:space-y-5">
+          <Skeleton className="h-20 w-full rounded-xl bg-[#E8E6E0]/50" />
+          
+          <div className="grid gap-3 sm:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <Skeleton key={idx} className="h-24 w-full rounded-xl bg-[#E8E6E0]/50" />
+            ))}
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-3">
+            <Skeleton className="h-[400px] xl:col-span-2 rounded-xl bg-[#E8E6E0]/50" />
+            <Skeleton className="h-[400px] rounded-xl bg-[#E8E6E0]/50" />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            {Array.from({ length: 4 }).map((_, idx) => (
-              <Card key={idx}>
-                <CardContent className="space-y-3 pt-4">
-                  <Skeleton className="h-6 w-1/2" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-5/6" />
-                </CardContent>
-              </Card>
-            ))}
+            <Skeleton className="h-[300px] rounded-xl bg-[#E8E6E0]/50" />
+            <Skeleton className="h-[300px] rounded-xl bg-[#E8E6E0]/50" />
           </div>
         </div>
       ) : null}
 
       {isError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Something went wrong</AlertTitle>
-          <AlertDescription>
-            {error instanceof Error ? error.message : "Unable to load dashboard."}
+        <Alert variant="destructive" className="rounded-xl shadow-sm">
+          <AlertCircleIcon className="size-4" />
+          <AlertTitle className="font-bold text-[13px] sm:text-[14px]">Dashboard Error</AlertTitle>
+          <AlertDescription className="text-[11px] sm:text-[12px]">
+            {error instanceof Error ? error.message : "Unable to load dashboard. Please try again."}
           </AlertDescription>
         </Alert>
       ) : null}

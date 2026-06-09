@@ -62,9 +62,9 @@ import {
 } from "@/components/ui/select"
 
 const riskConfig: Record<string, { label: string; dot: string; badge: string }> = {
-  low: { label: "Low Risk", dot: "bg-emerald-400", badge: "bg-emerald-50 text-emerald-700" },
-  moderate: { label: "Moderate Risk", dot: "bg-amber-400", badge: "bg-amber-50 text-amber-700" },
-  high: { label: "High Risk", dot: "bg-red-400", badge: "bg-red-50 text-red-700" },
+  low: { label: "Low Risk", dot: "bg-emerald-100", badge: "bg-emerald-500 text-white shadow-sm" },
+  moderate: { label: "Moderate Risk", dot: "bg-amber-100", badge: "bg-amber-500 text-white shadow-sm" },
+  high: { label: "High Risk", dot: "bg-red-100", badge: "bg-red-500 text-white shadow-sm" },
 }
 
 function fmt(iso: string | null | undefined) {
@@ -104,13 +104,11 @@ function Section({ title, icon: Icon, children, action }: {
   action?: React.ReactNode
 }) {
   return (
-    <div className="rounded-xl border border-[#E5EEEA] bg-white p-3 sm:p-4">
+    <div className="rounded-xl border border-[#E5EEEA] bg-white p-3 transition-all duration-300 hover:shadow-md sm:p-4 group">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex size-6 items-center justify-center rounded-lg bg-[#E8F0EE] sm:size-7">
-            <Icon className="size-3 text-[#1A5345] sm:size-3.5" />
-          </div>
-          <h3 className="text-[12px] font-semibold text-[#102F27] sm:text-[13px]">{title}</h3>
+          <Icon className="size-4 text-[#CC5533] sm:size-4.5" />
+          <h3 className="text-[12px] font-bold text-[#102F27] transition-colors duration-300 group-hover:text-[#CC5533] sm:text-[13px]">{title}</h3>
         </div>
         {action}
       </div>
@@ -125,14 +123,14 @@ function TagList({ items, variant, onRemove }: {
   onRemove?: (idx: number) => void
 }) {
   if (items.length === 0) return <p className="text-[10px] text-muted-foreground">None reported</p>
-  const s = variant === "red" ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600"
+  const s = variant === "red" ? "bg-red-500 text-white shadow-sm" : "bg-[#1A5345] text-white shadow-sm"
   return (
     <div className="flex flex-wrap gap-1">
       {items.map((item, idx) => (
-        <span key={item} className={cn("group/tag flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-medium sm:text-[10px]", s)}>
+        <span key={item} className={cn("group/tag flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-medium sm:text-[10px]", s)}>
           {item}
           {onRemove && (
-            <button type="button" onClick={() => onRemove(idx)} className="ml-0.5 hidden rounded-full hover:bg-red-200 group-hover/tag:block">
+            <button type="button" onClick={() => onRemove(idx)} className="ml-1 hidden rounded-full hover:bg-white/20 group-hover/tag:block">
               <XIcon className="size-2.5" />
             </button>
           )}
@@ -142,8 +140,9 @@ function TagList({ items, variant, onRemove }: {
   )
 }
 
-function RecordCard({ icon: Icon, title, subtitle, count, href }: {
+function RecordCard({ icon: Icon, iconColor, title, subtitle, href }: {
   icon: React.ElementType
+  iconColor?: string
   title: string
   subtitle: string
   count: number | string
@@ -151,17 +150,11 @@ function RecordCard({ icon: Icon, title, subtitle, count, href }: {
 }) {
   return (
     <Link href={href} className="group">
-      <div className="flex items-center gap-3 rounded-xl border border-[#E5EEEA] bg-white p-3 transition-colors group-hover:border-[#1A5345]/30 group-hover:bg-[#F6FBF9] sm:p-4">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE] sm:size-10">
-          <Icon className="size-4 text-[#1A5345] sm:size-4.5" />
-        </div>
+      <div className="flex items-center gap-3.5 rounded-xl border border-[#E8E6E0]/60 bg-white p-3.5 transition-all duration-300 hover:shadow-md">
+        <Icon className={cn("size-5 shrink-0 transition-colors duration-300", iconColor || "text-[#1A5345]") } />
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold text-[#102F27] sm:text-[12px]">{title}</p>
-          <p className="text-[9px] text-muted-foreground sm:text-[10px]">{subtitle}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-[#EEF5F3] px-2 py-0.5 text-[10px] font-semibold text-[#1A5345] sm:text-[11px]">{count}</span>
-          <ChevronRightIcon className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-[#1A5345]" />
+          <h4 className="text-[13px] font-bold text-[#1A1F1E] transition-colors duration-300 group-hover:text-[#1A5345]">{title}</h4>
+          <p className="text-[11px] text-muted-foreground">{subtitle}</p>
         </div>
       </div>
     </Link>
@@ -252,7 +245,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
   }
 
   return (
-    <main className="flex-1 overflow-y-auto bg-[#F9F8F5] p-3 sm:p-4 lg:p-5">
+    <main className="flex-1 overflow-y-auto bg-[#F9F8F5] p-3 sm:p-4 lg:p-5 animate-in fade-in duration-700">
       <div className="space-y-4 sm:space-y-5">
         <div className="flex items-center gap-3">
           <Breadcrumb>
@@ -273,12 +266,12 @@ export function PatientProfile({ record }: PatientProfileProps) {
         <div className="rounded-xl border border-[#E5EEEA] bg-white p-4 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
             {/* Avatar */}
-            <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#E8F0EE] sm:size-24 lg:size-28">
-              {p.profileImageUrl ? (
-                <img src={p.profileImageUrl} alt={p.fullName} className="size-full object-cover" />
-              ) : (
-                <UserRoundIcon className="size-10 text-[#1A5345] sm:size-12 lg:size-14" />
-              )}
+            <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-4 ring-white shadow-sm sm:size-24 lg:size-28">
+              <img 
+                src={p.profileImageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.fullName}`} 
+                alt={p.fullName} 
+                className="size-full object-cover" 
+              />
             </div>
 
             {/* Patient Info */}
@@ -317,7 +310,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
                 </span>
                 <span className="rounded-full bg-[#F5F5F3] px-3 py-1 text-[10px] text-[#6B7870] sm:text-[11px]">{p.totalVisits} total visits</span>
                 {p.poorComplianceCount > 0 && (
-                  <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[10px] font-medium text-amber-600 sm:text-[11px]">
+                  <span className="flex items-center gap-1.5 rounded-full bg-amber-500 px-3 py-1 text-[10px] font-bold text-white shadow-sm sm:text-[11px]">
                     <AlertTriangleIcon className="size-3" />{p.poorComplianceCount} compliance alerts
                   </span>
                 )}
@@ -325,17 +318,17 @@ export function PatientProfile({ record }: PatientProfileProps) {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-wrap gap-2 sm:flex-col sm:gap-2 lg:flex-row">
+            <div className="flex flex-wrap gap-2 sm:flex-col sm:gap-1.5 lg:flex-row">
               <Link href={`${basePath}/medications`}>
-                <Button size="sm" variant="outline" className="h-9 gap-1 text-[11px] sm:text-[12px]">
-                  <PillIcon className="size-3.5" />
+                <Button size="sm" variant="outline" className="h-8 gap-1.5 rounded-lg border-[#E8E6E0] bg-white px-3 text-[11px] font-bold text-[#1A1F1E] shadow-sm transition-all hover:border-[#1A5345]/30 hover:bg-slate-50 hover:text-[#1A5345] hover:shadow-md group sm:text-[12px]">
+                  <PillIcon className="size-3.5 transition-transform group-hover:scale-110" />
                   <span className="sm:hidden">Meds</span>
                   <span className="hidden sm:inline">Medications</span>
                 </Button>
               </Link>
               <Link href={`/doctor-queue`}>
-                <Button size="sm" className="h-9 gap-1 bg-[#1A5345] text-[11px] hover:bg-[#0F3D32] sm:text-[12px]">
-                  <StethoscopeIcon className="size-3.5" />
+                <Button size="sm" className="h-8 gap-1.5 rounded-lg border-0 bg-[#1A5345] px-3 text-[11px] font-bold text-white shadow-[0_2px_8px_rgba(26,83,69,0.2)] transition-all hover:bg-[#133F34] hover:shadow-[0_4px_12px_rgba(26,83,69,0.25)] group sm:text-[12px]">
+                  <StethoscopeIcon className="size-3.5 transition-transform group-hover:scale-110" />
                   <span className="sm:hidden">Consult</span>
                   <span className="hidden sm:inline">Start Consultation</span>
                 </Button>
@@ -378,7 +371,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
           </Section>
           <Section title="Upcoming" icon={CalendarClockIcon}
             action={
-              <Button size="sm" variant="ghost" className="h-6 gap-1 px-1 text-[9px] text-[#1A5345] sm:text-[10px]" onClick={() => setAppointmentDialog(true)}>
+                  <Button size="sm" variant="ghost" className="h-6 gap-1 px-1 text-[9px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[10px]" onClick={() => setAppointmentDialog(true)}>
                 <CalendarPlusIcon className="size-3" />Book
               </Button>
             }>
@@ -394,16 +387,14 @@ export function PatientProfile({ record }: PatientProfileProps) {
         {/* Clinical Notes and Care Plan - Side by Side */}
         <div className="grid gap-3 lg:grid-cols-2">
           {/* Clinical Notes */}
-          <div className="rounded-xl border border-[#E5EEEA] bg-white p-4 sm:p-5">
+          <div className="rounded-xl border border-[#E5EEEA] bg-white p-4 transition-all duration-300 hover:shadow-md sm:p-5 group">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex size-6 items-center justify-center rounded-lg bg-[#E8F0EE] sm:size-7">
-                  <MessageSquareIcon className="size-3 text-[#1A5345] sm:size-3.5" />
-                </div>
-                <h3 className="text-[12px] font-semibold text-[#102F27] sm:text-[13px]">Clinical Notes</h3>
-                <span className="rounded-full bg-[#F5F5F3] px-1.5 py-0.5 text-[9px] text-[#6B7870]">{clinicalNotes.length}</span>
+                <MessageSquareIcon className="size-4 text-[#CC5533] sm:size-4.5" />
+                <h3 className="text-[12px] font-bold text-[#102F27] transition-colors duration-300 group-hover:text-[#CC5533] sm:text-[13px]">Clinical Notes</h3>
+                <span className="rounded-md bg-[#CC5533]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#CC5533]">{clinicalNotes.length}</span>
               </div>
-              <Button size="sm" variant="ghost" className="h-6 gap-1 px-1 text-[9px] text-[#1A5345] sm:text-[10px]" onClick={() => setNoteDialog(true)}>
+              <Button size="sm" variant="ghost" className="h-6 gap-1 px-1 text-[9px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[10px]" onClick={() => setNoteDialog(true)}>
                 <PlusIcon className="size-3" />Add Note
               </Button>
             </div>
@@ -427,15 +418,13 @@ export function PatientProfile({ record }: PatientProfileProps) {
           </div>
 
           {/* Care Plan */}
-          <div className="rounded-xl border border-[#E5EEEA] bg-white p-4 sm:p-5">
+          <div className="rounded-xl border border-[#E5EEEA] bg-white p-4 transition-all duration-300 hover:shadow-md sm:p-5 group">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex size-6 items-center justify-center rounded-lg bg-[#E8F0EE] sm:size-7">
-                  <TargetIcon className="size-3 text-[#1A5345] sm:size-3.5" />
-                </div>
-                <h3 className="text-[12px] font-semibold text-[#102F27] sm:text-[13px]">Care Plan & Goals</h3>
+                <TargetIcon className="size-4 text-[#CC5533] sm:size-4.5" />
+                <h3 className="text-[12px] font-bold text-[#102F27] transition-colors duration-300 group-hover:text-[#CC5533] sm:text-[13px]">Care Plan & Goals</h3>
               </div>
-              <Button size="sm" variant="ghost" className="h-6 gap-1 px-1 text-[9px] text-[#1A5345] sm:text-[10px]" onClick={() => setGoalDialog(true)}>
+              <Button size="sm" variant="ghost" className="h-6 gap-1 px-1 text-[9px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[10px]" onClick={() => setGoalDialog(true)}>
                 <PlusIcon className="size-3" />Add Goal
               </Button>
             </div>
@@ -445,19 +434,17 @@ export function PatientProfile({ record }: PatientProfileProps) {
               <div className="max-h-80 overflow-y-auto space-y-2">
                 {careGoals.map((goal) => {
                   const statusStyles: Record<string, string> = {
-                    "on-track": "bg-emerald-50 text-emerald-700",
-                    "off-track": "bg-red-50 text-red-700",
-                    "achieved": "bg-[#EEF5F3] text-[#1A5345]",
+                    "on-track": "bg-emerald-50 text-emerald-700 font-bold",
+                    "off-track": "bg-red-50 text-red-700 font-bold",
+                    "achieved": "bg-[#1A5345]/10 text-[#1A5345] font-bold",
                   }
                   return (
-                    <div key={goal.id} className="group flex items-center gap-3 rounded-lg border border-[#E5EEEA] bg-[#FBFDFC] p-2 sm:p-2.5">
-                      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#E8F0EE] sm:size-8">
-                        <TargetIcon className="size-3.5 text-[#1A5345] sm:size-4" />
-                      </div>
+                    <div key={goal.id} className="group flex items-center gap-3 rounded-lg border border-[#E5EEEA] bg-white p-2 transition-all duration-300 hover:shadow-md sm:p-2.5">
+                      <TargetIcon className="size-4 shrink-0 text-[#CC5533] sm:size-5" />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className="text-[11px] font-semibold text-[#102F27] sm:text-[12px]">{goal.metric}</span>
-                          <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-medium", statusStyles[goal.status])}>
+                          <span className={cn("rounded-md px-1.5 py-0.5 text-[9px] uppercase tracking-wider", statusStyles[goal.status])}>
                             {goal.status.replace("-", " ")}
                           </span>
                         </div>
@@ -486,6 +473,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <RecordCard
             icon={ActivityIcon}
+            iconColor="text-blue-600"
             title="Vitals & Readings"
             subtitle="Blood pressure, heart rate, SpO\u2082, blood sugar"
             count={record.vitalReadings.length}
@@ -493,6 +481,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
           />
           <RecordCard
             icon={PillIcon}
+            iconColor="text-emerald-600"
             title="Medications"
             subtitle="Active prescriptions, adherence, side effects"
             count={activeMeds}
@@ -500,6 +489,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
           />
           <RecordCard
             icon={ClipboardCheckIcon}
+            iconColor="text-indigo-600"
             title="Diagnoses & Conditions"
             subtitle="ICD-10 coded diagnoses, severity, status"
             count={record.diagnoses.length}
@@ -507,6 +497,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
           />
           <RecordCard
             icon={FlaskConicalIcon}
+            iconColor="text-violet-600"
             title="Lab Results"
             subtitle="Blood work, panels, pathology reports"
             count={record.labResults.length}
@@ -514,6 +505,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
           />
           <RecordCard
             icon={FileTextIcon}
+            iconColor="text-orange-600"
             title="Documents & Files"
             subtitle="ECGs, imaging, referrals, prescriptions"
             count={record.documents.length}
@@ -521,6 +513,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
           />
           <RecordCard
             icon={CalendarDaysIcon}
+            iconColor="text-sky-600"
             title="Consultation History"
             subtitle="Past consultations, reports, follow-ups"
             count={record.visits.length}
@@ -594,11 +587,11 @@ export function PatientProfile({ record }: PatientProfileProps) {
               <DialogTitle className="text-[13px] font-semibold text-[#102F27] sm:text-[14px]">Manage Allergies</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5">
                 {allergies.map((a, idx) => (
-                  <span key={idx} className="flex items-center gap-0.5 rounded-full bg-red-50 px-2 py-0.5 text-[10px] text-red-600 sm:text-[11px]">
+                  <span key={idx} className="flex items-center gap-1 rounded-full bg-red-500 px-2.5 py-0.5 text-[10px] text-white shadow-sm sm:text-[11px]">
                     {a}
-                    <button type="button" onClick={() => setAllergies((prev) => prev.filter((_, i) => i !== idx))} className="ml-1 rounded-full hover:bg-red-200"><XIcon className="size-3" /></button>
+                    <button type="button" onClick={() => setAllergies((prev) => prev.filter((_, i) => i !== idx))} className="ml-1 rounded-full hover:bg-white/20"><XIcon className="size-3" /></button>
                   </span>
                 ))}
               </div>
@@ -620,11 +613,11 @@ export function PatientProfile({ record }: PatientProfileProps) {
               <DialogTitle className="text-[13px] font-semibold text-[#102F27] sm:text-[14px]">Manage Family History</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5">
                 {familyHistory.map((f, idx) => (
-                  <span key={idx} className="flex items-center gap-0.5 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] text-blue-600 sm:text-[11px]">
+                  <span key={idx} className="flex items-center gap-1 rounded-full bg-[#1A5345] px-2.5 py-0.5 text-[10px] text-white shadow-sm sm:text-[11px]">
                     {f}
-                    <button type="button" onClick={() => setFamilyHistory((prev) => prev.filter((_, i) => i !== idx))} className="ml-1 rounded-full hover:bg-blue-200"><XIcon className="size-3" /></button>
+                    <button type="button" onClick={() => setFamilyHistory((prev) => prev.filter((_, i) => i !== idx))} className="ml-1 rounded-full hover:bg-white/20"><XIcon className="size-3" /></button>
                   </span>
                 ))}
               </div>

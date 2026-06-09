@@ -307,20 +307,20 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
 
   return (
     <section className="overflow-hidden rounded-xl border border-[#E8E6E0] bg-white shadow-sm animate-in fade-in duration-500">
-      <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/80 px-5 py-4">
-        <h2 className="font-serif text-[18px] font-bold text-[#1A1F1E]">Schedule Details</h2>
-        <p className="mt-0.5 text-[13px] text-muted-foreground">Manage working periods and blocked times for each day</p>
+      <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/80 px-4 py-3 sm:px-5 sm:py-4">
+        <h2 className="font-sans text-[12px] sm:text-[14px] font-bold text-[#1A1F1E]">Schedule Details</h2>
+        <p className="mt-0.5 text-[10px] sm:text-[11px] text-muted-foreground">Manage working periods and blocked times for each day</p>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/40 text-left text-[13px] text-muted-foreground font-medium">
-              <th className="px-5 py-3.5 w-[140px]">Day</th>
-              <th className="px-5 py-3.5 w-[140px]">Status</th>
-              <th className="px-5 py-3.5 w-[140px]">Max Visits</th>
-              <th className="px-5 py-3.5">Working Periods</th>
-              <th className="px-5 py-3.5">Blocked Times</th>
+            <tr className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/40 text-left text-[11px] text-muted-foreground font-medium uppercase tracking-wider">
+              <th className="px-4 sm:px-5 py-3 w-[140px]">Day</th>
+              <th className="px-4 sm:px-5 py-3 w-[140px]">Status</th>
+              <th className="px-4 sm:px-5 py-3 w-[140px]">Max Visits</th>
+              <th className="px-4 sm:px-5 py-3">Working Periods</th>
+              <th className="px-4 sm:px-5 py-3">Blocked Times</th>
             </tr>
           </thead>
             {days.map((day) => (
@@ -338,10 +338,10 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                     day.enabled ? "bg-white" : "bg-[#F9F8F5]/40"
                   )}
                 >
-                <td className="px-5 py-4 text-[14px] font-medium text-[#1A1F1E]">
+                <td className="px-4 sm:px-5 py-3 sm:py-4 text-[12px] sm:text-[13px] font-medium text-[#1A1F1E]">
                   {day.label}
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-4 sm:px-5 py-3 sm:py-4">
                   <div className="flex items-center gap-2">
                     <Checkbox
                       id={`enable-${day.weekday}`}
@@ -352,7 +352,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                     <Label
                       htmlFor={`enable-${day.weekday}`}
                       className={cn(
-                        "cursor-pointer text-[13px] font-medium",
+                        "cursor-pointer text-[11px] sm:text-[12px] font-medium",
                         day.enabled ? "text-[#1A5345]" : "text-muted-foreground"
                       )}
                     >
@@ -360,23 +360,23 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                     </Label>
                   </div>
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-4 sm:px-5 py-3 sm:py-4">
                   <Input
                     type="number"
                     min={1}
                     max={200}
                     placeholder="—"
-                    className="h-8 w-20 text-[13px] bg-background border-[#E8E6E0] focus-visible:ring-[#1A5345]"
+                    className="h-8 w-20 text-[11px] sm:text-[12px] bg-background border-[#E8E6E0] focus-visible:ring-[#1A5345]"
                     disabled={!day.enabled}
                     value={day.maxAppointmentsPerDay ?? ""}
                     onChange={(e) => handleMaxChange(day, e.target.value)}
                   />
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-4 sm:px-5 py-3 sm:py-4">
                   {day.enabled ? (
                     <div className="space-y-2.5">
                       {day.periods.length === 0 && (
-                        <span className="text-[13px] text-muted-foreground italic">No periods</span>
+                        <span className="text-[11px] sm:text-[12px] text-muted-foreground italic">No periods</span>
                       )}
                       {day.periods.map((period) => (
                         <div key={period.id} className="flex flex-wrap items-center gap-1.5">
@@ -386,7 +386,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                               value={period.startTime}
                               onChange={(v) => handlePeriodChange(day, period.id, "startTime", v)}
                             />
-                            <span className="text-[11px] text-muted-foreground font-medium">to</span>
+                            <span className="text-[10px] text-muted-foreground font-medium">to</span>
                             <TimePickerCompact
                               value={period.endTime}
                               onChange={(v) => handlePeriodChange(day, period.id, "endTime", v)}
@@ -408,7 +408,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-7 gap-1.5 px-2 text-[12px] text-[#1A5345] hover:bg-[#1A5345]/10 hover:text-[#1A5345]"
+                        className="h-7 gap-1.5 px-2 text-[11px] text-[#1A5345] hover:bg-[#1A5345]/10 hover:text-[#1A5345]"
                         onClick={() => addPeriod(day)}
                       >
                         <PlusIcon className="size-3.5" />
@@ -416,14 +416,14 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                       </Button>
                     </div>
                   ) : (
-                    <span className="text-[13px] text-muted-foreground">—</span>
+                    <span className="text-[11px] sm:text-[12px] text-muted-foreground">—</span>
                   )}
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-4 sm:px-5 py-3 sm:py-4">
                   {day.enabled ? (
                     <div className="space-y-2.5">
                       {day.unavailableBlocks.length === 0 ? (
-                        <span className="text-[13px] text-muted-foreground italic">No blocks</span>
+                        <span className="text-[11px] sm:text-[12px] text-muted-foreground italic">No blocks</span>
                       ) : (
                         day.unavailableBlocks.map((block) => (
                           <div key={block.id} className="flex flex-wrap items-center gap-1.5">
@@ -433,7 +433,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                                 value={block.startTime}
                                 onChange={(v) => handleBlockChange(day, block.id, "startTime", v)}
                               />
-                              <span className="text-[11px] text-muted-foreground font-medium">to</span>
+                              <span className="text-[10px] text-muted-foreground font-medium">to</span>
                               <TimePickerCompact
                                 value={block.endTime}
                                 onChange={(v) => handleBlockChange(day, block.id, "endTime", v)}
@@ -456,7 +456,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-7 gap-1.5 px-2 text-[12px] text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                        className="h-7 gap-1.5 px-2 text-[11px] text-amber-600 hover:bg-amber-50 hover:text-amber-700"
                         onClick={() => addBlock(day)}
                       >
                         <PlusIcon className="size-3.5" />
@@ -464,7 +464,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                       </Button>
                     </div>
                   ) : (
-                    <span className="text-[13px] text-muted-foreground">—</span>
+                    <span className="text-[11px] sm:text-[12px] text-muted-foreground">—</span>
                   )}
                 </td>
               </tr>

@@ -1,8 +1,7 @@
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react"
+import { useCallback, useState, useSyncExternalStore } from "react"
 import { useMutation } from "@tanstack/react-query"
-import type { ChatMessage } from "@/components/shared/chat/chat.types"
 import { getMockAssistantReply } from "./mock-ai-reply"
-import type { AiChatMessage } from "./ai-chat.types"
+import type { AiChatDisplayMessage, AiChatMessage } from "./ai-chat.types"
 
 const THREAD_ID = "ai-assistant"
 
@@ -19,21 +18,15 @@ function useClientTimesReady() {
   )
 }
 
-function toChatMessages(rows: AiChatMessage[], showTimes: boolean): ChatMessage[] {
-  return rows.map((m) => ({
-    id: m.id,
-    contactId: THREAD_ID,
-    text: m.text,
-    time: showTimes ? formatTime(m.sentAt) : "",
-    isSender: m.role === "user",
-    status: "read" as const,
-  }))
-}
-
 const initialAssistant: AiChatMessage = {
   id: "welcome",
   role: "assistant",
-  text: "Hi — I’m your ICARE assistant (demo). You can type questions about using the app or general heart-health topics. I’m not a doctor and can’t diagnose or prescribe.",
+  greeting: "Hello Elena,",
+  text: "I've reviewed your latest blood panel from yesterday. Your glucose levels are within a healthy range, but your Vitamin D remains slightly below the target threshold. Would you like to discuss dietary adjustments or schedule a follow-up with Dr. Aris?",
+  actions: [
+    { id: "view-lab", label: "View Lab PDF", icon: "download", href: "/patient/consultations" },
+    { id: "book-followup", label: "Book Follow-up", icon: "calendar", href: "/patient/appointments" },
+  ],
   sentAt: new Date(),
 }
 
@@ -64,7 +57,9 @@ export function usePatientAiChat() {
       const assistantMsg: AiChatMessage = {
         id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `a-${Date.now()}`,
         role: "assistant",
-        text: reply,
+        text: reply.text,
+        greeting: reply.greeting,
+        actions: reply.actions,
         sentAt: new Date(),
       }
       setMessages((prev) => [...prev, assistantMsg])
@@ -80,10 +75,13 @@ export function usePatientAiChat() {
     [sendMutation],
   )
 
-  const chatRows = useMemo(() => toChatMessages(messages, showTimes), [messages, showTimes])
+  const displayMessages: AiChatDisplayMessage[] = messages.map((m) => ({
+    ...m,
+    time: showTimes ? formatTime(m.sentAt) : "",
+  }))
 
   return {
-    messages: chatRows,
+    messages: displayMessages,
     activeContactId: THREAD_ID,
     sendMessage,
     isAssistantTyping: sendMutation.isPending,
