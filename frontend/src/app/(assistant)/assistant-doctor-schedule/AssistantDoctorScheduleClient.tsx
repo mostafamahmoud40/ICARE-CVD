@@ -22,6 +22,7 @@ import {
   PlayIcon,
   PrinterIcon,
   SaveIcon,
+  SparklesIcon,
   Table2Icon,
   Trash2Icon,
   UsersIcon,
@@ -93,6 +94,7 @@ import type {
   ScheduleBooking,
   ScheduleDayExtra,
 } from "./assistantDoctorSchedule.types"
+import { AssistantScheduleAiPanel } from "./AssistantScheduleAiPanel"
 import {
   useAssistantDoctorSchedule,
   useAssistantScheduleDoctors,
@@ -140,7 +142,7 @@ function AssistantDayTimeline({
           return (
             <div
               key={p.id}
-              className="absolute inset-y-0 z-[11] flex flex-col items-center justify-center overflow-hidden border-x border-violet-400/50 bg-violet-500/85 shadow-sm"
+              className="absolute inset-y-0 z-[11] flex flex-col items-center justify-center overflow-hidden border-x border-[#CC5533]/40 bg-[#CC5533]/90 shadow-sm"
               style={{ left: `${left}%`, width: `${width}%` }}
               title={`Extra hours (this date only): ${p.startTime} - ${p.endTime}`}
             >
@@ -333,7 +335,7 @@ function AssistantDayTimeline({
   )
 }
 
-type ViewMode = "week" | "day" | "blocked" | "calendar"
+type ViewMode = "week" | "day" | "blocked" | "calendar" | "ai"
 
 function buildScheduleExportSummary(
   schedule: DoctorSchedulePayload,
@@ -862,21 +864,22 @@ function DailySessionsPanel({
         </div>
 
         {/* ── Extra hours (this calendar date only) ── */}
-        <div className="space-y-3 rounded-xl border border-violet-200/70 bg-violet-50/40 px-4 py-3">
+        <div className="space-y-4 rounded-2xl border border-l-4 border-l-[#CC5533] border-[#E8E6E0]/60 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="space-y-1">
-              <div className="flex items-center gap-1.5">
-                <ClockPlusIcon className="size-3.5 text-violet-600" aria-hidden />
-                <Label className="text-xs font-bold uppercase tracking-wide text-violet-800">
+              <div className="flex items-center gap-2">
+                <span className="size-2 shrink-0 rounded-full bg-[#CC5533]" aria-hidden />
+                <Label className="text-[12px] font-bold uppercase tracking-wider text-[#1A1F1E]">
                   Extra hours (this date only)
                 </Label>
               </div>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[13px] font-medium leading-relaxed text-muted-foreground">
                 Adds bookable slots for{" "}
-                <span className="font-semibold text-[#1A1F1E]">{calendarDate}</span> only. The
-                doctor&apos;s weekly template does not change.
+                <span className="font-bold text-[#1A1F1E]">{calendarDate}</span>
+                {" "}only. The doctor&apos;s weekly template does not change.
               </p>
             </div>
+            <ClockPlusIcon className="size-4 shrink-0 text-[#CC5533]" aria-hidden />
           </div>
           <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1.5">
@@ -930,7 +933,7 @@ function DailySessionsPanel({
             <Button
               type="button"
               size="sm"
-              className="h-9 rounded-lg bg-violet-600 px-4 font-bold text-white hover:bg-violet-700"
+              className="h-9 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-[0_2px_10px_rgba(26,83,69,0.2)] hover:bg-[#133F34]"
               disabled={isCreatingDayExtra || disabled}
               onClick={() => void handleAddExtraHours()}
             >
@@ -942,25 +945,27 @@ function DailySessionsPanel({
             </Button>
           </div>
           {dateExtras.length > 0 ? (
-            <ul className="space-y-2 border-t border-violet-200/50 pt-3">
+            <ul className="space-y-2 border-t border-[#E8E6E0]/60 pt-4">
               {dateExtras.map((extra) => (
                 <li
                   key={extra.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-violet-200/60 bg-white px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E8E6E0]/60 bg-[#FAFAF8] px-3.5 py-2.5 transition-all hover:shadow-sm"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-violet-900">
-                      {extra.startTime} – {extra.endTime}
+                    <p className="text-[13px] font-bold text-[#1A1F1E]">
+                      <span className="text-[#CC5533]">{extra.startTime}</span>
+                      {" – "}
+                      <span className="text-[#CC5533]">{extra.endTime}</span>
                     </p>
                     {extra.reason ? (
-                      <p className="text-[11px] text-muted-foreground">{extra.reason}</p>
+                      <p className="text-[11px] font-medium text-muted-foreground">{extra.reason}</p>
                     ) : null}
                   </div>
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="h-8 rounded-lg border-violet-200 text-violet-800 hover:bg-violet-50"
+                    className="h-8 rounded-lg border-[#E8E6E0] text-destructive hover:bg-destructive/10"
                     disabled={isDeletingDayExtra}
                     onClick={() => onDeleteDayExtra(extra.id)}
                   >
@@ -1493,12 +1498,23 @@ function AssistantDoctorScheduleBody({
   )
 
   React.useEffect(() => {
-    const order: ViewMode[] = ["week", "day", "blocked", "calendar"]
+    const order: ViewMode[] = ["week", "day", "blocked", "calendar", "ai"]
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const el = e.target as HTMLElement | null
       if (el?.closest("input, textarea, select, [contenteditable=true]")) return
-      const idx = e.key === "1" ? 0 : e.key === "2" ? 1 : e.key === "3" ? 2 : e.key === "4" ? 3 : -1
+      const idx =
+        e.key === "1"
+          ? 0
+          : e.key === "2"
+            ? 1
+            : e.key === "3"
+              ? 2
+              : e.key === "4"
+                ? 3
+                : e.key === "5"
+                  ? 4
+                  : -1
       if (idx >= 0) {
         e.preventDefault()
         setView(order[idx]!)
@@ -1689,6 +1705,31 @@ function AssistantDoctorScheduleBody({
                 </kbd>
               </TooltipContent>
             </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant={view === "ai" ? "default" : "ghost"}
+                  className={cn(
+                    "rounded-lg px-3 sm:px-4",
+                    view === "ai"
+                      ? "bg-[#1A5345] text-white hover:bg-[#133F34]"
+                      : "text-[#1A1F1E]"
+                  )}
+                  onClick={() => setView("ai")}
+                >
+                  <SparklesIcon className="mr-2 size-4 shrink-0" aria-hidden />
+                  <span className="truncate">AI assistant</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-xs">
+                Suggestions, schedule analysis, and chat (preview UI). Shortcut:{" "}
+                <kbd className="pointer-events-none rounded border bg-muted px-1 font-mono text-[10px]">
+                  5
+                </kbd>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
@@ -1713,39 +1754,65 @@ function AssistantDoctorScheduleBody({
       </TooltipProvider>
 
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
-        <DialogContent className="max-h-[90vh] max-w-lg overflow-hidden rounded-xl" showCloseButton>
-          <DialogHeader>
-            <DialogTitle className="font-serif">Export schedule</DialogTitle>
-            <DialogDescription>
-              Plain-text summary for handoff or documentation. Use Print for a paper copy of
-              the whole page.
-            </DialogDescription>
+        <DialogContent
+          className="max-h-[90vh] gap-0 overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white p-0 shadow-2xl sm:max-w-lg"
+          showCloseButton
+        >
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[2px] bg-gradient-to-r from-[#1A5345]/15 via-[#CC5533]/35 to-[#1A5345]/15"
+            aria-hidden
+          />
+          <DialogHeader className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-4 pr-12 text-left sm:px-6">
+            <div className="flex items-start gap-3">
+              <PrinterIcon className="mt-0.5 size-5 shrink-0 text-[#1A5345]" aria-hidden />
+              <div className="min-w-0 space-y-1">
+                <DialogTitle className="font-serif text-[18px] font-bold text-[#1A1F1E]">
+                  Export schedule
+                </DialogTitle>
+                <DialogDescription className="text-[13px] font-medium leading-relaxed text-[#6B7870]">
+                  Plain-text summary for handoff or documentation. Use Print for a paper copy of
+                  the whole page.
+                </DialogDescription>
+                <p className="text-[11px] font-bold text-[#1A5345]">{doctorName}</p>
+              </div>
+            </div>
           </DialogHeader>
-          <pre className="max-h-[min(50vh,360px)] overflow-auto rounded-lg border border-[#E8E6E0] bg-[#FAFAF8] p-3 font-mono text-[11px] leading-relaxed text-[#1A1F1E]">
-            {exportText}
-          </pre>
-          <DialogFooter className="gap-2 sm:gap-2">
+
+          <div className="space-y-3 px-5 py-4 sm:px-6">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">
+                Schedule summary
+              </span>
+              <div className="h-px flex-1 bg-[#E8E6E0]/60" aria-hidden />
+            </div>
+            <pre className="custom-scrollbar max-h-[min(50vh,360px)] overflow-auto rounded-xl border border-[#E8E6E0] bg-[#F9F8F5]/50 p-4 font-mono text-[11px] leading-relaxed text-[#1A1F1E]">
+              {exportText}
+            </pre>
+          </div>
+
+          <DialogFooter className="gap-2 border-t border-[#E8E6E0]/60 bg-white px-5 py-4 sm:justify-end sm:px-6">
             <Button
               type="button"
               variant="outline"
-              className="rounded-lg"
+              className="h-9 rounded-lg border-[#E8E6E0] text-[12px] font-bold text-[#1A1F1E] hover:bg-slate-50"
               onClick={() => window.print()}
             >
-              <PrinterIcon className="mr-2 size-4" aria-hidden />
+              <PrinterIcon className="mr-2 size-3.5" aria-hidden />
               Print page
             </Button>
             <Button
               type="button"
-              className="rounded-lg bg-[#1A5345] font-bold text-white hover:bg-[#133F34]"
+              className="h-9 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-[0_2px_10px_rgba(26,83,69,0.2)] hover:bg-[#133F34]"
               onClick={() => void handleCopyExport()}
             >
-              <CopyIcon className="mr-2 size-4" aria-hidden />
+              <CopyIcon className="mr-2 size-3.5" aria-hidden />
               Copy text
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {view !== "ai" ? (
       <div className="grid animate-in fade-in duration-300 grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/70 bg-white p-3 shadow-sm transition-all hover:shadow-md">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
@@ -1803,6 +1870,26 @@ function AssistantDoctorScheduleBody({
           </div>
         </div>
       </div>
+      ) : null}
+
+      {view === "ai" ? (
+        <AssistantScheduleAiPanel
+          doctorName={doctorName}
+          schedule={draft}
+          bookingCount={bookingCount}
+          pausedCount={pausedCount}
+          dayExtrasCount={bundle.dayExtras.length}
+          onNavigate={(target) => setView(target)}
+          onApplySuggestion={async (suggestionId) => {
+            if (suggestionId === "buffer") {
+              setDraft((prev) => ({
+                ...prev,
+                bufferBetweenSlotsMinutes: Math.max(prev.bufferBetweenSlotsMinutes, 10),
+              }))
+            }
+          }}
+        />
+      ) : null}
 
       {view === "week" ? (
         <div className="space-y-4">
@@ -1971,7 +2058,7 @@ function AssistantDoctorScheduleBody({
                   Break
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="inline-block size-2.5 rounded-sm bg-violet-500" />
+                  <span className="inline-block size-2.5 rounded-sm bg-[#CC5533]" />
                   Extra (date only)
                 </span>
               </div>
