@@ -141,7 +141,7 @@ export function VitalsSection({ vitals, onVitalChange, patientAge }: VitalsSecti
         <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
           <ActivityIcon className="size-4 text-[#1A5345]" />
         </div>
-        <h3 className="text-[14px] font-semibold text-[#102F27]">Vital Signs</h3>
+        <h3 className="font-serif text-[16px] font-bold text-[#102F27]">Vital Signs</h3>
       </div>
       <div className="grid grid-cols-4 gap-3">
         {VITAL_FIELDS.map((field) => {
@@ -189,22 +189,22 @@ export function VitalsSection({ vitals, onVitalChange, patientAge }: VitalsSecti
           
           return (
             <div key={field.key} className="space-y-1">
-              <label className="text-[11px] font-medium text-muted-foreground">{field.label}</label>
+              <label className="text-[13px] font-semibold text-muted-foreground">{field.label}</label>
               <div className="relative">
                 <Input
                   value={vitals[field.key]}
                   onChange={(e) => onVitalChange(field.key, e.target.value)}
                   placeholder={field.placeholder}
-                  className="h-8 border-[#E8E6E0] bg-[#FAFAF8] pr-10 text-[13px]"
+                  className="h-8 border-[#E8E6E0] bg-[#FAFAF8] pr-10 text-[14px]"
                   type="text"
                   inputMode="decimal"
                 />
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground">
                   {field.unit}
                 </span>
               </div>
               {statusMessage && (
-                <div className={`text-[9px] ${statusColor} font-medium`}>
+                <div className={`text-[11.5px] ${statusColor} font-semibold`}>
                   {statusMessage}
                 </div>
               )}
@@ -212,13 +212,13 @@ export function VitalsSection({ vitals, onVitalChange, patientAge }: VitalsSecti
           )
         })}
         <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground">BMI</label>
+          <label className="text-[13px] font-semibold text-muted-foreground">BMI</label>
           <div className="relative">
             <div className="h-8 w-full rounded-lg border-[#E8E6E0] bg-[#FAFAF8] px-2.5 py-1 flex items-center">
-              <span className={`text-[13px] font-medium ${bmiColor}`}>
+              <span className={`text-[14px] font-bold ${bmiColor}`}>
                 {bmi || "-"}
               </span>
-              <span className="ml-1 text-[10px] text-muted-foreground">:BMI</span>
+              <span className="ml-1 text-[12px] text-muted-foreground">:BMI</span>
             </div>
           </div>
         </div>

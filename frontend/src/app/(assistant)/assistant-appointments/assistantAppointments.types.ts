@@ -22,21 +22,28 @@ export const defaultAssistantAppointmentAdvancedFilters: AssistantAppointmentAdv
   dateTo: "",
 }
 
+export type AssistantPatientGender = "male" | "female" | "other"
+
 export type AssistantAppointment = {
   id: string
+  confirmationCode?: string
   /** Present when loaded from API list/detail */
   patientId?: string
   doctorId?: string
   patientName: string
   patientPhone: string | null
   patientEmail: string
+  patientAge?: number | null
+  patientGender?: AssistantPatientGender | null
   doctorName: string
   department: string
   scheduledAt: string
   visitType: AssistantAppointmentVisitType
   reason: string
+  symptoms?: string | null
   notes?: string | null
   status: AssistantAppointmentStatus
+  cancelledAt?: string | null
   createdAt: string
   /** Signed-off visit narrative when backend provides it */
   visitSummary?: string | null

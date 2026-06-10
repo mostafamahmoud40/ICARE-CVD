@@ -238,13 +238,13 @@ export function ConsultationPage() {
                 <StethoscopeIcon className="size-4 text-white" />
               </div>
               <div>
-                <h2 className="text-[14px] font-bold text-[#1A1F1E]">New Consultation</h2>
-                <p className="text-[11px] text-muted-foreground">
+                <h2 className="font-serif text-[17px] font-bold text-[#1A1F1E]">New Consultation</h2>
+                <p className="text-[13px] text-muted-foreground">
                   {data.patientSummary.demographics.fullName} &middot; {data.patientSummary.demographics.age} yrs &middot;{" "}
                   <span className="capitalize">{data.patientSummary.demographics.gender}</span>
                 </p>
               </div>
-              <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-medium text-amber-600">
+              <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[12px] font-medium text-amber-600">
                 In Progress
               </span>
             </div>
@@ -355,14 +355,14 @@ export function ConsultationPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-1.5 border border-[#E5EEEA] bg-white text-[12px] hover:bg-[#E8F0EE] hover:text-[#1A5345]"
+                className="gap-1.5 border border-[#E5EEEA] bg-white text-[14px] hover:bg-[#E8F0EE] hover:text-[#1A5345]"
               >
                 <SaveIcon className="size-3.5" />
                 Save Draft
               </Button>
               <Button
                 size="sm"
-                className="gap-1.5 border border-white/20 bg-[#1A5345]/80 text-[12px] hover:bg-[#1A5345] backdrop-blur-sm"
+                className="gap-1.5 border border-white/20 bg-[#1A5345]/80 text-[14px] hover:bg-[#1A5345] backdrop-blur-sm"
               >
                 <CheckCircle2Icon className="size-3.5" />
                 Complete & Sign

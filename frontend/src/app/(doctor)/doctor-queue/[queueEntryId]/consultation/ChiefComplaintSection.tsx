@@ -306,18 +306,18 @@ export function ChiefComplaintSection({
             <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
               <MessageSquareTextIcon className="size-4 text-[#1A5345]" />
             </div>
-            <h3 className="text-[14px] font-semibold text-[#102F27]">Chief Complaint</h3>
+            <h3 className="font-serif text-[16px] font-bold text-[#102F27]">Chief Complaint</h3>
           </div>
           <div className="flex items-center gap-2">
             {supported ? (
-              <span className="text-[10px] text-muted-foreground">Type or use voice dictation</span>
+              <span className="text-[12px] text-muted-foreground">Type or use voice dictation</span>
             ) : null}
             <Button
               type="button"
               size="sm"
               variant="outline"
               onClick={() => setShowAiAssist((prev) => !prev)}
-              className="h-8 gap-1.5 border-[#cfd9d5] bg-white text-[11px] text-[#1A5345] hover:bg-[#E8F0EE]"
+              className="h-8 gap-1.5 border-[#cfd9d5] bg-white text-[13px] text-[#1A5345] hover:bg-[#E8F0EE]"
             >
               <SparklesIcon className="size-3.5" />
               AI Assist
@@ -329,7 +329,7 @@ export function ChiefComplaintSection({
           <div className="mb-4 space-y-3 rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-3">
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold text-[#102F27]">AI Smart Intake</p>
+                <p className="text-[13px] font-bold text-[#102F27]">AI Smart Intake</p>
                 {supported ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -361,82 +361,82 @@ export function ChiefComplaintSection({
                 value={freeTextInput}
                 onChange={(e) => setFreeTextInput(e.target.value)}
                 placeholder="Paste patient wording or quick notes, then extract to structured fields..."
-                className="min-h-[70px] border-[#E5EEEA] bg-white text-[12px]"
+                className="min-h-[70px] border-[#E5EEEA] bg-white text-[14px]"
                 aria-describedby={freeTextListening && interimText ? "chief-complaint-free-text-interim" : undefined}
               />
               {freeTextListening ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-medium text-[#B42318]">{formatElapsedTime(elapsedSeconds)}</span>
+                  <span className="text-[12px] font-medium text-[#B42318]">{formatElapsedTime(elapsedSeconds)}</span>
                   <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#EEF5F3]">
                     <div
                       className="h-full rounded-full bg-[#1A5345] transition-all duration-150"
                       style={{ width: `${Math.max(6, audioLevel)}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-muted-foreground">Voice level</span>
+                  <span className="text-[12px] text-muted-foreground">Voice level</span>
                 </div>
               ) : null}
               {freeTextListening && interimText ? (
-                <p id="chief-complaint-free-text-interim" className="text-[11px] leading-snug text-[#6B7280]">
+                <p id="chief-complaint-free-text-interim" className="text-[13px] leading-snug text-[#6B7280]">
                   {interimText}
                 </p>
               ) : null}
               <div className="flex flex-wrap items-center gap-2">
-                <Button type="button" size="sm" onClick={runAiExtraction} className="h-7 bg-[#1A5345] px-2.5 text-[11px] hover:bg-[#0F3D32]">
+                <Button type="button" size="sm" onClick={runAiExtraction} className="h-7 bg-[#1A5345] px-2.5 text-[13px] hover:bg-[#0F3D32]">
                   Extract
                 </Button>
-                <span className="text-[10px] text-muted-foreground">Completeness: {completenessScore}%</span>
+                <span className="text-[12px] text-muted-foreground">Completeness: {completenessScore}%</span>
               </div>
             </div>
 
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
-              <p className="mb-1 text-[11px] font-semibold text-[#102F27]">Follow-up Questions</p>
+              <p className="mb-1 text-[13px] font-bold text-[#102F27]">Follow-up Questions</p>
               <ul className="space-y-1">
                 {followUps.map((q) => (
-                  <li key={q} className="text-[11px] text-[#102F27]">- {q}</li>
+                  <li key={q} className="text-[12px] text-[#102F27]">- {q}</li>
                 ))}
               </ul>
             </div>
             <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
-              <p className="mb-1 text-[11px] font-semibold text-[#102F27]">Differential Starter</p>
+              <p className="mb-1 text-[13px] font-bold text-[#102F27]">Differential Starter</p>
               <ul className="space-y-1">
                 {differentials.map((d) => (
-                  <li key={d} className="text-[11px] text-[#102F27]">- {d}</li>
+                  <li key={d} className="text-[12px] text-[#102F27]">- {d}</li>
                 ))}
               </ul>
             </div>
           </div>
 
           <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
-            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-[#102F27]">
+            <div className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-[#102F27]">
               <ShieldAlertIcon className="size-3.5 text-red-600" />
               Red Flags
             </div>
             {redFlags.length > 0 ? (
               <div className="space-y-1">
                 {redFlags.map((flag) => (
-                  <div key={flag} className="flex items-start gap-1.5 rounded-md bg-red-50 px-2 py-1.5 text-[11px] text-red-700">
+                  <div key={flag} className="flex items-start gap-1.5 rounded-md bg-red-50 px-2 py-1.5 text-[12px] text-red-700">
                     <AlertTriangleIcon className="mt-0.5 size-3 shrink-0" />
                     <span>{flag}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-[11px] text-muted-foreground">No urgent red-flag pattern detected from current inputs.</p>
+              <p className="text-[12px] text-muted-foreground">No urgent red-flag pattern detected from current inputs.</p>
             )}
           </div>
 
           <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
-            <p className="mb-2 text-[11px] font-semibold text-[#102F27]">Suggested Orders</p>
+            <p className="mb-2 text-[13px] font-bold text-[#102F27]">Suggested Orders</p>
             <div className="space-y-1.5">
               {suggestedOrders.map((order) => {
                 const selected = selectedOrderIds.includes(order.id)
                 return (
                   <div key={order.id} className="flex items-start justify-between gap-2 rounded-md border border-[#E8E6E0] px-2 py-1.5">
                     <div>
-                      <p className="text-[11px] font-medium text-[#102F27]">{order.label}</p>
-                      <p className="text-[10px] text-muted-foreground">{order.rationale}</p>
+                      <p className="text-[13px] font-semibold text-[#102F27]">{order.label}</p>
+                      <p className="text-[11.5px] text-muted-foreground">{order.rationale}</p>
                     </div>
                     <Button
                       type="button"
@@ -447,7 +447,7 @@ export function ChiefComplaintSection({
                           selected ? prev.filter((id) => id !== order.id) : [...prev, order.id]
                         )
                       }}
-                      className="h-7 border-[#cfd9d5] text-[10px]"
+                      className="h-7 border-[#cfd9d5] text-[12px]"
                     >
                       {selected ? "Dismiss" : "Accept"}
                     </Button>
@@ -456,7 +456,7 @@ export function ChiefComplaintSection({
               })}
             </div>
             {selectedOrders.length > 0 ? (
-              <p className="mt-2 text-[10px] text-[#1A5345]">
+              <p className="mt-2 text-[12px] text-[#1A5345]">
                 <CheckCircle2Icon className="mr-1 inline size-3" />
                 Added: {selectedOrders.map((order) => order.label).join(", ")}
               </p>
@@ -464,15 +464,15 @@ export function ChiefComplaintSection({
           </div>
 
           <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
-            <p className="mb-1 text-[11px] font-semibold text-[#102F27]">HPI Draft</p>
-            <p className="text-[11px] leading-relaxed text-[#102F27]">{hpiDraft || "Select complaint details to generate an HPI draft."}</p>
+            <p className="mb-1 text-[13px] font-bold text-[#102F27]">HPI Draft</p>
+            <p className="text-[12.5px] leading-relaxed text-[#102F27]">{hpiDraft || "Select complaint details to generate an HPI draft."}</p>
             <div className="mt-2 flex gap-2">
               <Button
                 type="button"
                 size="sm"
                 onClick={() => setFreeTextInput(hpiDraft)}
                 disabled={!hpiDraft}
-                className="h-7 bg-[#1A5345] px-2.5 text-[11px] hover:bg-[#0F3D32]"
+                className="h-7 bg-[#1A5345] px-2.5 text-[13px] hover:bg-[#0F3D32]"
               >
                 Accept
               </Button>
@@ -482,7 +482,7 @@ export function ChiefComplaintSection({
                 variant="outline"
                 onClick={() => setFreeTextInput(hpiDraft)}
                 disabled={!hpiDraft}
-                className="h-7 border-[#cfd9d5] px-2.5 text-[11px]"
+                className="h-7 border-[#cfd9d5] px-2.5 text-[13px]"
               >
                 Edit
               </Button>
@@ -491,7 +491,7 @@ export function ChiefComplaintSection({
                 size="sm"
                 variant="outline"
                 onClick={() => setFreeTextInput("")}
-                className="h-7 border-[#cfd9d5] px-2.5 text-[11px]"
+                className="h-7 border-[#cfd9d5] px-2.5 text-[13px]"
               >
                 Dismiss
               </Button>
@@ -501,14 +501,14 @@ export function ChiefComplaintSection({
       ) : null}
       <div className="space-y-3">
         <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground">Structured Complaint</label>
+          <label className="text-[13px] font-semibold text-muted-foreground">Structured Complaint</label>
           <Select value={structuredComplaint} onValueChange={onStructuredComplaintChange}>
-            <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[13px] text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
+            <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[14px] text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
               <SelectValue placeholder="Select primary complaint..." />
             </SelectTrigger>
             <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
               {CVD_COMPLAINTS.map((c) => (
-                <SelectItem key={c.value} value={c.value} className="cursor-pointer text-[13px] text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">
+                <SelectItem key={c.value} value={c.value} className="cursor-pointer text-[14px] text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">
                   {c.label}
                 </SelectItem>
               ))}
@@ -516,10 +516,10 @@ export function ChiefComplaintSection({
           </Select>
         </div>
         <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground">Detailed Description</label>
+          <label className="text-[13px] font-semibold text-muted-foreground">Detailed Description</label>
           <div className="grid gap-2 sm:grid-cols-2">
             <Select value={onset} onValueChange={setOnset}>
-              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[13px] text-[#152a24]">
+              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[14px] text-[#152a24]">
                 <SelectValue placeholder="Onset" />
               </SelectTrigger>
               <SelectContent>
@@ -532,7 +532,7 @@ export function ChiefComplaintSection({
             </Select>
 
             <Select value={duration} onValueChange={setDuration}>
-              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[13px] text-[#152a24]">
+              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[14px] text-[#152a24]">
                 <SelectValue placeholder="Duration" />
               </SelectTrigger>
               <SelectContent>
@@ -545,7 +545,7 @@ export function ChiefComplaintSection({
             </Select>
 
             <Select value={severity} onValueChange={setSeverity}>
-              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[13px] text-[#152a24]">
+              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[14px] text-[#152a24]">
                 <SelectValue placeholder="Severity" />
               </SelectTrigger>
               <SelectContent>
@@ -558,7 +558,7 @@ export function ChiefComplaintSection({
             </Select>
 
             <Select value={character} onValueChange={setCharacter}>
-              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[13px] text-[#152a24]">
+              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[14px] text-[#152a24]">
                 <SelectValue placeholder="Character" />
               </SelectTrigger>
               <SelectContent>
@@ -572,7 +572,7 @@ export function ChiefComplaintSection({
           </div>
 
           <div className="space-y-1.5 rounded-lg border border-[#E8E6E0] bg-white p-2.5">
-            <p className="text-[11px] font-medium text-muted-foreground">Aggravating factors</p>
+            <p className="text-[13px] font-semibold text-muted-foreground">Aggravating factors</p>
             <div className="flex flex-wrap gap-1.5">
               {AGGRAVATING_OPTIONS.map((option) => {
                 const active = aggravating.includes(option)
@@ -581,7 +581,7 @@ export function ChiefComplaintSection({
                     key={option}
                     type="button"
                     onClick={() => toggleMultiValue(aggravating, option, setAggravating)}
-                    className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                    className={`rounded-full border px-2.5 py-1 text-[12.5px] transition-colors ${
                       active
                         ? "border-[#1A5345] bg-[#E8F0EE] text-[#1A5345]"
                         : "border-[#E8E6E0] bg-[#FAFAF8] text-[#4B5563] hover:border-[#A8C4BC]"
@@ -595,7 +595,7 @@ export function ChiefComplaintSection({
           </div>
 
           <div className="space-y-1.5 rounded-lg border border-[#E8E6E0] bg-white p-2.5">
-            <p className="text-[11px] font-medium text-muted-foreground">Relieving factors</p>
+            <p className="text-[13px] font-semibold text-muted-foreground">Relieving factors</p>
             <div className="flex flex-wrap gap-1.5">
               {RELIEVING_OPTIONS.map((option) => {
                 const active = relieving.includes(option)
@@ -604,7 +604,7 @@ export function ChiefComplaintSection({
                     key={option}
                     type="button"
                     onClick={() => toggleMultiValue(relieving, option, setRelieving)}
-                    className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                    className={`rounded-full border px-2.5 py-1 text-[12.5px] transition-colors ${
                       active
                         ? "border-[#1A5345] bg-[#E8F0EE] text-[#1A5345]"
                         : "border-[#E8E6E0] bg-[#FAFAF8] text-[#4B5563] hover:border-[#A8C4BC]"
@@ -619,7 +619,7 @@ export function ChiefComplaintSection({
 
           <div className="space-y-1">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-[11px] font-medium text-muted-foreground" htmlFor="detailed-description">
+              <label className="text-[13px] font-semibold text-muted-foreground" htmlFor="detailed-description">
                 Detailed Description
               </label>
               {detailedDescSupported ? (
@@ -632,8 +632,8 @@ export function ChiefComplaintSection({
                       size="icon-xs"
                       className={
                         detailedDescListening
-                          ? "shrink-0 text-[#B42318] ring-2 ring-[#B42318]/25"
-                          : "shrink-0 text-[#2C6A5B]"
+                           ? "shrink-0 text-[#B42318] ring-2 ring-[#B42318]/25"
+                           : "shrink-0 text-[#2C6A5B]"
                       }
                       aria-pressed={detailedDescListening}
                       aria-label={detailedDescListening ? "Stop voice dictation" : "Start voice dictation"}
@@ -653,23 +653,23 @@ export function ChiefComplaintSection({
               value={generatedDescription || complaint}
               onChange={(e) => onComplaintChange(e.target.value)}
               placeholder="Select complaint options to generate the detailed description."
-              className="min-h-[80px] resize-none border-[#E8E6E0] bg-[#FAFAF8] text-[13px] placeholder:text-[#9CA3AF]"
+              className="min-h-[80px] resize-none border-[#E8E6E0] bg-[#FAFAF8] text-[14px] placeholder:text-[#9CA3AF]"
               aria-describedby={detailedDescListening && detailedDescInterimText ? "detailed-description-interim" : undefined}
             />
             {detailedDescListening ? (
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-medium text-[#B42318]">{formatElapsedTime(detailedDescElapsedSeconds)}</span>
+                <span className="text-[12px] font-medium text-[#B42318]">{formatElapsedTime(detailedDescElapsedSeconds)}</span>
                 <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#EEF5F3]">
                   <div
                     className="h-full rounded-full bg-[#1A5345] transition-all duration-150"
                     style={{ width: `${Math.max(6, detailedDescAudioLevel)}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-muted-foreground">Voice level</span>
+                <span className="text-[12px] text-muted-foreground">Voice level</span>
               </div>
             ) : null}
             {detailedDescListening && detailedDescInterimText ? (
-              <p id="detailed-description-interim" className="text-[11px] leading-snug text-[#6B7280]">
+              <p id="detailed-description-interim" className="text-[13px] leading-snug text-[#6B7280]">
                 {detailedDescInterimText}
               </p>
             ) : null}
