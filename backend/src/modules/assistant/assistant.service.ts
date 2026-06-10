@@ -20,6 +20,10 @@ import { chiefComplaints } from '../auth/dto/register-step-3.dto';
 import { hashPassword } from '../auth/password';
 
 import { CreatePatientDto } from './dto/create-patient.dto';
+import {
+  parseMedicationCompliance,
+  parseMedicationType,
+} from '../medication/medication-insert.helpers';
 
 const CHIEF_SET = new Set<string>(chiefComplaints);
 
@@ -142,22 +146,23 @@ export class AssistantService {
     });
 
     const medRows = (dto.medications ?? [])
-      .filter(
-        (m) =>
-          m.name?.trim() && m.dose?.trim() && m.frequency?.trim() && m.type,
-      )
-      .map((m) => ({
-        userId,
-        name: m.name.trim(),
-        dose: m.dose.trim(),
-        frequency: m.frequency.trim(),
-        type: m.type as never,
-        compliance:
-          m.compliance === 'good' || m.compliance === 'poor'
-            ? m.compliance
-            : null,
-        sideEffects: m.sideEffects?.trim() || null,
-      }));
+      .map((m) => {
+        if (!m.name?.trim() || !m.dose?.trim() || !m.frequency?.trim()) {
+          return null;
+        }
+        const medType = parseMedicationType(m.type);
+        if (!medType) return null;
+        return {
+          userId,
+          name: m.name.trim(),
+          dose: m.dose.trim(),
+          frequency: m.frequency.trim(),
+          type: medType,
+          compliance: parseMedicationCompliance(m.compliance),
+          sideEffects: m.sideEffects?.trim() || null,
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
 
     if (medRows.length > 0) {
       await this.db.insert(medication).values(medRows);

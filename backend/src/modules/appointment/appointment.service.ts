@@ -18,7 +18,9 @@ import {
   patient,
   user,
   blockedDates,
+  scheduleDayExtra,
 } from '../../database/schema';
+import { mergePeriodsForDate } from '../doctor/schedule/schedule-periods.util';
 import type { CreateAppointmentDto } from './dto/create-appointment.dto';
 import type { UpdateAppointmentDto } from './dto/update-appointment.dto';
 
@@ -90,6 +92,21 @@ export class AppointmentService {
     });
     const blockedSet = new Set(blocked.map((b) => b.date));
 
+    const extras = await this.db.query.scheduleDayExtra.findMany({
+      where: and(
+        eq(scheduleDayExtra.doctorId, doctorId),
+        gte(scheduleDayExtra.date, this.toDateOnly(start)),
+        lt(scheduleDayExtra.date, this.toDateOnly(endExclusive)),
+      ),
+      orderBy: (row, { asc }) => [asc(row.date), asc(row.startTime)],
+    });
+    const extrasByDate = new Map<string, Array<{ startTime: string; endTime: string }>>();
+    for (const extra of extras) {
+      const list = extrasByDate.get(extra.date) ?? [];
+      list.push({ startTime: extra.startTime, endTime: extra.endTime });
+      extrasByDate.set(extra.date, list);
+    }
+
     const apptQueryStart = new Date(start);
     apptQueryStart.setDate(apptQueryStart.getDate() - 1);
     const apptQueryEnd = new Date(endExclusive);
@@ -151,7 +168,10 @@ export class AppointmentService {
       const blockedDay = blockedSet.has(fullDate);
       const maxPerDay = dayConfig?.maxAppointmentsPerDay ?? null;
       const appointmentCount = appointmentCountByDate.get(fullDate) ?? 0;
-      const enabled = !!dayConfig?.enabled && !blockedDay;
+      const dateExtras = extrasByDate.get(fullDate) ?? [];
+      const weeklyEnabled = !!dayConfig?.enabled;
+      const hasExtras = dateExtras.length > 0;
+      const enabled = (weeklyEnabled || hasExtras) && !blockedDay;
       const reachedLimit = maxPerDay !== null && appointmentCount >= maxPerDay;
 
       daysPayload.push({
@@ -161,15 +181,22 @@ export class AppointmentService {
         disabled: !enabled || reachedLimit,
       });
 
-      if (!enabled || reachedLimit || !dayConfig) {
+      if (!enabled || reachedLimit) {
         timeSlotsByDate[fullDate] = [];
         continue;
       }
 
-      const unavailable = dayConfig.unavailableBlocks ?? [];
+      const weeklyPeriods = weeklyEnabled ? (dayConfig?.periods ?? []) : [];
+      const periods = mergePeriodsForDate(weeklyPeriods, dateExtras);
+      if (periods.length === 0) {
+        timeSlotsByDate[fullDate] = [];
+        continue;
+      }
+
+      const unavailable = dayConfig?.unavailableBlocks ?? [];
       const bookedSet = bookedTimesByDate.get(fullDate) ?? new Set<string>();
       const slots = this.generateSlots(
-        dayConfig.periods ?? [],
+        periods,
         unavailable,
         schedule.slotDurationMinutes,
         schedule.bufferBetweenSlotsMinutes,

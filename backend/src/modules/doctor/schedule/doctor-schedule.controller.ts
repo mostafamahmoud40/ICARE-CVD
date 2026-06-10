@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 
@@ -36,7 +37,31 @@ export class DoctorScheduleController {
     @CurrentUser() user: TokenPayload,
     @Body() dto: UpdateDoctorScheduleDto,
   ) {
-    return this.scheduleService.upsertSchedule(user.sub, dto);
+    return this.scheduleService.upsertSchedule(user.sub, dto, {
+      userId: user.sub,
+      role: user.role ?? 'doctor',
+      source: 'doctor_schedule',
+    });
+  }
+
+  @Get('schedule/revisions')
+  listScheduleRevisions(
+    @CurrentUser() user: TokenPayload,
+    @Query('limit') limit?: string,
+  ) {
+    const parsed = limit ? Number(limit) : undefined;
+    return this.scheduleService.listScheduleRevisionsForUser(
+      user.sub,
+      Number.isFinite(parsed) ? parsed : undefined,
+    );
+  }
+
+  @Get('schedule/revisions/:revisionId')
+  getScheduleRevision(
+    @CurrentUser() user: TokenPayload,
+    @Param('revisionId') revisionId: string,
+  ) {
+    return this.scheduleService.getScheduleRevisionForUser(user.sub, revisionId);
   }
 
   @Delete('schedule')

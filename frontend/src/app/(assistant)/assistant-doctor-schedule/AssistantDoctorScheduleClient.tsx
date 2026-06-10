@@ -16,6 +16,7 @@ import {
   CoffeeIcon,
   CopyIcon,
   Loader2Icon,
+  ClockPlusIcon,
   PauseIcon,
   PencilLineIcon,
   PlayIcon,
@@ -51,7 +52,6 @@ import {
   type TimeBlock,
   type WeekdayId,
 } from "@/app/(doctor)/doctor-schedule/doctorSchedule.types"
-import { MOCK_DOCTORS } from "@/app/(assistant)/assistant-doctors/assistantDoctors.mock"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -85,10 +85,18 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
-import type { AssistantDoctorScheduleBundle } from "./assistantDoctorSchedule.store"
+import { nextCalendarDateForWeekday } from "./assistantDoctorSchedule.date"
 import { computeAvailableSlotsForDay } from "./assistantDoctorSchedule.slots"
-import type { DemoBooking } from "./assistantDoctorSchedule.types"
-import { useAssistantDoctorSchedule } from "./useAssistantDoctorSchedule"
+import type {
+  AssistantDoctorScheduleBundle,
+  AssistantScheduleDoctor,
+  ScheduleBooking,
+  ScheduleDayExtra,
+} from "./assistantDoctorSchedule.types"
+import {
+  useAssistantDoctorSchedule,
+  useAssistantScheduleDoctors,
+} from "./useAssistantDoctorSchedule"
 
 function replaceDay(days: DayAvailability[], next: DayAvailability): DayAvailability[] {
   return days.map((d) => (d.weekday === next.weekday ? next : d))
@@ -101,12 +109,14 @@ function timeToMins(time: string): number {
 
 function AssistantDayTimeline({
   periods,
+  extraPeriods,
   blocks,
   bookings,
 }: {
   periods: TimeBlock[]
+  extraPeriods: Array<{ id: string; startTime: string; endTime: string }>
   blocks: TimeBlock[]
-  bookings: DemoBooking[]
+  bookings: ScheduleBooking[]
 }) {
   const totalMins = 24 * 60
 
@@ -120,6 +130,28 @@ function AssistantDayTimeline({
             style={{ left: `${(h / 24) * 100}%` }}
           />
         ))}
+
+        {extraPeriods.map((p) => {
+          const start = timeToMins(p.startTime)
+          const end = timeToMins(p.endTime)
+          if (start >= end) return null
+          const left = (start / totalMins) * 100
+          const width = ((end - start) / totalMins) * 100
+          return (
+            <div
+              key={p.id}
+              className="absolute inset-y-0 z-[11] flex flex-col items-center justify-center overflow-hidden border-x border-violet-400/50 bg-violet-500/85 shadow-sm"
+              style={{ left: `${left}%`, width: `${width}%` }}
+              title={`Extra hours (this date only): ${p.startTime} - ${p.endTime}`}
+            >
+              {width > 8 ? (
+                <span className="whitespace-nowrap px-1 text-[10px] font-bold text-white drop-shadow-sm">
+                  +{p.startTime}–{p.endTime}
+                </span>
+              ) : null}
+            </div>
+          )
+        })}
 
         {periods.map((p) => {
           const start = timeToMins(p.startTime)
@@ -138,7 +170,7 @@ function AssistantDayTimeline({
                 <div
                   className="absolute inset-y-0 bg-[#1A5345] z-10 flex flex-col items-center justify-center overflow-hidden shadow-sm border-x border-[#133F34]/50 transition-all hover:brightness-110 cursor-pointer"
                   style={{ left: `${left}%`, width: `${width}%` }}
-                  title={`Working: ${p.startTime} - ${p.endTime}`}
+                  title={`Weekly hours: ${p.startTime} - ${p.endTime}`}
                 >
                   {width > 8 && (
                     <span className="text-[10px] font-bold text-white whitespace-nowrap px-1 drop-shadow-sm">
@@ -151,10 +183,10 @@ function AssistantDayTimeline({
                 <div className="h-1 bg-[#1A5345] rounded-t-xl" />
                 <div className="flex items-center justify-between px-4 py-3 border-b border-[#E8E6E0]/50">
                   <div>
-                    <p className="font-bold text-sm text-[#1A1F1E]">Working Period</p>
+                    <p className="font-bold text-sm text-[#1A1F1E]">Weekly working period</p>
                     <p className="text-xs text-muted-foreground">{p.startTime} – {p.endTime}</p>
                   </div>
-                  <Badge className="rounded-md bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">Active</Badge>
+                  <Badge className="rounded-md bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">Weekly</Badge>
                 </div>
                 {periodBookings.length > 0 ? (
                   <div className="p-3 space-y-2 max-h-64 overflow-y-auto">
@@ -306,16 +338,16 @@ type ViewMode = "week" | "day" | "blocked" | "calendar"
 function buildScheduleExportSummary(
   schedule: DoctorSchedulePayload,
   doctorName: string,
-  demoBookingsCount: number,
+  bookingCount: number,
   pausedCount: number
 ): string {
   const lines: string[] = []
-  lines.push(`ICARE-CVD — Doctor schedule (demo export)`)
+  lines.push(`ICARE-CVD — Doctor schedule export`)
   lines.push(`Doctor: ${doctorName}`)
   lines.push(
     `Slot length: ${schedule.slotDurationMinutes} min · Buffer: ${schedule.bufferBetweenSlotsMinutes} min`
   )
-  lines.push(`Demo bookings (memory): ${demoBookingsCount} · Paused sessions: ${pausedCount}`)
+  lines.push(`Upcoming bookings: ${bookingCount} · Paused sessions: ${pausedCount}`)
   lines.push("")
   lines.push("Weekly pattern (by weekday)")
   for (const day of schedule.days) {
@@ -498,7 +530,7 @@ function ScheduleMonthCalendar({
         </div>
 
         <div className="border-t border-[#E8E6E0]/50 bg-[#F9F8F5]/50 px-4 py-3 text-[11px] text-muted-foreground sm:text-[12px]">
-          Weekly working hours repeat every week (demo). Warm tint = blocked; solid green circle =
+          Weekly working hours repeat every week. Warm tint = blocked; solid green circle =
           today.
         </div>
       </div>
@@ -512,15 +544,21 @@ function DailySessionsPanel({
   onTogglePause,
   onDayChange,
   scheduleDraft,
-  demoBookings,
-  onMoveDemoBooking,
-  isMovingDemoBooking,
-  onCancelDemoBooking,
-  isCancellingDemoBooking,
-  cancellingDemoBookingId,
+  bookings,
+  onMoveBooking,
+  isMovingBooking,
+  onCancelBooking,
+  isCancellingBooking,
+  cancellingBookingId,
   doctorArrivalByWeekday,
   onSetDoctorArrival,
   isSettingArrival,
+  dayExtras,
+  onCreateDayExtra,
+  isCreatingDayExtra,
+  onDeleteDayExtra,
+  isDeletingDayExtra,
+  deletingDayExtraId,
   disabled,
 }: {
   days: DayAvailability[]
@@ -528,22 +566,58 @@ function DailySessionsPanel({
   onTogglePause: (periodId: string) => void
   onDayChange: (next: DayAvailability) => void
   scheduleDraft: DoctorSchedulePayload
-  demoBookings: DemoBooking[]
-  onMoveDemoBooking: (bookingId: string, startTime: string, endTime: string) => Promise<unknown>
-  isMovingDemoBooking: boolean
-  onCancelDemoBooking: (bookingId: string) => void
-  isCancellingDemoBooking: boolean
-  cancellingDemoBookingId: string | null
+  bookings: ScheduleBooking[]
+  onMoveBooking: (bookingId: string, startTime: string, endTime: string) => Promise<unknown>
+  isMovingBooking: boolean
+  onCancelBooking: (bookingId: string) => void
+  isCancellingBooking: boolean
+  cancellingBookingId: string | null
   doctorArrivalByWeekday: Partial<Record<WeekdayId, string | null>>
   onSetDoctorArrival: (weekday: WeekdayId, arrivalTime: string | null) => void
   isSettingArrival: boolean
+  dayExtras: ScheduleDayExtra[]
+  onCreateDayExtra: (payload: {
+    date: string
+    startTime: string
+    endTime: string
+    reason?: string
+  }) => Promise<unknown>
+  isCreatingDayExtra: boolean
+  onDeleteDayExtra: (extraId: string) => void
+  isDeletingDayExtra: boolean
+  deletingDayExtraId: string | null
   disabled: boolean
 }) {
   const [weekday, setWeekday] = React.useState<WeekdayId>("monday")
+  const [calendarDate, setCalendarDate] = React.useState(() => nextCalendarDateForWeekday("monday"))
+  const [extraStart, setExtraStart] = React.useState("21:00")
+  const [extraEnd, setExtraEnd] = React.useState("22:00")
+  const [extraReason, setExtraReason] = React.useState("")
+
   const day = days.find((d) => d.weekday === weekday)
+
+  React.useEffect(() => {
+    setCalendarDate(nextCalendarDateForWeekday(weekday))
+  }, [weekday])
+
+  const dateExtras = React.useMemo(
+    () => dayExtras.filter((e) => e.date === calendarDate),
+    [calendarDate, dayExtras]
+  )
+
+  const extraPeriodsForSlots = React.useMemo(
+    () => dateExtras.map((e) => ({ startTime: e.startTime, endTime: e.endTime })),
+    [dateExtras]
+  )
+
+  const extraTimelinePeriods = React.useMemo(
+    () => dateExtras.map((e) => ({ id: e.id, startTime: e.startTime, endTime: e.endTime })),
+    [dateExtras]
+  )
+
   const dayBookings = React.useMemo(
-    () => demoBookings.filter((b) => b.weekday === weekday),
-    [demoBookings, weekday]
+    () => bookings.filter((b) => b.scheduledDate === calendarDate),
+    [bookings, calendarDate]
   )
 
   const [moveBookingOpenId, setMoveBookingOpenId] = React.useState<string | null>(null)
@@ -634,25 +708,49 @@ function DailySessionsPanel({
       slotDurationMinutes: scheduleDraft.slotDurationMinutes,
       bufferBetweenSlotsMinutes: scheduleDraft.bufferBetweenSlotsMinutes,
       pausedPeriodIds,
-      demoBookings,
+      bookings,
       weekday: day.weekday,
+      scheduledDate: bk.scheduledDate,
       excludeBookingId: moveBookingOpenId,
       doctorArrivalTime: doctorArrivalByWeekday[day.weekday],
+      extraPeriods: extraPeriodsForSlots,
     })
     return slots.filter((s) => !(s.startTime === bk.startTime && s.endTime === bk.endTime))
   }, [
     day,
     dayBookings,
-    demoBookings,
+    bookings,
     doctorArrivalByWeekday,
     moveBookingOpenId,
     pausedPeriodIds,
     scheduleDraft.bufferBetweenSlotsMinutes,
     scheduleDraft.slotDurationMinutes,
+    extraPeriodsForSlots,
   ])
 
+  const handleAddExtraHours = async () => {
+    const hm = /^\d{2}:\d{2}$/
+    const start = extraStart.trim().slice(0, 5)
+    const end = extraEnd.trim().slice(0, 5)
+    if (!hm.test(start) || !hm.test(end)) {
+      toast.error("Invalid time", { description: "Use HH:mm (24h format)." })
+      return
+    }
+    if (timeToMinutes(start) >= timeToMinutes(end)) {
+      toast.error("Invalid range", { description: "End time must be after start time." })
+      return
+    }
+    await onCreateDayExtra({
+      date: calendarDate,
+      startTime: start,
+      endTime: end,
+      reason: extraReason.trim() || undefined,
+    })
+    setExtraReason("")
+  }
+
   const handleConfirmMove = async (bookingId: string, startTime: string, endTime: string) => {
-    await onMoveDemoBooking(bookingId, startTime, endTime)
+    await onMoveBooking(bookingId, startTime, endTime)
     setMoveBookingOpenId(null)
   }
 
@@ -763,6 +861,122 @@ function DailySessionsPanel({
           ) : null}
         </div>
 
+        {/* ── Extra hours (this calendar date only) ── */}
+        <div className="space-y-3 rounded-xl border border-violet-200/70 bg-violet-50/40 px-4 py-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <ClockPlusIcon className="size-3.5 text-violet-600" aria-hidden />
+                <Label className="text-xs font-bold uppercase tracking-wide text-violet-800">
+                  Extra hours (this date only)
+                </Label>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Adds bookable slots for{" "}
+                <span className="font-semibold text-[#1A1F1E]">{calendarDate}</span> only. The
+                doctor&apos;s weekly template does not change.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor={`extra-date-${weekday}`} className="text-xs font-semibold">
+                Calendar date
+              </Label>
+              <Input
+                id={`extra-date-${weekday}`}
+                type="date"
+                className="h-9 w-full min-w-[160px] rounded-xl sm:w-44"
+                value={calendarDate}
+                onChange={(e) => setCalendarDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`extra-start-${weekday}`} className="text-xs font-semibold">
+                From
+              </Label>
+              <Input
+                id={`extra-start-${weekday}`}
+                type="time"
+                className="h-9 w-32 rounded-xl"
+                value={extraStart}
+                onChange={(e) => setExtraStart(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`extra-end-${weekday}`} className="text-xs font-semibold">
+                To
+              </Label>
+              <Input
+                id={`extra-end-${weekday}`}
+                type="time"
+                className="h-9 w-32 rounded-xl"
+                value={extraEnd}
+                onChange={(e) => setExtraEnd(e.target.value)}
+              />
+            </div>
+            <div className="min-w-[160px] flex-1 space-y-1.5">
+              <Label htmlFor={`extra-reason-${weekday}`} className="text-xs font-semibold">
+                Reason (optional)
+              </Label>
+              <Input
+                id={`extra-reason-${weekday}`}
+                className="h-9 rounded-xl"
+                placeholder="Emergency extension…"
+                value={extraReason}
+                onChange={(e) => setExtraReason(e.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              className="h-9 rounded-lg bg-violet-600 px-4 font-bold text-white hover:bg-violet-700"
+              disabled={isCreatingDayExtra || disabled}
+              onClick={() => void handleAddExtraHours()}
+            >
+              {isCreatingDayExtra ? (
+                <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                "Add extra hours"
+              )}
+            </Button>
+          </div>
+          {dateExtras.length > 0 ? (
+            <ul className="space-y-2 border-t border-violet-200/50 pt-3">
+              {dateExtras.map((extra) => (
+                <li
+                  key={extra.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-violet-200/60 bg-white px-3 py-2"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-violet-900">
+                      {extra.startTime} – {extra.endTime}
+                    </p>
+                    {extra.reason ? (
+                      <p className="text-[11px] text-muted-foreground">{extra.reason}</p>
+                    ) : null}
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 rounded-lg border-violet-200 text-violet-800 hover:bg-violet-50"
+                    disabled={isDeletingDayExtra}
+                    onClick={() => onDeleteDayExtra(extra.id)}
+                  >
+                    {isDeletingDayExtra && deletingDayExtraId === extra.id ? (
+                      <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
+                    ) : (
+                      <Trash2Icon className="size-3.5" aria-hidden />
+                    )}
+                    <span className="sr-only">Remove extra hours</span>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+
         {/* ── Doctor arrival time control ── */}
         <div
           className={cn(
@@ -859,6 +1073,7 @@ function DailySessionsPanel({
         <div className="space-y-5">
           <AssistantDayTimeline
             periods={day.periods}
+            extraPeriods={extraTimelinePeriods}
             blocks={day.unavailableBlocks}
             bookings={dayBookings}
           />
@@ -947,21 +1162,24 @@ function DailySessionsPanel({
                       <p className="font-serif text-[15px] font-bold text-[#1A1F1E]">
                         {bk.startTime} – {bk.endTime}
                       </p>
-                      <p className="text-xs text-muted-foreground">{bk.patientLabel}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {bk.patientLabel}
+                        {bk.scheduledDate ? ` · ${bk.scheduledDate}` : ""}
+                      </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
-                        disabled={isMovingDemoBooking || isCancellingDemoBooking}
+                        disabled={isMovingBooking || isCancellingBooking}
                         className="h-8 gap-1.5 rounded-lg border-[#E8E6E0] px-3 text-xs font-bold text-destructive hover:bg-destructive/10"
                         onClick={() => {
                           setMoveBookingOpenId(null)
-                          onCancelDemoBooking(bk.id)
+                          onCancelBooking(bk.id)
                         }}
                       >
-                        {isCancellingDemoBooking && cancellingDemoBookingId === bk.id ? (
+                        {isCancellingBooking && cancellingBookingId === bk.id ? (
                           <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
                         ) : (
                           <Trash2Icon className="size-3.5" aria-hidden />
@@ -977,10 +1195,10 @@ function DailySessionsPanel({
                             type="button"
                             size="sm"
                             variant="secondary"
-                            disabled={isMovingDemoBooking || isCancellingDemoBooking}
+                            disabled={isMovingBooking || isCancellingBooking}
                             className="h-8 gap-1.5 rounded-lg px-3 text-xs font-bold bg-[#CC5533]/12 text-[#A34429] hover:bg-[#CC5533]/18"
                           >
-                            {isMovingDemoBooking && moveBookingOpenId === bk.id ? (
+                            {isMovingBooking && moveBookingOpenId === bk.id ? (
                               <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
                             ) : (
                               <ArrowRightLeftIcon className="size-3.5" aria-hidden />
@@ -1004,7 +1222,7 @@ function DailySessionsPanel({
                                   <CommandItem
                                     key={slot.key}
                                     value={`${slot.startTime} ${slot.endTime} available`}
-                                    disabled={isMovingDemoBooking || isCancellingDemoBooking}
+                                    disabled={isMovingBooking || isCancellingBooking}
                                     onSelect={() =>
                                       void handleConfirmMove(bk.id, slot.startTime, slot.endTime)
                                     }
@@ -1081,19 +1299,25 @@ function DailySessionsPanel({
   )
 }
 
-function doctorSearchKeywords(d: (typeof MOCK_DOCTORS)[number]) {
-  return [d.name, d.specialty, d.room, ...(d.tags ?? [])].filter(Boolean).join(" ")
+function doctorSearchKeywords(d: AssistantScheduleDoctor) {
+  return [d.name, d.specialty ?? ""].filter(Boolean).join(" ")
+}
+
+function doctorAvatarSeed(name: string) {
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`
 }
 
 function DoctorScheduleDoctorPicker({
+  doctors,
   doctorId,
   onDoctorIdChange,
 }: {
+  doctors: AssistantScheduleDoctor[]
   doctorId: string
   onDoctorIdChange: (id: string) => void
 }) {
   const [open, setOpen] = React.useState(false)
-  const selected = MOCK_DOCTORS.find((d) => d.id === doctorId)
+  const selected = doctors.find((d) => d.id === doctorId)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -1111,26 +1335,22 @@ function DoctorScheduleDoctorPicker({
             {selected ? (
               <>
                 <div className="relative size-10 shrink-0 overflow-hidden rounded-xl border border-[#E8E6E0]/80 bg-white shadow-sm">
-                  {selected.avatarUrl ? (
-                    <Image
-                      src={selected.avatarUrl}
-                      alt=""
-                      width={40}
-                      height={40}
-                      unoptimized
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex size-full items-center justify-center bg-muted text-[10px] font-bold text-muted-foreground">
-                      {selected.name.slice(0, 2)}
-                    </div>
-                  )}
+                  <Image
+                    src={doctorAvatarSeed(selected.name)}
+                    alt=""
+                    width={40}
+                    height={40}
+                    unoptimized
+                    className="size-full object-cover"
+                  />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold leading-tight text-[#1A1F1E]">
                     {selected.name}
                   </p>
-                  <p className="truncate text-[12px] text-muted-foreground">{selected.specialty}</p>
+                  <p className="truncate text-[12px] text-muted-foreground">
+                    {selected.specialty ?? "Cardiology"}
+                  </p>
                 </div>
               </>
             ) : (
@@ -1145,13 +1365,13 @@ function DoctorScheduleDoctorPicker({
         align="start"
       >
         <Command>
-          <CommandInput placeholder="Search by name, specialty, room…" className="h-10" />
+          <CommandInput placeholder="Search by name or specialty…" className="h-10" />
           <CommandList className="max-h-[min(320px,48vh)]">
             <CommandEmpty className="py-6 text-sm text-muted-foreground">
               No doctor matches.
             </CommandEmpty>
             <CommandGroup>
-              {MOCK_DOCTORS.map((d) => (
+              {doctors.map((d) => (
                 <CommandItem
                   key={d.id}
                   value={`${doctorSearchKeywords(d)} ${d.id}`}
@@ -1163,26 +1383,22 @@ function DoctorScheduleDoctorPicker({
                 >
                   <div className="flex w-full min-w-0 items-center gap-3">
                     <div className="relative size-10 shrink-0 overflow-hidden rounded-xl border border-[#E8E6E0]/80 bg-white shadow-sm">
-                      {d.avatarUrl ? (
-                        <Image
-                          src={d.avatarUrl}
-                          alt=""
-                          width={40}
-                          height={40}
-                          unoptimized
-                          className="size-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex size-full items-center justify-center bg-muted text-[10px] font-bold text-muted-foreground">
-                          {d.name.slice(0, 2)}
-                        </div>
-                      )}
+                      <Image
+                        src={doctorAvatarSeed(d.name)}
+                        alt=""
+                        width={40}
+                        height={40}
+                        unoptimized
+                        className="size-full object-cover"
+                      />
                     </div>
                     <div className="min-w-0 flex-1 text-left">
                       <p className="truncate font-semibold leading-tight text-[#1A1F1E]">
                         {d.name}
                       </p>
-                      <p className="truncate text-[12px] text-muted-foreground">{d.specialty}</p>
+                      <p className="truncate text-[12px] text-muted-foreground">
+                        {d.specialty ?? "Cardiology"}
+                      </p>
                     </div>
                     <CheckIcon
                       className={cn(
@@ -1209,18 +1425,30 @@ type AssistantDoctorScheduleBodyProps = {
   isSaving: boolean
   togglePeriodPause: (periodId: string) => void
   isTogglingPause: boolean
-  moveDemoBookingAsync: (args: {
+  moveBookingAsync: (args: {
     bookingId: string
     startTime: string
     endTime: string
     schedule: DoctorSchedulePayload
+    bookings: ScheduleBooking[]
   }) => Promise<unknown>
-  isMovingDemoBooking: boolean
-  cancelDemoBooking: (bookingId: string) => void
-  isCancellingDemoBooking: boolean
-  cancellingDemoBookingId: string | null
+  isMovingBooking: boolean
+  cancelBooking: (bookingId: string) => void
+  isCancellingBooking: boolean
+  cancellingBookingId: string | null
+  doctorName: string
   setDoctorArrival: (args: { weekday: WeekdayId; arrivalTime: string | null }) => void
   isSettingArrival: boolean
+  createDayExtraAsync: (payload: {
+    date: string
+    startTime: string
+    endTime: string
+    reason?: string
+  }) => Promise<unknown>
+  isCreatingDayExtra: boolean
+  deleteDayExtra: (extraId: string) => void
+  isDeletingDayExtra: boolean
+  deletingDayExtraId: string | null
 }
 
 function AssistantDoctorScheduleBody({
@@ -1230,13 +1458,19 @@ function AssistantDoctorScheduleBody({
   isSaving,
   togglePeriodPause,
   isTogglingPause,
-  moveDemoBookingAsync,
-  isMovingDemoBooking,
-  cancelDemoBooking,
-  isCancellingDemoBooking,
-  cancellingDemoBookingId,
+  moveBookingAsync,
+  isMovingBooking,
+  cancelBooking,
+  isCancellingBooking,
+  cancellingBookingId,
   setDoctorArrival,
   isSettingArrival,
+  createDayExtraAsync,
+  isCreatingDayExtra,
+  deleteDayExtra,
+  isDeletingDayExtra,
+  deletingDayExtraId,
+  doctorName,
 }: AssistantDoctorScheduleBodyProps) {
   const [view, setView] = React.useState<ViewMode>("week")
   const [draft, setDraft] = React.useState(() => structuredClone(bundle.schedule))
@@ -1245,14 +1479,12 @@ function AssistantDoctorScheduleBody({
   const [newBlockedDate, setNewBlockedDate] = React.useState("")
   const [newBlockedReason, setNewBlockedReason] = React.useState("")
 
-  const doctorName = MOCK_DOCTORS.find((d) => d.id === doctorId)?.name ?? "Doctor"
-
-  const demoBookingCount = bundle.demoBookings.length
+  const bookingCount = bundle.bookings.length
   const pausedCount = bundle.pausedPeriodIds.length
 
   const exportText = React.useMemo(
-    () => buildScheduleExportSummary(draft, doctorName, demoBookingCount, pausedCount),
-    [draft, doctorName, demoBookingCount, pausedCount]
+    () => buildScheduleExportSummary(draft, doctorName, bookingCount, pausedCount),
+    [draft, doctorName, bookingCount, pausedCount]
   )
 
   const hasChanges = React.useMemo(
@@ -1313,7 +1545,7 @@ function AssistantDoctorScheduleBody({
     setDraft((prev) => ({ ...prev, blockedDates: [...prev.blockedDates, next] }))
     setNewBlockedDate("")
     setNewBlockedReason("")
-    toast.success("Blocked date added", { description: "Save the schedule to persist (demo)." })
+    toast.success("Blocked date added", { description: "Save the schedule to persist to the database." })
   }
 
   const handleRemoveBlockedDate = (id: string) => {
@@ -1373,12 +1605,12 @@ function AssistantDoctorScheduleBody({
                   <CalendarDaysIcon className="mr-2 size-4 shrink-0" aria-hidden />
                   <span className="truncate">Daily sessions</span>
                   <span className="ml-1.5 hidden items-center gap-1 sm:inline-flex">
-                    {demoBookingCount > 0 ? (
+                    {bookingCount > 0 ? (
                       <Badge
                         variant="secondary"
                         className="h-5 rounded-md px-1.5 text-[10px] font-bold tabular-nums text-[#1A1F1E]"
                       >
-                        {demoBookingCount} bk
+                        {bookingCount} bk
                       </Badge>
                     ) : null}
                     {pausedCount > 0 ? (
@@ -1393,7 +1625,7 @@ function AssistantDoctorScheduleBody({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs text-xs">
-                Sessions, demo bookings, and breaks for one weekday. Shortcut:{" "}
+                Sessions, upcoming bookings, and breaks for one weekday. Shortcut:{" "}
                 <kbd className="pointer-events-none rounded border bg-muted px-1 font-mono text-[10px]">
                   2
                 </kbd>
@@ -1485,7 +1717,7 @@ function AssistantDoctorScheduleBody({
           <DialogHeader>
             <DialogTitle className="font-serif">Export schedule</DialogTitle>
             <DialogDescription>
-              Plain-text summary for handoff or documentation (demo). Use Print for a paper copy of
+              Plain-text summary for handoff or documentation. Use Print for a paper copy of
               the whole page.
             </DialogDescription>
           </DialogHeader>
@@ -1553,7 +1785,7 @@ function AssistantDoctorScheduleBody({
             <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               Bookings
             </p>
-            <p className="text-lg font-bold tabular-nums text-[#1A1F1E]">{demoBookingCount}</p>
+            <p className="text-lg font-bold tabular-nums text-[#1A1F1E]">{bookingCount}</p>
           </div>
         </div>
 
@@ -1626,7 +1858,7 @@ function AssistantDoctorScheduleBody({
               </CardTitle>
               <CardDescription>
                 Whole days marked unavailable (vacation, conference). Save the schedule to persist
-                changes (demo).
+                changes.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
@@ -1722,7 +1954,7 @@ function AssistantDoctorScheduleBody({
               <div>
                 <CardTitle className="font-serif text-base text-[#1A1F1E]">Sessions by day</CardTitle>
                 <CardDescription className="mt-0.5">
-                  Manage working periods, breaks, and demo bookings for the selected day.
+                  Manage working periods, breaks, and upcoming bookings for the selected day.
                 </CardDescription>
               </div>
               <div className="mt-2 flex items-center gap-3 text-[11px] font-medium text-muted-foreground sm:mt-0">
@@ -1738,6 +1970,10 @@ function AssistantDoctorScheduleBody({
                   <span className="inline-block size-2.5 rounded-sm bg-red-50 border border-red-200" />
                   Break
                 </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block size-2.5 rounded-sm bg-violet-500" />
+                  Extra (date only)
+                </span>
               </div>
             </div>
           </CardHeader>
@@ -1748,19 +1984,31 @@ function AssistantDoctorScheduleBody({
               onTogglePause={(id) => togglePeriodPause(id)}
               onDayChange={handleDayChange}
               scheduleDraft={draft}
-              demoBookings={bundle.demoBookings}
-              onMoveDemoBooking={(bookingId, startTime, endTime) =>
-                moveDemoBookingAsync({ bookingId, startTime, endTime, schedule: draft })
+              bookings={bundle.bookings}
+              onMoveBooking={(bookingId, startTime, endTime) =>
+                moveBookingAsync({
+                  bookingId,
+                  startTime,
+                  endTime,
+                  schedule: draft,
+                  bookings: bundle.bookings,
+                })
               }
-              isMovingDemoBooking={isMovingDemoBooking}
-              onCancelDemoBooking={cancelDemoBooking}
-              isCancellingDemoBooking={isCancellingDemoBooking}
-              cancellingDemoBookingId={cancellingDemoBookingId}
+              isMovingBooking={isMovingBooking}
+              onCancelBooking={cancelBooking}
+              isCancellingBooking={isCancellingBooking}
+              cancellingBookingId={cancellingBookingId}
               doctorArrivalByWeekday={bundle.doctorArrivalByWeekday}
               onSetDoctorArrival={(weekday, arrivalTime) =>
                 setDoctorArrival({ weekday, arrivalTime })
               }
               isSettingArrival={isSettingArrival}
+              dayExtras={bundle.dayExtras}
+              onCreateDayExtra={createDayExtraAsync}
+              isCreatingDayExtra={isCreatingDayExtra}
+              onDeleteDayExtra={deleteDayExtra}
+              isDeletingDayExtra={isDeletingDayExtra}
+              deletingDayExtraId={deletingDayExtraId}
               disabled={isTogglingPause}
             />
           </CardContent>
@@ -1797,7 +2045,16 @@ function AssistantDoctorScheduleBody({
 }
 
 export function AssistantDoctorScheduleClient() {
-  const [doctorId, setDoctorId] = React.useState(MOCK_DOCTORS[0]?.id ?? "1")
+  const doctorsQuery = useAssistantScheduleDoctors()
+  const doctors = doctorsQuery.data ?? []
+
+  const [doctorId, setDoctorId] = React.useState("")
+
+  React.useEffect(() => {
+    if (!doctorId && doctors.length > 0) {
+      setDoctorId(doctors[0]!.id)
+    }
+  }, [doctorId, doctors])
 
   const {
     bundle,
@@ -1806,14 +2063,21 @@ export function AssistantDoctorScheduleClient() {
     isSaving,
     togglePeriodPause,
     isTogglingPause,
-    moveDemoBookingAsync,
-    isMovingDemoBooking,
-    cancelDemoBooking,
-    isCancellingDemoBooking,
-    cancellingDemoBookingId,
+    moveBookingAsync,
+    isMovingBooking,
+    cancelBooking,
+    isCancellingBooking,
+    cancellingBookingId,
     setDoctorArrival,
     isSettingArrival,
+    createDayExtraAsync,
+    isCreatingDayExtra,
+    deleteDayExtra,
+    isDeletingDayExtra,
+    deletingDayExtraId,
   } = useAssistantDoctorSchedule(doctorId)
+
+  const selectedDoctorName = doctors.find((d) => d.id === doctorId)?.name ?? "Doctor"
 
   const scheduleFingerprint = React.useMemo(
     () => (bundle ? JSON.stringify(bundle.schedule) : ""),
@@ -1831,8 +2095,7 @@ export function AssistantDoctorScheduleClient() {
           </h1>
           <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
             Review the weekly grid, adjust working periods, inspect each day&apos;s sessions, and
-            pause a session when the doctor must step away. Demo data is stored in memory until
-            backend endpoints exist.
+            pause a session when the doctor must step away. All changes are saved to the database.
           </p>
         </div>
       </header>
@@ -1841,7 +2104,7 @@ export function AssistantDoctorScheduleClient() {
         <Card className="border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
           <CardHeader className="border-b border-[#E8E6E0]/50 pb-4">
             <CardTitle className="font-serif text-lg text-[#1A1F1E]">Select doctor</CardTitle>
-            <CardDescription>Schedules are isolated per doctor in this mock.</CardDescription>
+            <CardDescription>Each doctor has their own weekly schedule in the database.</CardDescription>
           </CardHeader>
           <CardContent className="pt-4">
             <div className="flex max-w-md flex-col gap-2">
@@ -1851,12 +2114,24 @@ export function AssistantDoctorScheduleClient() {
               >
                 Doctor
               </Label>
-              <DoctorScheduleDoctorPicker doctorId={doctorId} onDoctorIdChange={setDoctorId} />
+              <DoctorScheduleDoctorPicker
+                doctors={doctors}
+                doctorId={doctorId}
+                onDoctorIdChange={setDoctorId}
+              />
             </div>
           </CardContent>
         </Card>
 
-        {isLoading || !bundle ? (
+        {doctorsQuery.isLoading ? (
+          <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-[#E8E6E0]/70 bg-white">
+            <Loader2Icon className="size-8 animate-spin text-[#1A5345]" aria-hidden />
+          </div>
+        ) : doctors.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-[#E8E6E0] bg-white px-6 py-12 text-center text-sm text-muted-foreground">
+            No doctors found. Add doctor profiles in the admin panel first.
+          </div>
+        ) : isLoading || !bundle ? (
           <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-[#E8E6E0]/70 bg-white">
             <Loader2Icon className="size-8 animate-spin text-[#1A5345]" aria-hidden />
           </div>
@@ -1869,13 +2144,19 @@ export function AssistantDoctorScheduleClient() {
             isSaving={isSaving}
             togglePeriodPause={togglePeriodPause}
             isTogglingPause={isTogglingPause}
-            moveDemoBookingAsync={moveDemoBookingAsync}
-            isMovingDemoBooking={isMovingDemoBooking}
-            cancelDemoBooking={cancelDemoBooking}
-            isCancellingDemoBooking={isCancellingDemoBooking}
-            cancellingDemoBookingId={cancellingDemoBookingId}
+            moveBookingAsync={moveBookingAsync}
+            isMovingBooking={isMovingBooking}
+            cancelBooking={cancelBooking}
+            isCancellingBooking={isCancellingBooking}
+            cancellingBookingId={cancellingBookingId}
             setDoctorArrival={setDoctorArrival}
             isSettingArrival={isSettingArrival}
+            createDayExtraAsync={createDayExtraAsync}
+            isCreatingDayExtra={isCreatingDayExtra}
+            deleteDayExtra={deleteDayExtra}
+            isDeletingDayExtra={isDeletingDayExtra}
+            deletingDayExtraId={deletingDayExtraId}
+            doctorName={selectedDoctorName}
           />
         )}
       </div>
