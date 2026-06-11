@@ -113,6 +113,27 @@
       "when": 1776523460109,
       "tag": "0015_bouncy_hiroim",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1778880000000,
+      "tag": "0023_doctor_schedule_extras",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1778880100000,
+      "tag": "0024_schedule_day_extra",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1778880200000,
+      "tag": "0025_doctor_schedule_revision",
+      "breakpoints": true
     }
   ]
 }

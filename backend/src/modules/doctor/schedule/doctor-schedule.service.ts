@@ -3,18 +3,31 @@ import { eq, and } from 'drizzle-orm';
 
 import { DRIZZLE } from '../../../database/drizzle.provider';
 import type { Database } from '../../../database/drizzle.provider';
-import { blockedDates, doctor, doctorSchedule } from '../../../database/schema';
+import {
+  blockedDates,
+  doctor,
+  doctorSchedule,
+  scheduleDayExtra,
+} from '../../../database/schema';
 
 import type { DayAvailabilityRow } from '../../../database/schema/doctorSchedule.schema';
+import type { DoctorScheduleSnapshot } from '../../../database/schema/doctorScheduleRevision.schema';
 import type { UpdateDoctorScheduleDto } from './dto/update-doctor-schedule.dto';
 import type {
   CreateBlockedDateDto,
   CreateBlockedDatesBatchDto,
 } from './dto/blocked-date.dto';
+import {
+  DoctorScheduleRevisionService,
+  type ScheduleRevisionActor,
+} from './doctor-schedule-revision.service';
 
 @Injectable()
 export class DoctorScheduleService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly revisionService: DoctorScheduleRevisionService,
+  ) {}
 
   async getSchedule(userId: number) {
     const doctorRow = await this.db.query.doctor.findFirst({
@@ -34,30 +47,43 @@ export class DoctorScheduleService {
       orderBy: (bd, { asc }) => [asc(bd.date)],
     });
 
-    if (!schedule) {
-      return {
-        ...this.createDefaultSchedule(doctorRow.id),
-        blockedDates: blocked.map((d) => ({
-          id: d.id,
-          date: d.date,
-          reason: d.reason,
-        })),
-      };
-    }
-
-    return {
-      slotDurationMinutes: schedule.slotDurationMinutes,
-      bufferBetweenSlotsMinutes: schedule.bufferBetweenSlotsMinutes,
-      days: schedule.days,
-      blockedDates: blocked.map((d) => ({
-        id: d.id,
-        date: d.date,
-        reason: d.reason,
-      })),
-    };
+    return this.formatScheduleResponse(schedule, blocked);
   }
 
-  async upsertSchedule(userId: number, dto: UpdateDoctorScheduleDto) {
+  async getScheduleByDoctorId(doctorId: string) {
+    const schedule = await this.db.query.doctorSchedule.findFirst({
+      where: eq(doctorSchedule.doctorId, doctorId),
+    });
+
+    const blocked = await this.db.query.blockedDates.findMany({
+      where: eq(blockedDates.doctorId, doctorId),
+      orderBy: (bd, { asc }) => [asc(bd.date)],
+    });
+
+    return this.formatScheduleResponse(schedule, blocked);
+  }
+
+  async upsertScheduleByDoctorId(
+    doctorId: string,
+    dto: UpdateDoctorScheduleDto,
+    actor?: ScheduleRevisionActor,
+  ) {
+    const doctorRow = await this.db.query.doctor.findFirst({
+      where: eq(doctor.id, doctorId),
+    });
+
+    if (!doctorRow) {
+      throw new NotFoundException('Doctor not found');
+    }
+
+    return this.upsertScheduleForDoctor(doctorRow.id, dto, actor);
+  }
+
+  async upsertSchedule(
+    userId: number,
+    dto: UpdateDoctorScheduleDto,
+    actor?: ScheduleRevisionActor,
+  ) {
     const doctorRow = await this.db.query.doctor.findFirst({
       where: eq(doctor.userId, userId),
     });
@@ -66,24 +92,60 @@ export class DoctorScheduleService {
       throw new NotFoundException('Doctor profile not found');
     }
 
+    return this.upsertScheduleForDoctor(doctorRow.id, dto, actor);
+  }
+
+  async listScheduleRevisions(doctorId: string, limit?: number) {
+    return this.revisionService.listRevisions(doctorId, limit);
+  }
+
+  async getScheduleRevision(doctorId: string, revisionId: string) {
+    return this.revisionService.getRevision(doctorId, revisionId);
+  }
+
+  async listScheduleRevisionsForUser(userId: number, limit?: number) {
+    const doctorRow = await this.db.query.doctor.findFirst({
+      where: eq(doctor.userId, userId),
+    });
+    if (!doctorRow) {
+      throw new NotFoundException('Doctor profile not found');
+    }
+    return this.listScheduleRevisions(doctorRow.id, limit);
+  }
+
+  async getScheduleRevisionForUser(
+    userId: number,
+    revisionId: string,
+  ) {
+    const doctorRow = await this.db.query.doctor.findFirst({
+      where: eq(doctor.userId, userId),
+    });
+    if (!doctorRow) {
+      throw new NotFoundException('Doctor profile not found');
+    }
+    return this.getScheduleRevision(doctorRow.id, revisionId);
+  }
+
+  private async upsertScheduleForDoctor(
+    doctorId: string,
+    dto: UpdateDoctorScheduleDto,
+    actor?: ScheduleRevisionActor,
+  ) {
     const existing = await this.db.query.doctorSchedule.findFirst({
-      where: eq(doctorSchedule.doctorId, doctorRow.id),
+      where: eq(doctorSchedule.doctorId, doctorId),
     });
 
     const days = dto.days as unknown as DayAvailabilityRow[];
 
-    // Sync blocked dates if provided
     if (dto.blockedDates !== undefined) {
-      // Delete existing blocked dates
       await this.db
         .delete(blockedDates)
-        .where(eq(blockedDates.doctorId, doctorRow.id));
+        .where(eq(blockedDates.doctorId, doctorId));
 
-      // Insert new blocked dates
       if (dto.blockedDates.length > 0) {
         await this.db.insert(blockedDates).values(
           dto.blockedDates.map((bd) => ({
-            doctorId: doctorRow.id,
+            doctorId,
             date: bd.date,
             reason: bd.reason,
           })),
@@ -100,51 +162,71 @@ export class DoctorScheduleService {
           days,
           updatedAt: new Date(),
         })
-        .where(eq(doctorSchedule.doctorId, doctorRow.id))
+        .where(eq(doctorSchedule.doctorId, doctorId))
         .returning();
 
-      // Fetch updated blocked dates
       const blocked = await this.db.query.blockedDates.findMany({
-        where: eq(blockedDates.doctorId, doctorRow.id),
+        where: eq(blockedDates.doctorId, doctorId),
         orderBy: (bd, { asc }) => [asc(bd.date)],
       });
 
-      return {
-        slotDurationMinutes: updated.slotDurationMinutes,
-        bufferBetweenSlotsMinutes: updated.bufferBetweenSlotsMinutes,
-        days: updated.days,
-        blockedDates: blocked.map((d) => ({
-          id: d.id,
-          date: d.date,
-          reason: d.reason,
-        })),
-      };
+      const response = this.formatScheduleResponse(updated, blocked);
+      await this.recordCurrentScheduleRevision(doctorId, actor);
+      return response;
     }
 
     const [created] = await this.db
       .insert(doctorSchedule)
       .values({
-        doctorId: doctorRow.id,
+        doctorId,
         slotDurationMinutes: dto.slotDurationMinutes,
         bufferBetweenSlotsMinutes: dto.bufferBetweenSlotsMinutes,
         days,
+        pausedPeriodIds: [],
+        doctorArrivalByWeekday: {},
       })
       .returning();
 
-    // Fetch updated blocked dates
     const blocked = await this.db.query.blockedDates.findMany({
-      where: eq(blockedDates.doctorId, doctorRow.id),
+      where: eq(blockedDates.doctorId, doctorId),
       orderBy: (bd, { asc }) => [asc(bd.date)],
     });
 
+    const response = this.formatScheduleResponse(created, blocked);
+    await this.recordCurrentScheduleRevision(doctorId, actor);
+    return response;
+  }
+
+  async recordCurrentScheduleRevision(
+    doctorId: string,
+    actor?: ScheduleRevisionActor,
+  ) {
+    const snapshot = await this.captureScheduleSnapshot(doctorId);
+    await this.revisionService.recordRevision(doctorId, snapshot, actor);
+  }
+
+  private async captureScheduleSnapshot(
+    doctorId: string,
+  ): Promise<DoctorScheduleSnapshot> {
+    const response = await this.getScheduleByDoctorId(doctorId);
+    const dayExtraRows = await this.db.query.scheduleDayExtra.findMany({
+      where: eq(scheduleDayExtra.doctorId, doctorId),
+      orderBy: (row, { asc }) => [asc(row.date), asc(row.startTime)],
+    });
+
     return {
-      slotDurationMinutes: created.slotDurationMinutes,
-      bufferBetweenSlotsMinutes: created.bufferBetweenSlotsMinutes,
-      days: created.days,
-      blockedDates: blocked.map((d) => ({
-        id: d.id,
-        date: d.date,
-        reason: d.reason,
+      slotDurationMinutes: response.slotDurationMinutes,
+      bufferBetweenSlotsMinutes: response.bufferBetweenSlotsMinutes,
+      days: response.days,
+      blockedDates: response.blockedDates,
+      pausedPeriodIds: response.pausedPeriodIds,
+      doctorArrivalByWeekday: response.doctorArrivalByWeekday,
+      dayExtras: dayExtraRows.map((row) => ({
+        id: row.id,
+        date: row.date,
+        startTime: row.startTime,
+        endTime: row.endTime,
+        reason: row.reason,
       })),
     };
   }
@@ -170,7 +252,37 @@ export class DoctorScheduleService {
     return { deleted: true };
   }
 
-  private createDefaultSchedule(_doctorId: string) {
+  private formatScheduleResponse(
+    schedule:
+      | {
+          slotDurationMinutes: number;
+          bufferBetweenSlotsMinutes: number;
+          days: DayAvailabilityRow[];
+          pausedPeriodIds?: string[] | null;
+          doctorArrivalByWeekday?: Record<string, string | null> | null;
+        }
+      | null
+      | undefined,
+    blocked: { id: string; date: string; reason: string | null }[],
+  ) {
+    const defaults = this.createDefaultSchedule();
+    const base = schedule ?? defaults;
+
+    return {
+      slotDurationMinutes: base.slotDurationMinutes,
+      bufferBetweenSlotsMinutes: base.bufferBetweenSlotsMinutes,
+      days: base.days,
+      pausedPeriodIds: schedule?.pausedPeriodIds ?? [],
+      doctorArrivalByWeekday: schedule?.doctorArrivalByWeekday ?? {},
+      blockedDates: blocked.map((d) => ({
+        id: d.id,
+        date: d.date,
+        reason: d.reason,
+      })),
+    };
+  }
+
+  private createDefaultSchedule() {
     const defaultDays: DayAvailabilityRow[] = [
       'monday',
       'tuesday',
@@ -192,7 +304,9 @@ export class DoctorScheduleService {
       slotDurationMinutes: 30,
       bufferBetweenSlotsMinutes: 10,
       days: defaultDays,
-      blockedDates: [],
+      pausedPeriodIds: [] as string[],
+      doctorArrivalByWeekday: {} as Record<string, string | null>,
+      blockedDates: [] as { id: string; date: string; reason: string | null }[],
     };
   }
 

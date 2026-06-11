@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AppointmentModule } from '../appointment/appointment.module';
+import { DoctorScheduleModule } from '../doctor/schedule/doctor-schedule.module';
 
 import { AccessTokenGuard } from '../auth/access-token.guard';
 import { AuthJwtService } from '../auth/jwt';
@@ -12,6 +13,8 @@ import { AssistantAppointmentController } from './assistant-appointment.controll
 import { AssistantAppointmentService } from './assistant-appointment.service';
 import { AssistantPatientQueueController } from './assistant-patient-queue.controller';
 import { AssistantPatientQueueService } from './assistant-patient-queue.service';
+import { AssistantDoctorScheduleController } from './assistant-doctor-schedule.controller';
+import { AssistantDoctorScheduleService } from './assistant-doctor-schedule.service';
 
 @Module({
   imports: [
@@ -19,16 +22,19 @@ import { AssistantPatientQueueService } from './assistant-patient-queue.service'
       secret: process.env.JWT_ACCESS_SECRET,
     }),
     AppointmentModule,
+    DoctorScheduleModule,
   ],
   controllers: [
     AssistantController,
     AssistantAppointmentController,
     AssistantPatientQueueController,
+    AssistantDoctorScheduleController,
   ],
   providers: [
     AssistantService,
     AssistantAppointmentService,
     AssistantPatientQueueService,
+    AssistantDoctorScheduleService,
     AssistantGuard,
     AuthJwtService,
     AccessTokenGuard,

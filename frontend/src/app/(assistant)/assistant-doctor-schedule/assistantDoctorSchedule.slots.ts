@@ -1,7 +1,7 @@
 import { timeToMinutes } from "@/app/(doctor)/doctor-schedule/doctorSchedule.schema"
 import type { DayAvailability, TimeBlock, WeekdayId } from "@/app/(doctor)/doctor-schedule/doctorSchedule.types"
 
-import type { DemoBooking } from "./assistantDoctorSchedule.types"
+import type { ScheduleBooking } from "./assistantDoctorSchedule.types"
 
 export type ComputedAvailableSlot = {
   key: string
@@ -37,8 +37,10 @@ export function computeAvailableSlotsForDay(params: {
   slotDurationMinutes: number
   bufferBetweenSlotsMinutes: number
   pausedPeriodIds: string[]
-  demoBookings: DemoBooking[]
+  bookings: ScheduleBooking[]
   weekday: WeekdayId
+  /** When set, only bookings on this calendar date block slots (for rescheduling a specific appointment). */
+  scheduledDate?: string
   /** When moving a booking, ignore its current window so the same slot can reappear as "free". */
   excludeBookingId: string | null
   /**
@@ -46,32 +48,43 @@ export function computeAvailableSlotsForDay(params: {
    * this time are suppressed - the first bookable slot aligns to or after arrival.
    */
   doctorArrivalTime?: string | null
+  /** Date-specific extra periods (not part of the weekly template). */
+  extraPeriods?: Array<Pick<TimeBlock, "startTime" | "endTime">>
 }): ComputedAvailableSlot[] {
   const {
     day,
     slotDurationMinutes,
     bufferBetweenSlotsMinutes,
     pausedPeriodIds,
-    demoBookings,
+    bookings,
     weekday,
+    scheduledDate,
     excludeBookingId,
+    extraPeriods = [],
   } = params
 
-  if (!day.enabled || slotDurationMinutes <= 0) return []
+  const mergedPeriods = [...day.periods, ...extraPeriods]
+  const effectiveDay =
+    extraPeriods.length > 0 ? { ...day, periods: mergedPeriods, enabled: true } : day
+
+  if (!effectiveDay.enabled || slotDurationMinutes <= 0) return []
 
   const step = Math.max(slotDurationMinutes, slotDurationMinutes + bufferBetweenSlotsMinutes)
   const paused = new Set(pausedPeriodIds)
 
-  const otherBookings = demoBookings.filter(
-    (b) => b.weekday === weekday && b.id !== excludeBookingId,
-  )
+  const otherBookings = bookings.filter((b) => {
+    if (b.id === excludeBookingId) return false
+    if (b.weekday !== weekday) return false
+    if (scheduledDate && b.scheduledDate !== scheduledDate) return false
+    return true
+  })
 
   const out: ComputedAvailableSlot[] = []
 
   const arrivalMin =
     params.doctorArrivalTime ? timeToMinutes(params.doctorArrivalTime) : null
 
-  for (const period of day.periods) {
+  for (const period of effectiveDay.periods) {
     if (paused.has(period.id)) continue
 
     const [p0, p1] = blockMinutes(period)
@@ -91,7 +104,7 @@ export function computeAvailableSlotsForDay(params: {
       const e = t + slotDurationMinutes
 
       let blocked = false
-      for (const u of day.unavailableBlocks) {
+      for (const u of effectiveDay.unavailableBlocks) {
         const [u0, u1] = blockMinutes(u)
         if (rangeOverlaps(s, e, u0, u1)) {
           blocked = true

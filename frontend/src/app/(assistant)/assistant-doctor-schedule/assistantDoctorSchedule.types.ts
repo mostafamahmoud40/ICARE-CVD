@@ -1,40 +1,40 @@
-import type { WeekdayId } from "@/app/(doctor)/doctor-schedule/doctorSchedule.types"
+import type {
+  DoctorSchedulePayload,
+  WeekdayId,
+} from "@/app/(doctor)/doctor-schedule/doctorSchedule.types"
 
-/** In-memory demo patient bookings for the assistant schedule screen (until API exists). */
-export type DemoBooking = {
+/** Upcoming patient bookings shown on the assistant schedule screen. */
+export type ScheduleBooking = {
   id: string
   weekday: WeekdayId
+  scheduledDate: string
   startTime: string
   endTime: string
   patientLabel: string
   avatarUrl?: string
+  status?: string
 }
 
-export function getDefaultDemoBookings(): DemoBooking[] {
-  return [
-    {
-      id: "demo-bk-1",
-      weekday: "monday",
-      startTime: "10:00",
-      endTime: "10:30",
-      patientLabel: "Layla Hassan",
-      avatarUrl: `https://api.dicebear.com/7.x/lorelei/svg?seed=Layla+Hassan`,
-    },
-    {
-      id: "demo-bk-2",
-      weekday: "wednesday",
-      startTime: "15:00",
-      endTime: "15:30",
-      patientLabel: "Omar Ali",
-      avatarUrl: `https://api.dicebear.com/7.x/lorelei/svg?seed=Omar+Ali`,
-    },
-    {
-      id: "demo-bk-3",
-      weekday: "friday",
-      startTime: "09:00",
-      endTime: "09:30",
-      patientLabel: "Noor Kamal",
-      avatarUrl: `https://api.dicebear.com/7.x/lorelei/svg?seed=Noor+Kamal`,
-    },
-  ]
+/** One-off extra working window for a specific calendar date (weekly schedule unchanged). */
+export type ScheduleDayExtra = {
+  id: string
+  date: string
+  startTime: string
+  endTime: string
+  reason?: string | null
+  createdAt?: string
+}
+
+export type AssistantDoctorScheduleBundle = {
+  schedule: DoctorSchedulePayload
+  pausedPeriodIds: string[]
+  bookings: ScheduleBooking[]
+  doctorArrivalByWeekday: Partial<Record<WeekdayId, string | null>>
+  dayExtras: ScheduleDayExtra[]
+}
+
+export type AssistantScheduleDoctor = {
+  id: string
+  name: string
+  specialty: string | null
 }

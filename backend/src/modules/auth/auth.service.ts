@@ -20,6 +20,10 @@ import { RegisterStep2Dto } from './dto/register-step-2.dto';
 import { RegisterStep3Dto } from './dto/register-step-3.dto';
 import { RegisterStep4Dto } from './dto/register-step-4.dto';
 import { MailService } from '../../shared/mail/mail.service';
+import {
+  parseMedicationCompliance,
+  parseMedicationType,
+} from '../medication/medication-insert.helpers';
 
 @Injectable()
 export class AuthService {
@@ -276,33 +280,33 @@ export class AuthService {
     }
 
     const medicationRows = (dto.medications ?? [])
-      .filter(
-        (item) =>
-          typeof item?.name === 'string' &&
-          item.name.trim() &&
-          typeof item?.dose === 'string' &&
-          item.dose.trim() &&
-          typeof item?.frequency === 'string' &&
-          item.frequency.trim() &&
-          typeof item?.type === 'string' &&
-          item.type.trim(),
-      )
-      .map((item) => ({
-        // Drizzle enum column expects exact union literals.
-        compliance:
-          item.compliance === 'good' || item.compliance === 'poor'
-            ? item.compliance
-            : null,
-        userId,
-        name: item.name.trim(),
-        dose: item.dose.trim(),
-        frequency: item.frequency.trim(),
-        type: item.type as never,
-        sideEffects:
-          typeof item.sideEffects === 'string'
-            ? item.sideEffects.trim() || null
-            : null,
-      }));
+      .map((item) => {
+        if (
+          typeof item?.name !== 'string' ||
+          !item.name.trim() ||
+          typeof item?.dose !== 'string' ||
+          !item.dose.trim() ||
+          typeof item?.frequency !== 'string' ||
+          !item.frequency.trim()
+        ) {
+          return null;
+        }
+        const medType = parseMedicationType(item.type);
+        if (!medType) return null;
+        return {
+          userId,
+          name: item.name.trim(),
+          dose: item.dose.trim(),
+          frequency: item.frequency.trim(),
+          type: medType,
+          compliance: parseMedicationCompliance(item.compliance),
+          sideEffects:
+            typeof item.sideEffects === 'string'
+              ? item.sideEffects.trim() || null
+              : null,
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
 
     if (medicationRows.length > 0) {
       await this.db.insert(medication).values(medicationRows);

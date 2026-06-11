@@ -27,6 +27,14 @@ export const doctorSchedule = pgTable('doctor_schedule', {
     .notNull()
     .default(10),
   days: jsonb('days').$type<DayAvailabilityRow[]>().notNull(),
+  pausedPeriodIds: jsonb('paused_period_ids')
+    .$type<string[]>()
+    .notNull()
+    .default([]),
+  doctorArrivalByWeekday: jsonb('doctor_arrival_by_weekday')
+    .$type<Record<string, string | null>>()
+    .notNull()
+    .default({}),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

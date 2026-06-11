@@ -6,6 +6,7 @@ import { AuthJwtService } from '../../auth/jwt';
 
 import { DoctorGuard } from '../doctor.guard';
 import { DoctorScheduleController } from './doctor-schedule.controller';
+import { DoctorScheduleRevisionService } from './doctor-schedule-revision.service';
 import { DoctorScheduleService } from './doctor-schedule.service';
 
 @Module({
@@ -17,9 +18,11 @@ import { DoctorScheduleService } from './doctor-schedule.service';
   controllers: [DoctorScheduleController],
   providers: [
     DoctorScheduleService,
+    DoctorScheduleRevisionService,
     DoctorGuard,
     AuthJwtService,
     AccessTokenGuard,
   ],
+  exports: [DoctorScheduleService],
 })
 export class DoctorScheduleModule {}

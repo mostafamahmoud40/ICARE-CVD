@@ -5,46 +5,84 @@ import { toast } from "sonner"
 
 import { doctorScheduleSchema } from "@/app/(doctor)/doctor-schedule/doctorSchedule.schema"
 import type { DoctorSchedulePayload, WeekdayId } from "@/app/(doctor)/doctor-schedule/doctorSchedule.types"
+import { apiClient } from "@/lib/api-client"
 
-import {
-  getAssistantDoctorScheduleBundle,
-  setAssistantDoctorScheduleBundle,
-  type AssistantDoctorScheduleBundle,
-} from "./assistantDoctorSchedule.store"
 import { computeAvailableSlotsForDay } from "./assistantDoctorSchedule.slots"
+import type {
+  AssistantDoctorScheduleBundle,
+  AssistantScheduleDoctor,
+  ScheduleBooking,
+  ScheduleDayExtra,
+} from "./assistantDoctorSchedule.types"
 
 export const assistantDoctorScheduleQueryKey = (doctorId: string) =>
   ["assistant-doctor-schedule", doctorId] as const
+
+export const assistantScheduleDoctorsKey = ["assistant-schedule-doctors"] as const
+
+async function fetchScheduleDoctors(): Promise<AssistantScheduleDoctor[]> {
+  const { data } = await apiClient.get<AssistantScheduleDoctor[]>(
+    "/assistant/appointments/doctors",
+  )
+  return data
+}
+
+async function fetchScheduleBundle(doctorId: string): Promise<AssistantDoctorScheduleBundle> {
+  const { data } = await apiClient.get<AssistantDoctorScheduleBundle>(
+    `/assistant/doctors/${doctorId}/schedule`,
+  )
+  return {
+    ...data,
+    schedule: doctorScheduleSchema.parse(data.schedule),
+    pausedPeriodIds: data.pausedPeriodIds ?? [],
+    bookings: data.bookings ?? [],
+    doctorArrivalByWeekday: data.doctorArrivalByWeekday ?? {},
+    dayExtras: data.dayExtras ?? [],
+  }
+}
+
+async function persistSchedule(
+  doctorId: string,
+  schedule: DoctorSchedulePayload,
+): Promise<DoctorSchedulePayload> {
+  const validated = doctorScheduleSchema.parse(schedule)
+  const { data } = await apiClient.put<DoctorSchedulePayload>(
+    `/assistant/doctors/${doctorId}/schedule`,
+    validated,
+  )
+  return doctorScheduleSchema.parse(data)
+}
+
+function toScheduledAtIso(scheduledDate: string, startTime: string): string {
+  const [year, month, day] = scheduledDate.split("-").map(Number)
+  const [hours, minutes] = startTime.split(":").map(Number)
+  return new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString()
+}
+
+export function useAssistantScheduleDoctors() {
+  return useQuery({
+    queryKey: assistantScheduleDoctorsKey,
+    queryFn: fetchScheduleDoctors,
+    staleTime: 5 * 60 * 1000,
+  })
+}
 
 export function useAssistantDoctorSchedule(doctorId: string) {
   const qc = useQueryClient()
 
   const query = useQuery({
     queryKey: assistantDoctorScheduleQueryKey(doctorId),
-    queryFn: async (): Promise<AssistantDoctorScheduleBundle> => getAssistantDoctorScheduleBundle(doctorId),
+    queryFn: () => fetchScheduleBundle(doctorId),
     enabled: doctorId.length > 0,
     staleTime: 30 * 1000,
   })
 
   const saveScheduleMutation = useMutation({
-    mutationFn: async (schedule: DoctorSchedulePayload) => {
-      const parsed = doctorScheduleSchema.safeParse(schedule)
-      if (!parsed.success) {
-        const msg = parsed.error.issues[0]?.message ?? "Invalid schedule."
-        throw new Error(msg)
-      }
-      const prev = getAssistantDoctorScheduleBundle(doctorId)
-      const next: AssistantDoctorScheduleBundle = {
-        ...prev,
-        schedule: parsed.data,
-      }
-      setAssistantDoctorScheduleBundle(doctorId, next)
-      return next
-    },
+    mutationFn: (schedule: DoctorSchedulePayload) => persistSchedule(doctorId, schedule),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: assistantDoctorScheduleQueryKey(doctorId) })
       toast.success("Schedule updated", {
-        description: "Changes are saved locally (demo) until the API is connected.",
+        description: "Weekly availability has been saved to the database.",
       })
     },
     onError: (e: Error) => {
@@ -52,20 +90,21 @@ export function useAssistantDoctorSchedule(doctorId: string) {
     },
   })
 
-  const moveDemoBookingMutation = useMutation({
+  const moveBookingMutation = useMutation({
     mutationFn: async ({
       bookingId,
       startTime,
       endTime,
       schedule,
+      bookings,
     }: {
       bookingId: string
       startTime: string
       endTime: string
       schedule: DoctorSchedulePayload
+      bookings: ScheduleBooking[]
     }) => {
-      const bundle = getAssistantDoctorScheduleBundle(doctorId)
-      const booking = bundle.demoBookings.find((b) => b.id === bookingId)
+      const booking = bookings.find((b) => b.id === bookingId)
       if (!booking) {
         throw new Error("Booking not found.")
       }
@@ -74,34 +113,35 @@ export function useAssistantDoctorSchedule(doctorId: string) {
         throw new Error("That weekday is closed in the current draft.")
       }
 
+      const bundle = query.data
+      const extraPeriods =
+        bundle?.dayExtras
+          .filter((e) => e.date === booking.scheduledDate)
+          .map((e) => ({ startTime: e.startTime, endTime: e.endTime })) ?? []
       const available = computeAvailableSlotsForDay({
         day,
         slotDurationMinutes: schedule.slotDurationMinutes,
         bufferBetweenSlotsMinutes: schedule.bufferBetweenSlotsMinutes,
-        pausedPeriodIds: bundle.pausedPeriodIds,
-        demoBookings: bundle.demoBookings,
+        pausedPeriodIds: bundle?.pausedPeriodIds ?? [],
+        bookings,
         weekday: booking.weekday,
+        scheduledDate: booking.scheduledDate,
         excludeBookingId: bookingId,
-        doctorArrivalTime: bundle.doctorArrivalByWeekday[booking.weekday],
+        doctorArrivalTime: bundle?.doctorArrivalByWeekday[booking.weekday],
+        extraPeriods,
       })
       const ok = available.some((s) => s.startTime === startTime && s.endTime === endTime)
       if (!ok) {
         throw new Error("That time is not available.")
       }
 
-      const nextBookings = bundle.demoBookings.map((b) =>
-        b.id === bookingId ? { ...b, startTime, endTime } : b,
-      )
-      const next: AssistantDoctorScheduleBundle = {
-        ...bundle,
-        demoBookings: nextBookings,
-      }
-      setAssistantDoctorScheduleBundle(doctorId, next)
+      const scheduledAt = toScheduledAtIso(booking.scheduledDate, startTime)
+      await apiClient.patch(`/assistant/appointments/${bookingId}`, { scheduledAt })
     },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: assistantDoctorScheduleQueryKey(doctorId) })
       toast.success("Booking moved", {
-        description: "The patient is now on a free slot (demo data in memory).",
+        description: "The patient appointment has been rescheduled.",
       })
     },
     onError: (e: Error) => {
@@ -109,23 +149,16 @@ export function useAssistantDoctorSchedule(doctorId: string) {
     },
   })
 
-  const cancelDemoBookingMutation = useMutation({
+  const cancelBookingMutation = useMutation({
     mutationFn: async (bookingId: string) => {
-      const bundle = getAssistantDoctorScheduleBundle(doctorId)
-      if (!bundle.demoBookings.some((b) => b.id === bookingId)) {
-        throw new Error("Booking not found.")
-      }
-      const nextBookings = bundle.demoBookings.filter((b) => b.id !== bookingId)
-      const next: AssistantDoctorScheduleBundle = {
-        ...bundle,
-        demoBookings: nextBookings,
-      }
-      setAssistantDoctorScheduleBundle(doctorId, next)
+      await apiClient.patch(`/assistant/appointments/${bookingId}/status`, {
+        status: "cancelled",
+      })
     },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: assistantDoctorScheduleQueryKey(doctorId) })
       toast.success("Booking cancelled", {
-        description: "The slot is free again in this demo (memory only).",
+        description: "The appointment was cancelled and the slot is free again.",
       })
     },
     onError: (e: Error) => {
@@ -135,43 +168,78 @@ export function useAssistantDoctorSchedule(doctorId: string) {
 
   const togglePeriodPauseMutation = useMutation({
     mutationFn: async (periodId: string) => {
-      const bundle = getAssistantDoctorScheduleBundle(doctorId)
-      const set = new Set(bundle.pausedPeriodIds)
-      if (set.has(periodId)) set.delete(periodId)
-      else set.add(periodId)
-      const next: AssistantDoctorScheduleBundle = {
-        ...bundle,
-        pausedPeriodIds: [...set],
-      }
-      setAssistantDoctorScheduleBundle(doctorId, next)
-      return { periodId, paused: set.has(periodId) }
+      const { data } = await apiClient.patch<{
+        periodId: string
+        paused: boolean
+        pausedPeriodIds: string[]
+      }>(`/assistant/doctors/${doctorId}/schedule/paused-periods/${encodeURIComponent(periodId)}`)
+      return data
     },
     onSuccess: async (res) => {
       await qc.invalidateQueries({ queryKey: assistantDoctorScheduleQueryKey(doctorId) })
       toast.success(res.paused ? "Session paused" : "Session resumed", {
         description: res.paused
           ? "Bookings should not use this window until you resume it."
-          : "This working window is active again (demo).",
+          : "This working window is active again.",
       })
+    },
+    onError: (e: Error) => {
+      toast.error("Could not update session", { description: e.message })
     },
   })
 
-  /**
-   * Set (or clear) the doctor's arrival time for a specific weekday.
-   * Pass `null` to clear the override (use the period's natural start time).
-   */
+  const createDayExtraMutation = useMutation({
+    mutationFn: async (payload: {
+      date: string
+      startTime: string
+      endTime: string
+      reason?: string
+    }) => {
+      const { data } = await apiClient.post<ScheduleDayExtra>(
+        `/assistant/doctors/${doctorId}/schedule/day-extras`,
+        payload,
+      )
+      return data
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: assistantDoctorScheduleQueryKey(doctorId) })
+      toast.success("Extra hours added", {
+        description: "These hours apply to this date only. The weekly schedule is unchanged.",
+      })
+    },
+    onError: (e: Error) => {
+      toast.error("Could not add extra hours", { description: e.message })
+    },
+  })
+
+  const deleteDayExtraMutation = useMutation({
+    mutationFn: async (extraId: string) => {
+      await apiClient.delete(`/assistant/doctors/${doctorId}/schedule/day-extras/${extraId}`)
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: assistantDoctorScheduleQueryKey(doctorId) })
+      toast.success("Extra hours removed", {
+        description: "Bookings already made in that window are not cancelled.",
+      })
+    },
+    onError: (e: Error) => {
+      toast.error("Could not remove extra hours", { description: e.message })
+    },
+  })
+
   const setDoctorArrivalMutation = useMutation({
-    mutationFn: async ({ weekday, arrivalTime }: { weekday: WeekdayId; arrivalTime: string | null }) => {
-      const bundle = getAssistantDoctorScheduleBundle(doctorId)
-      const next: AssistantDoctorScheduleBundle = {
-        ...bundle,
-        doctorArrivalByWeekday: {
-          ...bundle.doctorArrivalByWeekday,
-          [weekday]: arrivalTime,
-        },
-      }
-      setAssistantDoctorScheduleBundle(doctorId, next)
-      return { weekday, arrivalTime }
+    mutationFn: async ({
+      weekday,
+      arrivalTime,
+    }: {
+      weekday: WeekdayId
+      arrivalTime: string | null
+    }) => {
+      const { data } = await apiClient.patch<{
+        weekday: WeekdayId
+        arrivalTime: string | null
+      }>(`/assistant/doctors/${doctorId}/schedule/arrival`, { weekday, arrivalTime })
+      return data
     },
     onSuccess: async (res) => {
       await qc.invalidateQueries({ queryKey: assistantDoctorScheduleQueryKey(doctorId) })
@@ -200,16 +268,25 @@ export function useAssistantDoctorSchedule(doctorId: string) {
     isSaving: saveScheduleMutation.isPending,
     togglePeriodPause: togglePeriodPauseMutation.mutate,
     isTogglingPause: togglePeriodPauseMutation.isPending,
-    moveDemoBookingAsync: moveDemoBookingMutation.mutateAsync,
-    isMovingDemoBooking: moveDemoBookingMutation.isPending,
-    cancelDemoBooking: cancelDemoBookingMutation.mutate,
-    isCancellingDemoBooking: cancelDemoBookingMutation.isPending,
-    cancellingDemoBookingId:
-      cancelDemoBookingMutation.isPending &&
-      typeof cancelDemoBookingMutation.variables === "string"
-        ? cancelDemoBookingMutation.variables
+    moveBookingAsync: moveBookingMutation.mutateAsync,
+    isMovingBooking: moveBookingMutation.isPending,
+    cancelBooking: cancelBookingMutation.mutate,
+    isCancellingBooking: cancelBookingMutation.isPending,
+    cancellingBookingId:
+      cancelBookingMutation.isPending &&
+      typeof cancelBookingMutation.variables === "string"
+        ? cancelBookingMutation.variables
         : null,
     setDoctorArrival: setDoctorArrivalMutation.mutate,
     isSettingArrival: setDoctorArrivalMutation.isPending,
+    createDayExtraAsync: createDayExtraMutation.mutateAsync,
+    isCreatingDayExtra: createDayExtraMutation.isPending,
+    deleteDayExtra: deleteDayExtraMutation.mutate,
+    isDeletingDayExtra: deleteDayExtraMutation.isPending,
+    deletingDayExtraId:
+      deleteDayExtraMutation.isPending &&
+      typeof deleteDayExtraMutation.variables === "string"
+        ? deleteDayExtraMutation.variables
+        : null,
   }
 }
