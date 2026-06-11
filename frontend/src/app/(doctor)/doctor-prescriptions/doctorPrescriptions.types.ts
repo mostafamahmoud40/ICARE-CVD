@@ -58,6 +58,7 @@ export type AddPrescriptionPayload = {
 export type UpdatePrescriptionPayload = {
   dose?: string
   frequency?: string
+  type?: PrescriptionType
   sideEffects?: string
   instructions?: string
   compliance?: PrescriptionCompliance

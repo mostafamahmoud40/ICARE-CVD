@@ -73,10 +73,7 @@ import {
   usePatientQueueAlertThreshold,
 } from "./usePatientQueueAlertThreshold"
 import {
-  queuePanelCardClassName,
-  queuePanelBodyClassName,
   queueScrollbarCss,
-  queueInstructionTileClassName,
   queuePrimaryButtonClassName,
   queueOutlineButtonClassName,
   queueSelectTriggerClassName,
@@ -334,10 +331,7 @@ function StageStatusBadge({ status }: { status: PatientVisitStageStatus }) {
 
 function VisitStagesCard({ stages }: { stages: PatientVisitStage[] }) {
   return (
-    <QueuePanel
-      title="Your visit stages"
-      description="Track each step of today's pathway through the clinic."
-    >
+    <QueuePanel title="Your visit stages" dotClassName="bg-[#CC5533]">
       <ul className="space-y-0">
         {stages.map((stage, i) => (
           <li key={stage.id} className="flex gap-4">
@@ -385,7 +379,7 @@ function SidebarVisitCard({
   visit: PatientQueueVisit
 }) {
   return (
-    <QueuePanel title="Today's visit">
+    <QueuePanel title="Today's visit" dotClassName="bg-[#1A5345]">
       <div className="flex gap-4 sm:gap-5">
         <QueueProfileAvatar seed={patientDisplayName} />
         <div className="min-w-0 flex-1 space-y-1">
@@ -409,7 +403,7 @@ function SidebarVisitCard({
 
 function SidebarDoctorCard({ visit }: { visit: PatientQueueVisit }) {
   return (
-    <QueuePanel title="Your clinician today">
+    <QueuePanel title="Your clinician today" dotClassName="bg-[#CC5533]">
       <div className="flex gap-4 sm:gap-5">
         <QueueProfileAvatar seed={visit.doctorName} />
         <div className="min-w-0 flex-1">
@@ -435,27 +429,31 @@ function SidebarDoctorCard({ visit }: { visit: PatientQueueVisit }) {
 
 function SidebarStatsCard({ visit }: { visit: PatientQueueVisit }) {
   return (
-    <QueuePanel title="Visit timing" description="Estimated milestones for today's visit.">
+    <QueuePanel title="Visit timing" dotClassName="bg-[#2E8B68]">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <QueueStatCell
+          size="compact"
           icon={ClockIcon}
           value={formatIsoTime(visit.scheduledTime, true)}
           label="Scheduled"
           iconColor="text-sky-600"
         />
         <QueueStatCell
+          size="compact"
           icon={TimerIcon}
           value={visit.averageExamMin !== null ? `~${visit.averageExamMin} min` : "—"}
           label="Avg. visit length"
           iconColor="text-amber-600"
         />
         <QueueStatCell
+          size="compact"
           icon={ClockIcon}
           value={visit.estimatedFinishTime ? formatIsoTime(visit.estimatedFinishTime, true) : "—"}
           label="Est. finish"
           iconColor="text-[#1A5345]"
         />
         <QueueStatCell
+          size="compact"
           icon={MapPinIcon}
           value={visit.roomNumber ?? visit.department ?? "—"}
           label="Room / area"
@@ -519,7 +517,8 @@ function SidebarAlertsCard({
   const aheadLabel = aheadThresholdCountLabel(aheadThreshold)
 
   return (
-    <QueuePanel title="Alerts & actions" description={thresholdHint}>
+    <QueuePanel title="Alerts & actions" dotClassName="bg-amber-500">
+      <p className="mb-3 text-[12px] leading-relaxed text-muted-foreground sm:text-[13px]">{thresholdHint}</p>
       {note ? (
         <p className="mb-3 text-[12px] leading-relaxed text-muted-foreground sm:text-[13px]">{note}</p>
       ) : null}
@@ -614,11 +613,11 @@ function QueueStatusMainCard({ visit }: { visit: PatientQueueVisit }) {
   return (
     <QueuePanel
       title="Your place in line"
-      description="Live queue position and estimated wait"
+      dotClassName="bg-[#1A5345]"
       action={
         nowCalling !== null ? (
-          <span className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#1A5345] px-3.5 py-2 text-[12px] font-bold tracking-wide text-white shadow-sm transition-all hover:bg-[#133F34] sm:text-[13px]">
-            <MegaphoneIcon className="size-4" strokeWidth={2.5} />
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#1A5345] px-2.5 py-1 text-[11px] font-bold text-white shadow-sm sm:text-[12px]">
+            <MegaphoneIcon className="size-3.5" strokeWidth={2.5} aria-hidden />
             Calling {nowCalling}
           </span>
         ) : undefined
@@ -695,20 +694,16 @@ function QueueStatusMainCard({ visit }: { visit: PatientQueueVisit }) {
       </div>
 
       {nowCalling !== null && yourTurn !== null ? (
-        <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
-          <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-3.5 sm:px-6 sm:py-4">
-            <p className="font-serif text-[14px] font-bold text-[#1A1F1E] sm:text-[15px]">Queue preview</p>
-            <p className="mt-0.5 text-[12px] font-medium text-muted-foreground sm:text-[13px]">
-              Tickets near your place in line
-            </p>
+        <div className="space-y-4 border-t border-[#E8E6E0]/60 pt-5">
+          <div className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-[#CC5533]" aria-hidden />
+            <h4 className="text-[15px] font-bold text-[#1A1F1E]">Queue preview</h4>
           </div>
-          <div className="px-5 py-5 sm:px-6 sm:py-6">
-            <QueueTicketStrip
-              nowCalling={nowCalling}
-              yourTurn={yourTurn}
-              cancelledTicketNumbers={visit.cancelledTicketNumbers ?? []}
-            />
-          </div>
+          <QueueTicketStrip
+            nowCalling={nowCalling}
+            yourTurn={yourTurn}
+            cancelledTicketNumbers={visit.cancelledTicketNumbers ?? []}
+          />
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-[#E8E6E0]/80 bg-[#F9F8F5]/40 px-6 py-10 text-center">

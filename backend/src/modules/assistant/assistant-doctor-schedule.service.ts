@@ -2,9 +2,12 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { and, asc, eq, gte, lt, ne } from 'drizzle-orm';
+import Groq from 'groq-sdk';
 
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
@@ -26,6 +29,10 @@ import {
 import type { UpdateDoctorScheduleDto } from '../doctor/schedule/dto/update-doctor-schedule.dto';
 import type { CreateScheduleDayExtraDto } from './dto/schedule-day-extra.dto';
 import type { SetDoctorArrivalDto } from './dto/set-doctor-arrival.dto';
+import type {
+  ScheduleAiAnalysisResult,
+  ScheduleAiHistoryItem,
+} from './dto/schedule-ai-chat.dto';
 
 const CAIRO_TZ = 'Africa/Cairo';
 const WEEKDAY_IDS = [
@@ -40,6 +47,8 @@ const WEEKDAY_IDS = [
 
 @Injectable()
 export class AssistantDoctorScheduleService {
+  private readonly logger = new Logger(AssistantDoctorScheduleService.name);
+
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly doctorScheduleService: DoctorScheduleService,
@@ -289,6 +298,224 @@ export class AssistantDoctorScheduleService {
 
     return { weekday: dto.weekday, arrivalTime: arrival, doctorArrivalByWeekday: next };
   }
+
+  // ─── Schedule AI Chat ────────────────────────────────────────────────────────
+
+  async chatAboutSchedule(
+    doctorId: string,
+    doctorName: string,
+    message: string,
+    history: ScheduleAiHistoryItem[],
+  ): Promise<{ reply: string }> {
+    const apiKey = process.env.GROQ_API_KEY?.trim();
+    if (!apiKey) {
+      throw new ServiceUnavailableException('AI unavailable — GROQ_API_KEY not configured');
+    }
+
+    const [bundle, revisions] = await Promise.all([
+      this.getScheduleBundle(doctorId),
+      this.doctorScheduleService.listScheduleRevisions(doctorId, 5),
+    ]);
+
+    const context = this.buildScheduleContext(doctorName, bundle, revisions);
+
+    const systemPrompt = [
+      `You are a clinic scheduling assistant helping the clinic assistant manage Dr. ${doctorName}'s schedule.`,
+      'You have access to the current schedule, upcoming bookings, and recent change history below.',
+      'Answer questions concisely and accurately based ONLY on the provided schedule data.',
+      'If you suggest changes, describe them as clear, actionable steps the assistant can take.',
+      'Do NOT invent appointments, patients, or data not in the context.',
+      'Respond in the same language the user writes in (Arabic or English).',
+      '',
+      '=== SCHEDULE CONTEXT ===',
+      context,
+      '========================',
+    ].join('\n');
+
+    const groq = new Groq({ apiKey });
+    const model =
+      process.env.GROQ_CHAT_MODEL?.trim() ||
+      'meta-llama/llama-4-scout-17b-16e-instruct';
+
+    const recentHistory = history.slice(-8);
+
+    try {
+      const completion = await groq.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...recentHistory.map((h) => ({ role: h.role, content: h.content })),
+          { role: 'user', content: message },
+        ],
+        temperature: 0.7,
+        max_completion_tokens: 1024,
+        top_p: 1,
+        stream: false,
+      });
+
+      const reply =
+        completion.choices[0]?.message?.content?.trim() || 'No reply generated.';
+      return { reply };
+    } catch (error) {
+      this.logger.error('Groq schedule chat failed', error);
+      throw new ServiceUnavailableException('AI service temporarily unavailable');
+    }
+  }
+
+  async analyzeSchedule(
+    doctorId: string,
+    doctorName: string,
+  ): Promise<ScheduleAiAnalysisResult> {
+    const apiKey = process.env.GROQ_API_KEY?.trim();
+    if (!apiKey) {
+      throw new ServiceUnavailableException('AI unavailable — GROQ_API_KEY not configured');
+    }
+
+    const [bundle, revisions] = await Promise.all([
+      this.getScheduleBundle(doctorId),
+      this.doctorScheduleService.listScheduleRevisions(doctorId, 10),
+    ]);
+
+    const context = this.buildScheduleContext(doctorName, bundle, revisions);
+
+    const systemPrompt = [
+      `You are a clinical scheduling expert analyzing Dr. ${doctorName}'s weekly clinic schedule.`,
+      'Return ONLY a valid JSON object — no markdown fences, no commentary, no extra text.',
+      'The JSON must have exactly these keys:',
+      '  "insights": array of 4-6 factual, specific observations about the current schedule (use numbers from the data)',
+      '  "risks": array of 2-4 concrete risk or warning strings (empty array if none found)',
+      '  "recommendations": array of 3-5 specific, actionable improvement suggestions',
+      'Be precise. Reference actual numbers (hours, days, booking counts, etc.) from the schedule data.',
+      '',
+      '=== SCHEDULE DATA ===',
+      context,
+      '=====================',
+    ].join('\n');
+
+    const groq = new Groq({ apiKey });
+    const model =
+      process.env.GROQ_ANALYSIS_MODEL?.trim() || 'qwen/qwen3-32b';
+
+    try {
+      const completion = await groq.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: 'Analyze this doctor\'s schedule and return the JSON object.',
+          },
+        ],
+        temperature: 0.6,
+        max_completion_tokens: 2048,
+        top_p: 0.95,
+        stream: false,
+        reasoning_effort: 'default',
+      });
+
+      let raw = completion.choices[0]?.message?.content?.trim() ?? '';
+
+      // Strip any <think>...</think> blocks that may appear
+      raw = raw.replace(/<think[\s\S]*?<\/think>/gi, '').trim();
+
+      // Strip markdown code fences if present
+      raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+
+      const parsed = JSON.parse(raw) as Partial<ScheduleAiAnalysisResult>;
+
+      return {
+        insights: Array.isArray(parsed.insights) ? parsed.insights.map(String) : [],
+        risks: Array.isArray(parsed.risks) ? parsed.risks.map(String) : [],
+        recommendations: Array.isArray(parsed.recommendations)
+          ? parsed.recommendations.map(String)
+          : [],
+      };
+    } catch (error) {
+      this.logger.error('Groq schedule analysis failed', error);
+      throw new ServiceUnavailableException('AI analysis temporarily unavailable');
+    }
+  }
+
+  private buildScheduleContext(
+    doctorName: string,
+    bundle: Awaited<ReturnType<AssistantDoctorScheduleService['getScheduleBundle']>>,
+    revisions: Awaited<ReturnType<DoctorScheduleService['listScheduleRevisions']>>,
+  ): string {
+    const { schedule, bookings, dayExtras, pausedPeriodIds, doctorArrivalByWeekday } =
+      bundle;
+
+    const lines: string[] = [];
+    lines.push(`Doctor: ${doctorName}`);
+
+    lines.push('\n## Weekly Template');
+    lines.push(`Slot duration: ${schedule.slotDurationMinutes} min`);
+    lines.push(`Buffer between slots: ${schedule.bufferBetweenSlotsMinutes} min`);
+
+    const activeDays = schedule.days.filter((d) => d.enabled);
+    lines.push(`Active days: ${activeDays.length} of 7`);
+
+    for (const day of schedule.days) {
+      if (!day.enabled) continue;
+      const periods = day.periods
+        .map((p) => {
+          const paused = pausedPeriodIds.includes(p.id);
+          return `${p.startTime}–${p.endTime}${paused ? ' [PAUSED]' : ''}`;
+        })
+        .join(', ');
+      const arrival = (doctorArrivalByWeekday as Record<string, string | null>)[day.weekday];
+      const arrivalNote = arrival ? ` (doctor arrives ${arrival})` : '';
+      lines.push(`  ${day.label}: ${periods || 'no periods defined'}${arrivalNote}`);
+    }
+
+    if (schedule.blockedDates.length > 0) {
+      lines.push(`\n## Blocked Dates (${schedule.blockedDates.length} total)`);
+      for (const bd of schedule.blockedDates.slice(0, 12)) {
+        lines.push(`  ${bd.date}${bd.reason ? ` — ${bd.reason}` : ''}`);
+      }
+    }
+
+    if (dayExtras.length > 0) {
+      lines.push(`\n## One-off Extra Sessions (${dayExtras.length} upcoming)`);
+      for (const de of dayExtras.slice(0, 10)) {
+        lines.push(
+          `  ${de.date}: ${de.startTime}–${de.endTime}${de.reason ? ` (${de.reason})` : ''}`,
+        );
+      }
+    }
+
+    lines.push(
+      `\n## Upcoming Bookings — Next 14 Days (Total: ${bookings.length})`,
+    );
+    if (bookings.length === 0) {
+      lines.push('  No upcoming bookings.');
+    } else {
+      const byDate: Record<string, typeof bookings> = {};
+      for (const b of bookings) {
+        (byDate[b.scheduledDate] ??= []).push(b);
+      }
+      for (const [date, bs] of Object.entries(byDate).slice(0, 10)) {
+        const slots = bs.map((b) => b.startTime).join(', ');
+        lines.push(
+          `  ${date} (${bs[0]!.weekday}): ${bs.length} booking${bs.length > 1 ? 's' : ''} at ${slots}`,
+        );
+      }
+    }
+
+    if (revisions.length > 0) {
+      lines.push(`\n## Recent Schedule Changes (last ${revisions.length})`);
+      for (const rev of revisions) {
+        const s = rev.snapshotSummary;
+        lines.push(
+          `  Rev #${rev.revisionNumber} (${rev.createdAt.slice(0, 10)}, by ${rev.changedByRole ?? 'system'}): ` +
+            `${s.enabledDays} active days, ${s.periodCount} periods, ${s.blockedDatesCount} blocked dates`,
+        );
+      }
+    }
+
+    return lines.join('\n');
+  }
+
+  // ─── Bookings list (private) ──────────────────────────────────────────────────
 
   private async listUpcomingBookings(doctorId: string, slotDurationMinutes: number) {
     const now = new Date();

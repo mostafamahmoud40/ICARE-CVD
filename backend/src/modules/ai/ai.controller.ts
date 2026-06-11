@@ -4,12 +4,17 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { TokenPayload } from '../auth/jwt';
 import { PatientGuard } from '../patient/patient.guard';
 import { AiService } from './ai.service';
+import { PatientAiChatService } from './patient-ai-chat.service';
 import { PersistRegistrationSummaryDto } from './dto/persist-registration-summary.dto';
 import { RegistrationAnalyzeDto } from './dto/registration-analyze.dto';
+import { PatientAiChatDto } from './dto/patient-ai-chat.dto';
 
 @Controller('ai')
 export class AiController {
-  constructor(private readonly aiService: AiService) {}
+  constructor(
+    private readonly aiService: AiService,
+    private readonly patientAiChatService: PatientAiChatService,
+  ) {}
 
   @Get('registration-summary')
   @UseGuards(AccessTokenGuard, PatientGuard)
@@ -36,5 +41,15 @@ export class AiController {
     @Body() dto: RegistrationAnalyzeDto,
   ) {
     return this.aiService.analyzeRegistration(dto);
+  }
+
+  /** POST /ai/chat — patient conversational AI with appointment tools */
+  @Post('chat')
+  @UseGuards(AccessTokenGuard, PatientGuard)
+  patientChat(
+    @CurrentUser() currentUser: TokenPayload,
+    @Body() dto: PatientAiChatDto,
+  ) {
+    return this.patientAiChatService.chat(currentUser.sub, dto);
   }
 }

@@ -1,13 +1,15 @@
 import { type ReactNode } from "react"
 import { TrendingDownIcon, TrendingUpIcon } from "lucide-react"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+
+export const vitalsSnapshotCardClassName =
+  "rounded-xl border border-[#E8E6E0]/60 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
 
 export interface VitalKpiCardProps {
   title: string
-  icon: ReactNode
-  iconContainerClass?: string
+  icon?: ReactNode
+  iconClassName?: string
   value: ReactNode
   unit: string
   trend: "up" | "down" | "stable"
@@ -20,7 +22,7 @@ export interface VitalKpiCardProps {
 export function VitalKpiCard({
   title,
   icon,
-  iconContainerClass,
+  iconClassName = "text-[#1A5345]",
   value,
   unit,
   trend,
@@ -35,59 +37,42 @@ export function VitalKpiCard({
     trend === "stable" || trendGoodDirection === "none"
       ? "text-muted-foreground"
       : isGoodTrend
-        ? "text-emerald-500"
-        : "text-red-500"
+        ? "text-emerald-600"
+        : "text-rose-600"
 
   return (
-    <Card className="transition-colors hover:border-primary/50 flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div
+    <div className={cn("space-y-1.5", vitalsSnapshotCardClassName)}>
+      <p className="text-[11px] font-medium text-[#6B7870]">{title}</p>
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="flex min-w-0 items-baseline gap-1">
+          <span className="text-[18px] font-bold leading-none tabular-nums text-[#1A1F1E]">
+            {value}
+          </span>
+          <span className="text-[11px] font-medium text-muted-foreground">{unit}</span>
+        </div>
+        {icon ? (
+          <span className={cn("shrink-0", iconClassName)} aria-hidden>
+            {icon}
+          </span>
+        ) : null}
+      </div>
+      <p className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+        {trend !== "stable" ? (
+          <TrendIcon className={cn("size-3 shrink-0", trendColorClass)} aria-hidden />
+        ) : null}
+        <span className={cn("font-bold tabular-nums", trendColorClass)}>{trendValue}</span>
+        <span>vs last month</span>
+      </p>
+      {aiBadgeText ? (
+        <p
           className={cn(
-            "flex size-8 items-center justify-center rounded-full ring-1 ring-black/5 dark:ring-white/10",
-            iconContainerClass
+            "text-[10px] font-bold",
+            aiBadgeType === "warning" ? "text-amber-600" : "text-emerald-600"
           )}
         >
-          {icon}
-        </div>
-      </CardHeader>
-      <CardContent className="flex flex-col flex-1">
-        <div className="text-2xl font-bold">
-          {value}{" "}
-          <span className="text-sm font-normal tracking-normal text-muted-foreground">
-            {unit}
-          </span>
-        </div>
-        <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-          {trend !== "stable" && <TrendIcon className={cn("size-3", trendColorClass)} />}
-          <span className={cn("font-medium", trendColorClass)}>
-            {trendValue}
-          </span>{" "}
-          since last month
+          {aiBadgeText}
         </p>
-
-        {aiBadgeText && (
-          <div className="mt-auto pt-4">
-            <div
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold",
-                aiBadgeType === "warning"
-                  ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-900/30 dark:text-amber-400"
-                  : "border-[#C8D9D3] bg-[#E8F0ED] text-[#1a5345] dark:border-emerald-900/50 dark:bg-emerald-900/30 dark:text-emerald-400"
-              )}
-            >
-              <div
-                className={cn(
-                  "size-1.5 rounded-full",
-                  aiBadgeType === "warning" ? "bg-amber-600 dark:bg-amber-400" : "bg-[#1a5345] dark:bg-emerald-400"
-                )}
-              />
-              {aiBadgeText}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      ) : null}
+    </div>
   )
 }
-

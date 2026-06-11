@@ -51,6 +51,18 @@ const TIME_BADGE_COLORS: Record<TimeOfDay, string> = {
   evening: "bg-violet-600 hover:bg-violet-600",
 }
 
+const TIME_ICON_COLORS: Record<TimeOfDay, string> = {
+  morning: "text-amber-500",
+  afternoon: "text-sky-500",
+  evening: "text-violet-500",
+}
+
+const TIME_LABELS: Record<TimeOfDay, string> = {
+  morning: "Morning",
+  afternoon: "Afternoon",
+  evening: "Evening",
+}
+
 const STATUS_BADGE_COLORS: Record<MedicationStatus, string> = {
   active: "bg-emerald-500 hover:bg-emerald-500",
   paused: "bg-amber-500 hover:bg-amber-500",
@@ -62,11 +74,12 @@ const COMPLIANCE_BADGE_COLORS: Record<MedicationCompliance, string> = {
   poor: "bg-rose-500 hover:bg-rose-500",
 }
 
-type BadgeSize = "sm" | "md"
+type BadgeSize = "sm" | "md" | "lg"
 
 const SIZE_CLASSES: Record<BadgeSize, string> = {
   sm: "rounded-lg px-2 py-0.5 text-[10px]",
   md: "rounded-lg px-2.5 py-0.5 text-[11px]",
+  lg: "rounded-lg px-3 py-1 text-[13px]",
 }
 
 export function MedicationTypeBadge({
@@ -103,7 +116,6 @@ export function TimeOfDayBadge({
   className?: string
 }) {
   const Icon = TIME_ICONS[timeOfDay]
-  const label = timeOfDay.charAt(0).toUpperCase() + timeOfDay.slice(1)
 
   return (
     <Badge
@@ -115,9 +127,42 @@ export function TimeOfDayBadge({
         className,
       )}
     >
-      <Icon className="size-3" aria-hidden />
-      {label}
+      <Icon className={cn("size-3", size === "lg" && "size-3.5")} aria-hidden />
+      {TIME_LABELS[timeOfDay]}
     </Badge>
+  )
+}
+
+/** Icon + label without badge background — for detail panels and read-only views. */
+export function TimeOfDayLabel({
+  timeOfDay,
+  size = "md",
+  className,
+}: {
+  timeOfDay: TimeOfDay
+  size?: BadgeSize
+  className?: string
+}) {
+  const Icon = TIME_ICONS[timeOfDay]
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 font-semibold text-[#1A1F1E]",
+        size === "lg" ? "text-[14px] sm:text-[15px]" : size === "md" ? "text-[13px]" : "text-[12px]",
+        className,
+      )}
+    >
+      <Icon
+        className={cn(
+          TIME_ICON_COLORS[timeOfDay],
+          size === "lg" ? "size-4" : size === "md" ? "size-3.5" : "size-3",
+        )}
+        strokeWidth={2.25}
+        aria-hidden
+      />
+      {TIME_LABELS[timeOfDay]}
+    </span>
   )
 }
 

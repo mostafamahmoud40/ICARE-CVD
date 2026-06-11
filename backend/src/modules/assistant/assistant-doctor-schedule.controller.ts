@@ -20,6 +20,7 @@ import { AssistantDoctorScheduleService } from './assistant-doctor-schedule.serv
 import { AssistantGuard } from './assistant.guard';
 import { CreateScheduleDayExtraDto } from './dto/schedule-day-extra.dto';
 import { SetDoctorArrivalDto } from './dto/set-doctor-arrival.dto';
+import { ScheduleAiAnalyzeDto, ScheduleAiChatDto } from './dto/schedule-ai-chat.dto';
 
 @Controller('assistant/doctors')
 @UseGuards(AccessTokenGuard, AssistantGuard)
@@ -109,5 +110,28 @@ export class AssistantDoctorScheduleController {
     @Param('extraId') extraId: string,
   ) {
     return this.service.deleteDayExtra(doctorId, extraId, user.sub);
+  }
+
+  @Post(':doctorId/schedule/ai/chat')
+  scheduleAiChat(
+    @CurrentUser() _user: TokenPayload,
+    @Param('doctorId') doctorId: string,
+    @Body() dto: ScheduleAiChatDto,
+  ) {
+    return this.service.chatAboutSchedule(
+      doctorId,
+      dto.doctorName,
+      dto.message,
+      dto.history ?? [],
+    );
+  }
+
+  @Post(':doctorId/schedule/ai/analyze')
+  scheduleAiAnalyze(
+    @CurrentUser() _user: TokenPayload,
+    @Param('doctorId') doctorId: string,
+    @Body() dto: ScheduleAiAnalyzeDto,
+  ) {
+    return this.service.analyzeSchedule(doctorId, dto.doctorName);
   }
 }

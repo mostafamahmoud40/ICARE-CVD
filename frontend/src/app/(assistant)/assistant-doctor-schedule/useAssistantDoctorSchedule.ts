@@ -59,6 +59,38 @@ function toScheduledAtIso(scheduledDate: string, startTime: string): string {
   return new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString()
 }
 
+export type AiChatHistoryItem = { role: "user" | "assistant"; content: string }
+
+export async function sendScheduleAiMessage(
+  doctorId: string,
+  doctorName: string,
+  message: string,
+  history: AiChatHistoryItem[],
+): Promise<string> {
+  const { data } = await apiClient.post<{ reply: string }>(
+    `/assistant/doctors/${doctorId}/schedule/ai/chat`,
+    { message, doctorName, history },
+  )
+  return data.reply
+}
+
+export type ScheduleAiAnalysisResult = {
+  insights: string[]
+  risks: string[]
+  recommendations: string[]
+}
+
+export async function runScheduleAiAnalysis(
+  doctorId: string,
+  doctorName: string,
+): Promise<ScheduleAiAnalysisResult> {
+  const { data } = await apiClient.post<ScheduleAiAnalysisResult>(
+    `/assistant/doctors/${doctorId}/schedule/ai/analyze`,
+    { doctorName },
+  )
+  return data
+}
+
 export function useAssistantScheduleDoctors() {
   return useQuery({
     queryKey: assistantScheduleDoctorsKey,

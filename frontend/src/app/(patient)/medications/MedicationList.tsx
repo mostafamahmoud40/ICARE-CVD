@@ -9,24 +9,25 @@ import type {
 import { cn } from "@/lib/utils"
 import {
   CheckCircle2Icon,
-  ClockIcon,
   PillIcon,
   SearchIcon,
   SkipForwardIcon,
   XIcon,
   CheckIcon,
   EyeIcon,
-  TimerIcon,
 } from "lucide-react"
-import {
-  MedicationTypeBadge,
-  TimeOfDayBadge,
-  TYPE_LABELS,
-} from "./patientMedications.shared"
-import { StatCell } from "@/app/(assistant)/assistant-queue/shared/StatCell"
+import { MedicationTypeBadge, TYPE_LABELS } from "./patientMedications.shared"
+import { MedicationDailyProgressCard } from "./MedicationDailyProgressCard"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Tooltip,
   TooltipContent,
@@ -139,11 +140,6 @@ function PatientMedicationRow({
             {medication.instructions}
           </p>
         ) : null}
-        <div className="mt-2 flex flex-wrap gap-1">
-          {medication.timeOfDay.map((tod) => (
-            <TimeOfDayBadge key={tod} timeOfDay={tod} />
-          ))}
-        </div>
       </td>
       <td className="px-5 py-4">
         <div className="flex max-w-[148px] flex-col gap-1.5">
@@ -357,36 +353,7 @@ export function MedicationList({
       </div>
 
       <div className="shrink-0 border-b border-[#E8E6E0] bg-[#F9F8F5] p-4 sm:p-5 md:px-8">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCell
-            icon={PillIcon}
-            iconBg="bg-[#E8F0EE]"
-            iconColor="text-[#1A5345]"
-            value={stats.totalActive}
-            label="active medications"
-          />
-          <StatCell
-            icon={CheckCircle2Icon}
-            iconBg="bg-[#D4E5E0]"
-            iconColor="text-[#0F3D32]"
-            value={stats.takenToday}
-            label={`taken today · of ${stats.dueToday} doses`}
-          />
-          <StatCell
-            icon={ClockIcon}
-            iconBg="bg-amber-100"
-            iconColor="text-amber-600"
-            value={Math.max(0, stats.dueToday - stats.takenToday)}
-            label="doses remaining"
-          />
-          <StatCell
-            icon={TimerIcon}
-            iconBg="bg-[#E0E8E4]"
-            iconColor="text-[#4F6D64]"
-            value={`${stats.adherencePercent}%`}
-            label="7-day adherence"
-          />
-        </div>
+        <MedicationDailyProgressCard stats={stats} medications={medications} />
       </div>
 
       <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-white">
@@ -408,41 +375,25 @@ export function MedicationList({
               </button>
             )}
           </div>
-          <div className="no-scrollbar w-full overflow-x-auto sm:ml-auto sm:w-auto">
-            <style>{`
-              .no-scrollbar::-webkit-scrollbar { display: none; }
-              .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-            `}</style>
-            <div className="flex min-w-max gap-1.5">
-              <button
-                type="button"
-                onClick={() => setTypeFilter("all")}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors",
-                  typeFilter === "all"
-                    ? "bg-[#1A5345] text-white shadow-sm"
-                    : "border border-[#E8E6E0]/80 bg-white text-muted-foreground hover:bg-[#F9F8F5] hover:text-[#1A1F1E]",
-                )}
-              >
-                All
-              </button>
+          <Select
+            value={typeFilter}
+            onValueChange={(value) => setTypeFilter(value as MedicationTypeFilter)}
+          >
+            <SelectTrigger
+              aria-label="Filter by medication type"
+              className="h-9 w-full rounded-xl border-[#E8E6E0] bg-white text-[13px] font-semibold text-[#1A1F1E] shadow-sm focus-visible:border-[#1A5345]/40 focus-visible:ring-[#1A5345]/20 sm:ml-auto sm:h-10 sm:w-[200px] sm:rounded-2xl"
+            >
+              <SelectValue placeholder="All types" />
+            </SelectTrigger>
+            <SelectContent align="end">
+              <SelectItem value="all">All types</SelectItem>
               {availableTypes.map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setTypeFilter(type)}
-                  className={cn(
-                    "rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors",
-                    typeFilter === type
-                      ? "bg-[#1A5345] text-white shadow-sm"
-                      : "border border-[#E8E6E0]/80 bg-white text-muted-foreground hover:bg-[#F9F8F5] hover:text-[#1A1F1E]",
-                  )}
-                >
+                <SelectItem key={type} value={type}>
                   {TYPE_LABELS[type] ?? type}
-                </button>
+                </SelectItem>
               ))}
-            </div>
-          </div>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

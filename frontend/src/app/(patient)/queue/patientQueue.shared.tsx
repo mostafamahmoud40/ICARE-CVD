@@ -22,7 +22,7 @@ export function QueueProfileAvatar({
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF] ring-2 ring-[#E8E6E0]/80",
+        "flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-white ring-1 ring-[#E8E6E0]/80",
         box,
         className,
       )}
@@ -39,19 +39,10 @@ export function QueueProfileAvatar({
   )
 }
 
-export const queuePanelCardClassName =
-  "overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)] ring-0"
-
-export const queuePanelHeaderClassName =
-  "border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-4 sm:px-6 sm:py-5"
-
-export const queuePanelBodyClassName = "p-5 sm:p-6 lg:p-7"
+export const queuePanelBodyClassName = "rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm sm:p-6"
 
 export const queueStatTileClassName =
   "flex items-center gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
-
-export const queueInstructionTileClassName =
-  "flex items-start gap-4 rounded-xl border border-[#E8E6E0] bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5"
 
 export const queuePrimaryButtonClassName =
   "h-8 w-full items-center justify-center gap-1.5 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-[0_2px_10px_rgba(26,83,69,0.2)] transition-all hover:bg-[#133F34] hover:shadow-[0_4px_14px_rgba(26,83,69,0.25)]"
@@ -62,38 +53,55 @@ export const queueOutlineButtonClassName =
 export const queueSelectTriggerClassName =
   "h-9 rounded-lg border-[#E8E6E0] bg-white text-[12px] font-medium text-[#1A1F1E] shadow-sm"
 
+export function QueueSectionTitle({
+  title,
+  action,
+  dotClassName = "bg-[#1A5345]",
+  className,
+}: {
+  title: string
+  action?: ReactNode
+  dotClassName?: string
+  className?: string
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between gap-3 border-b border-[#E8E6E0]/60 pb-3",
+        className,
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        <span className={cn("size-2 shrink-0 rounded-full", dotClassName)} aria-hidden />
+        <h3 className="font-serif text-[18px] font-bold leading-tight text-[#1A1F1E]">{title}</h3>
+      </div>
+      {action}
+    </div>
+  )
+}
+
 export function QueuePanel({
   title,
-  description,
   action,
   children,
   className,
   bodyClassName,
+  dotClassName = "bg-[#1A5345]",
 }: {
   title: string
+  /** @deprecated Descriptions belong in panel body, not the section title row. */
   description?: string
   action?: ReactNode
   children: ReactNode
   className?: string
   bodyClassName?: string
+  dotClassName?: string
 }) {
   return (
-    <div className={cn(queuePanelCardClassName, className)}>
-      <div className={queuePanelHeaderClassName}>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="font-serif text-[15px] font-bold leading-tight text-[#1A1F1E] sm:text-[16px]">
-              {title}
-            </h3>
-            {description ? (
-              <p className="mt-1 text-[12px] font-medium text-muted-foreground sm:text-[13px]">{description}</p>
-            ) : null}
-          </div>
-          {action}
-        </div>
-      </div>
+    <section className={cn("space-y-4", className)}>
+      <QueueSectionTitle title={title} action={action} dotClassName={dotClassName} />
       <div className={cn(queuePanelBodyClassName, bodyClassName)}>{children}</div>
-    </div>
+    </section>
   )
 }
 
@@ -104,6 +112,7 @@ export function QueueStatCell({
   hint,
   iconColor = "text-[#1A5345]",
   highlight,
+  size = "default",
   className,
 }: {
   icon: ElementType
@@ -112,25 +121,50 @@ export function QueueStatCell({
   hint?: string | null
   iconColor?: string
   highlight?: boolean
+  size?: "default" | "compact"
   className?: string
 }) {
+  const compact = size === "compact"
+
   return (
-    <div className={cn(queueStatTileClassName, className)}>
-      <Icon className={cn("size-5 shrink-0", iconColor)} strokeWidth={2} aria-hidden />
-      <div className="min-w-0 flex-1">
-        <div
-          className={cn(
-            "text-[18px] font-bold leading-none tabular-nums",
-            highlight ? "text-[#1A5345]" : "text-[#1A1F1E]",
-          )}
-        >
-          {value}
-        </div>
-        <p className="mt-1 truncate text-[11px] font-bold text-[#6B7870]">{label}</p>
-        {hint ? (
-          <p className="mt-0.5 truncate text-[11px] font-medium text-muted-foreground">{hint}</p>
-        ) : null}
-      </div>
+    <div
+      className={cn(
+        "group relative overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/40 shadow-sm transition-all duration-300 hover:shadow-md",
+        compact ? "p-3" : "rounded-2xl bg-white p-4 sm:p-5",
+        className,
+      )}
+    >
+      <Icon
+        className={cn(
+          "absolute right-3 top-3",
+          compact ? "size-4" : "right-4 top-4 size-5",
+          iconColor,
+        )}
+        strokeWidth={2}
+        aria-hidden
+      />
+      <p
+        className={cn(
+          "pr-7 font-bold uppercase tracking-wider text-muted-foreground",
+          compact ? "text-[10px]" : "pr-8 text-[11px] sm:text-[12px]",
+        )}
+      >
+        {label}
+      </p>
+      <p
+        className={cn(
+          "mt-1.5 font-bold leading-snug tabular-nums",
+          compact
+            ? "text-[14px] text-[#1A1F1E] sm:text-[15px]"
+            : "mt-2 font-serif text-[26px] leading-none sm:text-[28px]",
+          !compact && (highlight ? "text-[#1A5345]" : "text-[#1A1F1E]"),
+        )}
+      >
+        {value}
+      </p>
+      {hint ? (
+        <p className="mt-1.5 truncate text-[11px] font-medium text-muted-foreground">{hint}</p>
+      ) : null}
     </div>
   )
 }

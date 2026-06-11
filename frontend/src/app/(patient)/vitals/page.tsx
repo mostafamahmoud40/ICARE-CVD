@@ -3,11 +3,14 @@
 import { useState } from "react"
 import {
   ActivityIcon,
+  BrainCircuitIcon,
   HeartIcon,
   HeartPulseIcon,
   WeightIcon,
-  SparklesIcon,
 } from "lucide-react"
+
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 
 import {
   Select,
@@ -22,20 +25,32 @@ import { AiSummaryBox } from "./AiSummaryBox"
 import { VitalKpiCard } from "./VitalKpiCard"
 import { BloodPressureChart } from "./BloodPressureChart"
 import { HeartRateChart } from "./HeartRateChart"
-import { AiDetailedAnalysis } from "./AiDetailedAnalysis"
+import { VitalsAiAnalysisSheet, VITALS_AI_ANALYSIS_ITEMS } from "./AiDetailedAnalysis"
 import { VitalsHistoryList } from "./VitalsHistoryList"
 import { useVitalsFilter, type TimeRange } from "./useVitalsFilter"
 import { currentVitals, mockVitalsHistory } from "./vitals.mock"
 
 const timeRangeOptions = [
-  { key: "1W" as const, label: "Last Week" },
-  { key: "1M" as const, label: "Last Month" },
-  { key: "3M" as const, label: "Last 3 Months" },
+  { key: "1W" as const, label: "Last week" },
+  { key: "1M" as const, label: "Last month" },
+  { key: "3M" as const, label: "Last 3 months" },
 ] as const
+
+function vitalsScrollbarCss() {
+  return `
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: hsl(var(--muted-foreground) / 0.15); border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.3); }
+  `
+}
 
 export default function VitalsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false)
   const [timeRange, setTimeRange] = useState<TimeRange>("3M")
+
+  const suggestedActionCount = VITALS_AI_ANALYSIS_ITEMS.filter((i) => i.action).length
 
   const filteredData = useVitalsFilter(mockVitalsHistory, timeRange)
 
@@ -45,138 +60,183 @@ export default function VitalsPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 bg-[#F9F8F5] p-6 lg:p-8">
-      {/* Header Area */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="mb-1">
-          <div className="mb-2 flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight text-[#1A1F1E] dark:text-foreground">
-              Vitals & Measurements
-            </h1>
-            <div className="inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden whitespace-nowrap rounded-lg bg-violet-600 px-2 py-0.5 text-[10px] font-bold text-white">
-              <SparklesIcon className="size-3" />
-              <span>AI-Powered Analysis</span>
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
+      <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-white">
+        <div className="flex flex-col px-5 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+            <div className="min-w-0 space-y-0.5">
+              <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px] lg:text-[26px]">
+                Vitals &amp; measurements
+              </h1>
+              <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
+                AI-assisted trend monitoring and clinical readings for your care plan.
+              </p>
             </div>
           </div>
-          <p className="m-0 max-w-xl text-[15px] leading-relaxed text-[#6B7870] dark:text-muted-foreground">
-            Our AI continuously monitors your vital trends to detect early signs of deterioration and predict health improvements.
-          </p>
+
+          <div className="mt-3 flex flex-col gap-2 pt-1 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
+            <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+              <SelectTrigger className="h-10 w-full rounded-2xl border border-[#E8E6E0]/80 bg-[#F9F8F5] text-[13px] font-medium text-[#1A1F1E] shadow-none focus-visible:border-[#1A5345]/50 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#1A5345]/12 sm:h-11 sm:w-[180px]">
+                <SelectValue placeholder="Select range" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-[#E8E6E0]">
+                {timeRangeOptions.map((option) => (
+                  <SelectItem
+                    key={option.key}
+                    value={option.key}
+                    className="cursor-pointer text-[13px] font-medium"
+                  >
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-10 gap-1.5 rounded-2xl border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A5345] shadow-sm hover:bg-[#F9F8F5] sm:h-11"
+                onClick={() => setIsAnalysisOpen(true)}
+              >
+                <BrainCircuitIcon className="size-4" aria-hidden />
+                AI analysis
+                {suggestedActionCount > 0 ? (
+                  <Badge className="ml-0.5 h-5 rounded-md border-0 bg-[#CC5533] px-1.5 text-[10px] font-bold text-white hover:bg-[#CC5533]">
+                    {suggestedActionCount}
+                  </Badge>
+                ) : null}
+              </Button>
+              <AddVitalsDialog
+                open={isAddModalOpen}
+                onOpenChange={setIsAddModalOpen}
+                onSubmit={handleSubmit}
+              />
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-            <SelectTrigger className="h-10 w-[160px] rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
-              <SelectValue placeholder="Select range" />
-            </SelectTrigger>
-            <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
-              {timeRangeOptions.map((option) => (
-                <SelectItem
-                  key={option.key}
-                  value={option.key}
-                  className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10"
-                >
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <AddVitalsDialog
-            open={isAddModalOpen}
-            onOpenChange={setIsAddModalOpen}
-            onSubmit={handleSubmit}
-          />
-        </div>
       </div>
 
-      {/* Primary AI Insights */}
-      <div className="flex flex-col gap-4">
-        <AiAlertBanner 
-          message="AI Alert: Blood pressure reading on Mar 20 was 158/98 — higher than your normal limits. Your doctor has been automatically notified." 
-        />
-        <AiSummaryBox
-          title="Last 3 Months AI Analysis"
-          body="Systolic pressure reduced by 18% — significant improvement compared to your history. Heart rate is stable within the safe range for your age and condition. AI continues to detect a sustained positive trend."
-          actionLabel1="Explain more"
-          actionLabel2="Do I need a medication adjustment?"
-        />
-      </div>
-
-      {/* KPI Overview Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <VitalKpiCard
-          title="Blood Pressure"
-          icon={<HeartPulseIcon className="size-4" />}
-          iconContainerClass="bg-[#E8F0ED] text-[#1a5345] dark:bg-emerald-950/30 dark:text-emerald-400"
-          value={`${currentVitals.bloodPressure.systolic}/${currentVitals.bloodPressure.diastolic}`}
-          unit="mmHg"
-          trend={currentVitals.bloodPressure.trend as any}
-          trendValue={currentVitals.bloodPressure.trendValue}
-          trendGoodDirection="down"
-          aiBadgeText="Within your normal range"
-          aiBadgeType="info"
-        />
-
-        <VitalKpiCard
-          title="Heart Rate"
-          icon={<HeartIcon className="size-4" />}
-          iconContainerClass="bg-[#F5E8E5] text-[#c45d4b] dark:bg-red-950/30 dark:text-red-400"
-          value={currentVitals.heartRate.value}
-          unit="bpm"
-          trend={currentVitals.heartRate.trend as any}
-          trendValue={currentVitals.heartRate.trendValue}
-          trendGoodDirection="down"
-          aiBadgeText="Stable for your age and condition"
-          aiBadgeType="info"
-        />
-
-        <VitalKpiCard
-          title="Blood Oxygen"
-          icon={<ActivityIcon className="size-4" />}
-          iconContainerClass="bg-[#E0EFF2] text-[#2d8a9e] dark:bg-cyan-950/30 dark:text-cyan-400"
-          value={currentVitals.spo2.value}
-          unit="%"
-          trend={currentVitals.spo2.trend as any}
-          trendValue={currentVitals.spo2.trendValue}
-          trendGoodDirection="up"
-          aiBadgeText="Excellent"
-          aiBadgeType="info"
-        />
-
-        <VitalKpiCard
-          title="Weight"
-          icon={<WeightIcon className="size-4" />}
-          iconContainerClass="bg-[#F7F1E6] text-[#8E7043] dark:bg-amber-950/30 dark:text-amber-400"
-          value={currentVitals.weight.value}
-          unit="kg"
-          trend={currentVitals.weight.trend as any}
-          trendValue={currentVitals.weight.trendValue}
-          trendGoodDirection="down"
-          aiBadgeText="Faster drop than usual"
-          aiBadgeType="warning"
-        />
-      </div>
-
-      {/* Progression Charts */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <BloodPressureChart data={filteredData} />
-        <HeartRateChart data={filteredData} />
-      </div>
-
-      {/* Detailed AI Analysis */}
-      <AiDetailedAnalysis
-        title="Detailed AI Analysis"
-        updatedText="Updated just now"
-        items={[
-          { color: "green", title: "Positive trend in blood pressure", description: "The gradual reduction aligns with the effect of Lisinopril medication prescribed by your doctor." },
-          { color: "orange", title: "Weight loss faster than target", description: "AI advises attention. Losing 4.5kg in one month might be a potential side effect of the new medication — Doctor notified." },
-          { color: "blue", title: "Missed measurement", description: "Blood pressure log scheduled for April 12 was not recorded. Do you want to enter it now?" },
-          { color: "green", title: "Compared to similar patients", description: "Your readings are better than 73% of patients your age and with your diagnosis at the same treatment stage." }
-        ]}
-        actionLabel1="Ask AI about weight"
-        actionLabel2="Send to Doctor"
+      <VitalsAiAnalysisSheet
+        open={isAnalysisOpen}
+        onOpenChange={setIsAnalysisOpen}
+        items={VITALS_AI_ANALYSIS_ITEMS}
       />
 
-      {/* Vitals History List */}
-      <VitalsHistoryList data={filteredData} />
+      <div className="relative flex-1 overflow-auto bg-[#F9F8F5] px-6 sm:px-8">
+        <div className="custom-scrollbar w-full space-y-6 pb-6 pt-4">
+          <div className="flex flex-col gap-4">
+            <AiAlertBanner message="Blood pressure on Mar 20 was 158/98 — higher than your usual range. Your care team has been notified." />
+            <AiSummaryBox
+              title="Last 3 months — trend summary"
+              body="Systolic pressure reduced by 18% compared to your history. Heart rate is stable within the safe range for your age and condition."
+              actionLabel1="Explain more"
+              actionLabel2="Ask about medication"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <VitalKpiCard
+              title="Blood pressure"
+              icon={<HeartPulseIcon className="size-5" />}
+              iconClassName="text-[#1A5345]"
+              value={`${currentVitals.bloodPressure.systolic}/${currentVitals.bloodPressure.diastolic}`}
+              unit="mmHg"
+              trend={currentVitals.bloodPressure.trend as "up" | "down" | "stable"}
+              trendValue={currentVitals.bloodPressure.trendValue}
+              trendGoodDirection="down"
+              aiBadgeText="Within your normal range"
+              aiBadgeType="info"
+            />
+            <VitalKpiCard
+              title="Heart rate"
+              icon={<HeartIcon className="size-5" />}
+              iconClassName="text-[#CC5533]"
+              value={currentVitals.heartRate.value}
+              unit="bpm"
+              trend={currentVitals.heartRate.trend as "up" | "down" | "stable"}
+              trendValue={currentVitals.heartRate.trendValue}
+              trendGoodDirection="down"
+              aiBadgeText="Stable for your age"
+              aiBadgeType="info"
+            />
+            <VitalKpiCard
+              title="Blood oxygen"
+              icon={<ActivityIcon className="size-5" />}
+              iconClassName="text-emerald-600"
+              value={currentVitals.spo2.value}
+              unit="%"
+              trend={currentVitals.spo2.trend as "up" | "down" | "stable"}
+              trendValue={currentVitals.spo2.trendValue}
+              trendGoodDirection="up"
+              aiBadgeText="Excellent"
+              aiBadgeType="info"
+            />
+            <VitalKpiCard
+              title="Weight"
+              icon={<WeightIcon className="size-5" />}
+              iconClassName="text-amber-600"
+              value={currentVitals.weight.value}
+              unit="kg"
+              trend={currentVitals.weight.trend as "up" | "down" | "stable"}
+              trendValue={currentVitals.weight.trendValue}
+              trendGoodDirection="down"
+              aiBadgeText="Faster drop than usual"
+              aiBadgeType="warning"
+            />
+          </div>
+
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <ActivityIcon className="size-5 text-[#1A5345]" aria-hidden />
+                <h3 className="text-[18px] font-bold text-[#1A1F1E]">Vitals trends</h3>
+              </div>
+              <Badge className="rounded-lg border-0 bg-[#1A5345] px-2.5 py-1 text-[11px] font-bold text-white">
+                {timeRange === "1W" ? "Last week" : timeRange === "1M" ? "Last month" : "Last 3 months"}
+              </Badge>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
+                <div className="border-b border-[#E8E6E0]/60 px-5 py-4 sm:px-6">
+                  <div className="flex items-center gap-2">
+                    <HeartPulseIcon className="size-4 text-[#ef4444]" aria-hidden />
+                    <p className="text-[14px] font-bold text-[#1A1F1E]">Blood pressure</p>
+                  </div>
+                  <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">
+                    Systolic and diastolic readings over the selected period.
+                  </p>
+                </div>
+                <BloodPressureChart data={filteredData} className="rounded-none border-0 shadow-none" />
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
+                <div className="border-b border-[#E8E6E0]/60 px-5 py-4 sm:px-6">
+                  <div className="flex items-center gap-2">
+                    <HeartIcon className="size-4 text-[#1A5345]" aria-hidden />
+                    <p className="text-[14px] font-bold text-[#1A1F1E]">Heart rate</p>
+                  </div>
+                  <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">
+                    Resting pulse (bpm) on the same date range.
+                  </p>
+                </div>
+                <HeartRateChart data={filteredData} className="rounded-none border-0 shadow-none" />
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <ActivityIcon className="size-5 text-[#1A5345]" aria-hidden />
+              <h3 className="text-[18px] font-bold text-[#1A1F1E]">Measurement history</h3>
+            </div>
+            <VitalsHistoryList data={filteredData} />
+          </section>
+        </div>
+      </div>
+
+      <style dangerouslySetInnerHTML={{ __html: vitalsScrollbarCss() }} />
     </div>
   )
 }

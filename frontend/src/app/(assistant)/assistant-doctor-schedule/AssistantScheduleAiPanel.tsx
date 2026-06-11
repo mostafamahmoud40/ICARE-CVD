@@ -53,6 +53,12 @@ type ScheduleAnalysis = {
   risks: string[]
 }
 
+type AiAnalysisResult = {
+  insights: string[]
+  risks: string[]
+  recommendations: string[]
+}
+
 export type AssistantScheduleAiPanelProps = {
   doctorName: string
   schedule: DoctorSchedulePayload
@@ -61,6 +67,13 @@ export type AssistantScheduleAiPanelProps = {
   dayExtrasCount: number
   onNavigate?: (target: ScheduleAiNavigateTarget) => void
   onApplySuggestion?: (suggestionId: string) => void | Promise<void>
+  /** Called when the user sends a chat message. Resolves with the AI reply text. */
+  onSendMessage?: (
+    text: string,
+    history: { role: "user" | "assistant"; content: string }[],
+  ) => Promise<string>
+  /** Called when "Run analysis" is clicked. Resolves with AI-generated analysis. */
+  onRunAnalysis?: () => Promise<AiAnalysisResult>
 }
 
 const PRIORITY_TASK_TYPE: Record<
@@ -298,6 +311,8 @@ export function AssistantScheduleAiPanel({
   dayExtrasCount,
   onNavigate,
   onApplySuggestion,
+  onSendMessage,
+  onRunAnalysis,
 }: AssistantScheduleAiPanelProps) {
   const panelProps = React.useMemo(
     () => ({ doctorName, schedule, bookingCount, pausedCount, dayExtrasCount }),
@@ -309,11 +324,12 @@ export function AssistantScheduleAiPanel({
 
   const [analyzing, setAnalyzing] = React.useState(false)
   const [analysisReady, setAnalysisReady] = React.useState(false)
+  const [aiAnalysis, setAiAnalysis] = React.useState<AiAnalysisResult | null>(null)
   const [messages, setMessages] = React.useState<ChatMessage[]>(() => [
     {
       id: "welcome",
       role: "assistant",
-      content: `Schedule assistant for ${doctorName}. Ask about coverage, bookings, paused sessions, or blocked dates. (Preview — not connected yet.)`,
+      content: `Schedule assistant for ${doctorName}. Ask about coverage, bookings, paused sessions, blocked dates, or any schedule-related question.`,
       at: new Date().toISOString(),
     },
   ])
@@ -327,13 +343,21 @@ export function AssistantScheduleAiPanel({
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isTyping])
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     setAnalyzing(true)
     setAnalysisReady(false)
-    window.setTimeout(() => {
+    setAiAnalysis(null)
+    try {
+      if (onRunAnalysis) {
+        const result = await onRunAnalysis()
+        setAiAnalysis(result)
+      }
       setAnalysisReady(true)
+    } catch {
+      toast.error("Analysis failed", { description: "Could not reach AI. Try again." })
+    } finally {
       setAnalyzing(false)
-    }, 900)
+    }
   }
 
   const handleSuggestionAction = async (s: ScheduleSuggestion) => {
@@ -364,7 +388,7 @@ export function AssistantScheduleAiPanel({
     }
   }
 
-  const handleSendChat = () => {
+  const handleSendChat = async () => {
     const text = chatInput.trim()
     if (!text || isTyping) return
 
@@ -378,18 +402,31 @@ export function AssistantScheduleAiPanel({
     setChatInput("")
     setIsTyping(true)
 
-    window.setTimeout(() => {
+    try {
+      let replyText: string
+      if (onSendMessage) {
+        const historyForApi = messages
+          .filter((m) => m.id !== "welcome")
+          .map((m) => ({ role: m.role, content: m.content }))
+        replyText = await onSendMessage(text, historyForApi)
+      } else {
+        await new Promise((r) => window.setTimeout(r, 800))
+        replyText = mockChatReply(text, doctorName)
+      }
       setMessages((prev) => [
         ...prev,
         {
           id: `a-${Date.now()}`,
           role: "assistant",
-          content: mockChatReply(text, doctorName),
+          content: replyText,
           at: new Date().toISOString(),
         },
       ])
+    } catch {
+      toast.error("Couldn't reach AI", { description: "Check connection and try again." })
+    } finally {
       setIsTyping(false)
-    }, 800)
+    }
   }
 
   return (
@@ -602,15 +639,22 @@ export function AssistantScheduleAiPanel({
 
             {analysisReady && !analyzing ? (
               <div className="space-y-4 animate-in fade-in duration-300">
-                {liveMetrics.insights.length > 0 ? (
+                {/* Insights */}
+                {(aiAnalysis?.insights ?? liveMetrics.insights).length > 0 ? (
                   <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm">
-                    <p className="mb-3 text-[12px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <p className="mb-3 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <SparklesIcon className="size-3.5 text-[#1A5345]" aria-hidden />
                       Insights
+                      {aiAnalysis ? (
+                        <span className="ml-auto rounded-md bg-violet-50 px-1.5 py-0.5 text-[10px] font-bold text-violet-600">
+                          AI · qwen3-32b
+                        </span>
+                      ) : null}
                     </p>
                     <ul className="space-y-2">
-                      {liveMetrics.insights.map((line) => (
+                      {(aiAnalysis?.insights ?? liveMetrics.insights).map((line, i) => (
                         <li
-                          key={line}
+                          key={i}
                           className="rounded-xl border border-[#E8E6E0]/50 bg-[#FAFAF8] px-3.5 py-2.5 text-[13px] font-medium text-[#1A1F1E]"
                         >
                           {line}
@@ -620,16 +664,17 @@ export function AssistantScheduleAiPanel({
                   </div>
                 ) : null}
 
-                {liveMetrics.risks.length > 0 ? (
+                {/* Risks */}
+                {(aiAnalysis?.risks ?? liveMetrics.risks).length > 0 ? (
                   <div className="rounded-2xl border border-l-4 border-l-amber-500 border-[#E8E6E0]/60 bg-white p-5 shadow-sm">
                     <p className="mb-3 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-amber-800">
                       <AlertTriangleIcon className="size-3.5" aria-hidden />
                       Risks &amp; flags
                     </p>
                     <ul className="space-y-2">
-                      {liveMetrics.risks.map((line) => (
+                      {(aiAnalysis?.risks ?? liveMetrics.risks).map((line, i) => (
                         <li
-                          key={line}
+                          key={i}
                           className="text-[13px] font-medium leading-relaxed text-muted-foreground"
                         >
                           {line}
@@ -642,6 +687,27 @@ export function AssistantScheduleAiPanel({
                     No risk flags detected on this draft.
                   </div>
                 )}
+
+                {/* AI Recommendations (only when AI analysis ran) */}
+                {aiAnalysis && aiAnalysis.recommendations.length > 0 ? (
+                  <div className="rounded-2xl border border-l-4 border-l-[#1A5345] border-[#E8E6E0]/60 bg-white p-5 shadow-sm">
+                    <p className="mb-3 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-[#1A5345]">
+                      <LightbulbIcon className="size-3.5" aria-hidden />
+                      Recommendations
+                    </p>
+                    <ul className="space-y-2">
+                      {aiAnalysis.recommendations.map((line, i) => (
+                        <li
+                          key={i}
+                          className="flex items-start gap-2 text-[13px] font-medium leading-relaxed text-[#1A1F1E]"
+                        >
+                          <ArrowRightIcon className="mt-0.5 size-3.5 shrink-0 text-[#1A5345]" aria-hidden />
+                          {line}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -652,8 +718,8 @@ export function AssistantScheduleAiPanel({
             dotClass="bg-[#1A5345]"
             title="Schedule chat"
             badge={
-              <span className="rounded-lg bg-[#1A5345] px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm">
-                Preview
+              <span className="rounded-lg bg-violet-50 px-2.5 py-0.5 text-[11px] font-bold text-violet-700 shadow-sm">
+                AI · llama-4-scout
               </span>
             }
           />
@@ -724,7 +790,7 @@ export function AssistantScheduleAiPanel({
 
           <p className="flex items-start gap-2 text-[11px] font-medium text-muted-foreground">
             <MessageSquareTextIcon className="mt-0.5 size-3.5 shrink-0 text-[#1A5345]" aria-hidden />
-            Chat will connect to the schedule API and revision history in a later release.
+            Chat reads live schedule, upcoming bookings, and the last 5 change revisions.
           </p>
         </div>
       </div>

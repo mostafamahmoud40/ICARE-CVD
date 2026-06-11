@@ -1,29 +1,20 @@
 "use client"
 
-import { useState } from "react"
-import type { PrescriptionType, TimeOfDay, AddPrescriptionPayload } from "./doctorPrescriptions.types"
-import { cn } from "@/lib/utils"
-import { Loader2Icon, PillIcon, SparklesIcon } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Loader2Icon, PencilLineIcon, SparklesIcon } from "lucide-react"
 import { toast } from "sonner"
-import {
-  DURATION_OPTIONS,
-  FREQUENCY_OPTIONS,
-  PRESCRIPTION_TYPES,
-  TIME_OPTIONS,
-  buildAiInstructions,
-  buildAiSideEffects,
-  frequencyValueToLabel,
-} from "./prescriptionForm.shared"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
+
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -32,61 +23,57 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-type AddPrescriptionDialogProps = {
+import {
+  FREQUENCY_OPTIONS,
+  PRESCRIPTION_TYPES,
+  TIME_OPTIONS,
+  buildAiInstructions,
+  buildAiSideEffects,
+  frequencyLabelToValue,
+  frequencyValueToLabel,
+} from "./prescriptionForm.shared"
+import type {
+  PatientPrescription,
+  PrescriptionCompliance,
+  PrescriptionType,
+  TimeOfDay,
+  UpdatePrescriptionPayload,
+} from "./doctorPrescriptions.types"
+
+type EditPrescriptionDialogProps = {
   open: boolean
   onClose: () => void
-  patientName: string
-  patientId: string
-  onAdd: (payload: AddPrescriptionPayload) => void
+  prescription: PatientPrescription | null
+  onSave: (prescriptionId: string, payload: UpdatePrescriptionPayload) => Promise<void>
 }
 
-export function AddPrescriptionDialog({
+export function EditPrescriptionDialog({
   open,
   onClose,
-  patientName,
-  patientId,
-  onAdd,
-}: AddPrescriptionDialogProps) {
-  const [name, setName] = useState("")
+  prescription,
+  onSave,
+}: EditPrescriptionDialogProps) {
   const [dose, setDose] = useState("")
   const [frequency, setFrequency] = useState("")
-  const [duration, setDuration] = useState("")
   const [type, setType] = useState<PrescriptionType>("statins")
+  const [compliance, setCompliance] = useState<PrescriptionCompliance>("good")
   const [sideEffects, setSideEffects] = useState("")
   const [instructions, setInstructions] = useState("")
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay[]>(["morning"])
+  const [isSaving, setIsSaving] = useState(false)
   const [isAiInstructionsLoading, setIsAiInstructionsLoading] = useState(false)
   const [isAiSideEffectsLoading, setIsAiSideEffectsLoading] = useState(false)
 
-  const runAiPreview = async (apply: () => void) => {
-    await new Promise((resolve) => setTimeout(resolve, 450))
-    apply()
-    toast.message("AI draft applied", {
-      description: "Preview — connect the prescribing API when ready.",
-    })
-  }
-
-  const handleAiInstructions = async () => {
-    setIsAiInstructionsLoading(true)
-    try {
-      await runAiPreview(() => {
-        setInstructions(buildAiInstructions(name, dose, frequency, timeOfDay))
-      })
-    } finally {
-      setIsAiInstructionsLoading(false)
-    }
-  }
-
-  const handleAiSideEffects = async () => {
-    setIsAiSideEffectsLoading(true)
-    try {
-      await runAiPreview(() => {
-        setSideEffects(buildAiSideEffects(name, type))
-      })
-    } finally {
-      setIsAiSideEffectsLoading(false)
-    }
-  }
+  useEffect(() => {
+    if (!open || !prescription) return
+    setDose(prescription.dose)
+    setFrequency(frequencyLabelToValue(prescription.frequency))
+    setType(prescription.type)
+    setCompliance(prescription.compliance)
+    setSideEffects(prescription.sideEffects ?? "")
+    setInstructions(prescription.instructions ?? "")
+    setTimeOfDay(prescription.timeOfDay.length > 0 ? prescription.timeOfDay : ["morning"])
+  }, [open, prescription])
 
   const toggleTime = (tod: TimeOfDay) => {
     setTimeOfDay((prev) =>
@@ -94,63 +81,84 @@ export function AddPrescriptionDialog({
     )
   }
 
-  const handleSubmit = () => {
-    if (!name.trim() || !dose.trim() || !frequency || !duration) return
-    const freqLabel = frequencyValueToLabel(frequency)
-    onAdd({
-      patientId,
-      name: name.trim(),
-      dose: dose.trim(),
-      frequency: freqLabel,
-      durationDays: duration === "ongoing" ? undefined : Number(duration),
-      type,
-      sideEffects: sideEffects.trim() || undefined,
-      instructions: instructions.trim() || undefined,
-      timeOfDay,
+  const runAiPreview = async (apply: () => void) => {
+    await new Promise((resolve) => setTimeout(resolve, 450))
+    apply()
+    toast.message("AI draft applied", {
+      description: "Review before saving changes.",
     })
-    // Reset form
-    setName("")
-    setDose("")
-    setFrequency("")
-    setDuration("")
-    setType("statins")
-    setSideEffects("")
-    setInstructions("")
-    setTimeOfDay(["morning"])
-    onClose()
   }
 
-  const isValid = name.trim() && dose.trim() && frequency && duration
+  const handleAiInstructions = async () => {
+    if (!prescription) return
+    setIsAiInstructionsLoading(true)
+    try {
+      await runAiPreview(() => {
+        setInstructions(buildAiInstructions(prescription.name, dose, frequency, timeOfDay))
+      })
+    } finally {
+      setIsAiInstructionsLoading(false)
+    }
+  }
+
+  const handleAiSideEffects = async () => {
+    if (!prescription) return
+    setIsAiSideEffectsLoading(true)
+    try {
+      await runAiPreview(() => {
+        setSideEffects(buildAiSideEffects(prescription.name, type))
+      })
+    } finally {
+      setIsAiSideEffectsLoading(false)
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!prescription || !dose.trim() || !frequency || timeOfDay.length === 0) return
+    setIsSaving(true)
+    try {
+      await onSave(prescription.id, {
+        dose: dose.trim(),
+        frequency: frequencyValueToLabel(frequency),
+        type,
+        compliance,
+        sideEffects: sideEffects.trim() || undefined,
+        instructions: instructions.trim() || undefined,
+        timeOfDay,
+      })
+      toast.success("Prescription updated")
+      onClose()
+    } catch {
+      toast.error("Could not update prescription")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const isValid = Boolean(prescription && dose.trim() && frequency && timeOfDay.length > 0)
+
+  if (!prescription) return null
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[min(90vh,720px)] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <PillIcon className="size-5 text-[#1A5345]" />
-            Add Prescription
+            <PencilLineIcon className="size-5 text-[#1A5345]" aria-hidden />
+            Edit prescription
           </DialogTitle>
           <DialogDescription>
-            Prescribe a new medication for{" "}
-            <span className="font-medium text-[#1A5345]">{patientName}</span>
+            Update <span className="font-medium text-[#1A5345]">{prescription.name}</span> for this
+            patient.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Medication Name */}
-          <div className="space-y-1.5">
-            <label className="text-[12px] font-medium text-[#1A1F1E]">
-              Medication Name <span className="text-red-400">*</span>
-            </label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Atorvastatin"
-              className="h-9 border-[#E8E6E0] text-[13px]"
-            />
+          <div className="rounded-lg border border-[#E8E6E0] bg-[#F9F8F5] px-3 py-2">
+            <p className="text-[11px] font-medium text-muted-foreground">Medication</p>
+            <p className="text-[14px] font-bold text-[#1A1F1E]">{prescription.name}</p>
           </div>
 
-          {/* Dose + Frequency */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-[12px] font-medium text-[#1A1F1E]">
@@ -168,7 +176,7 @@ export function AddPrescriptionDialog({
                 Frequency <span className="text-red-400">*</span>
               </label>
               <Select value={frequency} onValueChange={setFrequency}>
-                <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[13px] text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
+                <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[13px] text-[#152a24]">
                   <SelectValue placeholder="Select frequency..." />
                 </SelectTrigger>
                 <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
@@ -176,7 +184,7 @@ export function AddPrescriptionDialog({
                     <SelectItem
                       key={opt.value}
                       value={opt.value}
-                      className="cursor-pointer text-[13px] text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10"
+                      className="h-10 cursor-pointer text-[13px] text-[#152a24]"
                     >
                       {opt.label}
                     </SelectItem>
@@ -186,30 +194,6 @@ export function AddPrescriptionDialog({
             </div>
           </div>
 
-          {/* Duration */}
-          <div className="space-y-1.5">
-            <label className="text-[12px] font-medium text-[#1A1F1E]">
-              Duration <span className="text-red-400">*</span>
-            </label>
-            <Select value={duration} onValueChange={setDuration}>
-              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[13px] text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
-                <SelectValue placeholder="Select duration..." />
-              </SelectTrigger>
-              <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
-                {DURATION_OPTIONS.map((opt) => (
-                  <SelectItem
-                    key={opt.value}
-                    value={opt.value}
-                    className="cursor-pointer text-[13px] text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10"
-                  >
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Prescription Type */}
           <div className="space-y-1.5">
             <label className="text-[12px] font-medium text-[#1A1F1E]">Type</label>
             <div className="flex flex-wrap gap-1.5">
@@ -231,9 +215,29 @@ export function AddPrescriptionDialog({
             </div>
           </div>
 
-          {/* Time of Day */}
           <div className="space-y-1.5">
-            <label className="text-[12px] font-medium text-[#1A1F1E]">Time of Day</label>
+            <label className="text-[12px] font-medium text-[#1A1F1E]">Compliance note</label>
+            <div className="flex gap-1.5">
+              {(["good", "poor"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setCompliance(value)}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-[12px] font-medium capitalize transition-colors",
+                    compliance === value
+                      ? "bg-[#1A5345] text-white"
+                      : "bg-[#E8E6E0]/50 text-[#6B7870] hover:bg-[#E8E6E0]",
+                  )}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[12px] font-medium text-[#1A1F1E]">Time of day</label>
             <div className="flex gap-1.5">
               {TIME_OPTIONS.map((opt) => (
                 <button
@@ -253,7 +257,6 @@ export function AddPrescriptionDialog({
             </div>
           </div>
 
-          {/* Instructions */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
               <label className="text-[12px] font-medium text-[#1A1F1E]">Instructions</label>
@@ -264,7 +267,7 @@ export function AddPrescriptionDialog({
                 value={instructions}
                 onChange={(e) => setInstructions(e.target.value)}
                 placeholder="e.g. Take with food, avoid grapefruit juice..."
-                className="min-h-[60px] resize-none border-[#E8E6E0] pr-10 text-[13px] placeholder:text-[#9CA3AF]"
+                className="min-h-[60px] resize-none border-[#E8E6E0] pr-10 text-[13px]"
               />
               <Button
                 type="button"
@@ -274,7 +277,7 @@ export function AddPrescriptionDialog({
                 aria-label="Generate instructions with AI"
                 disabled={isAiInstructionsLoading}
                 onClick={() => void handleAiInstructions()}
-                className="absolute right-1 top-1 size-8 border-0 bg-transparent text-[#1A5345] shadow-none transition-colors hover:bg-transparent hover:text-[#133F34] disabled:opacity-50"
+                className="absolute right-1 top-1 size-8 border-0 bg-transparent text-[#1A5345] shadow-none hover:bg-transparent hover:text-[#133F34]"
               >
                 {isAiInstructionsLoading ? (
                   <Loader2Icon className="size-4 animate-spin" aria-hidden />
@@ -285,10 +288,9 @@ export function AddPrescriptionDialog({
             </div>
           </div>
 
-          {/* Side Effects */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-[12px] font-medium text-[#1A1F1E]">Known Side Effects</label>
+              <label className="text-[12px] font-medium text-[#1A1F1E]">Known side effects</label>
               <span className="text-[10px] font-medium text-muted-foreground">AI-assisted</span>
             </div>
             <div className="relative">
@@ -306,7 +308,7 @@ export function AddPrescriptionDialog({
                 aria-label="Suggest side effects with AI"
                 disabled={isAiSideEffectsLoading}
                 onClick={() => void handleAiSideEffects()}
-                className="absolute right-0.5 top-1/2 size-8 -translate-y-1/2 border-0 bg-transparent text-[#1A5345] shadow-none transition-colors hover:bg-transparent hover:text-[#133F34] disabled:opacity-50"
+                className="absolute right-0.5 top-1/2 size-8 -translate-y-1/2 border-0 bg-transparent text-[#1A5345] shadow-none hover:bg-transparent hover:text-[#133F34]"
               >
                 {isAiSideEffectsLoading ? (
                   <Loader2Icon className="size-4 animate-spin" aria-hidden />
@@ -318,18 +320,26 @@ export function AddPrescriptionDialog({
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-2">
-          <Button variant="outline" className="flex-1" onClick={onClose}>
+          <Button variant="outline" className="flex-1" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
           <Button
             className="flex-1 gap-1.5 bg-[#1A5345] hover:bg-[#0F3D32]"
-            disabled={!isValid}
-            onClick={handleSubmit}
+            disabled={!isValid || isSaving}
+            onClick={() => void handleSubmit()}
           >
-            <PillIcon className="size-4" />
-            Prescribe
+            {isSaving ? (
+              <>
+                <Loader2Icon className="size-4 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              <>
+                <PencilLineIcon className="size-4" />
+                Save changes
+              </>
+            )}
           </Button>
         </div>
       </DialogContent>

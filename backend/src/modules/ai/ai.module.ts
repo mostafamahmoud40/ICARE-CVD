@@ -3,16 +3,19 @@ import { JwtModule } from '@nestjs/jwt';
 import { AccessTokenGuard } from '../auth/access-token.guard';
 import { AuthJwtService } from '../auth/jwt';
 import { PatientGuard } from '../patient/patient.guard';
+import { AppointmentModule } from '../appointment/appointment.module';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
+import { PatientAiChatService } from './patient-ai-chat.service';
 
 @Module({
   imports: [
     JwtModule.register({
       secret: process.env.JWT_ACCESS_SECRET,
     }),
+    AppointmentModule,
   ],
   controllers: [AiController],
-  providers: [AiService, PatientGuard, AuthJwtService, AccessTokenGuard],
+  providers: [AiService, PatientAiChatService, PatientGuard, AuthJwtService, AccessTokenGuard],
 })
 export class AiModule {}
