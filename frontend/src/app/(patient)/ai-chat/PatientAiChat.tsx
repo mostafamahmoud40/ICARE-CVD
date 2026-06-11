@@ -1,7 +1,8 @@
 import * as React from "react"
 import { 
   SendIcon, 
-  BotIcon, 
+  BotIcon,
+  BotMessageSquareIcon,
   HelpCircleIcon,
   ActivityIcon,
   PillIcon,
@@ -84,35 +85,18 @@ export function PatientAiChat({
         {/* Left Side: Chat Area */}
         <div className="flex-1 flex flex-col min-w-0 relative">
           {/* Header */}
-          <div className="flex shrink-0 items-center justify-between border-b border-[#E8E6E0]/50 bg-white px-4 py-3 md:px-6 md:py-3.5">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <Avatar className="size-10 border border-[#E8E6E0]/80 shadow-xs bg-white">
-                    <AvatarFallback className="bg-[#1A5345]/10 text-[#1A5345]">
-                      <BotIcon className="size-5" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="absolute bottom-0 right-0 size-2.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />
-                </div>
-                <div>
-                  <h2 className="text-[17px] font-bold text-[#1A1F1E]">ICARE Health Advisor</h2>
-                  <p className="text-[13px] text-muted-foreground flex items-center gap-1.5 mt-0.5 font-medium">
-                    {isAssistantTyping ? (
-                      <span className="text-[#1A5345] font-semibold animate-pulse">Typing reply...</span>
-                    ) : (
-                      <>
-                        <span className="size-1 rounded-full bg-emerald-500/50" />
-                        <span>AI Assistant Active</span>
-                      </>
-                    )}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-[#EEF5F3] px-2.5 py-1 text-[12px] font-bold text-[#1A5345]">
-                  General Health
-                </span>
-              </div>
+          <div className="flex shrink-0 items-center gap-2.5 border-b border-[#E8E6E0]/50 bg-white px-4 py-3 md:px-6 md:py-3.5">
+            <BotMessageSquareIcon className="size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
+            <h2 className="flex-1 text-[15px] font-semibold text-[#1A1F1E]">
+              {isAssistantTyping ? (
+                <span className="text-[#1A5345] animate-pulse">Thinking…</span>
+              ) : (
+                "Ask your AI Agents"
+              )}
+            </h2>
+            <span className="rounded-md border border-[#E8E6E0] bg-white px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+              Beta
+            </span>
           </div>
 
           {/* Scrollable Message List */}

@@ -41,6 +41,10 @@ export type Medication = {
   instructions?: string
   timeOfDay: TimeOfDay[]
   remainingRefills: number
+  /** Days of supply left on hand — from pharmacy/refill data when available */
+  supplyDaysRemaining?: number
+  /** ISO date when the next refill is due */
+  nextRefillDue?: string
   adherenceHistory?: boolean[]
 }
 

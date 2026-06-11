@@ -1,5 +1,6 @@
-import { useCallback, useState, useSyncExternalStore } from "react"
-import { useMutation } from "@tanstack/react-query"
+import { useCallback, useRef, useState, useSyncExternalStore } from "react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { apiClient } from "@/lib/api-client"
 import { getMockAssistantReply } from "./mock-ai-reply"
 import type { AiChatDisplayMessage, AiChatMessage } from "./ai-chat.types"
 
@@ -18,14 +19,32 @@ function useClientTimesReady() {
   )
 }
 
+function newId(prefix: string) {
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${prefix}-${Date.now()}`
+}
+
+type ApiChatResponse = {
+  reply: string
+  booking?: {
+    confirmationCode: string
+    scheduledAt: string
+    doctorName: string
+    visitType: string
+  }
+}
+
+type HistoryItem = { role: "user" | "assistant"; content: string }
+
 const initialAssistant: AiChatMessage = {
   id: "welcome",
   role: "assistant",
-  greeting: "Hello Elena,",
-  text: "I've reviewed your latest blood panel from yesterday. Your glucose levels are within a healthy range, but your Vitamin D remains slightly below the target threshold. Would you like to discuss dietary adjustments or schedule a follow-up with Dr. Aris?",
+  greeting: "Hello,",
+  text: "I've reviewed your latest blood panel from yesterday. Your glucose levels are within a healthy range, but your Vitamin D remains slightly below the target threshold. Would you like to discuss dietary adjustments or schedule a follow-up?",
   actions: [
-    { id: "view-lab", label: "View Lab PDF", icon: "download", href: "/patient/consultations" },
-    { id: "book-followup", label: "Book Follow-up", icon: "calendar", href: "/patient/appointments" },
+    { id: "view-lab", label: "View Lab PDF", icon: "download", href: "/consultations" },
+    { id: "book-followup", label: "Book Follow-up", icon: "calendar", href: "/appointments" },
   ],
   sentAt: new Date(),
 }
@@ -33,36 +52,93 @@ const initialAssistant: AiChatMessage = {
 export function usePatientAiChat() {
   const [messages, setMessages] = useState<AiChatMessage[]>([initialAssistant])
   const showTimes = useClientTimesReady()
+  const queryClient = useQueryClient()
+
+  /** Maintained in a ref so the mutationFn always sees the latest list without stale closure. */
+  const messagesRef = useRef<AiChatMessage[]>([initialAssistant])
+
+  function appendMessages(msgs: AiChatMessage[]) {
+    messagesRef.current = [...messagesRef.current, ...msgs]
+    setMessages(messagesRef.current)
+  }
 
   const sendMutation = useMutation({
-    mutationFn: async (raw: string) => {
+    mutationFn: async (raw: string): Promise<ApiChatResponse | null> => {
       const text = raw.trim()
       if (!text) return null
-      await new Promise((r) => setTimeout(r, 550 + Math.random() * 500))
-      return getMockAssistantReply(text)
+
+      // Build history from all messages except the initial welcome and the
+      // user message we just appended in onMutate (last element).
+      const history: HistoryItem[] = messagesRef.current
+        .slice(1, -1) // skip welcome + the just-added user message
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .map((m) => ({ role: m.role as "user" | "assistant", content: m.text }))
+
+      try {
+        const { data } = await apiClient.post<ApiChatResponse>("/ai/chat", {
+          message: text,
+          history,
+        })
+        return data
+      } catch {
+        // Fallback to local mock when API is unavailable (dev / offline)
+        await new Promise((r) => setTimeout(r, 450 + Math.random() * 400))
+        const mock = getMockAssistantReply(text)
+        return { reply: mock.text }
+      }
     },
+
     onMutate: async (raw) => {
       const text = raw.trim()
       if (!text) return
       const userMsg: AiChatMessage = {
-        id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `u-${Date.now()}`,
+        id: newId("u"),
         role: "user",
         text,
         sentAt: new Date(),
       }
-      setMessages((prev) => [...prev, userMsg])
+      appendMessages([userMsg])
     },
-    onSuccess: (reply) => {
-      if (!reply) return
+
+    onSuccess: (response) => {
+      if (!response) return
+
+      const booking = response.booking
+
       const assistantMsg: AiChatMessage = {
-        id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `a-${Date.now()}`,
+        id: newId("a"),
         role: "assistant",
-        text: reply.text,
-        greeting: reply.greeting,
-        actions: reply.actions,
+        text: response.reply,
+        greeting: booking ? "Appointment confirmed," : undefined,
+        actions: booking
+          ? [
+              {
+                id: "view-appointments",
+                label: "View My Appointments",
+                icon: "calendar",
+                href: "/appointments",
+              },
+            ]
+          : undefined,
         sentAt: new Date(),
       }
-      setMessages((prev) => [...prev, assistantMsg])
+
+      appendMessages([assistantMsg])
+
+      // Invalidate appointments cache so the appointments page refreshes
+      if (booking) {
+        void queryClient.invalidateQueries({ queryKey: ["patient-appointments"] })
+      }
+    },
+
+    onError: () => {
+      const errMsg: AiChatMessage = {
+        id: newId("err"),
+        role: "assistant",
+        text: "Something went wrong generating a reply. Please try again.",
+        sentAt: new Date(),
+      }
+      appendMessages([errMsg])
     },
   })
 
@@ -70,7 +146,7 @@ export function usePatientAiChat() {
     (text: string) => {
       const trimmed = text.trim()
       if (!trimmed || sendMutation.isPending) return
-      void sendMutation.mutateAsync(text)
+      void sendMutation.mutateAsync(trimmed)
     },
     [sendMutation],
   )

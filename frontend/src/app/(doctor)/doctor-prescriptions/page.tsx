@@ -1,5 +1,5 @@
-import { DoctorPrescriptions } from "./DoctorPrescriptions"
+import { DoctorPrescriptionsList } from "./DoctorPrescriptionsList"
 
 export default function DoctorPrescriptionsPage() {
-  return <DoctorPrescriptions />
+  return <DoctorPrescriptionsList />
 }

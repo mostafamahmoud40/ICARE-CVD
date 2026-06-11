@@ -26,7 +26,7 @@ type ConsultationsContentProps = {
 }
 
 export function ConsultationsContent({ visits, stats }: ConsultationsContentProps) {
-  const [viewMode, setViewMode] = useState<ConsultationsViewMode>("table")
+  const [viewMode, setViewMode] = useState<ConsultationsViewMode>("timeline")
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
@@ -70,21 +70,6 @@ export function ConsultationsContent({ visits, stats }: ConsultationsContentProp
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => setViewMode("table")}
-            className={cn(
-              "h-8 gap-1.5 rounded-lg px-2.5 text-[12px] font-bold transition-all",
-              viewMode === "table"
-                ? "bg-[#1A5345] text-white shadow-sm"
-                : "text-muted-foreground hover:bg-slate-50",
-            )}
-          >
-            <ListIcon className="size-3.5" aria-hidden />
-            List
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
             onClick={() => setViewMode("timeline")}
             className={cn(
               "h-8 gap-1.5 rounded-lg px-2.5 text-[12px] font-bold transition-all",
@@ -95,6 +80,21 @@ export function ConsultationsContent({ visits, stats }: ConsultationsContentProp
           >
             <ClockIcon className="size-3.5" aria-hidden />
             Timeline
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setViewMode("table")}
+            className={cn(
+              "h-8 gap-1.5 rounded-lg px-2.5 text-[12px] font-bold transition-all",
+              viewMode === "table"
+                ? "bg-[#1A5345] text-white shadow-sm"
+                : "text-muted-foreground hover:bg-slate-50",
+            )}
+          >
+            <ListIcon className="size-3.5" aria-hidden />
+            List
           </Button>
         </div>
       </div>

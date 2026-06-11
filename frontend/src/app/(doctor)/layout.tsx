@@ -121,7 +121,7 @@ function DoctorLayoutContent({
       href: "/doctor-prescriptions",
       label: "Prescriptions",
       icon: PillIcon,
-      isActive: pathname === "/doctor-prescriptions",
+      isActive: pathname.startsWith("/doctor-prescriptions"),
     },
     {
       href: "/doctor-chat",
@@ -359,8 +359,10 @@ function DoctorLayoutContent({
                         ? "Patient Profile"
                         : pathname === "/doctor-patients"
                           ? "Patients"
-                          : pathname === "/doctor-prescriptions"
-                            ? "Prescriptions"
+                          : pathname.startsWith("/doctor-prescriptions")
+                            ? pathname.match(/^\/doctor-prescriptions\/[^/]+$/)
+                              ? "Patient prescriptions"
+                              : "Prescriptions"
                             : "Doctor Dashboard") || "Doctor Dashboard"}
             </div>
             <div className="text-sm text-muted-foreground">
@@ -380,8 +382,10 @@ function DoctorLayoutContent({
                           ? "Patient profile & quick links"
                           : pathname === "/doctor-patients"
                             ? "Patient directory & quick links"
-                            : pathname === "/doctor-prescriptions"
-                              ? "Manage patient prescriptions"
+                            : pathname.startsWith("/doctor-prescriptions")
+                              ? pathname.match(/^\/doctor-prescriptions\/[^/]+$/)
+                                ? "Prescriptions and adherence for this patient"
+                                : "Manage patient prescriptions"
                               : "Overview & patient insights") || "Overview & patient insights"}
             </div>
           </div>

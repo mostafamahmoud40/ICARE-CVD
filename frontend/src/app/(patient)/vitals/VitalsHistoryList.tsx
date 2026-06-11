@@ -1,25 +1,10 @@
 "use client"
 
-import {
-  ActivityIcon,
-  GaugeIcon,
-  ScaleIcon,
-  WindIcon,
-  ZapIcon,
-} from "lucide-react"
+import { ActivityIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import type { VitalHistoryRecord } from "./vitals.mock"
 
-/**
- * VitalsHistoryList Component
- * 
- * SOLID Principles:
- * - SRP: Only renders the vitals history table
- * - OCP: Accepts className for extension without modifying component
- * - ISP: Only requires data prop, no unnecessary dependencies
- * - DIP: Depends on VitalHistoryRecord abstraction, not concrete mock data
- */
 export interface VitalsHistoryListProps {
   data: VitalHistoryRecord[]
   className?: string
@@ -27,17 +12,22 @@ export interface VitalsHistoryListProps {
 
 export function VitalsHistoryList({ data, className }: VitalsHistoryListProps) {
   return (
-    <div className={cn("overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]", className)}>
+    <div
+      className={cn(
+        "overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]",
+        className
+      )}
+    >
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse bg-white text-left">
+        <table className="min-w-[900px] w-full border-collapse bg-white text-left">
           <thead className="sticky top-0 z-10 bg-[#F4F3ED]/90 shadow-[0_1px_0_0_#E8E6E0] backdrop-blur-md">
             <tr className="font-serif text-[15px] font-bold text-[#1A1F1E]">
               <th className="py-4 pl-4 pr-4">Date</th>
-              <th className="px-4 py-4">Blood Pressure</th>
-              <th className="px-4 py-4">Heart Rate</th>
+              <th className="px-4 py-4">Blood pressure</th>
+              <th className="px-4 py-4">Heart rate</th>
               <th className="px-4 py-4">SpO₂</th>
               <th className="px-4 py-4">Weight</th>
-              <th className="px-4 py-4">AI Note</th>
+              <th className="px-4 py-4">Note</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E8E6E0]/40">
@@ -45,7 +35,7 @@ export function VitalsHistoryList({ data, className }: VitalsHistoryListProps) {
               <tr>
                 <td colSpan={6} className="px-4 py-20 text-center">
                   <div className="flex flex-col items-center justify-center opacity-50">
-                    <ActivityIcon className="mb-4 size-12 stroke-[1.25]" />
+                    <ActivityIcon className="mb-4 size-12 stroke-[1.25]" aria-hidden />
                     <p className="text-[16px] font-bold text-[#1A1F1E]">No measurements found</p>
                     <p className="mt-1 text-[13px] font-medium text-muted-foreground">
                       No vitals readings for the selected time period.
@@ -70,68 +60,49 @@ export function VitalsHistoryList({ data, className }: VitalsHistoryListProps) {
                   </td>
                   <td className="px-4 py-4 align-middle">
                     {record.systolic && record.diastolic ? (
-                      <div className="flex items-center gap-2">
-                        <GaugeIcon className="size-[18px] text-emerald-600" />
-                        <span className="text-[14px] font-medium text-[#1A1F1E]/80">
-                          {record.systolic}/{record.diastolic}
-                          <span className="ml-1 text-[12px] text-muted-foreground">mmHg</span>
-                        </span>
-                      </div>
+                      <span className="text-[14px] font-medium text-[#1A1F1E]/80">
+                        {record.systolic}/{record.diastolic}
+                        <span className="ml-1 text-[12px] text-muted-foreground">mmHg</span>
+                      </span>
                     ) : (
-                      <span className="text-[14px] font-medium text-muted-foreground">-</span>
+                      <span className="text-[14px] font-medium text-muted-foreground">—</span>
                     )}
                   </td>
                   <td className="px-4 py-4 align-middle">
                     {record.heartRate ? (
-                      <div className="flex items-center gap-2">
-                        <ZapIcon className="size-[18px] text-rose-500" />
-                        <span className="text-[14px] font-medium text-[#1A1F1E]/80">
-                          {record.heartRate}
-                          <span className="ml-1 text-[12px] text-muted-foreground">bpm</span>
-                        </span>
-                      </div>
+                      <span className="text-[14px] font-medium text-[#1A1F1E]/80">
+                        {record.heartRate}
+                        <span className="ml-1 text-[12px] text-muted-foreground">bpm</span>
+                      </span>
                     ) : (
-                      <span className="text-[14px] font-medium text-muted-foreground">-</span>
+                      <span className="text-[14px] font-medium text-muted-foreground">—</span>
                     )}
                   </td>
                   <td className="px-4 py-4 align-middle">
                     {record.spo2 ? (
-                      <div className="flex items-center gap-2">
-                        <WindIcon className="size-[18px] text-sky-500" />
-                        <span className="text-[14px] font-medium text-[#1A1F1E]/80">
-                          {record.spo2}
-                          <span className="ml-1 text-[12px] text-muted-foreground">%</span>
-                        </span>
-                      </div>
+                      <span className="text-[14px] font-medium text-[#1A1F1E]/80">
+                        {record.spo2}
+                        <span className="ml-1 text-[12px] text-muted-foreground">%</span>
+                      </span>
                     ) : (
-                      <span className="text-[14px] font-medium text-muted-foreground">-</span>
+                      <span className="text-[14px] font-medium text-muted-foreground">—</span>
                     )}
                   </td>
                   <td className="px-4 py-4 align-middle">
                     {record.weight ? (
-                      <div className="flex items-center gap-2">
-                        <ScaleIcon className="size-[18px] text-amber-600" />
-                        <span className="text-[14px] font-medium text-[#1A1F1E]/80">
-                          {record.weight}
-                          <span className="ml-1 text-[12px] text-muted-foreground">kg</span>
-                        </span>
-                      </div>
+                      <span className="text-[14px] font-medium text-[#1A1F1E]/80">
+                        {record.weight}
+                        <span className="ml-1 text-[12px] text-muted-foreground">kg</span>
+                      </span>
                     ) : (
-                      <span className="text-[14px] font-medium text-muted-foreground">-</span>
+                      <span className="text-[14px] font-medium text-muted-foreground">—</span>
                     )}
                   </td>
                   <td className="px-4 py-4 align-middle">
                     {record.aiNote ? (
-                      <div className="flex items-center gap-2">
-                        <span className="flex size-6 items-center justify-center rounded-lg bg-violet-100 text-[11px] font-bold text-violet-600">
-                          AI
-                        </span>
-                        <span className="text-[13px] font-medium text-[#1A1F1E]/80">
-                          {record.aiNote}
-                        </span>
-                      </div>
+                      <span className="text-[13px] font-medium text-[#6B7870]">{record.aiNote}</span>
                     ) : (
-                      <span className="text-[14px] font-medium text-muted-foreground">-</span>
+                      <span className="text-[14px] font-medium text-muted-foreground">—</span>
                     )}
                   </td>
                 </tr>

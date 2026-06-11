@@ -96,6 +96,8 @@ import type {
 } from "./assistantDoctorSchedule.types"
 import { AssistantScheduleAiPanel } from "./AssistantScheduleAiPanel"
 import {
+  runScheduleAiAnalysis,
+  sendScheduleAiMessage,
   useAssistantDoctorSchedule,
   useAssistantScheduleDoctors,
 } from "./useAssistantDoctorSchedule"
@@ -1888,6 +1890,10 @@ function AssistantDoctorScheduleBody({
               }))
             }
           }}
+          onSendMessage={(text, history) =>
+            sendScheduleAiMessage(doctorId, doctorName, text, history)
+          }
+          onRunAnalysis={() => runScheduleAiAnalysis(doctorId, doctorName)}
         />
       ) : null}
 

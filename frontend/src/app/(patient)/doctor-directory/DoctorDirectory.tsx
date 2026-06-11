@@ -1,7 +1,6 @@
 "use client"
 
 import Image from "next/image"
-import Link from "next/link"
 import * as React from "react"
 import {
   ArrowRightIcon,
@@ -24,14 +23,6 @@ import {
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -64,43 +55,38 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Eye: EyeIcon,
 }
 
-const AVAILABILITY_DISPLAY: Record<DoctorAvailability, { label: string; badge: string }> = {
-  Available: { label: "Available", badge: "bg-emerald-500" },
-  Limited: { label: "Limited slots", badge: "bg-amber-500" },
-  Unavailable: { label: "Fully booked", badge: "bg-slate-500" },
+const AVAILABILITY_DISPLAY: Record<
+  DoctorAvailability,
+  { label: string; dot: string; badge: string }
+> = {
+  Available: {
+    label: "Available",
+    dot: "bg-emerald-500",
+    badge: "bg-emerald-50 text-emerald-700",
+  },
+  Limited: {
+    label: "Limited slots",
+    dot: "bg-amber-500",
+    badge: "bg-amber-50 text-amber-700",
+  },
+  Unavailable: {
+    label: "Fully booked",
+    dot: "bg-slate-400",
+    badge: "bg-slate-100 text-slate-600",
+  },
 }
 
-function AvailabilityIndicator({ availability }: { availability: DoctorAvailability }) {
+function AvailabilityBadge({ availability }: { availability: DoctorAvailability }) {
   const cfg = AVAILABILITY_DISPLAY[availability]
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center rounded-md px-2 py-0.5 text-[10px] font-bold leading-none whitespace-nowrap text-white shadow-sm",
+        "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-0.5 text-[10px] font-bold whitespace-nowrap",
         cfg.badge,
       )}
     >
+      <span className={cn("size-1.5 rounded-full", cfg.dot)} aria-hidden />
       {cfg.label}
-    </span>
-  )
-}
-
-function VisitChannelsIndicator({ channels }: { channels: DoctorVisitChannels }) {
-  const label = DOCTOR_VISIT_CHANNELS_LABELS[channels]
-  const showClinic = channels === "clinic" || channels === "both"
-  const showVirtual = channels === "virtual" || channels === "both"
-
-  return (
-    <span
-      className="inline-flex items-center gap-1 text-[11px] font-medium text-[#6B7870]"
-      title={label}
-    >
-      {showClinic ? (
-        <Building2Icon className="size-3 shrink-0 text-[#1A5345]" aria-hidden />
-      ) : null}
-      {showVirtual ? (
-        <VideoIcon className="size-3 shrink-0 text-[#1A5345]" aria-hidden />
-      ) : null}
-      <span className="whitespace-nowrap">{label}</span>
     </span>
   )
 }
@@ -121,10 +107,7 @@ function SpecialtyIcon({ specialty }: { specialty: Specialty }) {
 
 function SpecialtyBadge({ specialty }: { specialty: Specialty }) {
   return (
-    <span
-      className="inline-flex items-center gap-1 text-[11px] font-bold"
-      style={{ color: specialty.color }}
-    >
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#1A5345]">
       <SpecialtyIcon specialty={specialty} />
       {specialty.name}
     </span>
@@ -165,205 +148,220 @@ function DoctorRating({ rating, count }: { rating: number; count: number }) {
   )
 }
 
-function DoctorPhoto({ doctor }: { doctor: Doctor }) {
+function DoctorAvatar({
+  doctor,
+  size = "md",
+}: {
+  doctor: Doctor
+  size?: "md" | "lg"
+}) {
   const [imageFailed, setImageFailed] = React.useState(false)
   const initials = doctor.name
     .split(" ")
     .map((n) => n[0])
     .join("")
+    .slice(0, 2)
   const showFallback = !doctor.imageUrl || imageFailed
-
-  if (showFallback) {
-    return (
-      <div className="flex h-full min-h-[7.5rem] w-full items-center justify-center font-serif text-[22px] font-bold text-[#1A5345] sm:text-[24px]">
-        {initials}
-      </div>
-    )
-  }
+  const box = size === "lg" ? "size-20 sm:size-[88px]" : "size-16 sm:size-[72px]"
+  const textSize = size === "lg" ? "text-[22px]" : "text-[18px]"
 
   return (
-    <Image
-      src={doctor.imageUrl}
-      alt={doctor.name}
-      fill
-      sizes="(max-width: 768px) 112px, 160px"
-      className="object-cover"
-      onError={() => setImageFailed(true)}
-    />
+    <div
+      className={cn(
+        "relative shrink-0 overflow-hidden rounded-2xl border border-[#E8E6E0]/60 bg-gradient-to-br from-[#E8F0EE]/60 to-white shadow-sm ring-1 ring-[#E8E6E0]/40",
+        box,
+      )}
+    >
+      {showFallback ? (
+        <div
+          className={cn(
+            "flex size-full items-center justify-center font-serif font-bold text-[#1A5345]",
+            textSize,
+          )}
+        >
+          {initials}
+        </div>
+      ) : (
+        <Image
+          src={doctor.imageUrl!}
+          alt={doctor.name}
+          fill
+          sizes={size === "lg" ? "88px" : "72px"}
+          className="object-cover"
+          onError={() => setImageFailed(true)}
+        />
+      )}
+    </div>
+  )
+}
+
+function formatNextSlot(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })
+}
+
+function DoctorMetaRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  value: React.ReactNode
+}) {
+  return (
+    <div className="flex items-start gap-2.5 text-[12px]">
+      <Icon className="mt-0.5 size-3.5 shrink-0 text-[#1A5345]" aria-hidden />
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="mt-0.5 font-medium leading-snug text-[#1A1F1E]/85">{value}</p>
+      </div>
+    </div>
+  )
+}
+
+function DoctorCardHeader({ doctor }: { doctor: Doctor }) {
+  return (
+    <div className="flex items-start gap-4">
+      <DoctorAvatar doctor={doctor} size="lg" />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h3 className="font-serif text-[17px] font-bold leading-tight text-[#1A1F1E] transition-colors group-hover:text-[#1A5345] sm:text-[18px]">
+                {doctor.name}
+              </h3>
+              {doctor.rating >= 4.8 ? (
+                <VerifiedIcon className="size-4 shrink-0 text-[#1A5345]" aria-label="Top rated" />
+              ) : null}
+            </div>
+            <p className="mt-0.5 text-[12px] font-medium text-muted-foreground sm:text-[13px]">
+              {doctor.title}
+            </p>
+          </div>
+          <AvailabilityBadge availability={doctor.availability} />
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <SpecialtyBadge specialty={doctor.specialty} />
+          <DoctorRating rating={doctor.rating} count={doctor.reviewCount} />
+        </div>
+      </div>
+    </div>
   )
 }
 
 function DoctorCard({ doctor }: { doctor: Doctor }) {
   return (
-    <div className="group relative flex min-h-[7.5rem] gap-3 overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white p-2 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)] transition-all hover:border-[#1A5345]/30 hover:shadow-md sm:min-h-[8.25rem] sm:gap-4 sm:p-3">
-      <div className="relative w-28 shrink-0 self-stretch overflow-hidden rounded-2xl bg-[#F4F3EF] sm:w-36 md:w-40">
-        <DoctorPhoto doctor={doctor} />
-        {doctor.rating >= 4.8 ? (
-          <div className="absolute bottom-2 left-2 flex w-fit max-w-[calc(100%-1rem)] items-center gap-1 rounded-lg border border-[#E8E6E0]/60 bg-white/95 px-1.5 py-0.5 shadow-sm backdrop-blur-sm">
-            <VerifiedIcon className="size-3 shrink-0 text-[#1A5345]" aria-hidden />
-            <span className="text-[9px] font-bold tracking-tight text-[#1A5345] whitespace-nowrap">
-              TOP RATED
-            </span>
-          </div>
-        ) : null}
+    <article className="group overflow-hidden rounded-2xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm transition-all duration-300 hover:border-[#1A5345]/25 hover:shadow-md sm:p-5">
+      <DoctorCardHeader doctor={doctor} />
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <DoctorMetaRow
+          icon={MapPinIcon}
+          label="Location"
+          value={
+            <>
+              {doctor.hospital}
+              <span className="block text-[11px] text-muted-foreground">{doctor.location}</span>
+            </>
+          }
+        />
+        <DoctorMetaRow
+          icon={CalendarIcon}
+          label="Next available"
+          value={formatNextSlot(doctor.nextAvailableSlot)}
+        />
+        <DoctorMetaRow
+          icon={ClockIcon}
+          label="Experience"
+          value={`${doctor.experience} years`}
+        />
+        <DoctorMetaRow
+          icon={doctor.visitChannels === "virtual" ? VideoIcon : Building2Icon}
+          label="Visit type"
+          value={DOCTOR_VISIT_CHANNELS_LABELS[doctor.visitChannels]}
+        />
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col justify-center py-1 pr-1 sm:py-0.5 sm:pr-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <h3 className="min-w-0 truncate font-serif text-[15px] font-bold leading-snug text-[#1A1F1E] sm:text-[16px]">
-                  {doctor.name}
-                </h3>
-                <AvailabilityIndicator availability={doctor.availability} />
-              </div>
-              <p className="mt-0.5 truncate text-[12px] font-medium text-muted-foreground">
-                {doctor.title}
-              </p>
-            </div>
-            <div className="shrink-0 text-right">
-              <div className="font-serif text-[17px] font-bold leading-none text-[#1A1F1E] sm:text-[18px]">
-                ${doctor.fee}
-              </div>
-              <p className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-[#6B7870]">
-                Consultation
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <SpecialtyBadge specialty={doctor.specialty} />
-            <VisitChannelsIndicator channels={doctor.visitChannels} />
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-              <ClockIcon className="size-3 shrink-0" aria-hidden />
-              {doctor.experience} yrs
-            </span>
-            <span className="inline-flex min-w-0 items-center gap-1 text-[11px] font-medium text-[#6B7870]">
-              <MapPinIcon className="size-3 shrink-0 text-[#1A5345]" aria-hidden />
-              <span className="truncate">
-                {doctor.hospital}, {doctor.location}
-              </span>
-            </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#6B7870]">
-              <CalendarIcon className="size-3 shrink-0 text-[#1A5345]" aria-hidden />
-              <span className="whitespace-nowrap">
-                Next:{" "}
-                <span className="font-bold text-[#1A1F1E]">
-                  {new Date(doctor.nextAvailableSlot).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </span>
-            </span>
-          </div>
-
-          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-[#E8E6E0]/60 pt-2.5">
-            <DoctorRating rating={doctor.rating} count={doctor.reviewCount} />
-            <div className="flex items-center gap-1.5 sm:ml-auto">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2.5 text-[11px] font-bold text-[#1A5345] hover:bg-[#F4F3EF] hover:text-[#1A5345]"
-              >
-                View Profile
-              </Button>
-              <Button
-                size="sm"
-                className="h-7 gap-1 rounded-lg border-0 bg-[#1A5345] px-3 text-[11px] font-bold text-white shadow-sm transition-all hover:bg-[#133F34]"
-              >
-                Book Now
-                <ArrowRightIcon className="size-3" />
-              </Button>
-            </div>
-          </div>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-serif text-[22px] font-bold leading-none text-[#1A1F1E]">${doctor.fee}</p>
+          <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            per consultation
+          </p>
         </div>
-    </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 rounded-lg border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A5345] shadow-sm hover:bg-[#F9F8F5]"
+          >
+            View profile
+          </Button>
+          <Button
+            size="sm"
+            className="h-8 gap-1.5 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-[0_2px_10px_rgba(26,83,69,0.2)] hover:bg-[#133F34]"
+          >
+            Book now
+            <ArrowRightIcon className="size-3.5" aria-hidden />
+          </Button>
+        </div>
+      </div>
+    </article>
   )
 }
 
 function DoctorGridCard({ doctor }: { doctor: Doctor }) {
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)] transition-all hover:border-[#1A5345]/30 hover:shadow-md">
-      <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-[#F4F3EF]">
-        <DoctorPhoto doctor={doctor} />
-        {doctor.rating >= 4.8 ? (
-          <div className="absolute left-3 top-3 flex items-center gap-1 rounded-lg border border-[#E8E6E0]/60 bg-white/95 px-1.5 py-0.5 shadow-sm backdrop-blur-sm">
-            <VerifiedIcon className="size-3 shrink-0 text-[#1A5345]" aria-hidden />
-            <span className="text-[9px] font-bold tracking-tight text-[#1A5345] whitespace-nowrap">
-              TOP RATED
-            </span>
-          </div>
-        ) : null}
-      </div>
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#E8E6E0]/60 bg-white shadow-sm transition-all duration-300 hover:border-[#1A5345]/25 hover:shadow-md">
+      <div className="flex h-full flex-col p-4 sm:p-5">
+        <DoctorCardHeader doctor={doctor} />
 
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="min-w-0 flex-1 truncate font-serif text-[17px] font-bold leading-snug text-[#1A1F1E]">
-              {doctor.name}
-            </h3>
-            <AvailabilityIndicator availability={doctor.availability} />
-          </div>
-          <p className="truncate text-[12px] font-medium text-muted-foreground">
-            {doctor.title}
-          </p>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-          <SpecialtyBadge specialty={doctor.specialty} />
-          <DoctorRating rating={doctor.rating} count={doctor.reviewCount} />
-        </div>
-
-        <div className="mt-4 flex flex-col gap-2 border-t border-[#E8E6E0]/60 pt-4">
-          <div className="flex items-start gap-2 text-[12px] font-medium text-[#6B7870]">
-            <MapPinIcon className="mt-0.5 size-3.5 shrink-0 text-[#1A5345]" aria-hidden />
-            <span className="line-clamp-2 leading-tight">
-              {doctor.hospital}, {doctor.location}
-            </span>
-          </div>
-          <div className="flex items-start gap-2 text-[12px] font-medium text-[#6B7870]">
-            <CalendarIcon className="mt-0.5 size-3.5 shrink-0 text-[#1A5345]" aria-hidden />
-            <span className="line-clamp-2 leading-tight">
-              Next:{" "}
-              <span className="font-bold text-[#1A1F1E]">
-                {new Date(doctor.nextAvailableSlot).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
+        <div className="mt-4 flex flex-1 flex-col gap-3.5">
+          <DoctorMetaRow
+            icon={MapPinIcon}
+            label="Location"
+            value={
+              <span className="line-clamp-2">
+                {doctor.hospital}, {doctor.location}
               </span>
-            </span>
-          </div>
-          <div className="flex items-start gap-2">
-            <VisitChannelsIndicator channels={doctor.visitChannels} />
+            }
+          />
+          <div className="grid grid-cols-2 gap-3.5">
+            <DoctorMetaRow
+              icon={CalendarIcon}
+              label="Next available"
+              value={formatNextSlot(doctor.nextAvailableSlot)}
+            />
+            <DoctorMetaRow
+              icon={doctor.visitChannels === "virtual" ? VideoIcon : Building2Icon}
+              label="Visit type"
+              value={DOCTOR_VISIT_CHANNELS_LABELS[doctor.visitChannels]}
+            />
           </div>
         </div>
 
-        <div className="mt-auto pt-5">
-          <div className="flex items-center justify-between border-t border-[#E8E6E0]/60 pt-4">
-            <div className="flex flex-col">
-              <div className="font-serif text-[18px] font-bold leading-none text-[#1A1F1E]">
-                ${doctor.fee}
-              </div>
-              <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[#6B7870]">
-                Consultation
-              </p>
-            </div>
-            <Button
-              size="sm"
-              className="h-8 gap-1.5 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-[0_2px_10px_rgba(26,83,69,0.2)] transition-all hover:bg-[#133F34] hover:shadow-[0_4px_14px_rgba(26,83,69,0.25)]"
-            >
-              Book Now
-              <ArrowRightIcon className="size-3.5" />
-            </Button>
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <div>
+            <p className="font-serif text-[20px] font-bold leading-none text-[#1A1F1E]">${doctor.fee}</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              per visit
+            </p>
           </div>
+          <Button
+            size="sm"
+            className="h-8 gap-1.5 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-[0_2px_10px_rgba(26,83,69,0.2)] transition-all hover:bg-[#133F34]"
+          >
+            Book
+            <ArrowRightIcon className="size-3.5" aria-hidden />
+          </Button>
         </div>
       </div>
-    </div>
+    </article>
   )
 }
 
@@ -389,44 +387,35 @@ export function DoctorDirectory() {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
-      <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-white">
-        <div className="flex flex-col px-5 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5">
-          <div className="mb-2 flex items-center gap-2 sm:mb-2.5">
-            <Breadcrumb>
-              <BreadcrumbList className="text-[10px] sm:text-[11px]">
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard" className="text-[10px] font-medium sm:text-[11px]">
-                      Dashboard
-                    </Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">
-                    Doctor directory
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
+      <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-gradient-to-br from-white via-[#FFFCFA] to-[#E8F0EE]/30">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#1A5345]/15 via-[#CC5533]/35 to-[#1A5345]/15"
+          aria-hidden
+        />
+        <div className="flex flex-col px-6 pb-5 pt-4 sm:px-8 sm:pb-6 sm:pt-5">
+          <p className="border-l-[3px] border-[#CC5533] pl-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground sm:text-[12px]">
+            Verified specialists
+          </p>
 
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
-            <div className="min-w-0 space-y-0.5">
-              <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px] lg:text-[26px]">
+          <div className="mt-2 flex flex-col gap-3 sm:mt-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+            <div className="min-w-0 space-y-1">
+              <h1 className="font-serif text-[24px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[26px] lg:text-[28px]">
                 Doctor directory
               </h1>
-              <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
-                Find verified specialists and book the right clinician for your care.
+              <p className="text-[13px] font-medium text-[#6B7870] sm:text-[14px]">
+                Find the right clinician and book your next visit.
               </p>
             </div>
-            <div className="hidden shrink-0 flex-col items-end gap-0.5 xl:flex">
-              <span className="text-[10px] font-bold text-muted-foreground sm:text-[11px]">
-                Available now
-              </span>
-              <span className="font-serif text-[18px] font-bold leading-none tabular-nums text-[#1A5345] sm:text-[20px]">
-                {doctors.filter((d) => d.availability === "Available").length}
-              </span>
+            <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-[#E8E6E0]/60 bg-white/80 px-4 py-2.5 shadow-sm">
+              <StethoscopeIcon className="size-5 text-[#1A5345]" aria-hidden />
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Available now
+                </p>
+                <p className="font-serif text-[22px] font-bold leading-none tabular-nums text-[#1A5345]">
+                  {doctors.filter((d) => d.availability === "Available").length}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -592,8 +581,8 @@ export function DoctorDirectory() {
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1 overflow-auto bg-[#F9F8F5] px-5 sm:px-6">
-        <div className="w-full space-y-4 pb-8 pt-4 sm:pt-6">
+      <div className="relative min-h-0 flex-1 overflow-auto bg-[#F9F8F5] px-6 sm:px-8">
+        <div className="w-full space-y-5 pb-10 pt-6 sm:space-y-6 sm:pt-8">
           <div className="flex flex-wrap items-center gap-2 px-1">
             <p className="text-[13px] font-medium text-muted-foreground">
               Showing <span className="font-bold text-[#1A1F1E]">{doctors.length}</span> verified
@@ -622,7 +611,7 @@ export function DoctorDirectory() {
               className={cn(
                 "grid gap-4",
                 viewMode === "grid"
-                  ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                  ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
                   : "grid-cols-1"
               )}
             >
