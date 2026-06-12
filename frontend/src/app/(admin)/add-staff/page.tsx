@@ -3,8 +3,8 @@ import type { Metadata } from "next"
 import { AddStaffPageContainer } from "./AddStaffPageContainer"
 
 export const metadata: Metadata = {
-  title: "Add Staff | ICARE-CVD",
-  description: "Create doctor and assistant accounts from admin dashboard.",
+  title: "Staff Directory | ICARE-CVD",
+  description: "Manage doctor and assistant accounts from the admin portal.",
 }
 
 export default function AddStaffPage() {

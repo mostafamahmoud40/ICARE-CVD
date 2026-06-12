@@ -1,5 +1,8 @@
 export type StaffRole = "doctor" | "assistant"
 
+/** Which appointment visit types a doctor accepts. */
+export type DoctorAcceptedVisitModes = "clinic" | "virtual" | "both"
+
 export type AddStaffFormValues = {
   fullName: string
   email: string
@@ -8,6 +11,8 @@ export type AddStaffFormValues = {
   role: StaffRole
   specialty: string
   experienceYears: number | ""
+  acceptedVisitModes: DoctorAcceptedVisitModes
+  avatarUrl: string
 }
 
 export type CreatedStaffMember = {
@@ -18,6 +23,9 @@ export type CreatedStaffMember = {
   role: StaffRole
   specialty: string | null
   experienceYears: number
+  acceptedVisitModes: DoctorAcceptedVisitModes | null
+  avatarUrl: string | null
+  isActive: boolean
   createdAt: string
 }
 
@@ -29,6 +37,7 @@ export type AddStaffApiResponse = {
     name: string
     email: string
     phone: string | null
+    avatarUrl: string | null
     role: string
   }
   accessToken: string

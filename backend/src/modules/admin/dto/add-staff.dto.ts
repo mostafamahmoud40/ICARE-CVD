@@ -14,6 +14,13 @@ export enum StaffRole {
   Assistant = 'assistant',
 }
 
+/** Which appointment visit types a doctor accepts. */
+export enum DoctorAcceptedVisitModes {
+  Clinic = 'clinic',
+  Virtual = 'virtual',
+  Both = 'both',
+}
+
 export class AddStaffDto {
   @IsString()
   @IsNotEmpty()
@@ -33,6 +40,10 @@ export class AddStaffDto {
   @MaxLength(128)
   password!: string;
 
+  @IsString()
+  @IsNotEmpty()
+  avatarUrl!: string;
+
   @IsEnum(StaffRole)
   role!: StaffRole;
 
@@ -44,4 +55,9 @@ export class AddStaffDto {
   @IsOptional()
   @IsNumber()
   experienceYears?: number;
+
+  /** Required when role is doctor; ignored for assistants. */
+  @IsOptional()
+  @IsEnum(DoctorAcceptedVisitModes)
+  acceptedVisitModes?: DoctorAcceptedVisitModes;
 }

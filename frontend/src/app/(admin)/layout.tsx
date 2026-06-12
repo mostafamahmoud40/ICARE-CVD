@@ -105,7 +105,7 @@ function AdminLayoutContent({
     },
     {
       href: "/admin/addstaff",
-      label: "Add staff",
+      label: "Staff directory",
       icon: BadgePlusIcon,
       isActive: pathname.startsWith("/admin/addstaff"),
     },

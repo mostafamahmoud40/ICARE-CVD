@@ -118,6 +118,12 @@ function DoctorLayoutContent({
       isActive: pathname.startsWith("/doctor-patients"),
     },
     {
+      href: "/doctor-assistants",
+      label: "Assistants",
+      icon: User2Icon,
+      isActive: pathname.startsWith("/doctor-assistants"),
+    },
+    {
       href: "/doctor-prescriptions",
       label: "Prescriptions",
       icon: PillIcon,

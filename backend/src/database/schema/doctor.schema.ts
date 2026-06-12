@@ -17,6 +17,10 @@ export const doctor = pgTable('doctor', {
     .unique(),
   specialty: varchar('specialty', { length: 120 }),
   experienceYears: smallint('experience_years').notNull().default(0),
+  /** clinic | virtual | both — which appointment types this doctor accepts. */
+  acceptedVisitModes: varchar('accepted_visit_modes', { length: 16 })
+    .notNull()
+    .default('both'),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

@@ -12,6 +12,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { MedicationModule } from './modules/medication/medication.module';
 import { AiModule } from './modules/ai/ai.module';
 import { DoctorPatientModule } from './modules/doctor/patients/doctor-patient.module';
+import { DoctorAssistantModule } from './modules/doctor/assistants/doctor-assistant.module';
 import { VitalsModule } from './modules/vitals/vitals.module';
 import { DiagnosisModule } from './modules/diagnosis/diagnosis.module';
 import { DocumentsModule } from './modules/documents/documents.module';
@@ -32,6 +33,7 @@ import { ConsultationModule } from './modules/consultation/consultation.module';
     MedicationModule,
     AiModule,
     DoctorPatientModule,
+    DoctorAssistantModule,
     VitalsModule,
     DiagnosisModule,
     DocumentsModule,

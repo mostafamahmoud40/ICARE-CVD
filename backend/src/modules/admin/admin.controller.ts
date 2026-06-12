@@ -38,4 +38,12 @@ export class AdminController {
   deleteStaff(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.deleteStaff(id);
   }
+
+  @Patch('staff/:id/status')
+  updateStaffStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('isActive') isActive: boolean,
+  ) {
+    return this.adminService.updateStaffStatus(id, isActive);
+  }
 }
