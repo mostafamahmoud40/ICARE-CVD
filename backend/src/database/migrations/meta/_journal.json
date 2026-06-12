@@ -134,6 +134,13 @@
       "when": 1778880200000,
       "tag": "0025_doctor_schedule_revision",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1781272874866,
+      "tag": "0019_add_avatar_url",
+      "breakpoints": true
     }
   ]
 }

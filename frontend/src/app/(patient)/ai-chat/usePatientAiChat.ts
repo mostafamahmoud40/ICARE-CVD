@@ -33,6 +33,7 @@ type ApiChatResponse = {
     doctorName: string
     visitType: string
   }
+  appointmentsUpdated?: boolean
 }
 
 type HistoryItem = { role: "user" | "assistant"; content: string }
@@ -125,8 +126,7 @@ export function usePatientAiChat() {
 
       appendMessages([assistantMsg])
 
-      // Invalidate appointments cache so the appointments page refreshes
-      if (booking) {
+      if (booking || response.appointmentsUpdated) {
         void queryClient.invalidateQueries({ queryKey: ["patient-appointments"] })
       }
     },

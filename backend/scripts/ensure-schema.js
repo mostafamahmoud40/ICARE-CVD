@@ -29,6 +29,14 @@ const PATCHES = [
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "doctor_schedule_revision_doctor_revision_unique" ON "doctor_schedule_revision" ("doctor_id", "revision_number")`,
   `CREATE INDEX IF NOT EXISTS "doctor_schedule_revision_doctor_created_idx" ON "doctor_schedule_revision" ("doctor_id", "created_at" DESC)`,
+  `ALTER TABLE "doctor" ADD COLUMN IF NOT EXISTS "accepted_visit_modes" varchar(16) DEFAULT 'both' NOT NULL`,
+  `CREATE TABLE IF NOT EXISTS "doctor_assistant" (
+    "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+    "doctor_id" uuid NOT NULL REFERENCES "doctor"("id") ON DELETE CASCADE,
+    "assistant_id" uuid NOT NULL REFERENCES "assistant"("id") ON DELETE CASCADE,
+    "linked_at" timestamp with time zone DEFAULT now() NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "doctor_assistant_unique" ON "doctor_assistant" ("doctor_id", "assistant_id")`,
 ];
 
 async function main() {

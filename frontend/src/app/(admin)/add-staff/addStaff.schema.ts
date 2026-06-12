@@ -12,6 +12,8 @@ export const addStaffSchema = z
     role: z.enum(["doctor", "assistant"]),
     specialty: z.string().trim(),
     experienceYears: z.number().int().min(0, "Experience must be at least 0 years.").max(60, "Experience must be at most 60 years."),
+    acceptedVisitModes: z.enum(["clinic", "virtual", "both"]),
+    avatarUrl: z.string().min(1, "Please select an avatar."),
   })
   .superRefine((value, ctx) => {
     if (value.role === "doctor" && value.specialty.length < 2) {

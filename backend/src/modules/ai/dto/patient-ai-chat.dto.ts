@@ -38,4 +38,6 @@ export type PatientAiChatResponse = {
     doctorName: string;
     visitType: string;
   };
+  /** True when cancel/reschedule/visit-type tools modified appointments. */
+  appointmentsUpdated?: boolean;
 };

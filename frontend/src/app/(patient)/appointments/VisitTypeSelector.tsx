@@ -18,14 +18,30 @@ type VisitTypeSelectorProps = {
   selected: VisitType
   onChange: (v: VisitType) => void
   className?: string
+  /** When set, only these visit types are shown (e.g. doctor accepts clinic only). */
+  allowedVisitTypes?: VisitType[]
 }
 
-export function VisitTypeSelector({ selected, onChange, className }: VisitTypeSelectorProps) {
+export function VisitTypeSelector({
+  selected,
+  onChange,
+  className,
+  allowedVisitTypes,
+}: VisitTypeSelectorProps) {
+  const visibleOptions = allowedVisitTypes?.length
+    ? OPTIONS.filter((opt) => allowedVisitTypes.includes(opt.id))
+    : OPTIONS
+
   return (
     <div className={cn(appointmentsBookingCardClassName, className)}>
       <StepHeading step={1} title="Select visit type" />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-        {OPTIONS.map((opt) => {
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-3 sm:gap-4",
+          visibleOptions.length > 1 ? "sm:grid-cols-2" : "sm:grid-cols-1",
+        )}
+      >
+        {visibleOptions.map((opt) => {
           const active = selected === opt.id
           return (
             <button

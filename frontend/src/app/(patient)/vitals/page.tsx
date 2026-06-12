@@ -94,9 +94,9 @@ export default function VitalsPage() {
             <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-10 gap-1.5 rounded-2xl border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A5345] shadow-sm hover:bg-[#F9F8F5] sm:h-11"
+                className="h-10 gap-1.5 rounded-2xl border-0 bg-transparent px-4 text-[12px] font-bold text-[#1A5345] shadow-none hover:bg-transparent sm:h-11"
                 onClick={() => setIsAnalysisOpen(true)}
               >
                 <BrainCircuitIcon className="size-4" aria-hidden />

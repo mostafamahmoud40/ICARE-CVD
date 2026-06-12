@@ -16,6 +16,10 @@ export class UpdateAppointmentDto {
   status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
 
   @IsOptional()
+  @IsIn(['clinic', 'virtual'])
+  visitType?: 'clinic' | 'virtual';
+
+  @IsOptional()
   @IsString()
   @MaxLength(1500)
   notes?: string;

@@ -23,6 +23,7 @@ export const user = pgTable('user', {
   email: text('email').notNull().unique(),
   phone: text('phone'),
   role: userRoleEnum('role').notNull().default('patient'),
+  avatarUrl: text('avatar_url'),
   password: text('password').notNull(),
   accessTokenHash: text('access_token_hash'),
   accessTokenExpiresAt: timestamp('access_token_expires_at', {

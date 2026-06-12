@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { isAxiosError } from "axios"
 import type { ZodIssue } from "zod"
+import { toast } from "sonner"
 
 import { apiClient } from "@/lib/api-client"
 
@@ -23,6 +24,8 @@ const defaultValues: AddStaffFormValues = {
   role: "doctor",
   specialty: "",
   experienceYears: "",
+  acceptedVisitModes: "both",
+  avatarUrl: "",
 }
 
 function toFieldErrors(issues: ZodIssue[]) {
@@ -39,11 +42,10 @@ export function useAddStaff() {
   const queryClient = useQueryClient()
   const [values, setValues] = useState<AddStaffFormValues>(defaultValues)
   const [fieldErrors, setFieldErrors] = useState<AddStaffFieldErrors>({})
-  const [createdMembers, setCreatedMembers] = useState<CreatedStaffMember[]>([])
   const [editingMemberId, setEditingMemberId] = useState<number | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
 
-  // ✅ Fetch staff from backend
-  const { data: staffFromDb, isLoading } = useQuery({
+  const { data: staff = [], isLoading } = useQuery({
     queryKey: ["admin-staff"],
     queryFn: async () => {
       const { data } = await apiClient.get<CreatedStaffMember[]>("/admin/staff")
@@ -51,12 +53,11 @@ export function useAddStaff() {
     },
   })
 
-  // Load staff from DB on mount
-  useEffect(() => {
-    if (staffFromDb && !isLoading) {
-      setCreatedMembers(staffFromDb)
-    }
-  }, [staffFromDb, isLoading])
+  const resetForm = () => {
+    setValues(defaultValues)
+    setFieldErrors({})
+    setEditingMemberId(null)
+  }
 
   const createMutation = useMutation({
     mutationFn: async (formValues: AddStaffFormValues) => {
@@ -67,20 +68,31 @@ export function useAddStaff() {
         phoneNumber: formValues.phoneNumber,
         role: formValues.role,
         specialty: formValues.specialty || undefined,
-        experienceYears: formValues.experienceYears === "" ? 0 : formValues.experienceYears,
+        acceptedVisitModes:
+          formValues.role === "doctor" ? formValues.acceptedVisitModes : undefined,
+        avatarUrl: formValues.avatarUrl,
       }
       const { data } = await apiClient.post<AddStaffApiResponse>("/admin/staff", payload)
       return data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-staff"] })
-      setValues(defaultValues)
-      setFieldErrors({})
-      setEditingMemberId(null)
+      resetForm()
+      setDialogOpen(false)
+      toast.success("Staff member created", {
+        description: "The account has been added to the system.",
+      })
+    },
+    onError: (error) => {
+      const message =
+        isAxiosError(error)
+          ? (error.response?.data as { message?: string } | undefined)?.message ??
+            error.message
+          : "Something went wrong. Try again."
+      toast.error("Could not create staff member", { description: message })
     },
   })
 
-  // ✅ Update staff mutation
   const updateMutation = useMutation({
     mutationFn: async (formValues: AddStaffFormValues) => {
       if (!editingMemberId) return
@@ -91,25 +103,63 @@ export function useAddStaff() {
         phoneNumber: formValues.phoneNumber,
         role: formValues.role,
         specialty: formValues.specialty || undefined,
-        experienceYears: formValues.experienceYears === "" ? 0 : formValues.experienceYears,
+        acceptedVisitModes:
+          formValues.role === "doctor" ? formValues.acceptedVisitModes : undefined,
+        avatarUrl: formValues.avatarUrl,
       }
       await apiClient.patch(`/admin/staff/${editingMemberId}`, payload)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-staff"] })
-      setValues(defaultValues)
-      setFieldErrors({})
-      setEditingMemberId(null)
+      resetForm()
+      setDialogOpen(false)
+      toast.success("Staff member updated", {
+        description: "Changes have been saved.",
+      })
+    },
+    onError: (error) => {
+      const message =
+        isAxiosError(error)
+          ? (error.response?.data as { message?: string } | undefined)?.message ??
+            error.message
+          : "Something went wrong. Try again."
+      toast.error("Could not update staff member", { description: message })
     },
   })
 
-  // ✅ Delete staff mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       await apiClient.delete(`/admin/staff/${id}`)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-staff"] })
+      toast.success("Staff member removed")
+    },
+    onError: (error) => {
+      const message =
+        isAxiosError(error)
+          ? (error.response?.data as { message?: string } | undefined)?.message ??
+            error.message
+          : "Something went wrong. Try again."
+      toast.error("Could not delete staff member", { description: message })
+    },
+  })
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+      await apiClient.patch(`/admin/staff/${id}/status`, { isActive })
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-staff"] })
+      toast.success(variables.isActive ? "Staff member activated" : "Staff member deactivated")
+    },
+    onError: (error) => {
+      const message =
+        isAxiosError(error)
+          ? (error.response?.data as { message?: string } | undefined)?.message ??
+            error.message
+          : "Something went wrong. Try again."
+      toast.error("Could not update staff status", { description: message })
     },
   })
 
@@ -136,7 +186,16 @@ export function useAddStaff() {
     deleteMutation.mutate(id)
   }
 
-  const editMember = (member: CreatedStaffMember) => {
+  const toggleStatus = (id: number, isActive: boolean) => {
+    toggleStatusMutation.mutate({ id, isActive })
+  }
+
+  const openCreate = () => {
+    resetForm()
+    setDialogOpen(true)
+  }
+
+  const openEdit = (member: CreatedStaffMember) => {
     setValues({
       fullName: member.fullName,
       email: member.email,
@@ -145,31 +204,37 @@ export function useAddStaff() {
       role: member.role,
       specialty: member.specialty ?? "",
       experienceYears: member.experienceYears,
+      acceptedVisitModes: member.acceptedVisitModes ?? "both",
+      avatarUrl: member.avatarUrl ?? "",
     })
     setFieldErrors({})
     setEditingMemberId(member.id)
+    setDialogOpen(true)
+  }
+
+  const cancelEdit = () => {
+    resetForm()
+    setDialogOpen(false)
   }
 
   const activeMutation = editingMemberId ? updateMutation : createMutation
-  const serverErrorMessage =
-    activeMutation.isError && isAxiosError(activeMutation.error)
-      ? (activeMutation.error.response?.data as { message?: string } | undefined)?.message ??
-        activeMutation.error.message
-      : activeMutation.isError
-        ? "Something went wrong. Try again."
-        : null
 
   return {
+    staff,
+    isLoading,
     values,
     fieldErrors,
-    createdMembers,
     isSubmitting: activeMutation.isPending,
-    isSuccess: activeMutation.isSuccess,
-    submitError: serverErrorMessage,
+    isDeleting: deleteMutation.isPending,
     editingMemberId,
+    dialogOpen,
+    setDialogOpen,
     updateField,
     submit,
     deleteMember,
-    editMember,
+    toggleStatus,
+    openCreate,
+    openEdit,
+    cancelEdit,
   }
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import Link from "next/link"
 import * as React from "react"
 import {
   ArrowRightIcon,
@@ -14,7 +15,6 @@ import {
   FilterIcon,
   LayoutGridIcon,
   ListIcon,
-  MapPinIcon,
   SearchIcon,
   StarIcon,
   StethoscopeIcon,
@@ -259,17 +259,7 @@ function DoctorCard({ doctor }: { doctor: Doctor }) {
     <article className="group overflow-hidden rounded-2xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm transition-all duration-300 hover:border-[#1A5345]/25 hover:shadow-md sm:p-5">
       <DoctorCardHeader doctor={doctor} />
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <DoctorMetaRow
-          icon={MapPinIcon}
-          label="Location"
-          value={
-            <>
-              {doctor.hospital}
-              <span className="block text-[11px] text-muted-foreground">{doctor.location}</span>
-            </>
-          }
-        />
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <DoctorMetaRow
           icon={CalendarIcon}
           label="Next available"
@@ -304,10 +294,13 @@ function DoctorCard({ doctor }: { doctor: Doctor }) {
           </Button>
           <Button
             size="sm"
+            asChild
             className="h-8 gap-1.5 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-[0_2px_10px_rgba(26,83,69,0.2)] hover:bg-[#133F34]"
           >
-            Book now
-            <ArrowRightIcon className="size-3.5" aria-hidden />
+            <Link href={`/doctor-directory/${doctor.id}/book`}>
+              Book now
+              <ArrowRightIcon className="size-3.5" aria-hidden />
+            </Link>
           </Button>
         </div>
       </div>
@@ -322,15 +315,6 @@ function DoctorGridCard({ doctor }: { doctor: Doctor }) {
         <DoctorCardHeader doctor={doctor} />
 
         <div className="mt-4 flex flex-1 flex-col gap-3.5">
-          <DoctorMetaRow
-            icon={MapPinIcon}
-            label="Location"
-            value={
-              <span className="line-clamp-2">
-                {doctor.hospital}, {doctor.location}
-              </span>
-            }
-          />
           <div className="grid grid-cols-2 gap-3.5">
             <DoctorMetaRow
               icon={CalendarIcon}
@@ -354,10 +338,13 @@ function DoctorGridCard({ doctor }: { doctor: Doctor }) {
           </div>
           <Button
             size="sm"
+            asChild
             className="h-8 gap-1.5 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-[0_2px_10px_rgba(26,83,69,0.2)] transition-all hover:bg-[#133F34]"
           >
-            Book
-            <ArrowRightIcon className="size-3.5" aria-hidden />
+            <Link href={`/doctor-directory/${doctor.id}/book`}>
+              Book
+              <ArrowRightIcon className="size-3.5" aria-hidden />
+            </Link>
           </Button>
         </div>
       </div>

@@ -10,7 +10,11 @@ import type { Database } from '../../database/drizzle.provider';
 import { user, doctor, assistant } from '../../database/schema';
 import { hashPassword, verifyPassword } from '../auth/password';
 import { AuthJwtService } from '../auth/jwt';
-import { AddStaffDto, StaffRole } from './dto/add-staff.dto';
+import {
+  AddStaffDto,
+  DoctorAcceptedVisitModes,
+  StaffRole,
+} from './dto/add-staff.dto';
 
 @Injectable()
 export class AdminService {
@@ -37,6 +41,7 @@ export class AdminService {
         name: dto.fullName.trim(),
         email: normalizedEmail,
         phone: dto.phoneNumber.trim(),
+        avatarUrl: dto.avatarUrl,
         password: passwordHash,
         role: dto.role,
       })
@@ -45,6 +50,7 @@ export class AdminService {
         name: user.name,
         email: user.email,
         phone: user.phone,
+        avatarUrl: user.avatarUrl,
         role: user.role,
       });
 
@@ -58,6 +64,8 @@ export class AdminService {
         userId: createdUser.id,
         specialty: dto.specialty ?? null,
         experienceYears: dto.experienceYears ?? 0,
+        acceptedVisitModes:
+          dto.acceptedVisitModes ?? DoctorAcceptedVisitModes.Both,
       });
     } else if (dto.role === StaffRole.Assistant) {
       await this.db.insert(assistant).values({
@@ -126,6 +134,8 @@ export class AdminService {
         name: true,
         email: true,
         phone: true,
+        avatarUrl: true,
+        isActive: true,
         role: true,
       },
     });
@@ -137,6 +147,8 @@ export class AdminService {
         name: true,
         email: true,
         phone: true,
+        avatarUrl: true,
+        isActive: true,
         role: true,
       },
     });
@@ -158,10 +170,14 @@ export class AdminService {
         fullName: u.name,
         email: u.email,
         phone: u.phone,
+        avatarUrl: u.avatarUrl,
+        isActive: u.isActive,
         role: u.role as StaffRole,
         specialty: docDetail?.specialty ?? assDetail?.department ?? null,
         experienceYears:
           docDetail?.experienceYears ?? assDetail?.experienceYears ?? 0,
+        acceptedVisitModes:
+          docDetail?.acceptedVisitModes ?? null,
         createdAt:
           (docDetail?.createdAt ?? assDetail?.createdAt)?.toISOString() ??
           new Date().toISOString(),
@@ -197,6 +213,7 @@ export class AdminService {
         name: dto.fullName.trim(),
         email: dto.email.toLowerCase().trim(),
         phone: dto.phoneNumber.trim(),
+        avatarUrl: dto.avatarUrl,
         password: passwordHash,
         role: dto.role,
       })
@@ -206,6 +223,7 @@ export class AdminService {
         name: user.name,
         email: user.email,
         phone: user.phone,
+        avatarUrl: user.avatarUrl,
         role: user.role,
       });
 
@@ -259,6 +277,8 @@ export class AdminService {
         userId,
         specialty: dto.specialty ?? null,
         experienceYears: dto.experienceYears ?? 0,
+        acceptedVisitModes:
+          dto.acceptedVisitModes ?? DoctorAcceptedVisitModes.Both,
       });
     } else if (role === StaffRole.Assistant) {
       await this.db.insert(assistant).values({
@@ -280,6 +300,8 @@ export class AdminService {
         .set({
           specialty: dto.specialty ?? null,
           experienceYears: dto.experienceYears ?? 0,
+          acceptedVisitModes:
+            dto.acceptedVisitModes ?? DoctorAcceptedVisitModes.Both,
         })
         .where(eq(doctor.userId, userId));
     } else if (role === StaffRole.Assistant) {
@@ -307,6 +329,27 @@ export class AdminService {
     return {
       message: 'Staff member deleted successfully',
       id,
+    };
+  }
+
+  async updateStaffStatus(id: number, isActive: boolean) {
+    const existing = await this.db.query.user.findFirst({
+      where: eq(user.id, id),
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Staff member not found');
+    }
+
+    await this.db
+      .update(user)
+      .set({ isActive })
+      .where(eq(user.id, id));
+
+    return {
+      message: 'Staff member status updated successfully',
+      id,
+      isActive,
     };
   }
 }

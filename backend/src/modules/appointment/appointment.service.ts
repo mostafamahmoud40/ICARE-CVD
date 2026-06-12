@@ -373,6 +373,7 @@ export class AppointmentService {
           ? new Date(dto.scheduledAt)
           : existing.scheduledAt,
         status: dto.status ?? existing.status,
+        visitType: dto.visitType ?? existing.visitType,
         notes: dto.notes ?? existing.notes,
         cancelledAt:
           dto.status === 'cancelled' ? new Date() : existing.cancelledAt,
@@ -393,6 +394,93 @@ export class AppointmentService {
 
   async cancel(userId: number, appointmentId: string) {
     return this.update(userId, appointmentId, { status: 'cancelled' });
+  }
+
+  async findUpcomingByConfirmationCode(
+    userId: number,
+    confirmationCode: string,
+  ) {
+    const code = confirmationCode.trim().toUpperCase();
+    const appts = await this.listPatientAppointments(userId);
+    const match = appts.find(
+      (a) =>
+        a.confirmationCode.toUpperCase() === code &&
+        a.status !== 'cancelled' &&
+        new Date(a.scheduledAt) >= new Date(),
+    );
+    if (!match) {
+      throw new NotFoundException(
+        `No upcoming appointment found with code ${confirmationCode}`,
+      );
+    }
+    return match;
+  }
+
+  async cancelAllUpcoming(userId: number) {
+    const appts = await this.listPatientAppointments(userId);
+    const upcoming = appts.filter(
+      (a) =>
+        a.status !== 'cancelled' && new Date(a.scheduledAt) >= new Date(),
+    );
+    if (upcoming.length === 0) {
+      return { cancelledCount: 0, confirmationCodes: [] as string[] };
+    }
+
+    const codes: string[] = [];
+    for (const appt of upcoming) {
+      const result = await this.cancel(userId, appt.id);
+      codes.push(result.confirmationCode);
+    }
+    return { cancelledCount: codes.length, confirmationCodes: codes };
+  }
+
+  async rescheduleByConfirmationCode(
+    userId: number,
+    confirmationCode: string,
+    scheduledAt: string,
+  ) {
+    const existing = await this.findUpcomingByConfirmationCode(
+      userId,
+      confirmationCode,
+    );
+    const newDate = new Date(scheduledAt);
+    if (Number.isNaN(newDate.getTime())) {
+      throw new BadRequestException('Invalid scheduledAt');
+    }
+
+    const row = await this.db.query.appointment.findFirst({
+      where: eq(appointment.id, existing.id),
+      columns: { doctorId: true },
+    });
+    if (!row) {
+      throw new NotFoundException('Appointment not found');
+    }
+
+    const taken = await this.db.query.appointment.findFirst({
+      where: and(
+        eq(appointment.doctorId, row.doctorId),
+        eq(appointment.scheduledAt, newDate),
+        ne(appointment.status, 'cancelled'),
+        ne(appointment.id, existing.id),
+      ),
+    });
+    if (taken) {
+      throw new BadRequestException('This slot is already booked');
+    }
+
+    return this.update(userId, existing.id, { scheduledAt });
+  }
+
+  async changeVisitTypeByConfirmationCode(
+    userId: number,
+    confirmationCode: string,
+    visitType: 'clinic' | 'virtual',
+  ) {
+    const existing = await this.findUpcomingByConfirmationCode(
+      userId,
+      confirmationCode,
+    );
+    return this.update(userId, existing.id, { visitType });
   }
 
   private async generateConfirmationCode() {

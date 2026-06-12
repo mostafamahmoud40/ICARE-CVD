@@ -7,6 +7,8 @@ import { AppointmentModule } from '../appointment/appointment.module';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
 import { PatientAiChatService } from './patient-ai-chat.service';
+import { ChromaService } from './chroma/chroma.service';
+import { ClinicIndexerService } from './chroma/clinic-indexer.service';
 
 @Module({
   imports: [
@@ -16,6 +18,14 @@ import { PatientAiChatService } from './patient-ai-chat.service';
     AppointmentModule,
   ],
   controllers: [AiController],
-  providers: [AiService, PatientAiChatService, PatientGuard, AuthJwtService, AccessTokenGuard],
+  providers: [
+    AiService,
+    PatientAiChatService,
+    ChromaService,
+    ClinicIndexerService,
+    PatientGuard,
+    AuthJwtService,
+    AccessTokenGuard,
+  ],
 })
 export class AiModule {}
