@@ -9,6 +9,7 @@ import {
   InboxIcon,
   LayoutDashboardIcon,
   MessageCircleIcon,
+  MessageSquareTextIcon,
   PillIcon,
   Settings2Icon,
   StethoscopeIcon,
@@ -24,6 +25,7 @@ type RouteEntry = { prefix: string; title: string; subtitle: string; icon: Lucid
 
 const ROUTES: RouteEntry[] = [
   { prefix: "/assistant-account/settings", title: "Settings", subtitle: "Security, notifications, and workspace preferences", icon: Settings2Icon },
+  { prefix: "/assistant-account/activity", title: "Activity log", subtitle: "Full history of your assistant actions", icon: MessageSquareTextIcon },
   { prefix: "/assistant-account", title: "Account", subtitle: "Profile, schedule, and activity", icon: User2Icon },
   { prefix: "/assistant-doctor-schedule", title: "Doctor schedule", subtitle: "Weekly hours, daily sessions, and pause controls", icon: CalendarDaysIcon },
   { prefix: "/assistant-doctors", title: "Doctor Directory", subtitle: "Staff availability and queue loads", icon: StethoscopeIcon },

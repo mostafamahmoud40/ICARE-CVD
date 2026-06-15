@@ -10,13 +10,7 @@ export const assistantProfileEditSchema = z.object({
     .int()
     .min(0, "Cannot be negative")
     .max(50),
-  avatarUrl: z
-    .string()
-    .trim()
-    .refine(
-      (value) => value === "" || z.string().url().safeParse(value).success,
-      "Enter a valid image URL",
-    ),
+  avatarUrl: z.string().trim().min(1, "Please select an avatar."),
 });
 
 export type AssistantProfileEditValues = z.infer<typeof assistantProfileEditSchema>;
@@ -29,12 +23,18 @@ export function profileToEditValues(profile: {
   experienceYears: number;
   avatarUrl: string | null;
 }): AssistantProfileEditValues {
+  const presetAvatars = Array.from({ length: 6 }, (_, i) => `/avatars/avatar-${i + 1}.svg`);
+  const avatarUrl =
+    profile.avatarUrl && presetAvatars.includes(profile.avatarUrl)
+      ? profile.avatarUrl
+      : presetAvatars[0] ?? "";
+
   return {
     fullName: profile.fullName,
     email: profile.email,
     phone: profile.phone,
     department: profile.department,
     experienceYears: profile.experienceYears,
-    avatarUrl: profile.avatarUrl ?? "",
+    avatarUrl,
   };
 }

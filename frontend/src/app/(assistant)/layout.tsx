@@ -187,9 +187,10 @@ function AssistantLayoutContent({
       label: "Account",
       icon: User2Icon,
       isActive:
-        (pathname === "/assistant-account" ||
-          pathname === "/assistant/assistant-account") &&
-        !pathname.includes("/settings"),
+        (pathname.startsWith("/assistant-account") ||
+          pathname.startsWith("/assistant/assistant-account")) &&
+        !pathname.includes("/assistant-account/settings") &&
+        !pathname.includes("/assistant/assistant-account/settings"),
     },
     {
       href: "/assistant-account/settings",

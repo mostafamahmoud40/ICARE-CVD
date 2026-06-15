@@ -53,25 +53,31 @@ export const accountSectionTitleClassName =
 export const accountSectionDescClassName =
   "text-[11px] font-medium text-muted-foreground sm:text-[12px]";
 
-/** Weekly performance metrics — same semantic colors as medication adherence UI. */
+/** Weekly performance — monochromatic sage scale (matches ICARE primary #1A5345). */
 export const accountWeeklyMetrics = {
   patients: {
     label: "Patients",
+    shortLabel: "Pat",
     barClass: "bg-[#1A5345]",
     textClass: "text-[#1A5345]",
     dotClass: "bg-[#1A5345]",
+    pillClass: "bg-[#1A5345]/10 text-[#1A5345]",
   },
   appointments: {
     label: "Appointments",
-    barClass: "bg-emerald-500",
-    textClass: "text-emerald-600",
-    dotClass: "bg-emerald-500",
+    shortLabel: "Appt",
+    barClass: "bg-[#4A8F7C]",
+    textClass: "text-[#2D6B5C]",
+    dotClass: "bg-[#4A8F7C]",
+    pillClass: "bg-[#4A8F7C]/15 text-[#2D6B5C]",
   },
   tasks: {
     label: "Tasks",
-    barClass: "bg-amber-500",
-    textClass: "text-amber-600",
-    dotClass: "bg-amber-500",
+    shortLabel: "Tasks",
+    barClass: "bg-[#B8D4CB]",
+    textClass: "text-[#5A7A70]",
+    dotClass: "bg-[#B8D4CB]",
+    pillClass: "bg-[#B8D4CB]/50 text-[#5A7A70]",
   },
 } as const;
 
@@ -82,21 +88,21 @@ export const accountShiftStatusStyles = {
     dotClass: "bg-[#1A5345]",
     badgeClass: "border-0 bg-[#1A5345] text-white hover:bg-[#1A5345]",
     dayBadgeClass: "border-[#1A5345]/30 bg-[#E8F0EE] text-[#1A5345]",
-    rowClass: "border-[#E8E6E0]/80 bg-[#FBFDFC]/50",
+    rowClass: "border-[#E8E6E0]/80 bg-white",
   },
   "half-day": {
     label: "Half day",
     dotClass: "bg-amber-500",
     badgeClass: "border-0 bg-amber-500 text-white hover:bg-amber-500",
     dayBadgeClass: "border-amber-200/80 bg-amber-50 text-amber-700",
-    rowClass: "border-amber-200/60 bg-amber-50/40",
+    rowClass: "border-amber-200/60 bg-white",
   },
   holiday: {
     label: "Day off",
     dotClass: "bg-muted-foreground/35",
     badgeClass: "border border-[#E8E6E0]/80 bg-[#F9F8F5] text-muted-foreground hover:bg-[#F9F8F5]",
     dayBadgeClass: "border-[#E8E6E0]/60 bg-[#F9F8F5] text-muted-foreground",
-    rowClass: "border-[#E8E6E0]/60 bg-[#F9F8F5]/80",
+    rowClass: "border-[#E8E6E0]/60 bg-white",
   },
 } as const;
 
