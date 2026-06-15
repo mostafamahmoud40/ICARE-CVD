@@ -37,10 +37,17 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { AssistantHeaderSearch } from "./AssistantHeaderSearch"
+import { AssistantNotificationsDropdown } from "./assistant-notifications/AssistantNotificationsDropdown"
 
 type RouteEntry = { prefix: string; title: string; subtitle: string; icon: LucideIcon }
 
 const ROUTES: RouteEntry[] = [
+  {
+    prefix: "/assistant-account/notifications",
+    title: "Notifications",
+    subtitle: "Clinical desk alerts and action items",
+    icon: BellIcon,
+  },
   {
     prefix: "/assistant-account/settings",
     title: "Settings",
@@ -255,13 +262,7 @@ export function AssistantInsetHeader({ user, logout }: AssistantInsetHeaderProps
       <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
         <LanguageSwitcher />
 
-        <Link
-          href="/assistant-account/settings#notifications"
-          aria-label="Notifications"
-          className="relative inline-flex size-9 items-center justify-center rounded-xl text-[#6B7870] transition-colors hover:bg-[#F9F8F5] hover:text-[#1A5345]"
-        >
-          <BellIcon className="size-[18px]" strokeWidth={2} aria-hidden />
-        </Link>
+        <AssistantNotificationsDropdown />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -322,7 +323,7 @@ export function AssistantInsetHeader({ user, logout }: AssistantInsetHeaderProps
             </DropdownMenuItem>
 
             <DropdownMenuItem asChild className="cursor-pointer rounded-none px-4 py-3 text-[14px] font-medium text-[#6B7870] focus:bg-[#F9F8F5] focus:text-[#1A1F1E]">
-              <Link href="/assistant-account/settings#notifications" className="flex items-center gap-3">
+              <Link href="/assistant-account/notifications" className="flex items-center gap-3">
                 <BellIcon className="size-4" />
                 Notifications
               </Link>

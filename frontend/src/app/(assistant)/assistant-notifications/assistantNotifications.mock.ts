@@ -1,0 +1,97 @@
+import type { AssistantNotification } from "./assistantNotifications.types"
+
+export function getAssistantNotificationsMock(): AssistantNotification[] {
+  return [
+    {
+      id: "an1",
+      kind: "emergency",
+      title: "Emergency queue patient",
+      body: "Kamal Al-Fayed marked urgent and has been waiting 18 minutes. Route to consulting room.",
+      createdAt: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
+      read: false,
+      href: "/assistant-queue/live-desk",
+      actions: [
+        { id: "open-desk", label: "Open live desk", variant: "primary", href: "/assistant-queue/live-desk" },
+      ],
+    },
+    {
+      id: "an2",
+      kind: "queue",
+      sender: { name: "Mohamed Ali Seif", role: "patient" },
+      body: "Marked arrived for chest pain evaluation — waiting for doctor assignment.",
+      createdAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+      read: false,
+      href: "/assistant-queue/live-desk",
+    },
+    {
+      id: "an3",
+      kind: "doctor_message",
+      sender: { name: "Dr. Sarah Khaled", role: "doctor" },
+      body: "Please prep Room 101 for echo and have consent forms ready before 11:30.",
+      createdAt: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
+      read: false,
+      href: "/assistant-procedures?view=operations",
+    },
+    {
+      id: "an4",
+      kind: "appointment",
+      sender: { name: "Ali Seif", role: "patient" },
+      body: "10:15 AM slot passed with no check-in — confirm attendance or mark no-show.",
+      createdAt: new Date(Date.now() - 55 * 60 * 1000).toISOString(),
+      read: false,
+      href: "/assistant-appointments",
+      actions: [
+        { id: "call-patient", label: "Contact patient", variant: "primary", href: "/assistant-appointments" },
+        { id: "mark-noshow", label: "Mark no-show", variant: "secondary" },
+      ],
+    },
+    {
+      id: "an5",
+      kind: "procedure",
+      title: "Missing consent form",
+      body: "Omar Hassan — echocardiogram at 11:30 AM still needs signed clinical consent.",
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      read: false,
+      href: "/assistant-procedures?view=operations",
+      actions: [
+        { id: "upload-consent", label: "Upload consent", variant: "primary", href: "/assistant-procedures?view=operations" },
+      ],
+    },
+    {
+      id: "an6",
+      kind: "document",
+      title: "Imaging uploaded",
+      body: "Chest X-ray attached to Ahmed Hassan's chart from triage.",
+      createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+      read: false,
+      href: "/assistant-patients",
+    },
+    {
+      id: "an7",
+      kind: "checklist",
+      title: "Visit handoff pending",
+      body: "Adel Morsy completed consultation — prescription and report may need prep before checkout.",
+      createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+      read: false,
+      href: "/assistant-queue/history",
+    },
+    {
+      id: "an8",
+      kind: "appointment",
+      sender: { name: "Fatima Hassan", role: "patient" },
+      body: "Rescheduled follow-up to tomorrow at 9:00 AM with Dr. Sarah Khaled.",
+      createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+      read: true,
+      href: "/assistant-appointments",
+    },
+    {
+      id: "an9",
+      kind: "system",
+      title: "Clinic reminder",
+      body: "Afternoon block starts in 30 minutes — 6 patients on today's expected list.",
+      createdAt: new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString(),
+      read: true,
+      href: "/assistant-queue/schedule",
+    },
+  ]
+}
