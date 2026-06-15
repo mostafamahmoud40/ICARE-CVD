@@ -1,11 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { ClockIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -14,14 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
+import { cn } from "@/lib/utils"
 
 import { timeToMinutes } from "./doctorSchedule.schema"
 import type { DayAvailability, WeekdayId } from "./doctorSchedule.types"
@@ -43,6 +40,9 @@ type AddToScheduleSheetProps = {
 const HOURS_12 = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"))
 const MINUTES = ["00", "15", "30", "45"]
 const PERIODS = ["AM", "PM"] as const
+
+const fieldSelectClassName =
+  "h-11 w-full rounded-xl border-[#E8E6E0] bg-white text-[13px] font-medium shadow-sm focus:ring-[#1A5345]/20"
 
 function parseTime24(time24: string) {
   const [h, m] = time24.split(":").map(Number)
@@ -82,30 +82,30 @@ function TimePicker({
 
   return (
     <div className="space-y-2">
-      <Label className="text-sm font-medium">{label}</Label>
+      <Label className="text-[13px] font-bold text-[#1A1F1E]">{label}</Label>
       <div className="flex items-center gap-1.5">
         <Select value={hour} onValueChange={(v) => handleChange("hour", v)}>
-          <SelectTrigger className="h-10 w-16 px-2 text-sm">
+          <SelectTrigger className={cn(fieldSelectClassName, "h-10 w-[4.25rem] px-2")}>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="max-h-48">
+          <SelectContent className="max-h-48 rounded-xl border-[#E8E6E0]/60">
             {HOURS_12.map((h) => (
-              <SelectItem key={h} value={h} className="text-sm">
+              <SelectItem key={h} value={h} className="text-[13px]">
                 {h}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        <span className="text-sm font-medium text-muted-foreground">:</span>
+        <span className="text-[13px] font-medium text-muted-foreground">:</span>
 
         <Select value={minute} onValueChange={(v) => handleChange("minute", v)}>
-          <SelectTrigger className="h-10 w-16 px-2 text-sm">
+          <SelectTrigger className={cn(fieldSelectClassName, "h-10 w-[4.25rem] px-2")}>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="max-h-48">
+          <SelectContent className="max-h-48 rounded-xl border-[#E8E6E0]/60">
             {MINUTES.map((m) => (
-              <SelectItem key={m} value={m} className="text-sm">
+              <SelectItem key={m} value={m} className="text-[13px]">
                 {m}
               </SelectItem>
             ))}
@@ -113,12 +113,12 @@ function TimePicker({
         </Select>
 
         <Select value={period} onValueChange={(v) => handleChange("period", v)}>
-          <SelectTrigger className="h-10 w-18 px-2 text-sm">
+          <SelectTrigger className={cn(fieldSelectClassName, "h-10 w-[4.5rem] px-2")}>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="rounded-xl border-[#E8E6E0]/60">
             {PERIODS.map((p) => (
-              <SelectItem key={p} value={p} className="text-sm">
+              <SelectItem key={p} value={p} className="text-[13px]">
                 {p}
               </SelectItem>
             ))}
@@ -153,72 +153,67 @@ export function AddToScheduleSheet({
       return
     }
     onAdd({ weekday, kind, startTime, endTime })
-    toast.success("Added to schedule", {
-      description:
-        kind === "block" ? "Blocked time added for that day." : "Working period added.",
-    })
+    toast.success("Added to schedule")
     onOpenChange(false)
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="center"
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
         showCloseButton
         className={cn(
-          "max-h-[min(90vh,640px)] w-[calc(100%-1.5rem)] max-w-[440px] gap-0 overflow-y-auto rounded-2xl border border-border/70 bg-background p-0 shadow-2xl",
-          "data-[side=center]:p-0"
+          "gap-0 overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white p-0 shadow-2xl sm:max-w-[440px]",
+          "duration-100 data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-100",
         )}
       >
-        <SheetHeader className="space-y-1.5 border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/80 px-5 pb-4 pt-6 text-left">
-          <SheetTitle className="font-sans text-[15px] sm:text-[16px] font-bold text-[#1A1F1E]">
-            Add to schedule
-          </SheetTitle>
-          <SheetDescription className="text-left text-[11px] sm:text-[12px] text-muted-foreground">
-            Quickly append a working period or a blocked break to one day. You can still edit
-            everything in the section below.
-          </SheetDescription>
-        </SheetHeader>
+        <form onSubmit={handleSubmit} className="flex flex-col bg-white p-6">
+          <div className="space-y-1 pr-8">
+            <DialogTitle className="font-serif text-[20px] font-bold tracking-tight text-[#1A1F1E]">
+              Add to schedule
+            </DialogTitle>
+            <DialogDescription className="text-left text-[13px] font-medium leading-relaxed text-muted-foreground">
+              Append a working period or blocked break to one day.
+            </DialogDescription>
+          </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col">
-          <div className="space-y-5 px-5 py-5">
-            <div className="space-y-2">
-              <Label htmlFor="add-day" className="text-[11px] sm:text-[12px] font-semibold text-[#1A1F1E]">
-                Day
-              </Label>
-              <Select value={weekday} onValueChange={(v) => setWeekday(v as WeekdayId)}>
-                <SelectTrigger
-                  id="add-day"
-                  className="h-10 rounded-lg border-[#E8E6E0] text-[12px] font-medium shadow-sm focus:ring-[#1A5345]"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {days.map((d) => (
-                    <SelectItem key={d.weekday} value={d.weekday} className="text-[12px]">
-                      {d.label}
+          <div className="mt-5 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="add-day" className="text-[13px] font-bold text-[#1A1F1E]">
+                  Day
+                </Label>
+                <Select value={weekday} onValueChange={(v) => setWeekday(v as WeekdayId)}>
+                  <SelectTrigger id="add-day" className={fieldSelectClassName}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-[#E8E6E0]/60">
+                    {days.map((d) => (
+                      <SelectItem key={d.weekday} value={d.weekday} className="text-[13px]">
+                        {d.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="add-type" className="text-[13px] font-bold text-[#1A1F1E]">
+                  Type
+                </Label>
+                <Select value={kind} onValueChange={(v) => setKind(v as EntryKind)}>
+                  <SelectTrigger id="add-type" className={fieldSelectClassName}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-[#E8E6E0]/60">
+                    <SelectItem value="block" className="text-[13px]">
+                      Blocked time (break / admin)
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="add-type" className="text-[11px] sm:text-[12px] font-semibold text-[#1A1F1E]">
-                Type
-              </Label>
-              <Select value={kind} onValueChange={(v) => setKind(v as EntryKind)}>
-                <SelectTrigger
-                  id="add-type"
-                  className="h-10 rounded-lg border-[#E8E6E0] text-[12px] font-medium shadow-sm focus:ring-[#1A5345]"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="block" className="text-[12px]">Blocked time (break / admin)</SelectItem>
-                  <SelectItem value="period" className="text-[12px]">Working period</SelectItem>
-                </SelectContent>
-              </Select>
+                    <SelectItem value="period" className="text-[13px]">
+                      Working period
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -227,24 +222,24 @@ export function AddToScheduleSheet({
             </div>
           </div>
 
-          <SheetFooter className="flex flex-row justify-end gap-3 border-t border-[#E8E6E0]/60 bg-[#F9F8F5]/80 px-5 py-4">
+          <div className="mt-6 flex justify-end gap-2.5">
             <Button
               type="button"
               variant="outline"
-              className="h-9 min-w-[100px] rounded-lg border-[#E8E6E0] bg-white text-[12px] font-semibold text-[#1A1F1E] hover:bg-[#F9F8F5] shadow-sm"
+              className="h-9 min-w-[100px] rounded-lg border-[#E8E6E0] bg-white text-[12px] font-bold text-[#1A1F1E] hover:bg-slate-50"
               onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="h-9 min-w-[100px] rounded-lg bg-[#1A5345] text-[12px] font-semibold text-white shadow-sm hover:bg-[#0F3D32]"
+              className="h-9 min-w-[100px] rounded-lg bg-[#1A5345] text-[12px] font-bold text-white shadow-[0_2px_10px_rgba(26,83,69,0.2)] hover:bg-[#133F34]"
             >
               Add
             </Button>
-          </SheetFooter>
+          </div>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }
