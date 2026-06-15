@@ -56,6 +56,25 @@ export type PatientSummary = {
   existingConditions: ExistingCondition[]
 }
 
+export type VitalReadingSource = "home" | "clinic" | "hospital"
+
+export type ConsultationVitalReading = {
+  id: string
+  date: string
+  time: string
+  source: VitalReadingSource
+  systolicBP: number | null
+  diastolicBP: number | null
+  heartRate: number | null
+  oxygenSaturation: number | null
+  temperature: number | null
+  respiratoryRate: number | null
+  weight: number | null
+  heightCm: number | null
+  bloodSugar: number | null
+  notes: string
+}
+
 export type VitalSigns = {
   systolicBP: string
   diastolicBP: string
@@ -149,10 +168,25 @@ export type ProcedureDetails = {
   clinicalNotes: string
 }
 
+export type ConsultationMedicalHistory = {
+  noCardiacHistory: boolean
+  cardiacAnswers: Record<string, string>
+  cardiacNotes: string
+  cardiacReviewed: boolean
+  noNonCardiacHistory: boolean
+  nonCardiacAnswers: Record<string, string>
+  nonCardiacNotes: string
+  nonCardiacReviewed: boolean
+  noKnownAllergies: boolean
+  noChronicConditions: boolean
+}
+
 export type ConsultationData = {
   /** Matches `doctor-patients` mock IDs (e.g. `p-001`) for profile navigation */
   patientId: string
   patientSummary: PatientSummary
+  medicalHistory: ConsultationMedicalHistory
+  lastVitalReading: ConsultationVitalReading | null
   vitals: VitalSigns
   procedureDetails: ProcedureDetails
   chiefComplaint: string

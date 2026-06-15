@@ -1,8 +1,12 @@
 "use client"
 
-import type { VitalSigns } from "./consultation.types"
-import { ActivityIcon } from "lucide-react"
+import { useState } from "react"
+import type { ConsultationVitalReading, VitalSigns } from "./consultation.types"
+import { ActivityIcon, ChevronRightIcon, HistoryIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { LastVitalReadingDialog } from "./LastVitalReadingDialog"
 
 // BMI calculation and color logic
 function calculateBMI(heightCm: string, weightKg: string): number | null {
@@ -65,36 +69,50 @@ function getVitalStatus(value: string, range: { min: number; max: number }): { s
   return { status: 'normal', message: 'Normal' }
 }
 
-function getBloodPressureStatus(systolic: string, diastolic: string, age: number): { systolicStatus: 'normal' | 'high' | 'low'; diastolicStatus: 'normal' | 'high' | 'low'; message: string } {
+function getBloodPressureStatus(
+  systolic: string,
+  diastolic: string,
+  age: number,
+): {
+  systolicStatus: "normal" | "high" | "low"
+  diastolicStatus: "normal" | "high" | "low"
+  systolicMessage: string
+  diastolicMessage: string
+} {
   const sysValue = parseFloat(systolic)
   const diaValue = parseFloat(diastolic)
   const range = getBloodPressureRange(age)
-  
-  if (isNaN(sysValue) || isNaN(diaValue)) return { systolicStatus: 'normal', diastolicStatus: 'normal', message: '' }
-  
-  let systolicStatus: 'normal' | 'high' | 'low' = 'normal'
-  let diastolicStatus: 'normal' | 'high' | 'low' = 'normal'
-  let messages: string[] = []
-  
-  if (sysValue < range.systolicMin) {
-    systolicStatus = 'low'
-    messages.push(`Systolic low (Normal: ${range.systolicMin}-${range.systolicMax})`)
-  } else if (sysValue > range.systolicMax) {
-    systolicStatus = 'high'
-    messages.push(`Systolic high (Normal: ${range.systolicMin}-${range.systolicMax})`)
+
+  let systolicStatus: "normal" | "high" | "low" = "normal"
+  let diastolicStatus: "normal" | "high" | "low" = "normal"
+  let systolicMessage = ""
+  let diastolicMessage = ""
+
+  if (!isNaN(sysValue)) {
+    if (sysValue < range.systolicMin) {
+      systolicStatus = "low"
+      systolicMessage = `Systolic low (Normal: ${range.systolicMin}-${range.systolicMax})`
+    } else if (sysValue > range.systolicMax) {
+      systolicStatus = "high"
+      systolicMessage = `Systolic high (Normal: ${range.systolicMin}-${range.systolicMax})`
+    } else {
+      systolicMessage = "Normal"
+    }
   }
-  
-  if (diaValue < range.diastolicMin) {
-    diastolicStatus = 'low'
-    messages.push(`Diastolic low (Normal: ${range.diastolicMin}-${range.diastolicMax})`)
-  } else if (diaValue > range.diastolicMax) {
-    diastolicStatus = 'high'
-    messages.push(`Diastolic high (Normal: ${range.diastolicMin}-${range.diastolicMax})`)
+
+  if (!isNaN(diaValue)) {
+    if (diaValue < range.diastolicMin) {
+      diastolicStatus = "low"
+      diastolicMessage = `Diastolic low (Normal: ${range.diastolicMin}-${range.diastolicMax})`
+    } else if (diaValue > range.diastolicMax) {
+      diastolicStatus = "high"
+      diastolicMessage = `Diastolic high (Normal: ${range.diastolicMin}-${range.diastolicMax})`
+    } else {
+      diastolicMessage = "Normal"
+    }
   }
-  
-  if (messages.length === 0) messages.push('Normal')
-  
-  return { systolicStatus, diastolicStatus, message: messages.join(', ') }
+
+  return { systolicStatus, diastolicStatus, systolicMessage, diastolicMessage }
 }
 
 function getVitalStatusColor(status: 'normal' | 'high' | 'low'): string {
@@ -119,10 +137,25 @@ const VITAL_FIELDS = [
 export type VitalsSectionProps = {
   vitals: VitalSigns
   onVitalChange: (key: keyof VitalSigns, value: string) => void
+  onApplyLastReading?: (reading: ConsultationVitalReading) => void
   patientAge: number
+  lastVitalReading?: ConsultationVitalReading | null
 }
 
-export function VitalsSection({ vitals, onVitalChange, patientAge }: VitalsSectionProps) {
+function lastReadingSourceLabel(source: ConsultationVitalReading["source"]) {
+  if (source === "home") return "Home"
+  if (source === "hospital") return "Hospital"
+  return "Clinic"
+}
+
+export function VitalsSection({
+  vitals,
+  onVitalChange,
+  onApplyLastReading,
+  patientAge,
+  lastVitalReading,
+}: VitalsSectionProps) {
+  const [lastReadingOpen, setLastReadingOpen] = useState(false)
   const bmi = calculateBMI(vitals.heightCm, vitals.weightKg)
   const bmiColor = getBMIColor(bmi)
 
@@ -137,11 +170,46 @@ export function VitalsSection({ vitals, onVitalChange, patientAge }: VitalsSecti
 
   return (
     <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
-          <ActivityIcon className="size-4 text-[#1A5345]" />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
+            <ActivityIcon className="size-4 text-[#1A5345]" />
+          </div>
+          <h3 className="font-serif text-[16px] font-bold text-[#102F27]">Vital Signs</h3>
         </div>
-        <h3 className="font-serif text-[16px] font-bold text-[#102F27]">Vital Signs</h3>
+
+        {lastVitalReading ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setLastReadingOpen(true)}
+              className="h-8 gap-2 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] px-3 text-[12px] font-semibold text-[#1A5345] hover:bg-[#F0F4F2]"
+            >
+              <HistoryIcon className="size-3.5" aria-hidden />
+              Last reading
+              <span
+                className={cn(
+                  "rounded-md px-1.5 py-0.5 text-[10px] font-bold",
+                  lastVitalReading.source === "home"
+                    ? "bg-blue-50 text-blue-700"
+                    : lastVitalReading.source === "hospital"
+                      ? "bg-violet-50 text-violet-700"
+                      : "bg-emerald-50 text-emerald-700",
+                )}
+              >
+                {lastReadingSourceLabel(lastVitalReading.source)}
+              </span>
+              <ChevronRightIcon className="size-3.5 text-[#9CA3AF]" aria-hidden />
+            </Button>
+            <LastVitalReadingDialog
+              open={lastReadingOpen}
+              onOpenChange={setLastReadingOpen}
+              reading={lastVitalReading}
+              onApply={onApplyLastReading ? () => onApplyLastReading(lastVitalReading) : undefined}
+            />
+          </>
+        ) : null}
       </div>
       <div className="grid grid-cols-4 gap-3">
         {VITAL_FIELDS.map((field) => {
@@ -155,10 +223,10 @@ export function VitalsSection({ vitals, onVitalChange, patientAge }: VitalsSecti
             statusMessage = respiratoryRateStatus.message
             statusColor = getVitalStatusColor(respiratoryRateStatus.status)
           } else if (field.key === 'systolicBP') {
-            statusMessage = bloodPressureStatus.message
+            statusMessage = bloodPressureStatus.systolicMessage
             statusColor = getVitalStatusColor(bloodPressureStatus.systolicStatus)
           } else if (field.key === 'diastolicBP') {
-            statusMessage = bloodPressureStatus.message
+            statusMessage = bloodPressureStatus.diastolicMessage
             statusColor = getVitalStatusColor(bloodPressureStatus.diastolicStatus)
           } else if (field.key === 'temperature') {
             const tempValue = parseFloat(vitals.temperature)
@@ -218,7 +286,7 @@ export function VitalsSection({ vitals, onVitalChange, patientAge }: VitalsSecti
               <span className={`text-[14px] font-bold ${bmiColor}`}>
                 {bmi || "-"}
               </span>
-              <span className="ml-1 text-[12px] text-muted-foreground">:BMI</span>
+              <span className="ml-1 text-[12px] text-muted-foreground">kg/m²</span>
             </div>
           </div>
         </div>

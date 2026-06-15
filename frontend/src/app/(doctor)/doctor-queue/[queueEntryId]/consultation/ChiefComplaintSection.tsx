@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import {
   MessageSquareTextIcon,
   SparklesIcon,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import { useSpeechDictation } from "./useSpeechDictation"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -20,6 +21,154 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
+
+const SECTION_CARD = "rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm"
+const FIELD_LABEL = "text-sm font-medium text-[#374151]"
+const SELECT_TRIGGER =
+  "h-10 w-full rounded-xl border-gray-200 bg-white text-[14px] focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+const TEXTAREA_CLASS =
+  "min-h-[88px] resize-none rounded-xl border-gray-200 bg-white text-[14px] focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+
+function SectionHeader({
+  icon: Icon,
+  label,
+  action,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  action?: ReactNode
+}) {
+  return (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center gap-2">
+        <Icon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
+        <h3 className="font-serif text-[17px] font-bold tracking-tight text-[#1A1F1E]">{label}</h3>
+      </div>
+      {action}
+    </div>
+  )
+}
+
+function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: ReactNode }) {
+  return (
+    <label htmlFor={htmlFor} className={FIELD_LABEL}>
+      {children}
+    </label>
+  )
+}
+
+function ChipToggleGroup({
+  label,
+  options,
+  selected,
+  onToggle,
+}: {
+  label: string
+  options: readonly string[]
+  selected: string[]
+  onToggle: (value: string) => void
+}) {
+  return (
+    <div className="space-y-2">
+      <p className={FIELD_LABEL}>{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((option) => {
+          const active = selected.includes(option)
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => onToggle(option)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                active
+                  ? "border-[#1A5345] bg-[#1A534518] text-[#1A5345]"
+                  : "border-[#E8E6E0] bg-white text-[#6B7870] hover:border-[#A8C4BC] hover:bg-[#F9F8F5]",
+              )}
+            >
+              {option}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function VoiceMicButton({
+  id,
+  listening,
+  supported,
+  onToggle,
+}: {
+  id: string
+  listening: boolean
+  supported: boolean
+  onToggle: () => void
+}) {
+  if (!supported) return null
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          id={id}
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "size-8 border-0 bg-transparent shadow-none hover:bg-transparent",
+            listening ? "text-red-600" : "text-muted-foreground hover:text-[#1A5345]",
+          )}
+          aria-pressed={listening}
+          aria-label={listening ? "Stop voice dictation" : "Start voice dictation"}
+          onClick={onToggle}
+        >
+          <MicIcon className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[220px] text-center">
+        {listening ? "Stop dictation" : "Voice dictation"}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+function VoiceLevelBar({
+  listening,
+  elapsedSeconds,
+  audioLevel,
+  interimText,
+  interimId,
+  formatElapsedTime,
+}: {
+  listening: boolean
+  elapsedSeconds: number
+  audioLevel: number
+  interimText: string | null
+  interimId: string
+  formatElapsedTime: (s: number) => string
+}) {
+  if (!listening) return null
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] font-semibold tabular-nums text-red-600">{formatElapsedTime(elapsedSeconds)}</span>
+        <div className="h-1 w-20 overflow-hidden rounded-full bg-[#E8E6E0]/60">
+          <div
+            className="h-full rounded-full bg-[#1A5345] transition-all duration-150"
+            style={{ width: `${Math.max(6, audioLevel)}%` }}
+          />
+        </div>
+      </div>
+      {interimText ? (
+        <p id={interimId} className="text-[12px] leading-snug text-[#6B7870]">
+          {interimText}
+        </p>
+      ) : null}
+    </div>
+  )
+}
 
 const CVD_COMPLAINTS = [
   { value: "chest_pain", label: "Chest Pain" },
@@ -47,6 +196,61 @@ const SEVERITY_OPTIONS = ["Mild", "Moderate", "Severe"] as const
 const CHARACTER_OPTIONS = ["Sharp", "Dull", "Pressure-like", "Burning", "Throbbing"] as const
 const AGGRAVATING_OPTIONS = ["Exertion", "Stress", "After meals", "Deep breathing", "Lying flat"] as const
 const RELIEVING_OPTIONS = ["Rest", "Medication", "Sitting upright", "Hydration", "None"] as const
+
+const ASSOCIATED_SYMPTOMS_BY_COMPLAINT: Record<string, readonly string[]> = {
+  chest_pain: [
+    "Dyspnea",
+    "Diaphoresis",
+    "Nausea",
+    "Vomiting",
+    "Palpitations",
+    "Syncope",
+    "Dizziness",
+    "Jaw pain",
+    "Arm pain",
+  ],
+  dyspnea: [
+    "Chest pain",
+    "Cough",
+    "Wheezing",
+    "Orthopnea",
+    "Leg swelling",
+    "Palpitations",
+    "Fatigue",
+    "Fever",
+  ],
+  palpitations: [
+    "Chest pain",
+    "Dyspnea",
+    "Dizziness",
+    "Syncope",
+    "Anxiety",
+    "Diaphoresis",
+    "Weakness",
+  ],
+  syncope: [
+    "Chest pain",
+    "Palpitations",
+    "Dyspnea",
+    "Nausea",
+    "Headache",
+    "Weakness",
+    "Confusion",
+  ],
+  fatigue: ["Dyspnea", "Chest pain", "Palpitations", "Dizziness", "Leg swelling", "Orthopnea"],
+  edema: ["Dyspnea", "Orthopnea", "Weight gain", "Fatigue", "Abdominal distension"],
+  dizziness: ["Palpitations", "Chest pain", "Dyspnea", "Nausea", "Syncope", "Headache"],
+  default: [
+    "Dyspnea",
+    "Chest pain",
+    "Palpitations",
+    "Dizziness",
+    "Nausea",
+    "Diaphoresis",
+    "Fatigue",
+    "Syncope",
+  ],
+}
 
 type AiOrderSuggestion = {
   id: string
@@ -128,32 +332,75 @@ export function ChiefComplaintSection({
   const [character, setCharacter] = useState("")
   const [aggravating, setAggravating] = useState<string[]>([])
   const [relieving, setRelieving] = useState<string[]>([])
+  const [associatedSymptoms, setAssociatedSymptoms] = useState<string[]>([])
+  const [otherComplaintDetail, setOtherComplaintDetail] = useState("")
   const [showAiAssist, setShowAiAssist] = useState(false)
   const [freeTextInput, setFreeTextInput] = useState("")
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([])
 
-  const complaintLabel = useMemo(
-    () => CVD_COMPLAINTS.find((c) => c.value === structuredComplaint)?.label ?? "",
+  const complaintLabel = useMemo(() => {
+    if (structuredComplaint === "other") {
+      const detail = otherComplaintDetail.trim()
+      return detail || "Other"
+    }
+    return CVD_COMPLAINTS.find((c) => c.value === structuredComplaint)?.label ?? ""
+  }, [structuredComplaint, otherComplaintDetail])
+
+  const isOtherComplaint = structuredComplaint === "other"
+
+  const associatedOptions = useMemo(
+    () => ASSOCIATED_SYMPTOMS_BY_COMPLAINT[structuredComplaint] ?? ASSOCIATED_SYMPTOMS_BY_COMPLAINT.default,
     [structuredComplaint],
   )
 
   const generatedDescription = useMemo(() => {
+    if (!structuredComplaint) return ""
     if (!complaintLabel) return ""
 
+    const subject =
+      isOtherComplaint && otherComplaintDetail.trim()
+        ? otherComplaintDetail.trim()
+        : complaintLabel.toLowerCase()
+
     const parts = [
-      `Patient presents with ${complaintLabel.toLowerCase()}.`,
+      `Patient presents with ${subject}.`,
       onset ? `Onset: ${onset}.` : "",
       duration ? `Duration: ${duration}.` : "",
       severity ? `Severity: ${severity}.` : "",
-      character ? `Character: ${character}.` : "",
-      aggravating.length ? `Aggravating factors: ${aggravating.join(", ")}.` : "",
-      relieving.length ? `Relieving factors: ${relieving.join(", ")}.` : "",
+      !isOtherComplaint && character ? `Character: ${character}.` : "",
+      !isOtherComplaint && aggravating.length ? `Aggravating factors: ${aggravating.join(", ")}.` : "",
+      !isOtherComplaint && relieving.length ? `Relieving factors: ${relieving.join(", ")}.` : "",
+      associatedSymptoms.length ? `Associated symptoms: ${associatedSymptoms.join(", ")}.` : "",
     ].filter(Boolean)
 
     return parts.join(" ")
-  }, [aggravating, character, complaintLabel, duration, onset, relieving, severity])
+  }, [
+    aggravating,
+    associatedSymptoms,
+    character,
+    complaintLabel,
+    duration,
+    isOtherComplaint,
+    onset,
+    otherComplaintDetail,
+    relieving,
+    severity,
+    structuredComplaint,
+  ])
 
   const completenessScore = useMemo(() => {
+    if (isOtherComplaint) {
+      const fields = [
+        otherComplaintDetail.trim(),
+        onset,
+        duration,
+        severity,
+        associatedSymptoms.length > 0 ? "1" : "",
+      ]
+      const filled = fields.filter(Boolean).length
+      return Math.round((filled / fields.length) * 100)
+    }
+
     const fields = [
       structuredComplaint,
       onset,
@@ -162,10 +409,22 @@ export function ChiefComplaintSection({
       character,
       aggravating.length > 0 ? "1" : "",
       relieving.length > 0 ? "1" : "",
+      associatedSymptoms.length > 0 ? "1" : "",
     ]
     const filled = fields.filter(Boolean).length
     return Math.round((filled / fields.length) * 100)
-  }, [structuredComplaint, onset, duration, severity, character, aggravating.length, relieving.length])
+  }, [
+    structuredComplaint,
+    isOtherComplaint,
+    otherComplaintDetail,
+    onset,
+    duration,
+    severity,
+    character,
+    aggravating.length,
+    relieving.length,
+    associatedSymptoms.length,
+  ])
 
   const complaintKey = structuredComplaint || "default"
   const followUps = COMPLAINT_FOLLOW_UPS[complaintKey] ?? COMPLAINT_FOLLOW_UPS.default
@@ -176,38 +435,84 @@ export function ChiefComplaintSection({
   const redFlags = useMemo(() => {
     const flags: string[] = []
     const aggrSet = new Set(aggravating)
+    const assocSet = new Set(associatedSymptoms)
     if (structuredComplaint === "chest_pain" && severity === "Severe") {
       flags.push("Severe chest pain needs urgent ischemic risk exclusion.")
     }
     if (structuredComplaint === "chest_pain" && (aggrSet.has("Exertion") || aggrSet.has("Stress"))) {
       flags.push("Exertional/stress-related chest pain pattern can suggest cardiac origin.")
     }
+    if (
+      structuredComplaint === "chest_pain" &&
+      (assocSet.has("Diaphoresis") || assocSet.has("Nausea") || assocSet.has("Dyspnea"))
+    ) {
+      flags.push("Associated diaphoresis, nausea, or dyspnea may indicate acute coronary syndrome.")
+    }
     if (structuredComplaint === "dyspnea" && aggrSet.has("Lying flat")) {
       flags.push("Dyspnea worsening in supine position may indicate heart failure/volume overload.")
     }
+    if (assocSet.has("Syncope")) {
+      flags.push("Syncope as an associated symptom warrants urgent cardiovascular evaluation.")
+    }
     return flags
-  }, [structuredComplaint, severity, aggravating])
+  }, [structuredComplaint, severity, aggravating, associatedSymptoms])
 
   const hpiDraft = useMemo(() => {
-    if (!complaintLabel) return ""
+    if (!structuredComplaint) return ""
     const lines = [
-      `${complaintLabel} in a patient presenting for cardiovascular evaluation.`,
+      isOtherComplaint && otherComplaintDetail.trim()
+        ? `${otherComplaintDetail.trim()} — patient presenting for cardiovascular evaluation.`
+        : `${complaintLabel} in a patient presenting for cardiovascular evaluation.`,
       onset ? `Onset is ${onset.toLowerCase()}.` : "Onset timing not yet clarified.",
       duration ? `Symptom duration: ${duration}.` : "Duration needs clarification.",
       severity ? `Severity reported as ${severity.toLowerCase()}.` : "Severity not yet documented.",
-      character ? `Symptom character: ${character.toLowerCase()}.` : "Characterization pending.",
-      aggravating.length > 0 ? `Worsened by ${aggravating.join(", ").toLowerCase()}.` : "No aggravating factors documented.",
-      relieving.length > 0 ? `Partially relieved by ${relieving.join(", ").toLowerCase()}.` : "No relieving factors documented.",
+      !isOtherComplaint && character ? `Symptom character: ${character.toLowerCase()}.` : null,
+      !isOtherComplaint && aggravating.length > 0
+        ? `Worsened by ${aggravating.join(", ").toLowerCase()}.`
+        : !isOtherComplaint
+          ? "No aggravating factors documented."
+          : null,
+      !isOtherComplaint && relieving.length > 0
+        ? `Partially relieved by ${relieving.join(", ").toLowerCase()}.`
+        : !isOtherComplaint
+          ? "No relieving factors documented."
+          : null,
+      associatedSymptoms.length > 0
+        ? `Associated symptoms include ${associatedSymptoms.join(", ").toLowerCase()}.`
+        : "No associated symptoms documented.",
       redFlags.length > 0 ? `Red-flag context: ${redFlags.join(" ")}` : "No immediate red-flag pattern detected from available fields.",
-    ]
+    ].filter(Boolean)
     return lines.join(" ")
-  }, [complaintLabel, onset, duration, severity, character, aggravating, relieving, redFlags])
+  }, [
+    structuredComplaint,
+    isOtherComplaint,
+    otherComplaintDetail,
+    complaintLabel,
+    onset,
+    duration,
+    severity,
+    character,
+    aggravating,
+    relieving,
+    associatedSymptoms,
+    redFlags,
+  ])
+
+  useEffect(() => {
+    if (structuredComplaint !== "other") {
+      setOtherComplaintDetail("")
+    }
+  }, [structuredComplaint])
 
   useEffect(() => {
     if (generatedDescription !== complaint) {
       onComplaintChange(generatedDescription)
     }
   }, [generatedDescription, complaint, onComplaintChange])
+
+  useEffect(() => {
+    setAssociatedSymptoms((prev) => prev.filter((symptom) => associatedOptions.includes(symptom)))
+  }, [associatedOptions])
 
   const toggleMultiValue = (values: string[], value: string, setter: (next: string[]) => void) => {
     if (values.includes(value)) {
@@ -230,7 +535,11 @@ export function ChiefComplaintSection({
   const runAiExtraction = () => {
     if (!freeTextInput.trim()) return
     const normalized = freeTextInput.toLowerCase()
-    onStructuredComplaintChange(inferStructuredComplaintFromText(freeTextInput))
+    const inferredComplaint = inferStructuredComplaintFromText(freeTextInput)
+    onStructuredComplaintChange(inferredComplaint)
+    if (inferredComplaint === "other") {
+      setOtherComplaintDetail(freeTextInput.trim())
+    }
     if (normalized.includes("sudden")) setOnset("Sudden")
     else if (normalized.includes("gradual")) setOnset("Gradual")
     else setOnset("Intermittent")
@@ -244,14 +553,20 @@ export function ChiefComplaintSection({
     else if (normalized.includes("moderate")) setSeverity("Moderate")
     else setSeverity("Mild")
 
-    if (normalized.includes("pressure")) setCharacter("Pressure-like")
-    else if (normalized.includes("burn")) setCharacter("Burning")
-    else if (normalized.includes("sharp")) setCharacter("Sharp")
+    if (inferredComplaint !== "other") {
+      if (normalized.includes("pressure")) setCharacter("Pressure-like")
+      else if (normalized.includes("burn")) setCharacter("Burning")
+      else if (normalized.includes("sharp")) setCharacter("Sharp")
 
-    const nextAggravating = AGGRAVATING_OPTIONS.filter((item) => normalized.includes(item.toLowerCase()))
-    const nextRelieving = RELIEVING_OPTIONS.filter((item) => normalized.includes(item.toLowerCase()))
-    setAggravating(nextAggravating)
-    setRelieving(nextRelieving.length > 0 ? nextRelieving : ["Rest"])
+      const nextAggravating = AGGRAVATING_OPTIONS.filter((item) => normalized.includes(item.toLowerCase()))
+      const nextRelieving = RELIEVING_OPTIONS.filter((item) => normalized.includes(item.toLowerCase()))
+      setAggravating(nextAggravating)
+      setRelieving(nextRelieving.length > 0 ? nextRelieving : ["Rest"])
+    }
+
+    const assocOptions = ASSOCIATED_SYMPTOMS_BY_COMPLAINT[inferredComplaint] ?? ASSOCIATED_SYMPTOMS_BY_COMPLAINT.default
+    const nextAssociated = assocOptions.filter((item) => normalized.includes(item.toLowerCase()))
+    setAssociatedSymptoms(nextAssociated)
   }
 
   const getFreeText = useCallback(() => freeTextInput, [freeTextInput])
@@ -300,143 +615,134 @@ export function ChiefComplaintSection({
   const detailedDescListening = detailedDescActiveKey === "detailedDescription"
 
   return (
-    <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
-        <div className="mb-4 flex items-center justify-between gap-2">
+    <div className={SECTION_CARD}>
+      <SectionHeader
+        icon={MessageSquareTextIcon}
+        label="Chief complaint"
+        action={
           <div className="flex items-center gap-2">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
-              <MessageSquareTextIcon className="size-4 text-[#1A5345]" />
-            </div>
-            <h3 className="font-serif text-[16px] font-bold text-[#102F27]">Chief Complaint</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            {supported ? (
-              <span className="text-[12px] text-muted-foreground">Type or use voice dictation</span>
+            {structuredComplaint ? (
+              <span className="rounded-full bg-[#1A534518] px-2.5 py-0.5 text-[10px] font-bold tabular-nums text-[#1A5345]">
+                {completenessScore}% complete
+              </span>
             ) : null}
             <Button
               type="button"
               size="sm"
-              variant="outline"
+              variant={showAiAssist ? "default" : "outline"}
               onClick={() => setShowAiAssist((prev) => !prev)}
-              className="h-8 gap-1.5 border-[#cfd9d5] bg-white text-[13px] text-[#1A5345] hover:bg-[#E8F0EE]"
+              className={cn(
+                "h-8 gap-1.5 rounded-xl text-[12px] font-semibold",
+                showAiAssist
+                  ? "bg-[#1A5345] text-white hover:bg-[#154434]"
+                  : "border-[#E8E6E0] bg-white text-[#1A5345] hover:bg-[#F9F8F5]",
+              )}
             >
               <SparklesIcon className="size-3.5" />
-              AI Assist
+              AI assist
             </Button>
           </div>
-        </div>
+        }
+      />
 
-        {showAiAssist ? (
-          <div className="mb-4 space-y-3 rounded-xl border border-[#E5EEEA] bg-[#FBFDFC] p-3">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[13px] font-bold text-[#102F27]">AI Smart Intake</p>
-                {supported ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        id="chief-complaint-free-text-mic"
-                        variant={freeTextListening ? "secondary" : "ghost"}
-                        size="icon-xs"
-                        className={
-                          freeTextListening
-                            ? "shrink-0 text-[#B42318] ring-2 ring-[#B42318]/25"
-                            : "shrink-0 text-[#2C6A5B]"
-                        }
-                        aria-pressed={freeTextListening}
-                        aria-label={freeTextListening ? "Stop voice dictation" : "Start voice dictation"}
-                        onClick={() => toggle("freeTextInput")}
-                      >
-                        <MicIcon className="size-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[220px] text-center">
-                      {freeTextListening ? "Stop dictation" : "Voice dictation"}
-                    </TooltipContent>
-                  </Tooltip>
-                ) : null}
-              </div>
-              <Textarea
-                id="chief-complaint-free-text"
-                value={freeTextInput}
-                onChange={(e) => setFreeTextInput(e.target.value)}
-                placeholder="Paste patient wording or quick notes, then extract to structured fields..."
-                className="min-h-[70px] border-[#E5EEEA] bg-white text-[14px]"
-                aria-describedby={freeTextListening && interimText ? "chief-complaint-free-text-interim" : undefined}
+      {showAiAssist ? (
+        <div className="mb-4 space-y-3 rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-bold text-[#1A5345]">Smart intake</p>
+              <VoiceMicButton
+                id="chief-complaint-free-text-mic"
+                listening={freeTextListening}
+                supported={supported}
+                onToggle={() => toggle("freeTextInput")}
               />
-              {freeTextListening ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-[12px] font-medium text-[#B42318]">{formatElapsedTime(elapsedSeconds)}</span>
-                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#EEF5F3]">
-                    <div
-                      className="h-full rounded-full bg-[#1A5345] transition-all duration-150"
-                      style={{ width: `${Math.max(6, audioLevel)}%` }}
-                    />
-                  </div>
-                  <span className="text-[12px] text-muted-foreground">Voice level</span>
-                </div>
-              ) : null}
-              {freeTextListening && interimText ? (
-                <p id="chief-complaint-free-text-interim" className="text-[13px] leading-snug text-[#6B7280]">
-                  {interimText}
-                </p>
-              ) : null}
-              <div className="flex flex-wrap items-center gap-2">
-                <Button type="button" size="sm" onClick={runAiExtraction} className="h-7 bg-[#1A5345] px-2.5 text-[13px] hover:bg-[#0F3D32]">
-                  Extract
-                </Button>
-                <span className="text-[12px] text-muted-foreground">Completeness: {completenessScore}%</span>
-              </div>
             </div>
+            <Textarea
+              id="chief-complaint-free-text"
+              value={freeTextInput}
+              onChange={(e) => setFreeTextInput(e.target.value)}
+              placeholder="Paste patient wording or quick notes, then extract to structured fields…"
+              className={TEXTAREA_CLASS}
+              aria-describedby={freeTextListening && interimText ? "chief-complaint-free-text-interim" : undefined}
+            />
+            <VoiceLevelBar
+              listening={freeTextListening}
+              elapsedSeconds={elapsedSeconds}
+              audioLevel={audioLevel}
+              interimText={interimText}
+              interimId="chief-complaint-free-text-interim"
+              formatElapsedTime={formatElapsedTime}
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                onClick={runAiExtraction}
+                className="h-8 rounded-xl bg-[#1A5345] px-3 text-[12px] font-semibold hover:bg-[#154434]"
+              >
+                Extract to fields
+              </Button>
+            </div>
+          </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
-              <p className="mb-1 text-[13px] font-bold text-[#102F27]">Follow-up Questions</p>
-              <ul className="space-y-1">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-[#E8E6E0]/50 bg-white p-3">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#6B7870]">Follow-up questions</p>
+              <ul className="space-y-1.5">
                 {followUps.map((q) => (
-                  <li key={q} className="text-[12px] text-[#102F27]">- {q}</li>
+                  <li key={q} className="text-[12px] leading-snug text-[#1A1F1E]">
+                    · {q}
+                  </li>
                 ))}
               </ul>
             </div>
-            <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
-              <p className="mb-1 text-[13px] font-bold text-[#102F27]">Differential Starter</p>
-              <ul className="space-y-1">
+            <div className="rounded-xl border border-[#E8E6E0]/50 bg-white p-3">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#6B7870]">Differential starter</p>
+              <ul className="space-y-1.5">
                 {differentials.map((d) => (
-                  <li key={d} className="text-[12px] text-[#102F27]">- {d}</li>
+                  <li key={d} className="text-[12px] leading-snug text-[#1A1F1E]">
+                    · {d}
+                  </li>
                 ))}
               </ul>
             </div>
           </div>
 
-          <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
-            <div className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-[#102F27]">
-              <ShieldAlertIcon className="size-3.5 text-red-600" />
-              Red Flags
+          <div className="rounded-xl border border-[#E8E6E0]/50 bg-white p-3">
+            <div className="mb-2 flex items-center gap-1.5 text-sm font-bold text-[#1A1F1E]">
+              <ShieldAlertIcon className="size-4 text-red-600" aria-hidden />
+              Red flags
             </div>
             {redFlags.length > 0 ? (
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 {redFlags.map((flag) => (
-                  <div key={flag} className="flex items-start gap-1.5 rounded-md bg-red-50 px-2 py-1.5 text-[12px] text-red-700">
-                    <AlertTriangleIcon className="mt-0.5 size-3 shrink-0" />
+                  <div
+                    key={flag}
+                    className="flex items-start gap-2 rounded-lg border border-red-200/50 bg-red-50/60 px-2.5 py-2 text-[12px] text-red-800"
+                  >
+                    <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                     <span>{flag}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-[12px] text-muted-foreground">No urgent red-flag pattern detected from current inputs.</p>
+              <p className="text-[12px] text-[#6B7870]">No urgent red-flag pattern from current inputs.</p>
             )}
           </div>
 
-          <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
-            <p className="mb-2 text-[13px] font-bold text-[#102F27]">Suggested Orders</p>
-            <div className="space-y-1.5">
+          <div className="rounded-xl border border-[#E8E6E0]/50 bg-white p-3">
+            <p className="mb-2 text-sm font-bold text-[#1A1F1E]">Suggested orders</p>
+            <div className="space-y-2">
               {suggestedOrders.map((order) => {
                 const selected = selectedOrderIds.includes(order.id)
                 return (
-                  <div key={order.id} className="flex items-start justify-between gap-2 rounded-md border border-[#E8E6E0] px-2 py-1.5">
-                    <div>
-                      <p className="text-[13px] font-semibold text-[#102F27]">{order.label}</p>
-                      <p className="text-[11.5px] text-muted-foreground">{order.rationale}</p>
+                  <div
+                    key={order.id}
+                    className="flex items-start justify-between gap-2 rounded-lg border border-[#E8E6E0]/50 bg-[#F9F8F5]/40 px-2.5 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold text-[#1A1F1E]">{order.label}</p>
+                      <p className="text-[11px] text-[#6B7870]">{order.rationale}</p>
                     </div>
                     <Button
                       type="button"
@@ -444,236 +750,208 @@ export function ChiefComplaintSection({
                       variant="outline"
                       onClick={() => {
                         setSelectedOrderIds((prev) =>
-                          selected ? prev.filter((id) => id !== order.id) : [...prev, order.id]
+                          selected ? prev.filter((id) => id !== order.id) : [...prev, order.id],
                         )
                       }}
-                      className="h-7 border-[#cfd9d5] text-[12px]"
+                      className="h-7 shrink-0 rounded-lg border-[#E8E6E0] text-[11px] font-semibold"
                     >
-                      {selected ? "Dismiss" : "Accept"}
+                      {selected ? "Remove" : "Add"}
                     </Button>
                   </div>
                 )
               })}
             </div>
             {selectedOrders.length > 0 ? (
-              <p className="mt-2 text-[12px] text-[#1A5345]">
-                <CheckCircle2Icon className="mr-1 inline size-3" />
+              <p className="mt-2 text-[12px] font-medium text-[#1A5345]">
+                <CheckCircle2Icon className="mr-1 inline size-3.5" aria-hidden />
                 Added: {selectedOrders.map((order) => order.label).join(", ")}
               </p>
             ) : null}
           </div>
 
-          <div className="rounded-lg border border-[#E5EEEA] bg-white p-2.5">
-            <p className="mb-1 text-[13px] font-bold text-[#102F27]">HPI Draft</p>
-            <p className="text-[12.5px] leading-relaxed text-[#102F27]">{hpiDraft || "Select complaint details to generate an HPI draft."}</p>
-            <div className="mt-2 flex gap-2">
+          <div className="rounded-xl border border-[#E8E6E0]/50 bg-white p-3">
+            <p className="mb-1 text-sm font-bold text-[#1A1F1E]">HPI draft</p>
+            <p className="text-[12px] leading-relaxed text-[#374151]">
+              {hpiDraft || "Select complaint details to generate an HPI draft."}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
               <Button
                 type="button"
                 size="sm"
-                onClick={() => setFreeTextInput(hpiDraft)}
+                onClick={() => onComplaintChange(hpiDraft)}
                 disabled={!hpiDraft}
-                className="h-7 bg-[#1A5345] px-2.5 text-[13px] hover:bg-[#0F3D32]"
+                className="h-7 rounded-lg bg-[#1A5345] px-2.5 text-[12px] hover:bg-[#154434]"
               >
-                Accept
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setFreeTextInput(hpiDraft)}
-                disabled={!hpiDraft}
-                className="h-7 border-[#cfd9d5] px-2.5 text-[13px]"
-              >
-                Edit
+                Use draft
               </Button>
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
                 onClick={() => setFreeTextInput("")}
-                className="h-7 border-[#cfd9d5] px-2.5 text-[13px]"
+                className="h-7 rounded-lg border-[#E8E6E0] px-2.5 text-[12px]"
               >
-                Dismiss
+                Clear intake
               </Button>
             </div>
           </div>
         </div>
       ) : null}
-      <div className="space-y-3">
-        <div className="space-y-1">
-          <label className="text-[13px] font-semibold text-muted-foreground">Structured Complaint</label>
+
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <FieldLabel>Primary complaint</FieldLabel>
           <Select value={structuredComplaint} onValueChange={onStructuredComplaintChange}>
-            <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[14px] text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
-              <SelectValue placeholder="Select primary complaint..." />
+            <SelectTrigger className={SELECT_TRIGGER}>
+              <SelectValue placeholder="Select primary complaint…" />
             </SelectTrigger>
-            <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
+            <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
               {CVD_COMPLAINTS.map((c) => (
-                <SelectItem key={c.value} value={c.value} className="cursor-pointer text-[14px] text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">
+                <SelectItem key={c.value} value={c.value} className="h-10 cursor-pointer text-[14px]">
                   {c.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
-          <label className="text-[13px] font-semibold text-muted-foreground">Detailed Description</label>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Select value={onset} onValueChange={setOnset}>
-              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[14px] text-[#152a24]">
-                <SelectValue placeholder="Onset" />
-              </SelectTrigger>
-              <SelectContent>
-                {ONSET_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
 
-            <Select value={duration} onValueChange={setDuration}>
-              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[14px] text-[#152a24]">
-                <SelectValue placeholder="Duration" />
-              </SelectTrigger>
-              <SelectContent>
-                {DURATION_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={severity} onValueChange={setSeverity}>
-              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[14px] text-[#152a24]">
-                <SelectValue placeholder="Severity" />
-              </SelectTrigger>
-              <SelectContent>
-                {SEVERITY_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={character} onValueChange={setCharacter}>
-              <SelectTrigger className="h-9 w-full rounded-lg border-[#cfd9d5] bg-white text-[14px] text-[#152a24]">
-                <SelectValue placeholder="Character" />
-              </SelectTrigger>
-              <SelectContent>
-                {CHARACTER_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5 rounded-lg border border-[#E8E6E0] bg-white p-2.5">
-            <p className="text-[13px] font-semibold text-muted-foreground">Aggravating factors</p>
-            <div className="flex flex-wrap gap-1.5">
-              {AGGRAVATING_OPTIONS.map((option) => {
-                const active = aggravating.includes(option)
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => toggleMultiValue(aggravating, option, setAggravating)}
-                    className={`rounded-full border px-2.5 py-1 text-[12.5px] transition-colors ${
-                      active
-                        ? "border-[#1A5345] bg-[#E8F0EE] text-[#1A5345]"
-                        : "border-[#E8E6E0] bg-[#FAFAF8] text-[#4B5563] hover:border-[#A8C4BC]"
-                    }`}
-                  >
-                    {option}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="space-y-1.5 rounded-lg border border-[#E8E6E0] bg-white p-2.5">
-            <p className="text-[13px] font-semibold text-muted-foreground">Relieving factors</p>
-            <div className="flex flex-wrap gap-1.5">
-              {RELIEVING_OPTIONS.map((option) => {
-                const active = relieving.includes(option)
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => toggleMultiValue(relieving, option, setRelieving)}
-                    className={`rounded-full border px-2.5 py-1 text-[12.5px] transition-colors ${
-                      active
-                        ? "border-[#1A5345] bg-[#E8F0EE] text-[#1A5345]"
-                        : "border-[#E8E6E0] bg-[#FAFAF8] text-[#4B5563] hover:border-[#A8C4BC]"
-                    }`}
-                  >
-                    {option}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <div className="flex items-center justify-between gap-2">
-              <label className="text-[13px] font-semibold text-muted-foreground" htmlFor="detailed-description">
-                Detailed Description
-              </label>
-              {detailedDescSupported ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      id="detailed-description-mic"
-                      variant={detailedDescListening ? "secondary" : "ghost"}
-                      size="icon-xs"
-                      className={
-                        detailedDescListening
-                           ? "shrink-0 text-[#B42318] ring-2 ring-[#B42318]/25"
-                           : "shrink-0 text-[#2C6A5B]"
-                      }
-                      aria-pressed={detailedDescListening}
-                      aria-label={detailedDescListening ? "Stop voice dictation" : "Start voice dictation"}
-                      onClick={() => detailedDescToggle("detailedDescription")}
-                    >
-                      <MicIcon className="size-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-[220px] text-center">
-                    {detailedDescListening ? "Stop dictation" : "Voice dictation"}
-                  </TooltipContent>
-                </Tooltip>
-              ) : null}
-            </div>
-            <Textarea
-              id="detailed-description"
-              value={generatedDescription || complaint}
-              onChange={(e) => onComplaintChange(e.target.value)}
-              placeholder="Select complaint options to generate the detailed description."
-              className="min-h-[80px] resize-none border-[#E8E6E0] bg-[#FAFAF8] text-[14px] placeholder:text-[#9CA3AF]"
-              aria-describedby={detailedDescListening && detailedDescInterimText ? "detailed-description-interim" : undefined}
-            />
-            {detailedDescListening ? (
-              <div className="flex items-center gap-2">
-                <span className="text-[12px] font-medium text-[#B42318]">{formatElapsedTime(detailedDescElapsedSeconds)}</span>
-                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#EEF5F3]">
-                  <div
-                    className="h-full rounded-full bg-[#1A5345] transition-all duration-150"
-                    style={{ width: `${Math.max(6, detailedDescAudioLevel)}%` }}
-                  />
-                </div>
-                <span className="text-[12px] text-muted-foreground">Voice level</span>
-              </div>
-            ) : null}
-            {detailedDescListening && detailedDescInterimText ? (
-              <p id="detailed-description-interim" className="text-[13px] leading-snug text-[#6B7280]">
-                {detailedDescInterimText}
+        {structuredComplaint ? (
+          isOtherComplaint ? (
+            <div className="space-y-4 rounded-xl border border-[#E8E6E0]/50 bg-[#F9F8F5]/40 p-4">
+              <p className="text-sm font-bold text-[#1A5345]">Other complaint details</p>
+              <p className="text-[12px] leading-relaxed text-[#6B7870]">
+                Describe the symptom in the patient&apos;s words — no cardiac OPQRST template for custom complaints.
               </p>
-            ) : null}
+
+              <div className="space-y-1.5">
+                <FieldLabel htmlFor="other-complaint-detail">
+                  Describe the complaint <span className="text-red-500">*</span>
+                </FieldLabel>
+                <Input
+                  id="other-complaint-detail"
+                  value={otherComplaintDetail}
+                  onChange={(e) => setOtherComplaintDetail(e.target.value)}
+                  placeholder="e.g. Recurrent headaches, skin rash, joint stiffness…"
+                  className="h-10 rounded-xl border-gray-200 bg-white text-[14px] focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                {(
+                  [
+                    { value: onset, onChange: setOnset, placeholder: "Onset", options: ONSET_OPTIONS },
+                    { value: duration, onChange: setDuration, placeholder: "Duration", options: DURATION_OPTIONS },
+                    { value: severity, onChange: setSeverity, placeholder: "Severity", options: SEVERITY_OPTIONS },
+                  ] as const
+                ).map((field) => (
+                  <div key={field.placeholder} className="space-y-1.5">
+                    <FieldLabel>{field.placeholder}</FieldLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className={SELECT_TRIGGER}>
+                        <SelectValue placeholder={`Select ${field.placeholder.toLowerCase()}…`} />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
+                        {field.options.map((option) => (
+                          <SelectItem key={option} value={option} className="cursor-pointer">
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+
+              <ChipToggleGroup
+                label="Associated symptoms"
+                options={associatedOptions}
+                selected={associatedSymptoms}
+                onToggle={(option) => toggleMultiValue(associatedSymptoms, option, setAssociatedSymptoms)}
+              />
+            </div>
+          ) : (
+            <div className="space-y-4 rounded-xl border border-[#E8E6E0]/50 bg-[#F9F8F5]/40 p-4">
+              <p className="text-sm font-bold text-[#1A5345]">Symptom details (OPQRST)</p>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(
+                  [
+                    { value: onset, onChange: setOnset, placeholder: "Onset", options: ONSET_OPTIONS },
+                    { value: duration, onChange: setDuration, placeholder: "Duration", options: DURATION_OPTIONS },
+                    { value: severity, onChange: setSeverity, placeholder: "Severity", options: SEVERITY_OPTIONS },
+                    { value: character, onChange: setCharacter, placeholder: "Character", options: CHARACTER_OPTIONS },
+                  ] as const
+                ).map((field) => (
+                  <div key={field.placeholder} className="space-y-1.5">
+                    <FieldLabel>{field.placeholder}</FieldLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className={SELECT_TRIGGER}>
+                        <SelectValue placeholder={`Select ${field.placeholder.toLowerCase()}…`} />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
+                        {field.options.map((option) => (
+                          <SelectItem key={option} value={option} className="cursor-pointer">
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+
+              <ChipToggleGroup
+                label="Aggravating factors"
+                options={AGGRAVATING_OPTIONS}
+                selected={aggravating}
+                onToggle={(option) => toggleMultiValue(aggravating, option, setAggravating)}
+              />
+
+              <ChipToggleGroup
+                label="Relieving factors"
+                options={RELIEVING_OPTIONS}
+                selected={relieving}
+                onToggle={(option) => toggleMultiValue(relieving, option, setRelieving)}
+              />
+
+              <ChipToggleGroup
+                label="Associated symptoms"
+                options={associatedOptions}
+                selected={associatedSymptoms}
+                onToggle={(option) => toggleMultiValue(associatedSymptoms, option, setAssociatedSymptoms)}
+              />
+            </div>
+          )
+        ) : null}
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <FieldLabel htmlFor="detailed-description">Clinical narrative</FieldLabel>
+            <VoiceMicButton
+              id="detailed-description-mic"
+              listening={detailedDescListening}
+              supported={detailedDescSupported}
+              onToggle={() => detailedDescToggle("detailedDescription")}
+            />
           </div>
+          <Textarea
+            id="detailed-description"
+            value={generatedDescription || complaint}
+            onChange={(e) => onComplaintChange(e.target.value)}
+            placeholder="Structured fields build this narrative automatically — edit or dictate freely."
+            className={TEXTAREA_CLASS}
+            aria-describedby={
+              detailedDescListening && detailedDescInterimText ? "detailed-description-interim" : undefined
+            }
+          />
+          <VoiceLevelBar
+            listening={detailedDescListening}
+            elapsedSeconds={detailedDescElapsedSeconds}
+            audioLevel={detailedDescAudioLevel}
+            interimText={detailedDescInterimText}
+            interimId="detailed-description-interim"
+            formatElapsedTime={formatElapsedTime}
+          />
         </div>
       </div>
     </div>
