@@ -6,14 +6,23 @@ import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
 import { DoctorBooking } from "../../DoctorBooking"
-import { buildDoctorBookingMock } from "../../doctorBooking.mock"
+import { useDoctorBooking } from "../../useDoctorBooking"
 
 export function DoctorBookingPageContainer() {
   const params = useParams()
   const doctorId = typeof params.doctorId === "string" ? params.doctorId : ""
-  const data = buildDoctorBookingMock(doctorId)
+  const { data, isLoading, isError, createAppointment, isCreatingAppointment } =
+    useDoctorBooking(doctorId)
 
-  if (!data) {
+  if (isLoading) {
+    return (
+      <div className="flex h-full min-h-[50vh] flex-col items-center justify-center bg-[#F4F3EF] px-6 text-center">
+        <p className="text-[13px] font-medium text-muted-foreground">Loading doctor profile…</p>
+      </div>
+    )
+  }
+
+  if (isError || !data) {
     return (
       <div className="flex h-full min-h-[50vh] flex-col items-center justify-center bg-[#F4F3EF] px-6 text-center">
         <p className="font-serif text-[20px] font-bold text-[#1A1F1E]">Doctor not found</p>
@@ -31,5 +40,11 @@ export function DoctorBookingPageContainer() {
     )
   }
 
-  return <DoctorBooking data={data} />
+  return (
+    <DoctorBooking
+      data={data}
+      onCreateAppointment={createAppointment}
+      isCreating={isCreatingAppointment}
+    />
+  )
 }
