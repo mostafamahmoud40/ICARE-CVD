@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsOptional,
@@ -39,6 +40,16 @@ export enum LateralityType {
   Other = 'other',
 }
 
+export enum DiagnosisCategory {
+  Cardiac = 'cardiac',
+  Pulmonary = 'pulmonary',
+  Diabetes = 'diabetes',
+  Gastrointestinal = 'gastrointestinal',
+  Neurological = 'neurological',
+  Infectious = 'infectious',
+  Other = 'other',
+}
+
 export class CreateDiagnosisDto {
   @IsString()
   @MaxLength(20)
@@ -46,6 +57,18 @@ export class CreateDiagnosisDto {
 
   @IsString()
   description!: string;
+
+  @IsOptional()
+  @IsEnum(DiagnosisCategory)
+  category?: DiagnosisCategory;
+
+  @IsOptional()
+  @IsBoolean()
+  chronicFlag?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  infectiousFlag?: boolean;
 
   @IsEnum(DiagnosisType)
   type!: DiagnosisType;
@@ -87,6 +110,18 @@ export class UpdateDiagnosisDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsEnum(DiagnosisCategory)
+  category?: DiagnosisCategory;
+
+  @IsOptional()
+  @IsBoolean()
+  chronicFlag?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  infectiousFlag?: boolean;
 
   @IsOptional()
   @IsEnum(DiagnosisType)

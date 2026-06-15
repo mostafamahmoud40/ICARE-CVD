@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 
@@ -13,6 +14,7 @@ import {
   allergy,
   medication,
   patient,
+  patientDocument,
   patientHistory,
   user,
 } from '../../database/schema';
@@ -28,6 +30,14 @@ import {
 const CHIEF_SET = new Set<string>(chiefComplaints);
 
 const BLOOD_TYPES = new Set(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']);
+
+type PatientDocumentCategory =
+  | 'lab_report'
+  | 'imaging'
+  | 'ecg'
+  | 'prescription'
+  | 'referral'
+  | 'other';
 
 @Injectable()
 export class AssistantService {
@@ -192,6 +202,47 @@ export class AssistantService {
         nationalId: dto.nationalId.trim(),
       },
     };
+  }
+
+  async registerPatientDocument(
+    patientUserId: number,
+    assistantUserId: number,
+    dto: {
+      fileName: string;
+      contentType: string;
+      category: PatientDocumentCategory;
+      title?: string;
+      s3Key: string;
+      fileSize?: number;
+    },
+  ) {
+    if (!dto.s3Key?.trim()) {
+      throw new BadRequestException('s3Key is required');
+    }
+
+    const patientRow = await this.db.query.patient.findFirst({
+      where: eq(patient.userId, patientUserId),
+    });
+    if (!patientRow) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    const [doc] = await this.db
+      .insert(patientDocument)
+      .values({
+        userId: patientRow.userId,
+        patientId: patientRow.id,
+        fileName: dto.fileName,
+        contentType: dto.contentType,
+        sizeBytes: dto.fileSize ?? null,
+        category: dto.category,
+        title: dto.title ?? null,
+        uploadedByUserId: assistantUserId,
+        s3Key: dto.s3Key,
+      })
+      .returning();
+
+    return doc;
   }
 
   private mapSmoking(

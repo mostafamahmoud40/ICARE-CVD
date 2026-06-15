@@ -100,12 +100,22 @@ export class AuthService {
       throw new UnauthorizedException('User not found or deactivated');
     }
 
+    let avatarUrl = userRecord.avatarUrl;
+    if (userRecord.role === 'patient') {
+      const patientRecord = await this.db.query.patient.findFirst({
+        where: eq(patient.userId, userId),
+        columns: { avatarUrl: true },
+      });
+      avatarUrl = patientRecord?.avatarUrl ?? userRecord.avatarUrl;
+    }
+
     return {
       id: userRecord.id,
       name: userRecord.name,
       email: userRecord.email,
       phone: userRecord.phone,
       role: userRecord.role,
+      avatarUrl,
     };
   }
 

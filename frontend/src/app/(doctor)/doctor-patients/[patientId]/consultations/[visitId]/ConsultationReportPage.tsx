@@ -20,6 +20,7 @@ import {
   WindIcon,
   PrinterIcon,
   ArrowRightLeftIcon,
+  ClockIcon,
 } from "lucide-react"
 import {
   Breadcrumb,
@@ -30,35 +31,36 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
+import { doctorAvatarUrl } from "../../diagnoses/diagnosis.shared"
 
 function fmtFull(iso: string | null | undefined) {
-  if (!iso) return "\u2014"
+  if (!iso) return "—"
   return new Intl.DateTimeFormat(undefined, { dateStyle: "long" }).format(new Date(iso))
 }
 
-const typeStyles: Record<string, string> = {
-  "follow-up": "bg-[#EEF5F3] text-[#2C6A5B]",
-  "new": "bg-blue-50 text-blue-600",
-  "walk-in": "bg-amber-50 text-amber-600",
-  "post-procedure": "bg-violet-50 text-violet-600",
-  "urgent": "bg-red-50 text-red-600",
+export const visitTypeStyles: Record<string, string> = {
+  "follow-up": "bg-[#EEF5F3] text-[#1A5345]",
+  new: "bg-blue-50 text-blue-700",
+  "walk-in": "bg-amber-50 text-amber-700",
+  "post-procedure": "bg-violet-50 text-violet-700",
+  urgent: "bg-red-50 text-red-700",
 }
 
-function Section({ title, icon: Icon, children, action }: {
+function Section({ title, icon: Icon, children, action, className }: {
   title: string
   icon: React.ElementType
   children: React.ReactNode
   action?: React.ReactNode
+  className?: string
 }) {
   return (
-    <div className="rounded-xl border border-[#E5EEEA] bg-white p-3 sm:p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex size-6 items-center justify-center rounded-lg bg-[#E8F0EE] sm:size-7">
-            <Icon className="size-3 text-[#1A5345] sm:size-3.5" />
+    <div className={cn("rounded-2xl border border-[#E8E6E0]/80 bg-white p-5 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.02)] sm:p-6", className)}>
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-8 items-center justify-center rounded-xl bg-[#E8F0EE]/60">
+            <Icon className="size-4 text-[#1A5345]" />
           </div>
-          <h3 className="text-[12px] font-semibold text-[#102F27] sm:text-[13px]">{title}</h3>
+          <h3 className="text-[15px] font-bold text-[#1A1F1E]">{title}</h3>
         </div>
         {action}
       </div>
@@ -67,18 +69,22 @@ function Section({ title, icon: Icon, children, action }: {
   )
 }
 
-function VitalRow({ icon: Icon, label, value, unit }: {
+function VitalMiniCard({ icon: Icon, label, value, unit }: {
   icon: React.ElementType
   label: string
   value: string | number
   unit: string
 }) {
   return (
-    <div className="flex items-center gap-2 py-1">
-      <Icon className="size-3 text-muted-foreground sm:size-3.5" />
-      <span className="text-[10px] text-muted-foreground sm:text-[11px]">{label}:</span>
-      <span className="text-[11px] font-semibold text-[#102F27] sm:text-[12px]">{value}</span>
-      <span className="text-[9px] text-muted-foreground">{unit}</span>
+    <div className="flex items-start justify-between rounded-xl border border-[#E8E6E0]/60 bg-[#FAFAF8] p-3 shadow-sm transition-all hover:bg-white hover:border-[#1A5345]/20">
+      <div className="flex flex-col gap-1">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7870]">{label}</span>
+        <div className="flex items-baseline gap-1">
+          <span className="text-[15px] font-bold text-[#1A1F1E]">{value}</span>
+          <span className="text-[11px] font-semibold text-[#6B7870]">{unit}</span>
+        </div>
+      </div>
+      <Icon className="size-4 text-[#1A5345]" aria-hidden />
     </div>
   )
 }
@@ -91,207 +97,262 @@ type ConsultationReportPageProps = {
 
 export function ConsultationReportPage({ patientId, patientName, report }: ConsultationReportPageProps) {
   return (
-    <main className="flex-1 overflow-y-auto bg-[#F9F8F5] p-3 sm:p-4 lg:p-5">
-      <div className="space-y-4 sm:space-y-5">
-        <div className="flex items-center justify-between">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href="/doctor-patients" className="text-[10px] sm:text-[11px]">Patients</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href={`/doctor-patients/${patientId}`} className="text-[10px] sm:text-[11px]">{patientName}</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href={`/doctor-patients/${patientId}/consultations`} className="text-[10px] sm:text-[11px]">Consultations</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">{fmtFull(report.date)}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <Button size="sm" variant="outline" className="gap-1.5 text-[10px] sm:text-[11px]">
-            <PrinterIcon className="size-3 sm:size-3.5" />
-            <span className="hidden sm:inline">Print Report</span>
-            <span className="sm:hidden">Print</span>
+    <main className="flex-1 overflow-y-auto bg-[#F9F8F5] px-4 py-6 sm:px-8 sm:py-8 custom-scrollbar">
+      <div className="mx-auto w-full max-w-7xl space-y-6">
+        
+        {/* Header Section */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href="/doctor-patients" className="text-[13px] font-medium text-muted-foreground hover:text-[#1A1F1E]">Patients</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href={`/doctor-patients/${patientId}`} className="text-[13px] font-medium text-muted-foreground hover:text-[#1A1F1E]">{patientName}</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href={`/doctor-patients/${patientId}/consultations`} className="text-[13px] font-medium text-muted-foreground hover:text-[#1A1F1E]">Consultations</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="text-[13px] font-bold text-[#1A1F1E]">{fmtFull(report.date)}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+            <h1 className="font-serif text-[24px] font-bold tracking-tight text-[#1A1F1E] sm:text-[28px]">
+              Consultation Report
+            </h1>
+          </div>
+          <Button variant="outline" className="h-9 gap-2 rounded-lg border-[#E8E6E0] bg-white px-4 text-[13px] font-bold text-[#1A1F1E] shadow-sm hover:bg-[#F9F8F5]">
+            <PrinterIcon className="size-4" />
+            <span>Print Report</span>
           </Button>
         </div>
 
-        <div className="rounded-xl border border-[#E5EEEA] bg-white p-4 sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-[15px] font-bold text-[#102F27] sm:text-[18px]">Consultation Report</h1>
-                <span className={cn("rounded-full px-2 py-0.5 text-[9px] font-medium capitalize", typeStyles[report.type] ?? "bg-[#F5F5F3] text-[#6B7870]")}>
-                  {report.type.replace("-", " ")}
-                </span>
-              </div>
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground sm:gap-2 sm:text-[11px]">
-                <span>{fmtFull(report.date)}</span>
-                <span>&middot;</span>
-                <span>{report.time}</span>
-                <span>&middot;</span>
-                <span>{report.durationMin} min</span>
-              </div>
-              <div className="mt-1 flex items-center gap-1.5 text-[10px] sm:text-[11px]">
-                <StethoscopeIcon className="size-3 text-muted-foreground" />
-                <span className="font-medium text-[#102F27]">{report.doctorName}</span>
-                <span className="text-muted-foreground">&middot; {report.doctorSpecialty}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-lg bg-[#E8F0EE] px-3 py-1.5">
-              <UserRoundIcon className="size-3.5 text-[#1A5345]" />
-              <div>
-                <p className="text-[10px] font-semibold text-[#102F27] sm:text-[11px]">{patientName}</p>
-                <p className="text-[9px] text-[#6B7870]">ID: {patientId}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Section title="Chief Complaint" icon={FileTextIcon}>
-          <p className="text-[11px] leading-relaxed text-[#102F27] sm:text-[12px]">{report.chiefComplaint}</p>
-        </Section>
-
-        <Section title="History of Present Illness" icon={FileTextIcon}>
-          <p className="text-[10px] leading-relaxed text-[#102F27] sm:text-[11px]">{report.historyOfPresentIllness}</p>
-        </Section>
-
-        {report.vitals && (
-          <Section title="Vitals at Visit" icon={HeartPulseIcon}>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-4">
-              <VitalRow icon={HeartPulseIcon} label="BP" value={`${report.vitals.systolicBP}/${report.vitals.diastolicBP}`} unit="mmHg" />
-              <VitalRow icon={ActivityIcon} label="HR" value={report.vitals.heartRate} unit="bpm" />
-              <VitalRow icon={WindIcon} label="SpO\u2082" value={report.vitals.oxygenSaturation} unit="%" />
-              <VitalRow icon={ThermometerIcon} label="Temp" value={report.vitals.temperature} unit="\u00B0C" />
-              <VitalRow icon={ScaleIcon} label="Weight" value={report.vitals.weight} unit="kg" />
-              {report.vitals.bloodSugar !== null && (
-                <VitalRow icon={DropletIcon} label="Blood Sugar" value={report.vitals.bloodSugar} unit="mg/dL" />
-              )}
-            </div>
-          </Section>
-        )}
-
-        <Section title="Physical Examination" icon={StethoscopeIcon}>
-          <p className="text-[10px] leading-relaxed text-[#102F27] sm:text-[11px]">{report.physicalExam}</p>
-        </Section>
-
-        {report.diagnoses.length > 0 && (
-          <Section title="Diagnoses" icon={ClipboardCheckIcon}>
-            <div className="space-y-2">
-              {report.diagnoses.map((d, i) => (
-                <div key={i} className="flex flex-wrap items-center gap-1.5">
-                  <span className="rounded-full bg-[#F5F5F3] px-1.5 py-0.5 font-mono text-[9px] text-[#6B7870]">{d.icdCode}</span>
-                  <span className="text-[11px] font-medium text-[#102F27] sm:text-[12px]">{d.description}</span>
-                  <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-medium capitalize", d.type === "primary" ? "bg-[#EEF5F3] text-[#1A5345]" : "bg-gray-50 text-gray-500")}>
-                    {d.type}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Section>
-        )}
-
-        {report.prescriptions.length > 0 && (
-          <Section title="Prescriptions" icon={PillIcon}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-[9px] sm:text-[10px]">
-                <thead>
-                  <tr className="border-b border-[#E8E6E0] text-muted-foreground">
-                    <th className="px-2 py-1.5 font-medium">Medication</th>
-                    <th className="px-2 py-1.5 font-medium">Dose</th>
-                    <th className="px-2 py-1.5 font-medium">Frequency</th>
-                    <th className="px-2 py-1.5 font-medium">Duration</th>
-                    <th className="px-2 py-1.5 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.prescriptions.map((p) => (
-                    <tr key={p.id} className="border-b border-[#F5F5F3]">
-                      <td className="px-2 py-1.5 font-medium text-[#102F27]">{p.name}</td>
-                      <td className="px-2 py-1.5">{p.dose}</td>
-                      <td className="px-2 py-1.5">{p.frequency}</td>
-                      <td className="px-2 py-1.5">{p.duration}</td>
-                      <td className="px-2 py-1.5">
-                        {p.isNew ? (
-                          <span className="rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] font-medium text-blue-600">New</span>
-                        ) : (
-                          <span className="rounded-full bg-[#F5F5F3] px-1.5 py-0.5 text-[9px] text-[#6B7870]">Continued</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Section>
-        )}
-
-        {report.labOrders.length > 0 && (
-          <Section title="Lab Orders" icon={FlaskConicalIcon}>
-            <div className="flex flex-wrap gap-1.5">
-              {report.labOrders.map((test, i) => (
-                <span key={i} className="rounded-full bg-[#EEF5F3] px-2 py-0.5 text-[10px] font-medium text-[#1A5345] sm:text-[11px]">{test}</span>
-              ))}
-            </div>
-          </Section>
-        )}
-
-        {report.referrals.length > 0 && (
-          <Section title="Referrals" icon={ArrowRightLeftIcon}>
-            <div className="space-y-2">
-              {report.referrals.map((ref, i) => (
-                <div key={i} className="rounded-lg border border-[#E5EEEA] bg-[#FBFDFC] p-2.5 sm:p-3">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="flex items-center gap-1 rounded-full bg-[#EEF5F3] px-2 py-0.5 text-[10px] font-semibold text-[#1A5345] sm:text-[11px]">
-                      <StethoscopeIcon className="size-3" />
-                      {ref.specialty} Specialist
+        {/* 2-Column Grid Layout */}
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+          
+          {/* Left Column - Primary Content (2/3) */}
+          <div className="flex flex-col gap-6 lg:col-span-8">
+            
+            {/* Metadata Card */}
+            <div className="rounded-2xl border border-[#E8E6E0]/80 bg-white p-5 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.02)] sm:p-6">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[16px] font-bold text-[#1A1F1E]">{fmtFull(report.date)}</span>
+                    <span className={cn("rounded-lg px-2.5 py-1 text-[10px] font-bold capitalize shadow-sm", visitTypeStyles[report.type] ?? "bg-slate-500 text-white")}>
+                      {report.type.replace("-", " ")}
                     </span>
-                    <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-medium", ref.urgency === "urgent" ? "bg-amber-50 text-amber-600" : "bg-[#F5F5F3] text-[#6B7870]")}>
-                      {ref.urgency === "urgent" ? "Urgent" : "Routine"}
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-[#E8F0EE]/60 px-2 py-1 font-mono text-[10px] font-bold text-[#1A5345]">
+                      <ClockIcon className="size-3" />
+                      {report.durationMin} mins
                     </span>
                   </div>
-                  <p className="mt-1.5 text-[10px] leading-relaxed text-[#102F27] sm:text-[11px]">{ref.reason}</p>
+
+                  <div className="mt-5 flex items-center gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#E8F0EE]">
+                      <img src={doctorAvatarUrl(report.doctorName)} alt="" className="size-full object-cover" />
+                    </div>
+                    <div>
+                      <p className="text-[14px] font-bold text-[#1A5345]">
+                        {report.doctorName}
+                      </p>
+                      <p className="text-[12px] font-semibold text-muted-foreground">{report.doctorSpecialty}</p>
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </Section>
-        )}
 
-        <Section title="Plan" icon={ClipboardCheckIcon}>
-          <div className="space-y-1.5">
-            {report.plan.split("\n").map((line, i) => (
-              <p key={i} className="text-[10px] leading-relaxed text-[#102F27] sm:text-[11px]">{line}</p>
-            ))}
+                {/* Patient Context Badge */}
+                <div className="flex items-center gap-2.5 rounded-xl border border-[#E8E6E0]/60 bg-[#FAFAF8] px-4 py-2.5 sm:text-right">
+                  <div className="hidden sm:block">
+                    <p className="text-[13px] font-bold text-[#1A1F1E]">{patientName}</p>
+                    <p className="text-[11px] font-semibold text-[#6B7870]">MRN: {patientId}</p>
+                  </div>
+                  <div className="flex size-8 items-center justify-center rounded-lg bg-[#E8F0EE]/60 text-[#1A5345] sm:hidden">
+                    <UserRoundIcon className="size-4" />
+                  </div>
+                  <div className="sm:hidden">
+                    <p className="text-[13px] font-bold text-[#1A1F1E]">{patientName}</p>
+                    <p className="text-[11px] font-semibold text-[#6B7870]">MRN: {patientId}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Section title="Chief Complaint" icon={FileTextIcon}>
+              <div className="relative">
+                <p className="pl-3 border-l-2 border-[#1A5345]/30 text-[14px] font-medium leading-relaxed text-[#1A1F1E] md:text-[15px]">
+                  {report.chiefComplaint}
+                </p>
+              </div>
+            </Section>
+
+            <Section title="History of Present Illness" icon={ClipboardCheckIcon}>
+              <p className="text-[13px] font-medium leading-relaxed text-[#1A1F1E] md:text-[14px] whitespace-pre-wrap">
+                {report.historyOfPresentIllness}
+              </p>
+            </Section>
+
+            <Section title="Physical Examination" icon={StethoscopeIcon}>
+              <p className="text-[13px] font-medium leading-relaxed text-[#1A1F1E] md:text-[14px] whitespace-pre-wrap">
+                {report.physicalExam}
+              </p>
+            </Section>
+
+            <Section title="Plan & Instructions" icon={ClipboardCheckIcon}>
+              <div className="space-y-2">
+                {report.plan.split("\n").map((line, i) => (
+                  <p key={i} className="text-[13px] font-medium leading-relaxed text-[#1A1F1E] md:text-[14px] flex items-start gap-2">
+                     <span className="text-[#1A5345] mt-1.5 size-1.5 rounded-full bg-[#1A5345]/40 shrink-0"></span>
+                     <span>{line}</span>
+                  </p>
+                ))}
+              </div>
+            </Section>
+
+            {report.prescriptions.length > 0 && (
+              <Section title="Prescriptions" icon={PillIcon} className="overflow-hidden">
+                <div className="-mx-5 -mb-5 sm:-mx-6 sm:-mb-6 overflow-x-auto custom-scrollbar border-t border-[#E8E6E0]/60 mt-2">
+                  <table className="w-full text-left text-[13px]">
+                    <thead className="bg-[#F9F8F5] border-b border-[#E8E6E0]/60">
+                      <tr>
+                        <th className="px-5 sm:px-6 py-3 font-semibold text-[#1A1F1E]">Medication</th>
+                        <th className="px-4 py-3 font-semibold text-[#1A1F1E]">Dose</th>
+                        <th className="px-4 py-3 font-semibold text-[#1A1F1E]">Frequency</th>
+                        <th className="px-4 py-3 font-semibold text-[#1A1F1E]">Duration</th>
+                        <th className="px-5 sm:px-6 py-3 font-semibold text-[#1A1F1E]">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E8E6E0]/60">
+                      {report.prescriptions.map((p) => (
+                        <tr key={p.id} className="transition-colors hover:bg-[#F9F8F5]/50 group">
+                          <td className="px-5 sm:px-6 py-4 font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">{p.name}</td>
+                          <td className="px-4 py-4 font-medium text-muted-foreground">{p.dose}</td>
+                          <td className="px-4 py-4 font-medium text-muted-foreground">{p.frequency}</td>
+                          <td className="px-4 py-4 font-medium text-muted-foreground">{p.duration}</td>
+                          <td className="px-5 sm:px-6 py-4">
+                            {p.isNew ? (
+                              <span className="inline-flex items-center rounded-lg bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600 ring-1 ring-inset ring-blue-600/20">New</span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-lg bg-[#F3F2F0] px-2 py-0.5 text-[10px] font-bold text-[#6B7870] ring-1 ring-inset ring-gray-500/10">Continued</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Section>
+            )}
+
+            {report.notes && (
+              <Section title="Additional Clinical Notes" icon={FileTextIcon}>
+                <div className="rounded-xl border border-[#E5EEEA]/60 bg-[#FAFAF8] p-4 shadow-sm">
+                  <p className="text-[13px] font-medium leading-relaxed text-[#6B7870] md:text-[14px] whitespace-pre-wrap">
+                    {report.notes}
+                  </p>
+                </div>
+              </Section>
+            )}
+
           </div>
-        </Section>
 
-        <Section title="Follow-Up" icon={CalendarDaysIcon}>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-muted-foreground sm:text-[11px]">Timeframe:</span>
-              <span className="rounded-full bg-[#EEF5F3] px-2 py-0.5 text-[10px] font-semibold text-[#1A5345] sm:text-[11px]">{report.followUp.timeframe}</span>
-            </div>
-            <p className="text-[10px] leading-relaxed text-[#102F27] sm:text-[11px]">{report.followUp.instructions}</p>
+          {/* Right Column - Context & Stats (1/3) */}
+          <div className="flex flex-col gap-6 lg:col-span-4">
+            
+            {report.vitals && (
+              <Section title="Vitals at Visit" icon={HeartPulseIcon}>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <VitalMiniCard icon={HeartPulseIcon} label="Blood Pressure" value={`${report.vitals.systolicBP}/${report.vitals.diastolicBP}`} unit="mmHg" />
+                  <VitalMiniCard icon={ActivityIcon} label="Heart Rate" value={report.vitals.heartRate} unit="bpm" />
+                  <VitalMiniCard icon={ThermometerIcon} label="Temperature" value={report.vitals.temperature} unit="°C" />
+                  <VitalMiniCard icon={WindIcon} label="SpO₂" value={report.vitals.oxygenSaturation} unit="%" />
+                  <VitalMiniCard icon={ScaleIcon} label="Weight" value={report.vitals.weight} unit="kg" />
+                  {report.vitals.bloodSugar !== null && (
+                    <VitalMiniCard icon={DropletIcon} label="Blood Sugar" value={report.vitals.bloodSugar} unit="mg/dL" />
+                  )}
+                </div>
+              </Section>
+            )}
+
+            {report.diagnoses.length > 0 && (
+              <Section title="Diagnoses Discussed" icon={ClipboardCheckIcon}>
+                <div className="flex flex-col gap-3">
+                  {report.diagnoses.map((d, i) => (
+                    <div key={i} className="flex flex-col gap-1.5 rounded-xl border border-[#E8E6E0]/60 bg-[#FAFAF8] p-3 transition-colors hover:border-[#1A5345]/20 hover:bg-white">
+                      <div className="flex items-center justify-between gap-2">
+                         <span className="font-mono text-[11px] font-bold text-[#6B7870]">{d.icdCode}</span>
+                         <span className={cn("rounded-lg px-2 py-0.5 text-[9px] font-bold capitalize", d.type === "primary" ? "bg-[#1A5345] text-white" : "bg-blue-600 text-white")}>
+                           {d.type}
+                         </span>
+                      </div>
+                      <span className="text-[13px] font-bold text-[#1A1F1E] leading-snug">{d.description}</span>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {report.labOrders.length > 0 && (
+              <Section title="Lab Orders" icon={FlaskConicalIcon}>
+                <div className="flex flex-wrap gap-2">
+                  {report.labOrders.map((test, i) => (
+                    <span key={i} className="rounded-lg bg-[#E8F0EE]/80 px-2.5 py-1.5 text-[12px] font-bold text-[#1A5345] border border-[#1A5345]/10 shadow-sm transition-all hover:bg-[#1A5345]/10 cursor-default">
+                      {test}
+                    </span>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {report.referrals.length > 0 && (
+              <Section title="Referrals Issued" icon={ArrowRightLeftIcon}>
+                <div className="flex flex-col gap-3">
+                  {report.referrals.map((ref, i) => (
+                    <div key={i} className="flex flex-col gap-2 rounded-xl border border-[#E8E6E0]/60 bg-[#FAFAF8] p-3.5 transition-colors hover:bg-white hover:border-[#1A5345]/20">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5 rounded-lg bg-[#E8F0EE]/80 px-2 py-1 text-[11px] font-bold text-[#1A5345]">
+                          <UserRoundIcon className="size-3" />
+                          {ref.specialty}
+                        </span>
+                        <span className={cn("rounded-lg px-2 py-1 text-[9px] font-bold shadow-sm", ref.urgency === "urgent" ? "bg-red-600 text-white" : "bg-emerald-600 text-white")}>
+                          {ref.urgency === "urgent" ? "Urgent" : "Routine"}
+                        </span>
+                      </div>
+                      <p className="text-[12px] font-medium leading-relaxed text-[#1A1F1E]">
+                        <span className="font-bold text-[#6B7870] mr-1">Reason:</span>
+                        {ref.reason}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            <Section title="Follow-Up Schedule" icon={CalendarDaysIcon}>
+              <div className="flex flex-col gap-2 rounded-xl border border-[#1A5345]/15 bg-[#E8F0EE]/30 p-4">
+                <div className="flex items-center gap-2">
+                  <CalendarDaysIcon className="size-4 text-[#1A5345]" />
+                  <span className="text-[13px] font-bold text-[#1A1F1E]">{report.followUp.timeframe}</span>
+                </div>
+                <p className="text-[12px] font-medium leading-relaxed text-[#6B7870] mt-1 pl-6">
+                  {report.followUp.instructions}
+                </p>
+              </div>
+            </Section>
+
           </div>
-        </Section>
-
-        {report.notes && (
-          <Section title="Additional Notes" icon={FileTextIcon}>
-            <div className="rounded-lg bg-[#F9F8F5] p-2.5">
-              <p className="text-[10px] leading-relaxed text-[#102F27] sm:text-[11px]">{report.notes}</p>
-            </div>
-          </Section>
-        )}
+        </div>
       </div>
     </main>
   )

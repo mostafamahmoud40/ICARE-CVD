@@ -1,0 +1,27 @@
+---
+description: Frontend dialogs and command palettes — no section divider lines
+globs: frontend/**/*.tsx
+alwaysApply: false
+---
+
+# Dialogs & command palettes — unified surface
+
+In ICARE-CVD frontend overlays (dialogs, search/command palettes, drawers):
+
+- **Do not** separate header, body, and footer with `border-t`, `border-b`, or contrasting strip backgrounds (`bg-[#FAFAF8]` vs `bg-white`) when they belong to one card.
+- Keep **one continuous white surface**; use spacing (`space-y-*`, `py-*`) instead of divider lines.
+- For shadcn `CommandInput`, override the default wrapper border: `[&_[data-slot=command-input-wrapper]]:border-0` on the parent `Command`.
+
+```tsx
+// ❌ Wrong — visual “bands” inside one dialog
+<CommandInput className="border-b border-[#E8E6E0]/80" />
+<div className="border-t bg-[#FAFAF8]">Footer</div>
+
+// ✅ Correct — single surface, spacing only
+<Command className="[&_[data-slot=command-input-wrapper]]:border-0">
+  <CommandInput className="border-0" />
+</Command>
+<div className="px-4 py-2.5">Footer</div>
+```
+
+Reference: `frontend/src/app/(doctor)/DoctorHeaderSearch.tsx`.

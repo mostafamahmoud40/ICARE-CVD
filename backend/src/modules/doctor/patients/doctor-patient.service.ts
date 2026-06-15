@@ -226,8 +226,11 @@ export class DoctorPatientService {
       })),
       diagnoses: diagnoses.map((d) => ({
         ...d,
+        diagnosedAt: d.diagnosedAt.toISOString(),
         diagnosedBy: 'Doctor',
         notes: d.clinicalNotes ?? '',
+        createdAt: d.createdAt.toISOString(),
+        updatedAt: d.updatedAt.toISOString(),
       })),
       labResults,
       documents: documents.map((d) => ({

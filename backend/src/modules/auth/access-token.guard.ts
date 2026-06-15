@@ -16,6 +16,9 @@ type AuthenticatedRequest = Request & {
   headers: {
     authorization?: string;
   };
+  query: Request['query'] & {
+    access_token?: string;
+  };
 };
 
 @Injectable()
@@ -28,10 +31,14 @@ export class AccessTokenGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const authorization = request.headers.authorization;
+    const queryToken =
+      typeof request.query?.access_token === 'string'
+        ? request.query.access_token.trim()
+        : undefined;
 
     const token = authorization?.startsWith('Bearer ')
       ? authorization.slice('Bearer '.length).trim()
-      : undefined;
+      : queryToken;
 
     if (!token) {
       throw new UnauthorizedException('Missing Bearer token');

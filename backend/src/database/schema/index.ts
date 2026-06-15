@@ -18,6 +18,7 @@ export * from './appointment.schema';
 export * from './appointmentAttachment.schema';
 export * from './conversation.schema';
 export * from './message.schema';
+export * from './message-attachment.schema';
 export * from './vitalReading.schema';
 export * from './labOrder.schema';
 export * from './labOrderItem.schema';

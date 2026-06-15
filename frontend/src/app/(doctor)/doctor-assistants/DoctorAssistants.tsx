@@ -38,7 +38,6 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -396,11 +395,6 @@ export function DoctorAssistants({
             <DialogTitle className="font-serif text-[18px] font-bold text-[#1A1F1E]">
               {editingMemberId ? "Edit assistant" : "Add assistant"}
             </DialogTitle>
-            <DialogDescription className="text-[13px] text-muted-foreground">
-              {editingMemberId
-                ? "Update contact details or department for this team member."
-                : "Create a new assistant account linked to your clinic."}
-            </DialogDescription>
           </DialogHeader>
           <DoctorAssistantsForm
             {...formProps}

@@ -18,7 +18,6 @@ import { AppointmentService } from '../appointment/appointment.service';
 import {
   ChromaService,
   CHROMA_COLLECTION_CLINIC,
-  CHROMA_COLLECTION_APPOINTMENTS,
 } from './chroma/chroma.service';
 import { ClinicIndexerService } from './chroma/clinic-indexer.service';
 import type {
@@ -139,48 +138,35 @@ export class PatientAiChatService {
     }
 
     const todayStr = this.todayEgyptStr();
-    const needsTools = this.needsAppointmentTools(dto.message, dto.history);
-    const needsSchedule = this.needsClinicSchedule(dto.message, dto.history);
+    const retrievalQuery = this.buildRetrievalQuery(dto.message, dto.history);
 
-    const queryEmbedding =
-      needsSchedule && this.chromaService.isReady
-        ? await this.chromaService.embed(dto.message)
-        : null;
-
-    let clinicContext = '';
-    let myAppointmentsContext: string;
-    let patientName: string;
-
-    if (needsSchedule && this.chromaService.isReady && queryEmbedding) {
-      [patientName, clinicContext, myAppointmentsContext] = await Promise.all([
+    const [patientName, myAppointmentsContext, liveClinicContext] =
+      await Promise.all([
         this.getPatientName(userId),
-        this.chromaService
-          .queryDocuments(CHROMA_COLLECTION_CLINIC, queryEmbedding, 5)
-          .then((docs) => this.formatChromaClinicDocs(docs, todayStr)),
         this.buildPatientAppointmentsContext(userId),
-      ]);
-      void this.clinicIndexer.indexPatientAppointments(userId);
-    } else if (needsSchedule) {
-      if (this.chromaService.isReady && !queryEmbedding) {
-        this.logger.debug(
-          'Ollama embed unavailable — compact DB context for schedule query',
-        );
-      }
-      [patientName, clinicContext, myAppointmentsContext] = await Promise.all([
-        this.getPatientName(userId),
         this.buildClinicContext(),
-        this.buildPatientAppointmentsContext(userId),
       ]);
-    } else if (needsTools) {
-      [patientName, myAppointmentsContext] = await Promise.all([
-        this.getPatientName(userId),
-        this.buildPatientAppointmentsContext(userId),
-      ]);
-    } else {
-      [patientName, myAppointmentsContext] = await Promise.all([
-        this.getPatientName(userId),
-        this.buildPatientAppointmentsContext(userId),
-      ]);
+
+    let clinicContext = liveClinicContext;
+
+    if (this.chromaService.isReady) {
+      const queryEmbedding = await this.chromaService.embed(retrievalQuery);
+      if (queryEmbedding) {
+        const docs = await this.chromaService.queryDocuments(
+          CHROMA_COLLECTION_CLINIC,
+          queryEmbedding,
+          8,
+        );
+        if (docs.length > 0) {
+          clinicContext = [
+            this.formatChromaClinicDocs(docs, todayStr),
+            '',
+            '--- Live clinic snapshot (authoritative) ---',
+            liveClinicContext,
+          ].join('\n');
+        }
+      }
+      void this.clinicIndexer.indexPatientAppointments(userId);
     }
 
     const systemPrompt = this.buildSystemPrompt(
@@ -188,8 +174,6 @@ export class PatientAiChatService {
       todayStr,
       clinicContext,
       myAppointmentsContext,
-      needsTools,
-      needsSchedule,
     );
 
     const groq = new Groq({ apiKey });
@@ -218,7 +202,7 @@ export class PatientAiChatService {
         primaryModel,
         messages,
         userId,
-        needsTools,
+        true,
       );
     } catch (error) {
       if (error instanceof ServiceUnavailableException) throw error;
@@ -233,7 +217,7 @@ export class PatientAiChatService {
             fallbackModel,
             messages,
             userId,
-            needsTools,
+            true,
           );
         } catch (fallbackError) {
           if (this.isGroqRateLimit(fallbackError)) {
@@ -250,6 +234,18 @@ export class PatientAiChatService {
       this.logger.error('Patient AI chat failed', error);
       throw new ServiceUnavailableException('AI service temporarily unavailable');
     }
+  }
+
+  /** Combine recent conversation + latest message for semantic retrieval. */
+  private buildRetrievalQuery(
+    message: string,
+    history: PatientAiChatDto['history'],
+  ): string {
+    const recent = history
+      .slice(-4)
+      .map((h) => `${h.role}: ${h.content}`)
+      .join('\n');
+    return recent ? `${recent}\nuser: ${message}` : message;
   }
 
   // ─── Format ChromaDB results into a context string ────────────────────────
@@ -270,13 +266,9 @@ export class PatientAiChatService {
     });
 
     return [
-      `=== CLINIC SCHEDULE CONTEXT (live, as of ${todayStr}) ===`,
-      'Retrieved via semantic search from ChromaDB vector store.',
-      'The scheduledAt values below are pre-computed ISO datetimes — use them as-is for booking.',
-      '',
+      `=== RELEVANT CLINIC INFO (as of ${todayStr}) ===`,
       ...uniqueDocs.map((d) => d.document),
-      '',
-      '=== END CLINIC CONTEXT ===',
+      '=== END RELEVANT INFO ===',
     ].join('\n');
   }
 
@@ -514,9 +506,7 @@ export class PatientAiChatService {
   // ─── RAG / Context builders ───────────────────────────────────────────────
 
   /**
-   * Build a comprehensive clinic schedule context for ALL doctors for the
-   * next 14 days. Injected into every request so the AI can answer schedule
-   * questions directly without extra tool calls.
+   * Live clinic data from DB — doctors, specialties, and available slots.
    */
   private async buildClinicContext(): Promise<string> {
     const today = this.todayEgyptStr();
@@ -614,76 +604,32 @@ export class PatientAiChatService {
     todayStr: string,
     clinicContext: string,
     myAppointmentsContext: string,
-    includeToolRules: boolean,
-    includeSchedule: boolean,
   ): string {
-    const base = `You are ICARE Health Advisor for patient "${patientName}". Today: ${todayStr} (Cairo, UTC+3).
+    return `You are ICARE Health Advisor — a thoughtful assistant for patient "${patientName}".
+Today: ${todayStr} (Cairo, UTC+3).
 
+## How to behave
+- First understand what the patient really wants from their message AND the conversation history.
+- Think in Arabic or English the same way the patient speaks (Egyptian dialect is fine).
+- Answer naturally like a helpful clinic coordinator — not like a template or a form.
+- Never invent doctors, dates, or appointment codes. Use ONLY the clinic data below.
+- Never use placeholder brackets like [اسم الطبيب] or [Doctor Name].
+- If information is missing, say so honestly and ask a short clarifying question.
+- For health questions outside appointments, give concise, safe general guidance.
+
+## Patient's upcoming appointments
 ${myAppointmentsContext}
 
-You have FULL permission to manage this patient's appointments via tools — NEVER say you cannot cancel, reschedule, or change appointments.
-You remember the FULL conversation — use it for follow-ups.
-- NEVER paste raw context blocks (=== MY UPCOMING APPOINTMENTS === etc.) — speak naturally to the patient
-- "شوف حجوزاتي" / "my appointments" → list them in friendly Arabic/English from context above
-- "اخر حاجه عملتهالي" → describe what happened; do NOT repeat actions
-- Reply in the same language as the patient (Arabic or English)`;
+## Clinic knowledge (live + semantically retrieved)
+${clinicContext}
 
-    if (!includeToolRules) {
-      return `${base}
-
-Help with general health questions. Be concise and clinically helpful.`;
-    }
-
-    const scheduleBlock = includeSchedule
-      ? `\n${clinicContext}\n`
-      : '\n(Clinic schedule not loaded — for reschedule/book ask patient to specify date or ask for available slots.)\n';
-
-    return `${base}
-${scheduleBlock}
-## TOOLS YOU MUST USE
-
-CANCEL:
-- "cancel all" / "الغي كل المواعيد" → cancel_all_appointments()
-- "cancel ICV-xxxx" / "الغي موعد" → cancel_appointment(confirmationCode)
-- NEVER refuse — you CAN cancel
-
-RESCHEDULE:
-- "reschedule" / "أعد الجدولة" / "غير الموعد" → reschedule_appointment(confirmationCode, scheduledAt from schedule)
-- Use scheduledAt EXACTLY from clinic schedule (after →)
-
-CHANGE VISIT TYPE:
-- "make it virtual/clinic" / "خليها اونلاين" → change_visit_type(confirmationCode, visitType)
-
-BOOK NEW:
-- Only when patient explicitly wants a NEW appointment → book_appointment
-- Use scheduledAt from schedule context; visitType default clinic; reason default "Cardiology follow-up"
-
-QUESTIONS (no tool):
-- "what are my appointments?" / availability / blocked days → answer from context above
-
-NEVER book/cancel/reschedule unless intent is clear. Questions ending in ? → answer only.`;
-  }
-
-  /** Enables appointment tools (cancel, reschedule, book, etc.). */
-  private needsAppointmentTools(
-    message: string,
-    history: PatientAiChatDto['history'],
-  ): boolean {
-    const pattern =
-      /موعد|مواعيد|حجز|احجز|حجوز|الغ|إلغ|الغي|cancel|appointment|appointments|book(?:ing)?|reschedule|re-?schedule|جدول|معاد|visit type|virtual|clinic visit|اونلاين|حضور|غير الموعد|change appointment|my appointments|مواعيدي|شوف حجوز/i;
-    const recent = [message, ...history.slice(-4).map((h) => h.content)].join('\n');
-    return pattern.test(recent);
-  }
-
-  /** Loads full clinic schedule (for booking/reschedule slot lookup). */
-  private needsClinicSchedule(
-    message: string,
-    history: PatientAiChatDto['history'],
-  ): boolean {
-    const pattern =
-      /حجز|احجز|book|schedule|slot|availability|available|جدول|معاد|سلوت|بلوك|محجوز|reschedule|re-?schedule|أعد|غير الموعد|change.*time|move.*appointment|doctor|دكتور|طبيب/i;
-    const recent = [message, ...history.slice(-4).map((h) => h.content)].join('\n');
-    return pattern.test(recent);
+## Appointment actions (use tools only when the patient clearly wants an action)
+You CAN book, cancel, reschedule, and change visit type via tools.
+- Read the patient's intent from context — do not rely on exact keywords.
+- For booking/reschedule: use scheduledAt values exactly as shown (after →).
+- For cancel/reschedule/visit-type change: use confirmationCode from the patient's appointments.
+- If the patient is only asking a question (who, when, what), answer from the data above — no tool call.
+- After a tool succeeds, confirm clearly what changed.`;
   }
 
   private isGroqRateLimit(error: unknown): boolean {

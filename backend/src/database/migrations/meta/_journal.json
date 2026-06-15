@@ -141,6 +141,20 @@
       "when": 1781272874866,
       "tag": "0019_add_avatar_url",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1781274000000,
+      "tag": "0020_doctor_account_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1781280000000,
+      "tag": "0028_chat_message_attachments",
+      "breakpoints": true
     }
   ]
 }

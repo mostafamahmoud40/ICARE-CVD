@@ -42,10 +42,9 @@ const initialAssistant: AiChatMessage = {
   id: "welcome",
   role: "assistant",
   greeting: "Hello,",
-  text: "I've reviewed your latest blood panel from yesterday. Your glucose levels are within a healthy range, but your Vitamin D remains slightly below the target threshold. Would you like to discuss dietary adjustments or schedule a follow-up?",
+  text: "I'm your ICARE health assistant. Ask about appointments, medications, or your care plan.",
   actions: [
-    { id: "view-lab", label: "View Lab PDF", icon: "download", href: "/consultations" },
-    { id: "book-followup", label: "Book Follow-up", icon: "calendar", href: "/appointments" },
+    { id: "book-followup", label: "Book Follow-up", icon: "calendar", href: "/doctor-directory" },
   ],
   sentAt: new Date(),
 }

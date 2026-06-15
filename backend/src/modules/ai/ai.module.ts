@@ -9,6 +9,7 @@ import { AiService } from './ai.service';
 import { PatientAiChatService } from './patient-ai-chat.service';
 import { ChromaService } from './chroma/chroma.service';
 import { ClinicIndexerService } from './chroma/clinic-indexer.service';
+import { EmbeddingService } from './embedding/embedding.service';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ClinicIndexerService } from './chroma/clinic-indexer.service';
   providers: [
     AiService,
     PatientAiChatService,
+    EmbeddingService,
     ChromaService,
     ClinicIndexerService,
     PatientGuard,
