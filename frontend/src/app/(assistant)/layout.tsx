@@ -33,6 +33,7 @@ import {
 import { useRequireRole } from "@/hooks/use-require-role"
 import { cn } from "@/lib/utils"
 import { QUEUE_ROUTES, queueNavModeFromPathname } from "./assistant-queue/queueNavMode"
+import { AssistantInsetHeader } from "./AssistantInsetHeader"
 
 import {
   Sidebar,
@@ -49,7 +50,6 @@ import {
   SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar"
 import {
@@ -207,6 +207,9 @@ function AssistantLayoutContent({
         pathname.includes("/assistant/assistant-account/preferences"),
     },
   ] as const
+
+  const hideInsetHeader =
+    pathname === "/assistant-account" || pathname.startsWith("/assistant-account/")
 
   return (
     <>
@@ -583,23 +586,15 @@ function AssistantLayoutContent({
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset className="bg-sidebar">
-        <div className="flex h-16 items-center justify-between gap-4 border-b border-sidebar-border/40 bg-sidebar px-4">
-          <div className="flex items-center gap-3">
-            <SidebarTrigger className="text-[#1A5345] hover:bg-[#E8F0EE]" />
-            <div className="flex items-center gap-2.5">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-[#1A5345]">
-                <LayoutDashboardIcon className="size-4 text-white" />
-              </div>
-              <div className="flex flex-col">
-                <div className="font-sans text-[13px] font-bold text-[#102F27]">Assistant Command Center</div>
-                <div className="font-sans text-[10px] text-[#6B7870]">Live daily triage & clinical desk operations</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {children}
+      <SidebarInset className="bg-[#F9F8F5]">
+        {hideInsetHeader ? (
+          children
+        ) : (
+          <>
+            <AssistantInsetHeader user={user} logout={logout} />
+            {children}
+          </>
+        )}
       </SidebarInset>
     </>
   )
