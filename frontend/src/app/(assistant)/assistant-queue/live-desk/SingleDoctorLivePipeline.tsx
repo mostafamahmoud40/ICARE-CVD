@@ -35,134 +35,7 @@ export function SingleDoctorLivePipeline({
     )
   }
 
-  // FORCE MOCK DATA for design review
-  const USE_MOCK_DATA = true 
-
-  const mockSnapshot: any = {
-    doctorId: "mock-doc",
-    inConsultation: [
-      {
-        queueEntryId: "m1",
-        patientId: "p1",
-        fullName: "Sarah Connor",
-        age: 34,
-        status: "in-consultation",
-        priority: "normal",
-        visitType: "follow-up",
-        scheduledTime: new Date().toISOString(),
-        assignedDoctor: "Dr. Ahmed Hassan",
-        startedAt: new Date(Date.now() - 15 * 60000).toISOString(),
-        estimatedDurationMin: 20,
-        hasAllergies: true,
-        vitalAlerts: 0,
-        avatarUrl: "https://i.pravatar.cc/150?u=m1",
-        arrivedAt: new Date(Date.now() - 30 * 60000).toISOString(),
-        departmentId: "dep-1",
-        assignedDoctorDepartment: "Cardiothoracic Surgery",
-      },
-    ],
-    nextPatient: {
-      queueEntryId: "m2",
-      patientId: "p2",
-      fullName: "John Doe",
-      age: 45,
-      status: "waiting",
-      priority: "urgent",
-      visitType: "new-condition",
-      scheduledTime: new Date(Date.now() + 5 * 60000).toISOString(),
-      assignedDoctor: "Dr. Ahmed Hassan",
-      waitingSince: new Date(Date.now() - 10 * 60000).toISOString(),
-      hasAllergies: false,
-      vitalAlerts: 1,
-      avatarUrl: "https://i.pravatar.cc/150?u=m2",
-      arrivedAt: new Date(Date.now() - 15 * 60000).toISOString(),
-      departmentId: "dep-1",
-      assignedDoctorDepartment: "Cardiothoracic Surgery",
-    },
-    waitingOrdered: [
-      {
-        queueEntryId: "m3",
-        patientId: "p3",
-        fullName: "Jane Doe",
-        age: 28,
-        status: "waiting",
-        priority: "normal",
-        visitType: "routine",
-        scheduledTime: new Date(Date.now() + 30 * 60000).toISOString(),
-        assignedDoctor: "Dr. Ahmed Hassan",
-        waitingSince: new Date(Date.now() - 5 * 60000).toISOString(),
-        hasAllergies: false,
-        vitalAlerts: 0,
-        avatarUrl: "https://i.pravatar.cc/150?u=m3",
-        arrivedAt: new Date(Date.now() - 10 * 60000).toISOString(),
-        departmentId: "dep-1",
-        assignedDoctorDepartment: "Cardiothoracic Surgery",
-      }
-    ],
-    arrivedOrdered: [
-      {
-        queueEntryId: "m4",
-        patientId: "p4",
-        fullName: "Michael Scott",
-        age: 40,
-        status: "arrived",
-        priority: "normal",
-        visitType: "follow-up",
-        scheduledTime: new Date(Date.now() + 60 * 60000).toISOString(),
-        assignedDoctor: "Dr. Ahmed Hassan",
-        arrivedAt: new Date(Date.now() - 2 * 60000).toISOString(),
-        hasAllergies: false,
-        vitalAlerts: 0,
-        avatarUrl: "https://i.pravatar.cc/150?u=m4",
-        departmentId: "dep-1",
-        assignedDoctorDepartment: "Cardiothoracic Surgery",
-      }
-    ],
-    scheduledOrdered: [
-      {
-        queueEntryId: "m5",
-        patientId: "p5",
-        fullName: "Jim Halpert",
-        age: 35,
-        status: "scheduled",
-        priority: "normal",
-        visitType: "routine",
-        scheduledTime: new Date(Date.now() + 120 * 60000).toISOString(),
-        assignedDoctor: "Dr. Ahmed Hassan",
-        hasAllergies: false,
-        vitalAlerts: 0,
-        avatarUrl: "https://i.pravatar.cc/150?u=m5",
-        departmentId: "dep-1",
-        assignedDoctorDepartment: "Cardiothoracic Surgery",
-      },
-      {
-        queueEntryId: "m6",
-        patientId: "p6",
-        fullName: "Pam Beesly",
-        age: 32,
-        status: "scheduled",
-        priority: "normal",
-        visitType: "routine",
-        scheduledTime: new Date(Date.now() + 150 * 60000).toISOString(),
-        assignedDoctor: "Dr. Ahmed Hassan",
-        hasAllergies: false,
-        vitalAlerts: 0,
-        avatarUrl: "https://i.pravatar.cc/150?u=m6",
-        departmentId: "dep-1",
-        assignedDoctorDepartment: "Cardiothoracic Surgery",
-      }
-    ],
-    completedToday: [],
-    metrics: {
-      totalExpected: 15,
-      seen: 5,
-      waiting: 2,
-      avgWaitTimeMin: 12,
-      behindScheduleMin: 0
-    }
-  }
-
-  const displaySnapshot = USE_MOCK_DATA ? mockSnapshot : snapshot
+  const displaySnapshot = snapshot
 
   if (!displaySnapshot) {
     return (
@@ -178,22 +51,9 @@ export function SingleDoctorLivePipeline({
     )
   }
 
-  // Populate mock turns if needed
-  if (USE_MOCK_DATA) {
-    waitingTurnByQueueId.set("m2", 1)
-    waitingTurnByQueueId.set("m3", 2)
-  }
-
   return (
     <div className="min-h-0 flex-1 overflow-y-auto bg-[#F9F8F5] p-4 sm:p-6 lg:p-6 custom-scrollbar">
       <div className="space-y-6">
-
-        {USE_MOCK_DATA && (
-          <div className="flex items-center justify-center gap-2 rounded-xl border border-[#CC5533]/20 bg-[#CC5533]/5 p-2 text-center text-[11px] font-bold text-[#CC5533] shadow-sm">
-            <div className="size-1.5 rounded-full bg-[#CC5533] animate-pulse" />
-            Preview Mode Active: Showing mock data to preview the full UI design.
-          </div>
-        )}
 
         {/* ── TOP ROW: FOCUS ZONE (With Doctor & Next Up) ── */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
