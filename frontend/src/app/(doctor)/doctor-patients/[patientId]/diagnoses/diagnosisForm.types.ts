@@ -1,5 +1,14 @@
 export type DiagnosisType = "primary" | "secondary" | "differential"
 
+export type DiagnosisCategory =
+  | "cardiac"
+  | "pulmonary"
+  | "diabetes"
+  | "gastrointestinal"
+  | "neurological"
+  | "infectious"
+  | "other"
+
 export type DiagnosisSeverity = "mild" | "moderate" | "severe" | "critical"
 
 export type DiagnosisStatus = "active" | "chronic" | "resolved"
@@ -13,6 +22,9 @@ export type Laterality = "unspecified" | "left" | "right" | "bilateral" | "other
 export type DiagnosisFormValues = {
   icdCode: string
   description: string
+  category: DiagnosisCategory
+  chronicFlag: boolean
+  infectiousFlag: boolean
   type: DiagnosisType
   confirmation: DiagnosisConfirmation
   onsetDate: string
