@@ -4,16 +4,11 @@ import { useQuery } from "@tanstack/react-query"
 
 import { apiClient } from "@/lib/api-client"
 
-import { mockPatientQueueToday } from "./patientQueue.mock"
 import type { PatientQueueTodayResponse } from "./patientQueue.types"
 
 async function fetchPatientQueueToday(): Promise<PatientQueueTodayResponse> {
-  try {
-    const { data } = await apiClient.get<PatientQueueTodayResponse>("/patient/queue/today")
-    return data
-  } catch {
-    return mockPatientQueueToday
-  }
+  const { data } = await apiClient.get<PatientQueueTodayResponse>("/patient/queue/today")
+  return data
 }
 
 export function usePatientQueue() {
@@ -21,5 +16,6 @@ export function usePatientQueue() {
     queryKey: ["patient-queue-today"],
     queryFn: fetchPatientQueueToday,
     staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
   })
 }
