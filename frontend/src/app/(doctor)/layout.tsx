@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Lora } from "next/font/google"
 import { usePathname } from "next/navigation"
+import { useCallback } from "react"
 import type { AuthUser } from "@/lib/auth-tokens"
 import {
   BellIcon,
@@ -47,6 +48,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { DoctorInsetHeader } from "./DoctorInsetHeader"
+import { clearDoctorHeaderProfileCache } from "./doctorHeaderProfile.cache"
 
 const doctorSerif = Lora({
   subsets: ["latin"],
@@ -57,14 +60,21 @@ export default function DoctorLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname()
-  const { logout, user, mounted } = useRequireRole("doctor")
+  const { logout: baseLogout, user } = useRequireRole("doctor")
+
+  const logout = useCallback(() => {
+    clearDoctorHeaderProfileCache()
+    baseLogout()
+  }, [baseLogout])
 
   return (
     <div
       className={`${doctorSerif.className} min-h-screen bg-background text-foreground dark:bg-background`}
     >
       <SidebarProvider defaultOpen>
-        <DoctorLayoutContent pathname={pathname} logout={logout} user={user} mounted={mounted}>{children}</DoctorLayoutContent>
+        <DoctorLayoutContent pathname={pathname} logout={logout} user={user}>
+          {children}
+        </DoctorLayoutContent>
       </SidebarProvider>
     </div>
   )
@@ -74,13 +84,11 @@ function DoctorLayoutContent({
   pathname,
   logout,
   user,
-  mounted,
   children,
 }: {
   pathname: string
   logout: () => void
   user: AuthUser | null
-  mounted: boolean
   children: ReactNode
 }) {
   const { state } = useSidebar()
@@ -146,7 +154,7 @@ function DoctorLayoutContent({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex size-8 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-primary/25">
+            <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-primary/25">
               <Image
                 src="/images/logo/logo.png"
                 alt="ICARE-CVD Logo"
@@ -158,11 +166,13 @@ function DoctorLayoutContent({
             </div>
 
             {isCollapsed ? null : (
-              <div className="leading-tight">
+              <div className="min-w-0 flex-1 leading-tight">
                 <div className="text-sm font-semibold">ICARE-CVD</div>
                 <div className="text-xs text-muted-foreground">Doctor Portal</div>
               </div>
             )}
+
+            <SidebarTrigger className="ml-auto shrink-0 text-[#1A5345] hover:bg-[#E8F0EE] group-data-[collapsible=icon]:ml-0" />
           </div>
         </SidebarHeader>
 
@@ -231,7 +241,7 @@ function DoctorLayoutContent({
                         <div className="relative shrink-0">
                           <div className="size-11 rounded-[16px] bg-white p-0.5 shadow-sm border border-[#E8E6E0]/60 overflow-hidden group-hover:scale-105 transition-transform duration-300">
                              <img 
-                               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${mounted && user ? encodeURIComponent(user.name) : "Doctor"}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
+                               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user ? encodeURIComponent(user.name) : "Doctor"}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
                                alt="Avatar" 
                                className="size-full object-cover rounded-[14px]"
                              />
@@ -242,7 +252,7 @@ function DoctorLayoutContent({
                         {isCollapsed ? null : (
                           <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 text-left">
                             <span className="truncate font-sans text-[15px] font-bold text-[#1A1F1E]">
-                              {mounted && user ? user.name : "Doctor"}
+                              {user ? user.name : "Doctor"}
                             </span>
                             <div className="flex items-center gap-1.5">
                                <span className="size-1 rounded-full bg-[#1A5345]/30" />
@@ -269,14 +279,14 @@ function DoctorLayoutContent({
                   <div className="flex items-center gap-2.5 border-b border-[#E8E6E0]/40 bg-[#F9F8F5]/80 px-3 py-2 backdrop-blur-md">
                     <div className="size-9 shrink-0 overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-white p-px shadow-sm">
                        <img 
-                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${mounted && user ? encodeURIComponent(user.name) : "Doctor"}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
+                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user ? encodeURIComponent(user.name) : "Doctor"}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
                          alt="Avatar" 
                          className="size-full object-cover rounded-[10px]"
                        />
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col gap-0">
                       <span className="truncate font-sans text-[14px] font-bold leading-tight text-[#1A1F1E]">
-                        {mounted && user ? user.name : "Doctor"}
+                        {user ? user.name : "Doctor"}
                       </span>
                       <p className="mt-0.5 truncate font-sans text-[10px] font-medium leading-snug text-muted-foreground">
                         Doctor
@@ -284,7 +294,7 @@ function DoctorLayoutContent({
                           {" "}
                           ·{" "}
                         </span>
-                        <span className="text-muted-foreground/80">{mounted && user ? user.email : ""}</span>
+                        <span className="text-muted-foreground/80">{user ? user.email : ""}</span>
                       </p>
                     </div>
                   </div>
@@ -338,66 +348,15 @@ function DoctorLayoutContent({
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset>
-        <div className="flex h-16 items-center gap-3 border-b border-black/5 px-4 dark:border-white/10">
-          <SidebarTrigger />
-          <div className="flex flex-col">
-            <div className="text-base font-semibold">
-              {mounted && (pathname === "/doctor-schedule"
-                ? "Schedule"
-                : pathname.startsWith("/doctor-queue") && pathname.includes("/consultation")
-                  ? "Consultation"
-                  : pathname === "/doctor-queue"
-                    ? "Queue"
-                    : pathname === "/doctor-appointments"
-                      ? "Appointments"
-                      : pathname.match(/^\/doctor-patients\/[^/]+\/consultations\/[^/]+$/)
-                        ? "Consultation Report"
-                        : pathname.match(/^\/doctor-patients\/[^/]+\/(vitals|medications|diagnoses|lab-results|documents|consultations)$/)
-                          ? pathname.includes("/vitals") ? "Vitals & Readings"
-                          : pathname.includes("/medications") ? "Medications"
-                          : pathname.includes("/diagnoses") ? "Diagnoses & Conditions"
-                          : pathname.includes("/lab-results") ? "Lab Results"
-                          : pathname.includes("/documents") ? "Documents & Files"
-                          : pathname.includes("/consultations") ? "Consultation History"
-                          : "Patient"
-                      : pathname.match(/^\/doctor-patients\/[^/]+$/)
-                        ? "Patient Profile"
-                        : pathname === "/doctor-patients"
-                          ? "Patients"
-                          : pathname.startsWith("/doctor-prescriptions")
-                            ? pathname.match(/^\/doctor-prescriptions\/[^/]+$/)
-                              ? "Patient prescriptions"
-                              : "Prescriptions"
-                            : "Doctor Dashboard") || "Doctor Dashboard"}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {mounted && (pathname === "/doctor-schedule"
-                ? "Weekly availability & clinic hours"
-                : pathname.startsWith("/doctor-queue") && pathname.includes("/consultation")
-                  ? "Active patient consultation"
-                  : pathname === "/doctor-queue"
-                    ? "Today's patient queue"
-                    : pathname === "/doctor-appointments"
-                      ? "Manage your patient appointments"
-                      : pathname.match(/^\/doctor-patients\/[^/]+\/consultations\/[^/]+$/)
-                        ? "Full consultation report"
-                        : pathname.match(/^\/doctor-patients\/[^/]+\/(vitals|medications|diagnoses|lab-results|documents|consultations)$/)
-                        ? "Patient record details"
-                        : pathname.match(/^\/doctor-patients\/[^/]+$/)
-                          ? "Patient profile & quick links"
-                          : pathname === "/doctor-patients"
-                            ? "Patient directory & quick links"
-                            : pathname.startsWith("/doctor-prescriptions")
-                              ? pathname.match(/^\/doctor-prescriptions\/[^/]+$/)
-                                ? "Prescriptions and adherence for this patient"
-                                : "Manage patient prescriptions"
-                              : "Overview & patient insights") || "Overview & patient insights"}
-            </div>
-          </div>
-        </div>
-
-        {children}
+      <SidebarInset className="bg-[#F9F8F5]">
+        {pathname === "/doctor-account" || pathname.startsWith("/doctor-account/") ? (
+          children
+        ) : (
+          <>
+            <DoctorInsetHeader user={user} logout={logout} />
+            {children}
+          </>
+        )}
       </SidebarInset>
     </>
   )
