@@ -45,6 +45,32 @@ async function updateAppointmentNotes({
   return data
 }
 
+export type DoctorAvailableSlot = {
+  value: string
+  label: string
+}
+
+async function fetchAvailableSlots(date: string, excludeAppointmentId?: string) {
+  const { data } = await apiClient.get<{ date: string; slots: DoctorAvailableSlot[] }>(
+    "/doctor/appointments/available-slots",
+    { params: { date, excludeAppointmentId } },
+  )
+  return data.slots
+}
+
+async function rescheduleAppointment({
+  appointmentId,
+  scheduledAt,
+}: {
+  appointmentId: string
+  scheduledAt: string
+}) {
+  const { data } = await apiClient.patch(`/doctor/appointments/${appointmentId}`, {
+    scheduledAt,
+  })
+  return data
+}
+
 export function useDoctorAppointments() {
   const queryClient = useQueryClient()
 
@@ -77,6 +103,11 @@ export function useDoctorAppointments() {
     onSuccess: invalidateAll,
   })
 
+  const rescheduleMutation = useMutation({
+    mutationFn: rescheduleAppointment,
+    onSuccess: invalidateAll,
+  })
+
   return {
     stats: statsQuery.data ?? { today: 0, upcoming: 0, completed: 0, cancelled: 0 },
     appointments: appointmentsQuery.data ?? [],
@@ -84,6 +115,8 @@ export function useDoctorAppointments() {
     isError: appointmentsQuery.isError || statsQuery.isError,
     updateStatus: statusMutation.mutateAsync,
     updateNotes: notesMutation.mutateAsync,
-    isUpdating: statusMutation.isPending || notesMutation.isPending,
+    reschedule: rescheduleMutation.mutateAsync,
+    fetchAvailableSlots,
+    isUpdating: statusMutation.isPending || notesMutation.isPending || rescheduleMutation.isPending,
   }
 }

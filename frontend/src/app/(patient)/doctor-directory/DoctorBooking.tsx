@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { SparklesIcon } from "lucide-react"
 import { toast } from "sonner"
 
@@ -25,8 +26,17 @@ import { Button } from "@/components/ui/button"
 
 import type { DoctorBookingPageData } from "./doctorBooking.types"
 
+type CreateAppointmentPayload = {
+  doctorId: string
+  scheduledAt: string
+  visitType: "clinic" | "virtual"
+  reason: string
+}
+
 type DoctorBookingProps = {
   data: DoctorBookingPageData
+  onCreateAppointment: (payload: CreateAppointmentPayload) => Promise<unknown>
+  isCreating?: boolean
 }
 
 function combineDateAndTime(dateOnly: string, slotLabel: string) {
@@ -38,7 +48,8 @@ function combineDateAndTime(dateOnly: string, slotLabel: string) {
   return d.toISOString()
 }
 
-export function DoctorBooking({ data }: DoctorBookingProps) {
+export function DoctorBooking({ data, onCreateAppointment, isCreating }: DoctorBookingProps) {
+  const router = useRouter()
   const defaultVisitType = data.allowedVisitTypes[0] ?? "clinic"
   const firstAvailableDay = data.days.find((d) => !d.disabled)?.fullDate ?? ""
   const firstAvailableSlot =
@@ -77,10 +88,22 @@ export function DoctorBooking({ data }: DoctorBookingProps) {
         return
       }
 
-      combineDateAndTime(state.selectedDate, state.selectedSlot)
-      toast.success("Appointment requested", {
-        description: `Booking with ${data.doctor.name} — preview mode (mock).`,
-      })
+      try {
+        await onCreateAppointment({
+          doctorId: data.doctor.id,
+          scheduledAt: combineDateAndTime(state.selectedDate, state.selectedSlot),
+          visitType: state.visitType,
+          reason: normalizedReason,
+        })
+        toast.success("Appointment booked", {
+          description: `Your visit with ${data.doctor.name} has been scheduled.`,
+        })
+        router.push("/appointments")
+      } catch {
+        toast.error("Booking failed", {
+          description: "This slot may no longer be available. Please choose another time.",
+        })
+      }
     },
   })
 
@@ -169,7 +192,7 @@ export function DoctorBooking({ data }: DoctorBookingProps) {
                   title={data.selectedDoctor.title}
                   experience={data.selectedDoctor.experience}
                   specialties={data.selectedDoctor.specialties}
-                  avatarSeed={data.selectedDoctor.id}
+                  avatarUrl={data.selectedDoctor.avatarUrl}
                 />
                 <VisitTypeSelector
                   selected={visitType}
@@ -197,6 +220,7 @@ export function DoctorBooking({ data }: DoctorBookingProps) {
                 selectedSlot={selectedSlot}
                 fees={data.fees}
                 onConfirm={handleConfirm}
+                isSubmitting={isCreating}
               />
             </div>
           )}

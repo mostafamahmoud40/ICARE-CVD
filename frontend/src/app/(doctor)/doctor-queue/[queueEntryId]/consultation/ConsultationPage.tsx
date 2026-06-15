@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils"
 import { useConsultationPanelWidths } from "./usePanelResize"
 import type {
   ConsultationData,
+  ConsultationMedicalHistory,
+  ConsultationVitalReading,
   DiagnosisEntry,
   PrescriptionEntry,
   TestOrder,
@@ -12,10 +14,13 @@ import type {
   VitalSigns,
   PhysicalExamFindings,
   ProcedureDetails,
+  Allergy,
+  ExistingCondition,
 } from "./consultation.types"
 import { mockConsultationData } from "./consultation.mock"
 import { PatientSidebar } from "./PatientSidebar"
 import { VitalsSection } from "./VitalsSection"
+import { MedicalHistorySection } from "./MedicalHistorySection"
 import { ProceduresSection } from "./ProceduresSection"
 import { ChiefComplaintSection } from "./ChiefComplaintSection"
 import { PhysicalExamSection } from "./PhysicalExamSection"
@@ -71,6 +76,42 @@ export function ConsultationPage() {
 
   const updateVitals = (key: keyof VitalSigns, value: string) => {
     setData((prev) => ({ ...prev, vitals: { ...prev.vitals, [key]: value } as VitalSigns }))
+  }
+
+  const applyLastVitalReading = (reading: ConsultationVitalReading) => {
+    setData((prev) => ({
+      ...prev,
+      vitals: {
+        systolicBP: reading.systolicBP != null ? String(reading.systolicBP) : prev.vitals.systolicBP,
+        diastolicBP: reading.diastolicBP != null ? String(reading.diastolicBP) : prev.vitals.diastolicBP,
+        heartRate: reading.heartRate != null ? String(reading.heartRate) : prev.vitals.heartRate,
+        temperature: reading.temperature != null ? String(reading.temperature) : prev.vitals.temperature,
+        respiratoryRate:
+          reading.respiratoryRate != null ? String(reading.respiratoryRate) : prev.vitals.respiratoryRate,
+        oxygenSaturation:
+          reading.oxygenSaturation != null ? String(reading.oxygenSaturation) : prev.vitals.oxygenSaturation,
+        heightCm: reading.heightCm != null ? String(reading.heightCm) : prev.vitals.heightCm,
+        weightKg: reading.weight != null ? String(reading.weight) : prev.vitals.weightKg,
+      },
+    }))
+  }
+
+  const updateMedicalHistory = (next: ConsultationMedicalHistory) => {
+    setData((prev) => ({ ...prev, medicalHistory: next }))
+  }
+
+  const updateAllergies = (next: Allergy[]) => {
+    setData((prev) => ({
+      ...prev,
+      patientSummary: { ...prev.patientSummary, allergies: next },
+    }))
+  }
+
+  const updateChronicConditions = (next: ExistingCondition[]) => {
+    setData((prev) => ({
+      ...prev,
+      patientSummary: { ...prev.patientSummary, existingConditions: next },
+    }))
   }
 
   const updateExam = (key: keyof PhysicalExamFindings, value: string) => {
@@ -266,8 +307,19 @@ export function ConsultationPage() {
           <div className="mx-auto max-w-[900px] space-y-5 p-5 pb-28">
             <VitalsSection 
               vitals={data.vitals} 
-              onVitalChange={updateVitals} 
+              onVitalChange={updateVitals}
+              onApplyLastReading={applyLastVitalReading}
+              lastVitalReading={data.lastVitalReading}
               patientAge={data.patientSummary.demographics.age} 
+            />
+
+            <MedicalHistorySection
+              medicalHistory={data.medicalHistory}
+              onMedicalHistoryChange={updateMedicalHistory}
+              chronicConditions={data.patientSummary.existingConditions}
+              onChronicConditionsChange={updateChronicConditions}
+              allergies={data.patientSummary.allergies}
+              onAllergiesChange={updateAllergies}
             />
 
             <ChiefComplaintSection

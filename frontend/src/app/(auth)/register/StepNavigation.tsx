@@ -28,7 +28,7 @@ export function StepNavigation({ step, isPending, isAnalysisPending, onNext, onP
           size="lg"
           disabled={isPending || (isAnalysisPending ?? false)}
           onClick={onPrevious}
-          className="h-12 w-full rounded-xl border-primary/30 bg-transparent text-sm font-semibold text-primary hover:bg-primary/10 hover:text-primary dark:border-primary/40 dark:hover:bg-primary/15 sm:w-auto sm:min-w-40"
+          className="h-12 w-full rounded-xl border border-[#E8E6E0] bg-white text-sm font-semibold text-[#1A5345] hover:bg-[#F9F8F5] sm:w-auto sm:min-w-40"
         >
           <ChevronLeft className="size-4" aria-hidden="true" />
           Back
@@ -43,7 +43,7 @@ export function StepNavigation({ step, isPending, isAnalysisPending, onNext, onP
         onClick={isLastStep ? onSubmit : onNext}
         disabled={busy}
         size="lg"
-        className="h-12 w-full rounded-xl text-sm font-semibold shadow-none focus-visible:ring-primary/40 sm:w-auto sm:min-w-56"
+        className="h-12 w-full rounded-xl bg-[#1A5345] text-sm font-semibold text-white shadow-sm hover:bg-[#154434] focus-visible:ring-[#1A5345]/40 sm:w-auto sm:min-w-56"
       >
         {isLastStep
           ? busy

@@ -1,4 +1,5 @@
 import {
+  boolean,
   date,
   pgEnum,
   pgTable,
@@ -43,6 +44,16 @@ export const lateralityTypeEnum = pgEnum('laterality_type', [
   'other',
 ]);
 
+export const diagnosisCategoryEnum = pgEnum('diagnosis_category', [
+  'cardiac',
+  'pulmonary',
+  'diabetes',
+  'gastrointestinal',
+  'neurological',
+  'infectious',
+  'other',
+]);
+
 export const diagnosis = pgTable('diagnosis', {
   id: uuid('id').defaultRandom().primaryKey(),
   patientId: uuid('patient_id')
@@ -50,6 +61,9 @@ export const diagnosis = pgTable('diagnosis', {
     .notNull(),
   icdCode: varchar('icd_code', { length: 20 }).notNull(),
   description: text('description').notNull(),
+  category: diagnosisCategoryEnum('category').notNull().default('other'),
+  chronicFlag: boolean('chronic_flag').notNull().default(false),
+  infectiousFlag: boolean('infectious_flag').notNull().default(false),
   type: diagnosisTypeEnum('type').notNull(),
   severity: diagnosisSeverityEnum('severity').notNull(),
   confirmation: diagnosisConfirmationEnum('confirmation').notNull(),

@@ -118,17 +118,17 @@ export function RegisterForm() {
   }, [pathname, router, step]);
 
   return (
-    <Card className="w-full max-w-3xl overflow-hidden rounded-3xl border-border/70 bg-card/95 shadow-xl backdrop-blur-sm">
-      <CardHeader className="space-y-4 pb-0 pt-7 text-center">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+    <Card className="w-full max-w-3xl overflow-hidden rounded-3xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
+      <CardHeader className="space-y-4 border-b border-[#E8E6E0]/40 bg-[#F9F8F5]/50 pb-6 pt-7 text-center">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-[#1A534518] text-[#1A5345]">
           <StepIcon className="size-8" aria-hidden="true" />
         </div>
 
         <div className="space-y-1">
-          <CardTitle className="text-3xl font-semibold tracking-tight text-foreground">{title}</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground">{description}</CardDescription>
+          <CardTitle className="font-serif text-2xl font-bold tracking-tight text-[#1A1F1E] sm:text-3xl">{title}</CardTitle>
+          <CardDescription className="text-sm text-[#6B7870]">{description}</CardDescription>
         </div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7870]">
           Step {step} of 5
         </p>
 
@@ -146,10 +146,10 @@ export function RegisterForm() {
               type="button"
               onClick={() => goToStep(num)}
               className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
                 step === num
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  ? "bg-[#1A5345] text-white shadow-sm"
+                  : "bg-[#F4F3ED] text-[#6B7870] hover:bg-[#E8E6E0]",
               )}
             >
               {num}. {label}
@@ -164,7 +164,7 @@ export function RegisterForm() {
         }}
         noValidate
       >
-        <CardContent className="space-y-5 px-8 pb-8 pt-5">
+        <CardContent className="space-y-5 bg-white px-6 pb-8 pt-5 sm:px-8">
           <RegisterTestingActions />
 
           <StepRenderer

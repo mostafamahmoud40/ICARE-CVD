@@ -61,7 +61,7 @@ function StatCard({ icon: Icon, iconColor, value, label }: {
       <Icon className={cn("size-4 sm:size-5 shrink-0", iconColor)} aria-hidden />
       <div className="min-w-0">
         <div className="text-[16px] font-bold text-[#1A1F1E] sm:text-lg leading-tight">{value}</div>
-        <div className="text-[9px] font-bold text-muted-foreground sm:text-[10px] uppercase tracking-wider">{label}</div>
+        <div className="text-[9px] font-bold text-muted-foreground sm:text-[10px] tracking-wider">{label}</div>
       </div>
     </div>
   )
@@ -366,22 +366,6 @@ export function DoctorQueue({
   return (
     <main className="flex-1 overflow-y-auto bg-[#F9F8F5] p-3 sm:p-4 lg:p-5">
       <div className="space-y-4 sm:space-y-5">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <UsersIcon className="size-4 sm:size-5 text-[#1A5345]" aria-hidden />
-            <div>
-              <h2 className="text-[13px] font-bold text-[#1A1F1E] sm:text-[15px]">Today&apos;s Queue</h2>
-              <p className="text-[10px] text-muted-foreground sm:text-[11px]">
-                {new Intl.DateTimeFormat(undefined, { dateStyle: "full" }).format(new Date())}
-              </p>
-            </div>
-          </div>
-          <span className="self-start rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 sm:px-2.5 sm:py-1 sm:text-[11px]">
-            <span className="mr-1 inline-block size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Live
-          </span>
-        </div>
-
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7 sm:gap-3">
           <StatCard icon={CalendarDaysIcon} iconColor="text-[#1A5345]" value={stats.totalToday} label="Total Today" />
           <StatCard icon={CalendarDaysIcon} iconColor="text-[#4F6D64]" value={stats.scheduled} label="Scheduled" />

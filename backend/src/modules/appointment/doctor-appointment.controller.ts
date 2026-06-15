@@ -36,6 +36,15 @@ export class DoctorAppointmentController {
     return this.service.listAppointments(user.sub, safeFilter);
   }
 
+  @Get('available-slots')
+  getAvailableSlots(
+    @CurrentUser() user: TokenPayload,
+    @Query('date') date: string,
+    @Query('excludeAppointmentId') excludeAppointmentId?: string,
+  ) {
+    return this.service.getAvailableSlots(user.sub, date, excludeAppointmentId);
+  }
+
   @Get(':appointmentId')
   getAppointment(
     @CurrentUser() user: TokenPayload,

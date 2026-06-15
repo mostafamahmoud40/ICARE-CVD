@@ -1,3 +1,11 @@
+import type { StudyKind } from "../assistant-queue/assistantQueue.documents.types"
+
+export type PendingPatientDocument = {
+  id: string
+  file: File
+  studyKind: StudyKind
+}
+
 export type MedicationItem = {
   id: string
   name: string

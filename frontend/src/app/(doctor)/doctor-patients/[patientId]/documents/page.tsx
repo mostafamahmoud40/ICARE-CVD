@@ -1,33 +1,21 @@
 "use client"
 
 import { use } from "react"
+import { DoctorPatientRecordShell } from "../../DoctorPatientRecordShell"
 import { DocumentsPage } from "./DocumentsPage"
-import { mockDoctorPatientsData, mockPatientFullRecord } from "../../doctorPatients.mock"
 
 type PageProps = {
   params: Promise<{ patientId: string }>
 }
 
-export default function DocumentsRoutePage({ params }: PageProps) {
+export default function PatientDocumentsPage({ params }: PageProps) {
   const { patientId } = use(params)
-  const patient = mockDoctorPatientsData.patients.find((p) => p.id === patientId)
-
-  if (!patient) {
-    return (
-      <main className="flex flex-1 items-center justify-center bg-[#F9F8F5]">
-        <div className="text-center">
-          <p className="text-[14px] font-semibold text-[#102F27]">Patient not found</p>
-          <p className="mt-1 text-[12px] text-muted-foreground">ID: {patientId}</p>
-        </div>
-      </main>
-    )
-  }
 
   return (
-    <DocumentsPage
-      patientId={patientId}
-      patientName={patient.fullName}
-      documents={mockPatientFullRecord.documents}
-    />
+    <DoctorPatientRecordShell patientId={patientId}>
+      {(record) => (
+        <DocumentsPage patient={record.patient} documents={record.documents} />
+      )}
+    </DoctorPatientRecordShell>
   )
 }

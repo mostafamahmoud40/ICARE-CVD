@@ -1,7 +1,11 @@
-import Image from "next/image"
-import { cn } from "@/lib/utils"
-import { LucideIcon, appointmentsBookingCardClassName } from "./shared"
+"use client"
+
+import { useState } from "react"
 import { VerifiedIcon } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+
+import { LucideIcon, appointmentsBookingCardClassName } from "./shared"
 
 type SpecialtyProps = {
   icon: string
@@ -29,7 +33,7 @@ type DoctorCardProps = {
   title: string
   experience: string
   specialties: SpecialtyProps[]
-  avatarSeed?: string
+  avatarUrl?: string
   className?: string
 }
 
@@ -38,22 +42,35 @@ export function DoctorCard({
   title,
   experience,
   specialties,
-  avatarSeed,
+  avatarUrl,
   className,
 }: DoctorCardProps) {
+  const [imageFailed, setImageFailed] = useState(false)
+  const initials = name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+  const showFallback = !avatarUrl || imageFailed
+
   return (
     <div className={cn(appointmentsBookingCardClassName, className)}>
       <div className="flex items-start gap-4 sm:gap-5">
         <div className="relative shrink-0">
           <div className="flex size-16 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF] sm:size-[72px]">
-            <Image
-              src={`https://i.pravatar.cc/150?u=${encodeURIComponent(avatarSeed ?? name)}`}
-              alt=""
-              width={72}
-              height={72}
-              unoptimized
-              className="size-full object-cover"
-            />
+            {showFallback ? (
+              <span className="font-serif text-[18px] font-bold text-[#1A5345]">{initials}</span>
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt=""
+                width={72}
+                height={72}
+                className="size-full object-cover"
+                onError={() => setImageFailed(true)}
+              />
+            )}
           </div>
           <VerifiedIcon
             className="absolute -right-0.5 -bottom-0.5 size-[18px] rounded-full bg-white text-[#1A5345]"

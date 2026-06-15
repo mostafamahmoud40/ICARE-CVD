@@ -1,27 +1,5 @@
 import { z } from "zod"
 
-const chiefComplaintValues = [
-  "chest-pain",
-  "dyspnea",
-  "palpitations",
-  "syncope",
-  "leg-swelling",
-  "fatigue",
-  "constitutional-infective",
-  "peripheral-vascular",
-  "hepatic-congestion",
-  "jaundice",
-  "cyanosis",
-  "systemic-embolization",
-  "neurological",
-  "hypertension",
-  "post-procedure",
-  "post-discharge",
-  "murmur",
-  "abnormal-ecg",
-  "other",
-] as const
-
 const medicationItemSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -66,27 +44,13 @@ export const addPatientSchema = z
     exerciseType: z.string().trim(),
     physicalActivityLevel: z.string().trim(),
     dietaryHabits: z.string().trim(),
-    chiefComplaint: z
-      .string()
-      .trim()
-      .min(1, "Chief complaint is required.")
-      .refine((v) => (chiefComplaintValues as readonly string[]).includes(v), {
-        message: "Select a valid chief complaint.",
-      }),
+    chiefComplaint: z.string().trim(),
     otherChiefComplaint: z.string().trim(),
     medicalHistoryNotes: z.string().trim(),
     medications: z.array(medicationItemSchema).max(40),
     allergies: z.array(allergyItemSchema).max(50),
   })
   .superRefine((data, ctx) => {
-    if (data.chiefComplaint === "other" && !data.otherChiefComplaint.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Please specify the chief complaint.",
-        path: ["otherChiefComplaint"],
-      })
-    }
-
     data.medications.forEach((med, index) => {
       const hasAny =
         med.name.trim() ||

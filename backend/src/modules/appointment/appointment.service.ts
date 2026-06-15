@@ -37,16 +37,18 @@ export class AppointmentService {
         name: user.name,
         specialty: doctor.specialty,
         experienceYears: doctor.experienceYears,
+        avatarUrl: user.avatarUrl,
       })
       .from(doctor)
       .innerJoin(user, eq(doctor.userId, user.id))
-      .where(eq(user.role, 'doctor'));
+      .where(and(eq(user.role, 'doctor'), eq(user.isActive, true)));
 
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
       title: row.specialty ?? 'Cardiologist',
       experience: `${row.experienceYears ?? 0}+ Years Exp.`,
+      avatarUrl: row.avatarUrl,
       specialties: [
         {
           icon: 'heart',
@@ -55,6 +57,57 @@ export class AppointmentService {
         },
       ],
     }));
+  }
+
+  async listDoctorDirectory() {
+    const rows = await this.db
+      .select({
+        id: doctor.id,
+        name: user.name,
+        specialty: doctor.specialty,
+        experienceYears: doctor.experienceYears,
+        avatarUrl: user.avatarUrl,
+        acceptedVisitModes: doctor.acceptedVisitModes,
+        clinicConsultationFee: doctor.clinicConsultationFee,
+        onlineConsultationFee: doctor.onlineConsultationFee,
+      })
+      .from(doctor)
+      .innerJoin(user, eq(doctor.userId, user.id))
+      .where(and(eq(user.role, 'doctor'), eq(user.isActive, true)));
+
+    return Promise.all(
+      rows.map((row) => this.buildDoctorDirectoryEntry(row)),
+    );
+  }
+
+  async getDoctorDirectoryEntry(doctorId: string) {
+    const row = await this.db
+      .select({
+        id: doctor.id,
+        name: user.name,
+        specialty: doctor.specialty,
+        experienceYears: doctor.experienceYears,
+        avatarUrl: user.avatarUrl,
+        acceptedVisitModes: doctor.acceptedVisitModes,
+        clinicConsultationFee: doctor.clinicConsultationFee,
+        onlineConsultationFee: doctor.onlineConsultationFee,
+      })
+      .from(doctor)
+      .innerJoin(user, eq(doctor.userId, user.id))
+      .where(
+        and(
+          eq(doctor.id, doctorId),
+          eq(user.role, 'doctor'),
+          eq(user.isActive, true),
+        ),
+      )
+      .limit(1);
+
+    if (!row[0]) {
+      throw new NotFoundException('Doctor not found');
+    }
+
+    return this.buildDoctorDirectoryEntry(row[0]);
   }
 
   async getDoctorAvailability(doctorId: string, from?: string, days = 14) {
@@ -625,5 +678,95 @@ export class AppointmentService {
 
   private getMonthLabel(date: Date) {
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  private async buildDoctorDirectoryEntry(row: {
+    id: string;
+    name: string;
+    specialty: string | null;
+    experienceYears: number;
+    avatarUrl: string | null;
+    acceptedVisitModes: string;
+    clinicConsultationFee: number;
+    onlineConsultationFee: number;
+  }) {
+    const specialtyLabel = row.specialty ?? 'General practice';
+    const { nextAvailableSlot, availability } =
+      await this.summarizeDoctorAvailability(row.id);
+    const clinicFee = row.clinicConsultationFee ?? 0;
+    const onlineFee = row.onlineConsultationFee ?? 0;
+    const consultationFee =
+      clinicFee > 0 ? clinicFee : onlineFee > 0 ? onlineFee : 150;
+
+    return {
+      id: row.id,
+      name: row.name,
+      title: specialtyLabel,
+      specialty: specialtyLabel,
+      experienceYears: row.experienceYears ?? 0,
+      avatarUrl: row.avatarUrl,
+      acceptedVisitModes: this.normalizeAcceptedVisitModes(
+        row.acceptedVisitModes,
+      ),
+      clinicConsultationFee: clinicFee,
+      onlineConsultationFee: onlineFee,
+      consultationFee,
+      nextAvailableSlot,
+      availability,
+    };
+  }
+
+  private normalizeAcceptedVisitModes(
+    value: string | null | undefined,
+  ): 'clinic' | 'virtual' | 'both' {
+    if (value === 'clinic' || value === 'virtual') return value;
+    return 'both';
+  }
+
+  private async summarizeDoctorAvailability(doctorId: string): Promise<{
+    nextAvailableSlot: string | null;
+    availability: 'Available' | 'Limited' | 'Unavailable';
+  }> {
+    const data = await this.getDoctorAvailability(doctorId, undefined, 14);
+    const now = Date.now();
+    const weekAhead = now + 7 * 24 * 60 * 60 * 1000;
+    let nextAvailableSlot: string | null = null;
+    let availableIn7Days = 0;
+
+    for (const day of data.days) {
+      if (day.disabled) continue;
+      const slots = data.timeSlotsByDate[day.fullDate] ?? [];
+      const availableSlots = slots.filter((slot) => slot.available);
+      const dayStart = this.parseDateOnly(day.fullDate).getTime();
+
+      for (const slot of availableSlots) {
+        const iso = this.combineDateAndAmPm(day.fullDate, slot.time);
+        const slotTime = new Date(iso).getTime();
+        if (slotTime >= now && (!nextAvailableSlot || slotTime < new Date(nextAvailableSlot).getTime())) {
+          nextAvailableSlot = iso;
+        }
+        if (dayStart <= weekAhead && slotTime >= now) {
+          availableIn7Days += 1;
+        }
+      }
+    }
+
+    if (!nextAvailableSlot) {
+      return { nextAvailableSlot: null, availability: 'Unavailable' };
+    }
+    if (availableIn7Days <= 3) {
+      return { nextAvailableSlot, availability: 'Limited' };
+    }
+    return { nextAvailableSlot, availability: 'Available' };
+  }
+
+  private combineDateAndAmPm(dateOnly: string, ampm: string) {
+    const [time, period] = ampm.split(' ');
+    const [hhRaw, mmRaw] = time.split(':').map(Number);
+    const hours24 =
+      period === 'PM' ? (hhRaw % 12) + 12 : hhRaw === 12 ? 0 : hhRaw;
+    const d = this.parseDateOnly(dateOnly);
+    d.setHours(hours24, mmRaw, 0, 0);
+    return d.toISOString();
   }
 }

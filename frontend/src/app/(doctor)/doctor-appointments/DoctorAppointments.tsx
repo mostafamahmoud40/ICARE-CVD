@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useMemo } from "react"
-import type { DoctorAppointment, FilterTab } from "./doctorAppointments.types"
+import type { DoctorAppointment, FilterTab, VisitType } from "./doctorAppointments.types"
 import { AppointmentList } from "./AppointmentList"
 import { AppointmentDetail } from "./AppointmentDetail"
 import { AppointmentCalendar } from "./AppointmentCalendar"
@@ -25,14 +25,59 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 type ViewMode = "list" | "calendar"
+type VisitTypeFilter = "all" | VisitType
+
+const FILTER_SELECT_CLASS =
+  "h-8 w-[168px] shrink-0 rounded-lg border border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A1F1E] shadow-sm focus-visible:border-[#1A5345]/30 focus-visible:ring-0 sm:w-[190px]"
+
+const FILTER_OPTIONS: { id: FilterTab; label: string }[] = [
+  { id: "all", label: "All appointments" },
+  { id: "today", label: "Today" },
+  { id: "upcoming", label: "Upcoming" },
+  { id: "completed", label: "Completed" },
+  { id: "cancelled", label: "Cancelled" },
+]
+
+const VISIT_TYPE_OPTIONS: { id: VisitTypeFilter; label: string }[] = [
+  { id: "all", label: "All visit types" },
+  { id: "clinic", label: "In-clinic" },
+  { id: "virtual", label: "Virtual" },
+]
+
+function getFilterCount(
+  id: FilterTab,
+  stats: { today: number; upcoming: number; completed: number; cancelled: number },
+  total: number,
+) {
+  switch (id) {
+    case "today":
+      return stats.today
+    case "upcoming":
+      return stats.upcoming
+    case "completed":
+      return stats.completed
+    case "cancelled":
+      return stats.cancelled
+    default:
+      return total
+  }
+}
 
 export function DoctorAppointments() {
-  const { appointments, stats, isLoading, updateStatus, updateNotes } = useDoctorAppointments()
+  const { appointments, stats, isLoading, updateStatus, updateNotes, reschedule, fetchAvailableSlots, isUpdating } = useDoctorAppointments()
   const [selectedAppointment, setSelectedAppointment] = useState<DoctorAppointment | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>("list")
   const [filter, setFilter] = useState<FilterTab>("all")
+  const [visitTypeFilter, setVisitTypeFilter] = useState<VisitTypeFilter>("all")
   const [searchQuery, setSearchQuery] = useState("")
 
   // Find the latest version of the selected appointment (status may have changed)
@@ -72,6 +117,10 @@ export function DoctorAppointments() {
         filtered = appointments
     }
 
+    if (visitTypeFilter !== "all") {
+      filtered = filtered.filter((a) => a.visitType === visitTypeFilter)
+    }
+
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       filtered = filtered.filter(
@@ -84,7 +133,7 @@ export function DoctorAppointments() {
     }
 
     return filtered
-  }, [appointments, filter, searchQuery])
+  }, [appointments, filter, visitTypeFilter, searchQuery])
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
@@ -158,49 +207,10 @@ export function DoctorAppointments() {
             </div>
           </div>
 
-          {/* Filters and Search Summary */}
+          {/* Filters and Search */}
           {viewMode === "list" && (
-            <div className="mt-3 flex flex-col gap-2 pt-1 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:gap-2 sm:pb-0">
-                {[
-                  { id: "all", label: "All appointments" },
-                  { id: "today", label: "Today" },
-                  { id: "upcoming", label: "Upcoming" },
-                  { id: "completed", label: "Completed" },
-                  { id: "cancelled", label: "Cancelled" },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setFilter(tab.id as FilterTab)}
-                    className={cn(
-                      "h-8 whitespace-nowrap rounded-lg px-3 text-[12px] font-bold transition-all",
-                      filter === tab.id
-                        ? "bg-[#1A5345] text-white shadow-sm"
-                        : "text-muted-foreground hover:bg-white hover:text-[#1A1F1E] hover:shadow-sm"
-                    )}
-                  >
-                    {tab.label}
-                    <span
-                      className={cn(
-                        "ml-1.5 rounded-lg px-1.5 py-0.5 text-[10px] font-bold shadow-sm transition-colors",
-                        filter === tab.id ? "bg-white/10 text-white" : "bg-black/5 text-[#1A5345]"
-                      )}
-                    >
-                      {tab.id === "all"
-                        ? appointments.length
-                        : tab.id === "today"
-                        ? stats.today
-                        : tab.id === "upcoming"
-                        ? stats.upcoming
-                        : tab.id === "completed"
-                        ? stats.completed
-                        : stats.cancelled}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="group relative flex-1 sm:flex-none sm:w-[240px]">
+            <div className="mt-3 flex flex-row items-center justify-between gap-2 pt-1 sm:mt-4 sm:gap-3">
+              <div className="group relative w-[168px] shrink-0 sm:w-[190px]">
                 <SearchIcon
                   className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[#9CA3AF] transition-colors group-focus-within:text-[#1A5345]"
                   strokeWidth={2}
@@ -208,7 +218,7 @@ export function DoctorAppointments() {
                 />
                 <Input
                   type="search"
-                  placeholder="Search by patient, code, or reason..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="h-8 w-full rounded-lg border border-[#E8E6E0] bg-white pl-9 pr-8 text-[12px] font-medium text-[#1A1F1E] shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:border-[#1A5345]/30 focus-visible:ring-0"
@@ -221,6 +231,45 @@ export function DoctorAppointments() {
                     <XIcon className="size-3.5" />
                   </button>
                 )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Select
+                  value={visitTypeFilter}
+                  onValueChange={(value) => setVisitTypeFilter(value as VisitTypeFilter)}
+                >
+                  <SelectTrigger className={FILTER_SELECT_CLASS}>
+                    <SelectValue placeholder="Visit type" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-lg border-[#E8E6E0] bg-white shadow-lg">
+                    {VISIT_TYPE_OPTIONS.map((option) => (
+                      <SelectItem
+                        key={option.id}
+                        value={option.id}
+                        className="cursor-pointer text-[12px] font-medium text-[#1A1F1E]"
+                      >
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={filter} onValueChange={(value) => setFilter(value as FilterTab)}>
+                  <SelectTrigger className={FILTER_SELECT_CLASS}>
+                    <SelectValue placeholder="Filter appointments" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-lg border-[#E8E6E0] bg-white shadow-lg">
+                    {FILTER_OPTIONS.map((option) => (
+                      <SelectItem
+                        key={option.id}
+                        value={option.id}
+                        className="cursor-pointer text-[12px] font-medium text-[#1A1F1E]"
+                      >
+                        {option.label} ({getFilterCount(option.id, stats, appointments.length)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
@@ -239,7 +288,6 @@ export function DoctorAppointments() {
           ) : (
             <AppointmentCalendar
               appointments={appointments}
-              stats={stats}
               onSelectAppointment={setSelectedAppointment}
             />
           )}
@@ -251,6 +299,9 @@ export function DoctorAppointments() {
         onClose={() => setSelectedAppointment(null)}
         onUpdateStatus={(params) => updateStatus(params)}
         onUpdateNotes={(params) => updateNotes(params)}
+        onReschedule={(params) => reschedule(params)}
+        fetchAvailableSlots={fetchAvailableSlots}
+        isUpdating={isUpdating}
       />
     </div>
   )

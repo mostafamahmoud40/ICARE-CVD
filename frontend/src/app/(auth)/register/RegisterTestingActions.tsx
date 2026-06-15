@@ -22,24 +22,24 @@ export function RegisterTestingActions() {
   }
 
   return (
-    <div className="rounded-2xl border border-dashed border-primary/25 bg-primary/5 p-4">
+    <div className="rounded-2xl border border-dashed border-[#A8C4BC]/60 bg-[#F9F8F5] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1 text-left">
-          <p className="text-sm font-semibold text-foreground">Testing shortcut</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm font-bold text-[#1A5345]">Testing shortcut</p>
+          <p className="text-sm text-[#6B7870]">
             One click fills profile and medical test values. Refreshing the page clears them again.
           </p>
         </div>
 
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           onClick={handleFillTestingData}
           disabled={isPending}
-          className="h-10 rounded-xl px-4 text-sm font-semibold sm:shrink-0"
+          className="h-10 shrink-0 rounded-xl border-[#E8E6E0] bg-white px-4 text-sm font-semibold text-[#1A5345] hover:bg-[#F4F3ED]"
         >
           <FlaskConical className="size-4" aria-hidden="true" />
-          Fill Test Data
+          Fill test data
         </Button>
       </div>
     </div>

@@ -94,16 +94,41 @@ export type MedicationRecord = {
   adherenceHistory30d?: boolean[][]
 }
 
+export type DiagnosisCategory =
+  | "cardiac"
+  | "pulmonary"
+  | "diabetes"
+  | "gastrointestinal"
+  | "neurological"
+  | "infectious"
+  | "other"
+
+export const DIAGNOSIS_CATEGORY_LABELS: Record<DiagnosisCategory, string> = {
+  cardiac: "Cardiac",
+  pulmonary: "Pulmonary / Chest",
+  diabetes: "Diabetes / Endocrine",
+  gastrointestinal: "Gastrointestinal",
+  neurological: "Neurological",
+  infectious: "Infectious",
+  other: "Other",
+}
+
 export type DiagnosisRecord = {
   id: string
   icdCode: string
+  /** Short clinical description of the condition */
   description: string
+  category: DiagnosisCategory
+  chronicFlag: boolean
+  infectiousFlag: boolean
   type: "primary" | "secondary" | "differential"
   severity: "mild" | "moderate" | "severe" | "critical"
   diagnosedAt: string
   diagnosedBy: string
   status: "active" | "resolved" | "chronic"
   notes: string
+  createdAt: string
+  updatedAt: string
 }
 
 export type LabResult = {

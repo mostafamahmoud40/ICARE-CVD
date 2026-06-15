@@ -6,19 +6,38 @@ import { cn } from "@/lib/utils"
 import Link from "next/link"
 import {
   AlertTriangleIcon,
-  CalendarClockIcon,
+  ChevronRightIcon,
   HeartPulseIcon,
+  LayoutGridIcon,
+  ListIcon,
   PillIcon,
   ShieldAlertIcon,
-  UserRoundIcon,
   XIcon,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
-const riskConfig: Record<DoctorPatientsPagePatient["riskLevel"], { label: string; shortLabel: string; dot: string; badge: string }> = {
-  low: { label: "Low Risk", shortLabel: "Low", dot: "bg-emerald-100", badge: "bg-emerald-500 text-white" },
-  moderate: { label: "Moderate Risk", shortLabel: "Med", dot: "bg-amber-100", badge: "bg-amber-500 text-white" },
-  high: { label: "High Risk", shortLabel: "High", dot: "bg-red-100", badge: "bg-red-500 text-white" },
+const riskConfig: Record<DoctorPatientsPagePatient["riskLevel"], { label: string; shortLabel: string; badge: string }> = {
+  low: { label: "Low risk", shortLabel: "Low", badge: "bg-emerald-500 text-white" },
+  moderate: { label: "Moderate", shortLabel: "Med", badge: "bg-amber-500 text-white" },
+  high: { label: "High risk", shortLabel: "High", badge: "bg-rose-500 text-white" },
+}
+
+function fmtShort(iso: string | null | undefined) {
+  if (!iso) return "—"
+  return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso))
+}
+
+function patientAvatarUrl(patient: DoctorPatientsPagePatient) {
+  return patient.profileImageUrl ?? `https://i.pravatar.cc/150?u=${encodeURIComponent(patient.id)}`
 }
 
 function calcAge(dob: string) {
@@ -41,71 +60,166 @@ function StatCard({ icon: Icon, iconColor, value, label }: {
       <Icon className={cn("size-4 sm:size-5 shrink-0 transition-colors duration-300", iconColor)} aria-hidden />
       <div className="min-w-0">
         <div className="text-[16px] font-bold text-[#1A1F1E] sm:text-lg leading-tight transition-colors group-hover:text-[#1A5345]">{value}</div>
-        <div className="text-[9px] font-bold text-muted-foreground sm:text-[10px] uppercase tracking-wider">{label}</div>
+        <div className="text-[10px] font-medium text-muted-foreground sm:text-[11px]">{label}</div>
       </div>
     </div>
   )
 }
 
+function RiskBadge({ level }: { level: DoctorPatientsPagePatient["riskLevel"] }) {
+  const risk = riskConfig[level]
+  return (
+    <span className={cn("inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-[10px] font-bold", risk.badge)}>
+      {risk.label}
+    </span>
+  )
+}
+
 function PatientCard({ patient }: { patient: DoctorPatientsPagePatient }) {
-  const risk = riskConfig[patient.riskLevel]
   const age = calcAge(patient.dateOfBirth)
+  const genderLabel = patient.gender === "male" ? "Male" : patient.gender === "female" ? "Female" : "Other"
 
   return (
-    <Link href={`/doctor-patients/${patient.id}`}>
-      <div className="group cursor-pointer rounded-xl border border-[#E8E6E0]/60 bg-white p-3 shadow-sm transition-all hover:border-[#A8C4BC]/60 hover:shadow-md sm:p-4">
-        <div className="flex items-start gap-2.5 sm:gap-4">
-          <UserRoundIcon className="size-4 text-[#1A5345] sm:size-5 shrink-0 mt-0.5" />
+    <Link href={`/doctor-patients/${patient.id}`} className="block h-full">
+      <Card className="group relative h-full gap-0 overflow-hidden rounded-3xl border border-[#E8E6E0]/60 bg-white py-0 shadow-sm ring-0 transition-all hover:border-[#A8C4BC]/60 hover:shadow-md">
+        <CardContent className="flex h-full flex-col p-5">
+          <div className="mb-4 flex w-full items-start justify-between">
+            <RiskBadge level={patient.riskLevel} />
+            <span className="text-[10px] font-bold text-[#1A5345]/70">{patient.id.toUpperCase()}</span>
+          </div>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-              <h3 className="text-[12px] font-bold text-[#1A1F1E] sm:text-[14px]">{patient.fullName}</h3>
-              <span className={cn("rounded-full px-2 py-0.5 text-[9px] font-bold sm:text-[10px]", risk.badge)}>
-                <span className={cn("mr-1 inline-block size-1.5 rounded-full", risk.dot)} />
-                <span className="hidden sm:inline">{risk.label}</span>
-                <span className="sm:hidden">{risk.shortLabel}</span>
-              </span>
+          <div className="mb-4 flex flex-col items-center gap-2.5">
+            <div className="relative size-16 overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF] shadow-sm">
+              <img
+                src={patientAvatarUrl(patient)}
+                alt=""
+                className="size-full object-cover"
+              />
             </div>
-
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-medium text-muted-foreground sm:mt-1.5 sm:gap-2 sm:text-[11px]">
-              <span>{age}y</span>
-              <span className="text-[#E8E6E0]">|</span>
-              <span className="capitalize">{patient.gender}</span>
-              <span className="text-[#E8E6E0]">|</span>
-              <span className="rounded-full bg-[#F9F8F5] border border-[#E8E6E0]/40 px-1.5 py-0.5 text-[9px] font-bold text-[#1A5345] sm:text-[10px]">{patient.bloodType}</span>
-              <span className="text-[#E8E6E0]">|</span>
-              <span className="font-mono text-[9px] text-muted-foreground sm:text-[10px] tracking-tight">{patient.id}</span>
-            </div>
-
-            <p className="mt-1.5 text-[10px] font-medium text-muted-foreground sm:text-[11px] leading-relaxed line-clamp-2">{patient.condition}</p>
-
-            <div className="mt-2.5 flex flex-wrap items-center gap-1.5 sm:mt-3 sm:gap-2">
-              <span className="flex items-center gap-1 rounded-full bg-[#E8F0EE] px-2 py-0.5 text-[9px] font-bold text-[#1A5345] sm:text-[10px]">
-                <PillIcon className="size-2.5" />
-                {patient.activeMedications} Rx
+            <div className="flex flex-col items-center text-center">
+              <span className="font-serif text-[18px] font-bold leading-tight text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">
+                {patient.fullName}
               </span>
-              {patient.poorComplianceCount > 0 && (
-                <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-600 sm:text-[10px]">
-                  <AlertTriangleIcon className="size-2.5" />
-                  {patient.poorComplianceCount}
-                </span>
-              )}
-              {patient.allergies.length > 0 && (
-                <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[9px] font-bold text-red-600 sm:text-[10px]">
-                  <ShieldAlertIcon className="size-2.5" />
-                  {patient.allergies.length}
-                </span>
-              )}
-              {patient.totalVisits > 0 && (
-                <span className="rounded-full bg-[#F9F8F5] border border-[#E8E6E0]/40 px-2 py-0.5 text-[9px] font-bold text-[#6B7870] sm:text-[10px]">
-                  {patient.totalVisits} visits
-                </span>
-              )}
+              <span className="mt-1 text-[12px] font-medium text-muted-foreground">
+                {age}y · {genderLabel} · {patient.bloodType}
+              </span>
             </div>
           </div>
-        </div>
-      </div>
+
+          <div className="mb-4 flex w-full items-center rounded-2xl border border-[#E8E6E0]/40 bg-[#F9F8F5] p-2.5">
+            <div className="flex flex-1 flex-col items-center justify-center gap-0.5 min-w-0 px-1">
+              <span className="text-[10px] font-semibold text-muted-foreground">Last visit</span>
+              <span className="text-[11px] font-bold text-[#1A1F1E] tabular-nums">{fmtShort(patient.lastVisitDate)}</span>
+            </div>
+            <div className="h-7 w-px shrink-0 bg-[#E8E6E0]/80" />
+            <div className="flex flex-1 flex-col items-center justify-center gap-0.5 min-w-0 px-1">
+              <span className="text-[10px] font-semibold text-muted-foreground">Visits</span>
+              <span className="text-[12px] font-bold text-[#1A1F1E] tabular-nums">{patient.totalVisits}</span>
+            </div>
+            <div className="h-7 w-px shrink-0 bg-[#E8E6E0]/80" />
+            <div className="flex flex-[1.2] flex-col items-center justify-center gap-0.5 min-w-0 px-1">
+              <span className="text-[10px] font-semibold text-muted-foreground">Condition</span>
+              <span className="line-clamp-1 w-full text-center text-[11px] font-bold text-[#1A1F1E]" title={patient.condition}>
+                {patient.condition}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-auto flex flex-wrap items-center justify-center gap-1.5">
+            <span className="flex items-center gap-1 rounded-lg bg-[#E8F0EE] px-2 py-0.5 text-[10px] font-bold text-[#1A5345]">
+              <PillIcon className="size-2.5" aria-hidden />
+              {patient.activeMedications} Rx
+            </span>
+            {patient.poorComplianceCount > 0 ? (
+              <span className="flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 ring-1 ring-inset ring-amber-600/15">
+                <AlertTriangleIcon className="size-2.5" aria-hidden />
+                {patient.poorComplianceCount} alert{patient.poorComplianceCount === 1 ? "" : "s"}
+              </span>
+            ) : null}
+            {patient.allergies.length > 0 ? (
+              <span className="flex items-center gap-1 rounded-lg bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700 ring-1 ring-inset ring-red-600/15">
+                <ShieldAlertIcon className="size-2.5" aria-hidden />
+                {patient.allergies.length} allergy
+              </span>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
     </Link>
+  )
+}
+
+function PatientListRow({ patient }: { patient: DoctorPatientsPagePatient }) {
+  const age = calcAge(patient.dateOfBirth)
+  const genderLabel = patient.gender === "male" ? "Male" : patient.gender === "female" ? "Female" : "Other"
+
+  return (
+    <tr className="group cursor-pointer transition-colors hover:bg-[#F9F8F5]/60">
+      <td className="py-4 pl-4 pr-4">
+        <Link href={`/doctor-patients/${patient.id}`} className="flex items-center gap-3">
+          <div className="relative size-11 shrink-0 overflow-hidden rounded-full border border-[#E8E6E0] shadow-sm">
+            <img src={patientAvatarUrl(patient)} alt="" className="size-full object-cover" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-[14px] font-bold text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">
+              {patient.fullName}
+            </p>
+            <p className="truncate text-[12px] font-medium text-muted-foreground">{patient.id.toUpperCase()}</p>
+          </div>
+        </Link>
+      </td>
+      <td className="px-4 py-4">
+        <Link href={`/doctor-patients/${patient.id}`} className="block max-w-[220px]">
+          <p className="truncate text-[13px] font-medium text-[#1A1F1E]" title={patient.condition}>
+            {patient.condition}
+          </p>
+        </Link>
+      </td>
+      <td className="px-4 py-4">
+        <Link href={`/doctor-patients/${patient.id}`} className="block text-[13px] font-medium text-[#1A1F1E]">
+          {age}y <span className="text-muted-foreground/60">/</span> {genderLabel.charAt(0)}
+        </Link>
+      </td>
+      <td className="px-4 py-4">
+        <Link href={`/doctor-patients/${patient.id}`} className="block text-[13px] font-bold tabular-nums text-[#1A1F1E]">
+          {fmtShort(patient.lastVisitDate)}
+        </Link>
+      </td>
+      <td className="px-4 py-4">
+        <Link href={`/doctor-patients/${patient.id}`} className="inline-block">
+          <RiskBadge level={patient.riskLevel} />
+        </Link>
+      </td>
+      <td className="px-4 py-4">
+        <Link href={`/doctor-patients/${patient.id}`} className="flex flex-wrap items-center gap-1.5">
+          <span className="flex items-center gap-1 rounded-lg bg-[#E8F0EE] px-2 py-0.5 text-[10px] font-bold text-[#1A5345]">
+            <PillIcon className="size-2.5" aria-hidden />
+            {patient.activeMedications}
+          </span>
+          {patient.poorComplianceCount > 0 ? (
+            <span className="flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 ring-1 ring-inset ring-amber-600/15">
+              <AlertTriangleIcon className="size-2.5" aria-hidden />
+              {patient.poorComplianceCount}
+            </span>
+          ) : null}
+          {patient.allergies.length > 0 ? (
+            <span className="flex items-center gap-1 rounded-lg bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700 ring-1 ring-inset ring-red-600/15">
+              <ShieldAlertIcon className="size-2.5" aria-hidden />
+              {patient.allergies.length}
+            </span>
+          ) : null}
+        </Link>
+      </td>
+      <td className="py-4 pl-4 pr-4 text-right">
+        <Link
+          href={`/doctor-patients/${patient.id}`}
+          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1A5345] opacity-0 transition-all group-hover:opacity-100"
+        >
+          Open
+          <ChevronRightIcon className="size-3.5" aria-hidden />
+        </Link>
+      </td>
+    </tr>
   )
 }
 
@@ -117,6 +231,7 @@ type DoctorPatientsProps = {
 export function DoctorPatients({ patients, stats }: DoctorPatientsProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [riskFilter, setRiskFilter] = useState<"all" | "low" | "moderate" | "high">("all")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
 
   const filteredPatients = useMemo(() => {
     let filtered = patients
@@ -143,21 +258,6 @@ export function DoctorPatients({ patients, stats }: DoctorPatientsProps) {
   return (
     <main className="flex-1 overflow-y-auto bg-[#F9F8F5] p-3 sm:p-4 lg:p-5">
       <div className="space-y-4 sm:space-y-5">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <HeartPulseIcon className="size-4 sm:size-5 text-[#1A5345]" aria-hidden />
-            <div>
-              <h2 className="text-[13px] font-bold text-[#1A1F1E] sm:text-[15px]">Patient Directory</h2>
-              <p className="text-[10px] text-muted-foreground sm:text-[11px]">
-                {stats.totalPatients} patients under your care
-              </p>
-            </div>
-          </div>
-          <span className="self-start rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 sm:text-[11px]">
-            Active Directory
-          </span>
-        </header>
-
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
           <StatCard icon={HeartPulseIcon} iconColor="text-[#1A5345]" value={stats.totalPatients} label="Total Patients" />
           <StatCard icon={AlertTriangleIcon} iconColor="text-red-600" value={stats.highRiskCount} label="High Risk" />
@@ -182,33 +282,81 @@ export function DoctorPatients({ patients, stats }: DoctorPatientsProps) {
               </button>
             )}
           </div>
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5 sm:pb-0">
-            {(["all", "high", "moderate", "low"] as const).map((level) => {
-              const labels = { all: "All Levels", high: "High Risk", moderate: "Moderate", low: "Low Risk" }
-              return (
-                <button
-                  key={level}
-                  onClick={() => setRiskFilter(level)}
-                  className={cn(
-                    "whitespace-nowrap rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all sm:text-[11px]",
-                    riskFilter === level
-                      ? "bg-[#1A5345] text-white shadow-sm"
-                      : "bg-[#F9F8F5] text-[#4F6D64] hover:bg-[#E8F0EE] border border-[#E8E6E0]/60",
-                  )}
-                >
-                  {labels[level]}
-                </button>
-              )
-            })}
+          <div className="flex items-center gap-2">
+            <div className="hidden rounded-lg border border-[#E8E6E0] bg-white p-0.5 shadow-sm sm:flex">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewMode("grid")}
+                className={cn(
+                  "size-8 rounded-md transition-all",
+                  viewMode === "grid" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-slate-50",
+                )}
+                aria-label="Grid view"
+              >
+                <LayoutGridIcon className="size-3.5" aria-hidden />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewMode("list")}
+                className={cn(
+                  "size-8 rounded-md transition-all",
+                  viewMode === "list" ? "bg-[#1A5345] text-white shadow-sm" : "text-muted-foreground hover:bg-slate-50",
+                )}
+                aria-label="List view"
+              >
+                <ListIcon className="size-3.5" aria-hidden />
+              </Button>
+            </div>
+
+            <Select value={riskFilter} onValueChange={(v) => setRiskFilter(v as typeof riskFilter)}>
+            <SelectTrigger className="h-9 w-full rounded-lg border border-[#E8E6E0] bg-[#F9F8F5]/50 px-3 text-[11px] font-bold text-[#1A1F1E] shadow-sm sm:w-[160px] sm:text-[12px] focus:ring-[#1A5345]">
+              <SelectValue placeholder="Risk level" />
+            </SelectTrigger>
+            <SelectContent className="rounded-lg border border-[#cfd9d5] bg-white shadow-lg">
+              <SelectItem value="all" className="h-10 cursor-pointer text-[#152a24]">All levels</SelectItem>
+              <SelectItem value="high" className="h-10 cursor-pointer text-[#152a24]">High risk</SelectItem>
+              <SelectItem value="moderate" className="h-10 cursor-pointer text-[#152a24]">Moderate</SelectItem>
+              <SelectItem value="low" className="h-10 cursor-pointer text-[#152a24]">Low risk</SelectItem>
+            </SelectContent>
+          </Select>
           </div>
         </div>
 
         {filteredPatients.length > 0 ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-            {filteredPatients.map((patient) => (
-              <PatientCard key={patient.id} patient={patient} />
-            ))}
-          </div>
+          viewMode === "grid" ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredPatients.map((patient) => (
+                <PatientCard key={patient.id} patient={patient} />
+              ))}
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
+              <div className="overflow-x-auto">
+                <table className="min-w-[900px] w-full border-collapse bg-white text-left">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="bg-[#F4F3ED]/90 text-[15px] font-serif font-bold text-[#1A1F1E] shadow-[0_1px_0_0_#E8E6E0] backdrop-blur-md transition-colors">
+                      <th className="py-4 pl-4 pr-4">Patient Name</th>
+                      <th className="px-4 py-4">Condition</th>
+                      <th className="px-4 py-4">Age / Sex</th>
+                      <th className="px-4 py-4">Last Visit</th>
+                      <th className="px-4 py-4">Risk Level</th>
+                      <th className="px-4 py-4">Alerts</th>
+                      <th className="py-4 pl-4 pr-4 text-right" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E8E6E0]/40">
+                    {filteredPatients.map((patient) => (
+                      <PatientListRow key={patient.id} patient={patient} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )
         ) : (
           <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#E8E6E0] bg-white py-12 sm:py-20 shadow-sm">
             <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-[#F9F8F5] sm:size-16">

@@ -129,6 +129,7 @@ const AVAILABILITY_FILTER_OPTIONS: { value: DoctorAvailabilityFilter; label: str
 ]
 
 function DoctorRating({ rating, count }: { rating: number; count: number }) {
+  if (count <= 0) return null
   return (
     <div className="flex items-center gap-1">
       <div className="flex items-center gap-px">
@@ -196,6 +197,7 @@ function DoctorAvatar({
 }
 
 function formatNextSlot(iso: string) {
+  if (!iso) return "No upcoming slots"
   return new Date(iso).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -366,6 +368,9 @@ export function DoctorDirectory() {
     sortBy,
     setSortBy,
     resetFilters,
+    isLoading,
+    isError,
+    refetch,
   } = useDoctorDirectory()
 
   const selectedSpecialtyName = specialties.find((s) => s.id === selectedSpecialty)?.name
@@ -593,7 +598,25 @@ export function DoctorDirectory() {
             ) : null}
           </div>
 
-          {doctors.length > 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-[#E8E6E0]/60 bg-white py-20 text-center shadow-sm">
+              <p className="text-[13px] font-medium text-muted-foreground">Loading doctors…</p>
+            </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#E8E6E0] bg-white py-20 text-center shadow-sm">
+              <h3 className="font-serif text-[18px] font-bold text-[#1A1F1E]">Could not load doctors</h3>
+              <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-muted-foreground">
+                Please check your connection and try again.
+              </p>
+              <Button
+                variant="outline"
+                className="mt-5 h-8 rounded-lg border-[#E8E6E0] bg-white px-4 text-[12px] font-bold"
+                onClick={() => void refetch()}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : doctors.length > 0 ? (
             <div
               className={cn(
                 "grid gap-4",

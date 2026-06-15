@@ -18,6 +18,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
 import {
   CalendarIcon,
@@ -242,7 +243,6 @@ type MyAppointmentsProps = {
   appointments: Appointment[]
   upcoming: Appointment[]
   past: Appointment[]
-  onBookNew: () => void
   onCancelAppointment: (appointmentId: string) => Promise<unknown>
   className?: string
 }
@@ -266,10 +266,11 @@ export function MyAppointments({
   appointments,
   upcoming,
   past,
-  onBookNew,
   onCancelAppointment,
   className,
 }: MyAppointmentsProps) {
+  const router = useRouter()
+  const goToDoctorDirectory = () => router.push("/doctor-directory")
   const [filter, setFilter] = useState<FilterTab>("all")
   const [doctorFilter, setDoctorFilter] = useState("")
   const [departmentFilter, setDepartmentFilter] = useState("")
@@ -383,7 +384,7 @@ export function MyAppointments({
 
   const handleReschedule = () => {
     setSelectedAppointment(null)
-    onBookNew()
+    goToDoctorDirectory()
   }
 
   return (
@@ -438,11 +439,13 @@ export function MyAppointments({
               </div>
               <Button
                 type="button"
-                onClick={onBookNew}
+                asChild
                 className="h-9 gap-2 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34]"
               >
-                <CalendarIcon className="size-4" aria-hidden />
-                Book appointment
+                <Link href="/doctor-directory">
+                  <CalendarIcon className="size-4" aria-hidden />
+                  Book appointment
+                </Link>
               </Button>
             </div>
           </div>
@@ -559,7 +562,7 @@ export function MyAppointments({
                                 ? "No appointments match your filters."
                                 : "No appointments found. Book your first visit!"
                           }
-                          onBookNew={onBookNew}
+                          showBookLink={!searchQuery && !hasActiveFilters}
                         />
                       </td>
                     </tr>
@@ -613,21 +616,29 @@ export function MyAppointments({
   )
 }
 
-function EmptyState({ message, onBookNew }: { message: string; onBookNew?: () => void }) {
+function EmptyState({
+  message,
+  showBookLink = false,
+}: {
+  message: string
+  showBookLink?: boolean
+}) {
   return (
     <div className="flex flex-col items-center justify-center opacity-50">
       <CalendarDaysIcon className="mb-4 size-12 stroke-[1.25]" aria-hidden />
       <p className="text-[16px] font-bold text-[#1A1F1E]">{message}</p>
-      {onBookNew && (
+      {showBookLink ? (
         <Button
           type="button"
-          onClick={onBookNew}
+          asChild
           className="mt-4 gap-2 rounded-xl bg-[#1A5345] text-[12px] font-bold hover:bg-[#133F34]"
         >
-          <CalendarIcon className="size-4" aria-hidden />
-          Book appointment
+          <Link href="/doctor-directory">
+            <CalendarIcon className="size-4" aria-hidden />
+            Book appointment
+          </Link>
         </Button>
-      )}
+      ) : null}
     </div>
   )
 }

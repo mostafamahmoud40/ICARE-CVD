@@ -689,16 +689,14 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                               </DropdownMenuContent>
                             </DropdownMenu>
 
-                            <AlertDialogContent className="rounded-3xl border-0 shadow-2xl bg-[#F9F8F5] p-0 sm:max-w-[440px] overflow-hidden">
-                              <div className="px-6 py-8 bg-white">
-                                <AlertDialogHeader className="mb-2">
-                                  <AlertDialogTitle className="text-[22px] font-bold text-[#1A1F1E] font-serif tracking-tight">Archive Patient</AlertDialogTitle>
-                                  <AlertDialogDescription className="text-[14px] text-muted-foreground leading-relaxed mt-2">
-                                    Are you sure you want to archive <span className="font-bold text-[#1A1F1E]">{patient.fullName}</span>? This action requires doctor approval. A request will be sent to the assigned doctor.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                              </div>
-                              <AlertDialogFooter className="px-6 py-4 border-t border-[#E8E6E0]/60 flex items-center justify-end gap-3 bg-[#F9F8F5]/50">
+                            <AlertDialogContent className="rounded-3xl border border-[#E8E6E0]/60 shadow-2xl bg-white p-6 sm:max-w-[440px]">
+                              <AlertDialogHeader className="mb-2">
+                                <AlertDialogTitle className="text-[22px] font-bold text-[#1A1F1E] font-serif tracking-tight">Archive Patient</AlertDialogTitle>
+                                <AlertDialogDescription className="text-[14px] text-muted-foreground leading-relaxed mt-2">
+                                  Are you sure you want to archive <span className="font-bold text-[#1A1F1E]">{patient.fullName}</span>? This action requires doctor approval. A request will be sent to the assigned doctor.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter className="mt-4 flex items-center justify-end gap-3">
                                 <AlertDialogCancel className="h-10 rounded-xl px-5 border-[#E8E6E0]/80 bg-white text-[13px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-slate-50 transition-all m-0">Cancel</AlertDialogCancel>
                                 <AlertDialogAction className="h-10 rounded-xl border-0 bg-red-600 px-5 text-[13px] font-bold text-white shadow-sm transition-all hover:bg-red-700 m-0">
                                   Send Request

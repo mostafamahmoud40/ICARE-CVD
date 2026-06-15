@@ -1,5 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ChromaClient, Collection } from 'chromadb';
+import { EmbeddingService } from '../embedding/embedding.service';
+import { ExternalEmbeddingFunction } from './external-embedding-function';
 
 export const CHROMA_COLLECTION_CLINIC = 'icare_clinic_context';
 export const CHROMA_COLLECTION_APPOINTMENTS = 'icare_appointments';
@@ -9,6 +11,9 @@ export class ChromaService implements OnModuleInit {
   private readonly logger = new Logger(ChromaService.name);
   private client!: ChromaClient;
   private _ready = false;
+  private readonly embeddingFunction = new ExternalEmbeddingFunction();
+
+  constructor(private readonly embeddingService: EmbeddingService) {}
 
   async onModuleInit() {
     const url = process.env.CHROMA_URL?.trim() || 'http://localhost:8001';
@@ -29,10 +34,18 @@ export class ChromaService implements OnModuleInit {
   }
 
   async getOrCreateCollection(name: string): Promise<Collection> {
-    return this.client.getOrCreateCollection({
-      name,
-      metadata: { 'hnsw:space': 'cosine' },
-    });
+    try {
+      return await this.client.getCollection({
+        name,
+        embeddingFunction: this.embeddingFunction,
+      });
+    } catch {
+      return this.client.createCollection({
+        name,
+        metadata: { 'hnsw:space': 'cosine' },
+        embeddingFunction: this.embeddingFunction,
+      });
+    }
   }
 
   async upsertDocuments(
@@ -111,43 +124,9 @@ export class ChromaService implements OnModuleInit {
     }
   }
 
-  // ─── Ollama embedding helper ───────────────────────────────────────────────
+  // ─── Embedding helper (delegates to Cohere EmbeddingService) ──────────────
 
   async embed(text: string): Promise<number[] | null> {
-    const model = process.env.OLLAMA_EMBEDDING_MODEL?.trim();
-    if (!model) return null;
-
-    const baseUrl =
-      process.env.OLLAMA_BASE_URL?.trim() ||
-      process.env.OLLAMA_BASE_URL_DOCKER?.trim() ||
-      'http://127.0.0.1:11434';
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30_000);
-
-    try {
-      const response = await fetch(`${baseUrl}/api/embed`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, input: text.slice(0, 6000) }),
-        signal: controller.signal,
-      });
-      if (!response.ok) {
-        this.logger.debug(`Ollama embed HTTP ${response.status} at ${baseUrl}`);
-        return null;
-      }
-      const data = (await response.json()) as {
-        embedding?: number[];
-        embeddings?: number[][];
-      };
-      return (
-        data.embeddings?.[0] ??
-        (Array.isArray(data.embedding) ? data.embedding : null)
-      );
-    } catch (err) {
-      this.logger.debug(`Ollama embed failed at ${baseUrl}: ${String(err)}`);
-      return null;
-    } finally {
-      clearTimeout(timeout);
-    }
+    return this.embeddingService.embed(text);
   }
 }

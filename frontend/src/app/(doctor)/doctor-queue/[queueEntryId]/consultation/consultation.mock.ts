@@ -47,6 +47,27 @@ export const mockConsultationData: ConsultationData = {
     ],
   },
 
+  medicalHistory: {
+    noCardiacHistory: false,
+    cardiacAnswers: {
+      pastHypertension: "Yes",
+      pastMI: "No",
+      pastHeartFailure: "No",
+      pastArrhythmias: "Not sure",
+    },
+    cardiacNotes: "",
+    cardiacReviewed: false,
+    noNonCardiacHistory: false,
+    nonCardiacAnswers: {
+      pastCKD: "No",
+      pastLungDisease: "No",
+    },
+    nonCardiacNotes: "",
+    nonCardiacReviewed: false,
+    noKnownAllergies: false,
+    noChronicConditions: false,
+  },
+
   procedureDetails: {
     procedureType: "",
     surgicalSpecialty: "general_surgery",
@@ -69,6 +90,23 @@ export const mockConsultationData: ConsultationData = {
     oxygenSaturation: "",
     heightCm: "",
     weightKg: "",
+  },
+
+  lastVitalReading: {
+    id: "vr-latest",
+    date: "2026-06-12",
+    time: "07:45",
+    source: "home",
+    systolicBP: 142,
+    diastolicBP: 88,
+    heartRate: 74,
+    oxygenSaturation: 98,
+    temperature: 36.6,
+    respiratoryRate: 16,
+    weight: 87,
+    heightCm: 172,
+    bloodSugar: 128,
+    notes: "Morning reading before breakfast",
   },
 
   chiefComplaint: "",

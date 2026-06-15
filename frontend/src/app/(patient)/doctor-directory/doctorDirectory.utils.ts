@@ -55,16 +55,17 @@ export function compareDoctors(a: Doctor, b: Doctor, sortBy: DoctorSortOption): 
       return b.fee - a.fee
     case "name":
       return a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
-    case "soonest":
-      return (
-        new Date(a.nextAvailableSlot).getTime() - new Date(b.nextAvailableSlot).getTime()
-      )
+    case "soonest": {
+      const aTime = a.nextAvailableSlot ? new Date(a.nextAvailableSlot).getTime() : Number.POSITIVE_INFINITY
+      const bTime = b.nextAvailableSlot ? new Date(b.nextAvailableSlot).getTime() : Number.POSITIVE_INFINITY
+      return aTime - bTime
+    }
     case "availability": {
       const diff = AVAILABILITY_ORDER[a.availability] - AVAILABILITY_ORDER[b.availability]
       if (diff !== 0) return diff
-      return (
-        new Date(a.nextAvailableSlot).getTime() - new Date(b.nextAvailableSlot).getTime()
-      )
+      const aTime = a.nextAvailableSlot ? new Date(a.nextAvailableSlot).getTime() : Number.POSITIVE_INFINITY
+      const bTime = b.nextAvailableSlot ? new Date(b.nextAvailableSlot).getTime() : Number.POSITIVE_INFINITY
+      return aTime - bTime
     }
     default:
       return 0

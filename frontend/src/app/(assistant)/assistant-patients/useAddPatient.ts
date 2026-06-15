@@ -7,6 +7,8 @@ import type { ZodIssue } from "zod"
 
 import { apiClient } from "@/lib/api-client"
 
+import type { StudyKind } from "../assistant-queue/assistantQueue.documents.types"
+import { uploadAssistantPatientDocument } from "./addPatient.upload"
 import { addPatientSchema } from "./addPatient.schema"
 import type {
   AddPatientApiResponse,
@@ -15,6 +17,7 @@ import type {
   AllergyItem,
   CreatedPatient,
   MedicationItem,
+  PendingPatientDocument,
 } from "./addPatient.types"
 
 const defaultValues: AddPatientFormValues = {
@@ -61,6 +64,8 @@ export function useAddPatient() {
   const queryClient = useQueryClient()
   const [values, setValues] = useState<AddPatientFormValues>(defaultValues)
   const [fieldErrors, setFieldErrors] = useState<AddPatientFieldErrors>({})
+  const [pendingDocuments, setPendingDocuments] = useState<PendingPatientDocument[]>([])
+  const [documentStudyKind, setDocumentStudyKind] = useState<StudyKind>("xray")
 
   const { data: patientsFromDb, isLoading: isLoadingPatients } = useQuery({
     queryKey: ["assistant-patients"],
@@ -71,7 +76,13 @@ export function useAddPatient() {
   })
 
   const createMutation = useMutation({
-    mutationFn: async (formValues: AddPatientFormValues) => {
+    mutationFn: async ({
+      formValues,
+      documents,
+    }: {
+      formValues: AddPatientFormValues
+      documents: PendingPatientDocument[]
+    }) => {
       const payload = {
         fullName: formValues.fullName,
         email: formValues.email,
@@ -94,12 +105,35 @@ export function useAddPatient() {
         allergies: formValues.allergies.length > 0 ? formValues.allergies : undefined,
       }
       const { data } = await apiClient.post<AddPatientApiResponse>("/assistant/patients", payload)
-      return data
+
+      if (documents.length > 0) {
+        const failures: string[] = []
+        for (const doc of documents) {
+          try {
+            await uploadAssistantPatientDocument(data.patient.id, doc.file, doc.studyKind)
+          } catch (err) {
+            failures.push(
+              err instanceof Error ? `${doc.file.name}: ${err.message}` : doc.file.name,
+            )
+          }
+        }
+        if (failures.length > 0) {
+          throw new Error(
+            failures.length === documents.length
+              ? `Patient created but files could not be uploaded. ${failures[0]}`
+              : `Patient created; ${failures.length} file(s) failed to upload. ${failures[0]}`,
+          )
+        }
+      }
+
+      return { ...data, uploadedDocumentsCount: documents.length }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assistant-patients"] })
       setValues(defaultValues)
       setFieldErrors({})
+      setPendingDocuments([])
+      setDocumentStudyKind("xray")
     },
   })
 
@@ -177,9 +211,31 @@ export function useAddPatient() {
     setFieldErrors((prev) => ({ ...prev, allergies: undefined }))
   }
 
+  const addPendingFiles = (fileList: FileList | null) => {
+    if (!fileList?.length) return
+    const next: PendingPatientDocument[] = []
+    for (let i = 0; i < fileList.length; i += 1) {
+      const file = fileList.item(i)
+      if (file) {
+        next.push({
+          id: crypto.randomUUID(),
+          file,
+          studyKind: documentStudyKind,
+        })
+      }
+    }
+    setPendingDocuments((prev) => [...prev, ...next])
+  }
+
+  const removePendingDocument = (id: string) => {
+    setPendingDocuments((prev) => prev.filter((doc) => doc.id !== id))
+  }
+
   const reset = () => {
     setValues(defaultValues)
     setFieldErrors({})
+    setPendingDocuments([])
+    setDocumentStudyKind("xray")
     createMutation.reset()
   }
 
@@ -189,7 +245,10 @@ export function useAddPatient() {
       setFieldErrors(toFieldErrors(result.error.issues))
       return
     }
-    createMutation.mutate(result.data)
+    createMutation.mutate({
+      formValues: result.data,
+      documents: pendingDocuments,
+    })
   }
 
   const serverErrorMessage =
@@ -208,6 +267,11 @@ export function useAddPatient() {
     isSubmitting: createMutation.isPending,
     isSuccess: createMutation.isSuccess,
     submitError: serverErrorMessage,
+    pendingDocuments,
+    documentStudyKind,
+    setDocumentStudyKind,
+    addPendingFiles,
+    removePendingDocument,
     updateField,
     addMedication,
     updateMedication,

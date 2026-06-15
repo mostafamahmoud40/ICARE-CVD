@@ -37,6 +37,29 @@ const PATCHES = [
     "linked_at" timestamp with time zone DEFAULT now() NOT NULL
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "doctor_assistant_unique" ON "doctor_assistant" ("doctor_id", "assistant_id")`,
+  `ALTER TABLE "doctor" ADD COLUMN IF NOT EXISTS "title" varchar(120)`,
+  `ALTER TABLE "doctor" ADD COLUMN IF NOT EXISTS "about" text`,
+  `ALTER TABLE "doctor" ADD COLUMN IF NOT EXISTS "clinic_name" varchar(200)`,
+  `ALTER TABLE "doctor" ADD COLUMN IF NOT EXISTS "clinic_location" varchar(300)`,
+  `ALTER TABLE "doctor" ADD COLUMN IF NOT EXISTS "license_number" varchar(64)`,
+  `ALTER TABLE "doctor" ADD COLUMN IF NOT EXISTS "clinic_consultation_fee" integer DEFAULT 0 NOT NULL`,
+  `ALTER TABLE "doctor" ADD COLUMN IF NOT EXISTS "online_consultation_fee" integer DEFAULT 0 NOT NULL`,
+  `ALTER TABLE "doctor" ADD COLUMN IF NOT EXISTS "languages" jsonb DEFAULT '[]'::jsonb NOT NULL`,
+  `DO $$ BEGIN
+    CREATE TYPE "message_attachment_type_enum" AS ENUM ('image', 'file');
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$`,
+  `CREATE TABLE IF NOT EXISTS "message_attachments" (
+    "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+    "message_id" integer NOT NULL REFERENCES "messages"("id") ON DELETE CASCADE,
+    "file_name" varchar(255) NOT NULL,
+    "mime_type" varchar(120) NOT NULL,
+    "size_bytes" integer NOT NULL,
+    "s3_key" varchar(500) NOT NULL,
+    "attachment_type" "message_attachment_type_enum" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT now() NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS "message_attachments_message_id_idx" ON "message_attachments" ("message_id")`,
 ];
 
 async function main() {

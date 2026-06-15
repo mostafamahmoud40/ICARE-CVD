@@ -1,9 +1,9 @@
-export type S3FileCategory = 'documents' | 'images';
+import type { S3StorageCategory } from './s3.constants';
 
 export type S3UploadIntentInput = {
   fileName: string;
   contentType: string;
-  category: S3FileCategory;
+  category: S3StorageCategory;
 };
 
 export type S3UploadIntentResult = {
