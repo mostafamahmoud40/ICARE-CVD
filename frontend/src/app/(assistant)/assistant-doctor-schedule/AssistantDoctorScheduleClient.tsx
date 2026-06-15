@@ -101,6 +101,7 @@ import {
   useAssistantDoctorSchedule,
   useAssistantScheduleDoctors,
 } from "./useAssistantDoctorSchedule"
+import { AssistantProfileAvatar } from "../AssistantProfileAvatar"
 
 function replaceDay(days: DayAvailability[], next: DayAvailability): DayAvailability[] {
   return days.map((d) => (d.weekday === next.weekday ? next : d))
@@ -1310,8 +1311,16 @@ function doctorSearchKeywords(d: AssistantScheduleDoctor) {
   return [d.name, d.specialty ?? ""].filter(Boolean).join(" ")
 }
 
-function doctorAvatarSeed(name: string) {
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`
+function DoctorPickerAvatar({ doctor }: { doctor: AssistantScheduleDoctor }) {
+  return (
+    <AssistantProfileAvatar
+      name={doctor.name}
+      avatarUrl={doctor.avatarUrl}
+      className="size-10 shrink-0 rounded-xl border border-[#E8E6E0]/80 shadow-sm"
+      initialsClassName="text-[13px]"
+      sizes="40px"
+    />
+  )
 }
 
 function DoctorScheduleDoctorPicker({
@@ -1341,16 +1350,7 @@ function DoctorScheduleDoctorPicker({
           <div className="flex min-w-0 flex-1 items-center gap-3 text-left">
             {selected ? (
               <>
-                <div className="relative size-10 shrink-0 overflow-hidden rounded-xl border border-[#E8E6E0]/80 bg-white shadow-sm">
-                  <Image
-                    src={doctorAvatarSeed(selected.name)}
-                    alt=""
-                    width={40}
-                    height={40}
-                    unoptimized
-                    className="size-full object-cover"
-                  />
-                </div>
+                <DoctorPickerAvatar doctor={selected} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold leading-tight text-[#1A1F1E]">
                     {selected.name}
@@ -1389,16 +1389,7 @@ function DoctorScheduleDoctorPicker({
                   className="min-h-12 cursor-pointer rounded-xl border border-transparent py-2 pl-2 pr-2 outline-none data-[selected=true]:border-[#1A5345]/12 data-[selected=true]:bg-[#E8F0EE]/70"
                 >
                   <div className="flex w-full min-w-0 items-center gap-3">
-                    <div className="relative size-10 shrink-0 overflow-hidden rounded-xl border border-[#E8E6E0]/80 bg-white shadow-sm">
-                      <Image
-                        src={doctorAvatarSeed(d.name)}
-                        alt=""
-                        width={40}
-                        height={40}
-                        unoptimized
-                        className="size-full object-cover"
-                      />
-                    </div>
+                    <DoctorPickerAvatar doctor={d} />
                     <div className="min-w-0 flex-1 text-left">
                       <p className="truncate font-semibold leading-tight text-[#1A1F1E]">
                         {d.name}

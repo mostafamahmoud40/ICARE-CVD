@@ -37,4 +37,5 @@ export type AssistantScheduleDoctor = {
   id: string
   name: string
   specialty: string | null
+  avatarUrl?: string | null
 }

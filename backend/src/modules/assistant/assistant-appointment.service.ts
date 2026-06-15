@@ -14,7 +14,7 @@ import type {
 } from './dto/create-appointment.dto';
 import { AppointmentService } from '../appointment/appointment.service';
 
-type DoctorRow = { id: string; name: string; specialty: string | null };
+type DoctorRow = { id: string; name: string; specialty: string | null; avatarUrl: string | null };
 
 @Injectable()
 export class AssistantAppointmentService {
@@ -391,15 +391,23 @@ export class AssistantAppointmentService {
   }
 
   async listDoctors(): Promise<DoctorRow[]> {
-    return this.db
+    const rows = await this.db
       .select({
         id: doctor.id,
         name: user.name,
         specialty: doctor.specialty,
+        avatarUrl: user.avatarUrl,
       })
       .from(doctor)
       .innerJoin(user, eq(doctor.userId, user.id))
       .where(eq(user.role, 'doctor'));
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      specialty: row.specialty,
+      avatarUrl: row.avatarUrl?.trim() ? row.avatarUrl.trim() : null,
+    }));
   }
 
   async listPatients() {
