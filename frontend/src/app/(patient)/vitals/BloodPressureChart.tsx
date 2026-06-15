@@ -11,7 +11,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 import { cn } from "@/lib/utils"
-import type { VitalHistoryRecord } from "./vitals.mock"
+import type { VitalHistoryRecord } from "./vitals.types"
 
 const chartConfig = {
   systolic: {
