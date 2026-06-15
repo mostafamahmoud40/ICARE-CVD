@@ -11,12 +11,9 @@ import {
   Heart,
   HeartPulse,
   IdCard,
-  ListOrdered,
   Ruler,
   Scale,
   Smile,
-  UserRound,
-  Waves,
   Wine,
   Zap,
 } from "lucide-react";
@@ -39,7 +36,6 @@ import {
   ProfileRow,
   ProfileSection,
   RowSelect,
-  syncDietaryHabits,
 } from "./profileUi";
 
 type Step2ProfileProps = {
@@ -371,54 +367,7 @@ export function Step2Profile({ profileValues, profileFieldErrors, onFieldChange,
             </div>
           </div>
         </ProfileSection>
-
-        <ProfileSection title="General">
-          <ProfileRow icon={<UserRound aria-hidden="true" />} label="Physical activity level">
-            <RowSelect
-              id="profile-activity-level"
-              value={profileValues.physicalActivityLevel}
-              onChange={(v) => onFieldChange("physicalActivityLevel", v)}
-              disabled={isPending}
-              options={[
-                { value: "low", label: "Low" },
-                { value: "moderate", label: "Moderate" },
-                { value: "high", label: "High" },
-              ]}
-            />
-          </ProfileRow>
-          <ProfileRow icon={<ListOrdered aria-hidden="true" />} label="Dietary habits">
-            <RowSelect
-              id="profile-dietary"
-              value={profileValues.dietaryHabits}
-              onChange={(v) => syncDietaryHabits(v, onFieldChange)}
-              disabled={isPending}
-              options={[
-                { value: "balanced", label: "Balanced" },
-                { value: "high_salt", label: "Prefer higher salt" },
-                { value: "high_fat", label: "Prefer higher fat" },
-                { value: "high_both", label: "Higher salt & fat" },
-                { value: "other", label: "Other" },
-              ]}
-            />
-          </ProfileRow>
-        </ProfileSection>
       </div>
-
-      <ProfileSection title="Stress">
-        <ProfileRow icon={<Waves aria-hidden="true" />} label="Stress level">
-          <RowSelect
-            id="profile-stress"
-            value={profileValues.stressLevel}
-            onChange={(v) => onFieldChange("stressLevel", v)}
-            disabled={isPending}
-            options={[
-              { value: "low", label: "Low" },
-              { value: "moderate", label: "Moderate" },
-              { value: "high", label: "High" },
-            ]}
-          />
-        </ProfileRow>
-      </ProfileSection>
     </div>
   );
 }

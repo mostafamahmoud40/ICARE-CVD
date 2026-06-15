@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 // (unused Select + cn imports removed)
 
 import {
@@ -48,6 +49,13 @@ import {
   SeverityDotScale,
   YesNoToggle,
 } from "./registerMedicalUi";
+import {
+  REGISTER_INPUT,
+  REGISTER_OUTLINE_BTN,
+  REGISTER_PRIMARY_BTN,
+  REGISTER_SECTION_CARD,
+  RegisterSectionHeader,
+} from "./registerSectionUi";
 
 /* ────── Props (DIP: no store/context dependency) ────── */
 
@@ -234,31 +242,204 @@ function ChoiceButtons({
   options,
   value,
   onClick,
+  compact = false,
 }: {
   options: string[];
   value: string;
   onClick: (next: string) => void;
+  compact?: boolean;
 }) {
   return (
-    <div className="flex gap-1.5">
+    <div className={cn("flex flex-wrap", compact ? "gap-1" : "gap-1.5")}>
       {options.map((option) => (
         <button
           type="button"
           key={option}
           onClick={() => onClick(option)}
-          className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+          className={cn(
+            "rounded-lg border font-semibold transition-colors",
+            compact ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-xs",
             value === option
               ? option === "Yes"
-                ? "border-red-300 bg-red-100 text-red-700"
+                ? "border-[#1A5345] bg-[#1A5345] text-white shadow-sm"
                 : option === "No"
-                  ? "border-green-300 bg-green-100 text-green-700"
-                  : "border-amber-300 bg-amber-100 text-amber-700"
-              : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100"
-          }`}
+                  ? "border-[#E8E6E0] bg-[#F4F3ED] text-[#1A1F1E]"
+                  : "border-amber-400 bg-amber-50 text-amber-800"
+              : "border-[#E8E6E0] bg-white text-[#6B7870] hover:border-[#A8C4BC] hover:bg-[#F9F8F5]",
+          )}
         >
           {option}
         </button>
       ))}
+    </div>
+  );
+}
+
+const CARDIAC_HISTORY_QUESTIONS = [
+  ["pastHypertension", "High blood pressure", "Hypertension"],
+  ["pastMI", "Heart attack", "Myocardial infarction"],
+  ["pastHeartFailure", "Weak or failing heart", "Heart failure"],
+  ["pastCardiomyopathy", "Cardiomyopathy", "Heart muscle disease"],
+  ["pastValvular", "Heart valve problem", "Leaking/narrow valve"],
+  ["pastArrhythmias", "Irregular heartbeat", "Arrhythmia"],
+  ["pastStroke", "Stroke or mini-stroke", "TIA/stroke history"],
+  ["pastEndocarditis", "Heart valve infection", "Endocarditis"],
+  ["pastRheumatic", "Rheumatic fever", "Childhood rheumatic disease"],
+  ["pastPulmonaryHypertension", "Pulmonary hypertension", "High pressure in lung vessels"],
+] as const;
+
+const NON_CARDIAC_HISTORY_QUESTIONS = [
+  ["pastStroke", "Stroke or TIA", "Brain attack or mini-stroke"],
+  ["pastCKD", "Chronic kidney disease", "Long-term kidney problems"],
+  ["pastLungDisease", "Chronic lung disease", "COPD, asthma, etc."],
+  ["pastThyroid", "Thyroid disease", "Underactive or overactive thyroid"],
+  ["pastLiver", "Liver disease", "Hepatitis, cirrhosis, etc."],
+  ["pastAnemia", "Anemia", "Low blood count"],
+  ["pastAutoimmune", "Autoimmune disease", "Lupus, RA, etc."],
+  ["pastMalignancy", "Cancer / malignancy", "Any cancer history"],
+  ["pastSleepApnea", "Sleep apnea", "Breathing pauses in sleep"],
+] as const;
+
+function PastHistoryQuestionGrid({
+  questions,
+  getValue,
+  onSelect,
+}: {
+  questions: readonly (readonly [string, string, string])[];
+  getValue: (field: string) => string;
+  onSelect: (field: string, value: string) => void;
+}) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {questions.map(([field, title, subtitle]) => (
+        <div
+          key={field}
+          className="flex flex-col gap-2 rounded-xl border border-[#E8E6E0]/50 bg-[#F9F8F5]/50 p-3"
+        >
+          <p className="text-[13px] font-semibold leading-snug text-[#1A1F1E]" title={subtitle}>
+            {title}
+          </p>
+          <ChoiceButtons
+            compact
+            options={["Yes", "No", "Not sure"]}
+            value={getValue(field)}
+            onClick={(val) => onSelect(field, val)}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PastMedicalHistoryTabs({
+  getValue,
+  onSelect,
+  isNoCardiacHistory,
+  isNoNonCardiacHistory,
+  onToggleNoCardiacHistory,
+  onToggleNoNonCardiacHistory,
+}: {
+  getValue: (field: string) => string;
+  onSelect: (field: string, value: string) => void;
+  isNoCardiacHistory: boolean;
+  isNoNonCardiacHistory: boolean;
+  onToggleNoCardiacHistory: () => void;
+  onToggleNoNonCardiacHistory: () => void;
+}) {
+  const [tab, setTab] = useState<"cardiac" | "non-cardiac">("cardiac");
+
+  const tabs = [
+    {
+      id: "cardiac" as const,
+      label: "Cardiac",
+      questions: CARDIAC_HISTORY_QUESTIONS,
+      noHistory: isNoCardiacHistory,
+      onToggleNoHistory: onToggleNoCardiacHistory,
+      noHistoryLabel: "No cardiac history",
+      emptyMessage: "Patient reports no significant cardiac history",
+    },
+    {
+      id: "non-cardiac" as const,
+      label: "Non-cardiac",
+      questions: NON_CARDIAC_HISTORY_QUESTIONS,
+      noHistory: isNoNonCardiacHistory,
+      onToggleNoHistory: onToggleNoNonCardiacHistory,
+      noHistoryLabel: "No non-cardiac history",
+      emptyMessage: "Patient reports no significant non-cardiac medical history",
+    },
+  ] as const;
+
+  const active = tabs.find((t) => t.id === tab) ?? tabs[0];
+
+  function progress(questions: readonly (readonly [string, string, string])[]) {
+    const answered = questions.filter(([field]) => getValue(field).trim()).length;
+    return { answered, total: questions.length };
+  }
+
+  return (
+    <div className={REGISTER_SECTION_CARD}>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <RegisterSectionHeader icon={HeartPulse} label="Past medical history" />
+        <button
+          type="button"
+          onClick={active.onToggleNoHistory}
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
+            active.noHistory
+              ? "border-[#1A5345] bg-[#1A534518] text-[#1A5345]"
+              : "border-[#E8E6E0] bg-white text-[#6B7870] hover:border-[#A8C4BC]",
+          )}
+        >
+          {active.noHistory ? <CheckCircle2 className="size-3.5" /> : null}
+          {active.noHistoryLabel}
+        </button>
+      </div>
+
+      <div
+        className="mb-2 flex items-center gap-0.5 border-b border-[#E8E6E0]/60"
+        role="tablist"
+        aria-label="Past medical history type"
+      >
+        {tabs.map((item) => {
+          const isActive = tab === item.id;
+          const { answered, total } = progress(item.questions);
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setTab(item.id)}
+              className={cn(
+                "relative -mb-px inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
+                isActive
+                  ? "text-[#1A5345] after:absolute after:inset-x-1 after:bottom-0 after:h-0.5 after:rounded-full after:bg-[#1A5345]"
+                  : "text-[#6B7870] hover:text-[#1A1F1E]",
+              )}
+            >
+              {item.label}
+              <span className="tabular-nums text-[10px] font-medium text-[#9CA3AF]">
+                {answered}/{total}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div role="tabpanel">
+        {!active.noHistory ? (
+          <PastHistoryQuestionGrid
+            questions={active.questions}
+            getValue={getValue}
+            onSelect={onSelect}
+          />
+        ) : (
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-200/50 bg-emerald-50/60 p-3 text-emerald-800">
+            <CheckCircle2 className="h-5 w-5 shrink-0" />
+            <span className="text-sm">{active.emptyMessage}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -325,7 +506,7 @@ function MedicationSection({ items, onAdd, onRemove }: MedicationSectionProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-medium text-[#1A1A2E]">Current Medications</Label>
+        <Label className="text-sm font-medium text-[#374151]">Current Medications</Label>
         <Button
           type="button"
           onClick={() => setShowAdd(true)}
@@ -338,7 +519,7 @@ function MedicationSection({ items, onAdd, onRemove }: MedicationSectionProps) {
       </div>
 
       {items.length === 0 && !showAdd ? (
-        <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 text-gray-500">
+        <div className="flex items-center gap-2 rounded-xl border border-[#E8E6E0]/40 bg-[#F9F8F5] p-3 text-[#6B7870]">
           <CheckCircle2 className="h-4 w-4" />
           <span className="text-sm">No medications recorded</span>
         </div>
@@ -357,13 +538,13 @@ function MedicationSection({ items, onAdd, onRemove }: MedicationSectionProps) {
                     {getDrugIcon(med.type)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-[#1A1A2E]">{med.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm font-semibold text-[#1A1F1E]">{med.name}</p>
+                    <p className="text-xs text-[#6B7870]">
                       {drugTypes.find((d) => d.value === med.type)?.label} • {med.dose}
                     </p>
-                    <p className="mt-1 text-xs font-medium text-[#2D8B84]">{med.frequency}</p>
+                    <p className="mt-1 text-xs font-medium text-[#1A5345]">{med.frequency}</p>
                     {med.compliance ? (
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="mt-1 text-xs text-[#6B7870]">
                         Compliance:{" "}
                         <span className="font-medium text-[#1A1A2E]">
                           {med.compliance === "good" ? "Good" : "Poor"}
@@ -371,7 +552,7 @@ function MedicationSection({ items, onAdd, onRemove }: MedicationSectionProps) {
                       </p>
                     ) : null}
                     {med.sideEffects?.trim() ? (
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="mt-1 text-xs text-[#6B7870]">
                         Side effects: <span className="text-gray-600">{med.sideEffects}</span>
                       </p>
                     ) : null}
@@ -391,9 +572,9 @@ function MedicationSection({ items, onAdd, onRemove }: MedicationSectionProps) {
       )}
 
       {showAdd && (
-        <div className="rounded-xl border-2 border-[#2D8B84]/20 bg-gradient-to-br from-[#2D8B84]/5 to-transparent p-4">
+        <div className="rounded-xl rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5] to-transparent p-4">
           <div className="mb-3 flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-[#1A1A2E]">Add New Medication</h4>
+            <h4 className="text-sm font-semibold text-[#1A1F1E]">Add New Medication</h4>
             <button
               type="button"
               onClick={() => {
@@ -420,13 +601,13 @@ function MedicationSection({ items, onAdd, onRemove }: MedicationSectionProps) {
                 placeholder="Medication name"
                 value={newMed.name}
                 onChange={(e) => setNewMed((p) => ({ ...p, name: e.target.value }))}
-                className="h-10 bg-white"
+                className={REGISTER_INPUT}
               />
               <NativeSelect
                 value={newMed.type}
                 onChange={(value) => setNewMed((p) => ({ ...p, type: value }))}
                 placeholder="Drug type"
-                className="h-10 bg-white"
+                className={REGISTER_INPUT}
                 options={[
                   { value: "antihypertensives", label: "Antihypertensives" },
                   { value: "antiplatelets", label: "Antiplatelets" },
@@ -444,13 +625,13 @@ function MedicationSection({ items, onAdd, onRemove }: MedicationSectionProps) {
                 placeholder="Dose (e.g. 10mg)"
                 value={newMed.dose}
                 onChange={(e) => setNewMed((p) => ({ ...p, dose: e.target.value }))}
-                className="h-10 bg-white"
+                className={REGISTER_INPUT}
               />
               <NativeSelect
                 value={newMed.frequency}
                 onChange={(value) => setNewMed((p) => ({ ...p, frequency: value }))}
                 placeholder="Frequency"
-                className="h-10 bg-white"
+                className={REGISTER_INPUT}
                 options={[
                   { value: "once-daily", label: "Once daily" },
                   { value: "twice-daily", label: "Twice daily" },
@@ -478,7 +659,7 @@ function MedicationSection({ items, onAdd, onRemove }: MedicationSectionProps) {
                   }))
                 }
                 placeholder="Compliance (optional)"
-                className="h-10 bg-white"
+                className={REGISTER_INPUT}
                 options={[
                   { value: "good", label: "Compliance — good" },
                   { value: "poor", label: "Compliance — poor" },
@@ -488,7 +669,7 @@ function MedicationSection({ items, onAdd, onRemove }: MedicationSectionProps) {
                 placeholder="Side effects experienced (optional)"
                 value={newMed.sideEffects}
                 onChange={(e) => setNewMed((p) => ({ ...p, sideEffects: e.target.value }))}
-                className="h-10 bg-white"
+                className={REGISTER_INPUT}
               />
             </div>
 
@@ -496,7 +677,7 @@ function MedicationSection({ items, onAdd, onRemove }: MedicationSectionProps) {
               type="button"
               onClick={handleAdd}
               disabled={!newMed.name.trim() || !newMed.dose.trim() || !newMed.frequency.trim() || !newMed.type}
-              className="h-10 w-full bg-[#2D8B84] text-sm font-medium text-white hover:bg-[#1F5F5A]"
+              className="h-10 w-full bg-[#1A5345] text-sm font-medium text-white hover:bg-[#154434]"
             >
               <Plus className="mr-1.5 h-4 w-4" />
               Add Medication
@@ -559,7 +740,7 @@ function FamilyHistorySection({ items, onAdd, onRemove }: FamilyHistorySectionPr
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-medium text-[#1A1A2E]">Family Members</Label>
+        <Label className="text-sm font-medium text-[#374151]">Family Members</Label>
         <Button
           type="button"
           onClick={() => setShowAdd(true)}
@@ -572,7 +753,7 @@ function FamilyHistorySection({ items, onAdd, onRemove }: FamilyHistorySectionPr
       </div>
 
       {items.length === 0 && !showAdd ? (
-        <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 text-gray-500">
+        <div className="flex items-center gap-2 rounded-xl border border-[#E8E6E0]/40 bg-[#F9F8F5] p-3 text-[#6B7870]">
           <CheckCircle2 className="h-4 w-4" />
           <span className="text-sm">No family history recorded</span>
         </div>
@@ -591,8 +772,8 @@ function FamilyHistorySection({ items, onAdd, onRemove }: FamilyHistorySectionPr
                     {getRelationshipIcon(member.relationship)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-[#1A1A2E]">{member.relationship}</p>
-                    <p className="text-xs text-gray-500">{member.condition}</p>
+                    <p className="text-sm font-semibold text-[#1A1F1E]">{member.relationship}</p>
+                    <p className="text-xs text-[#6B7870]">{member.condition}</p>
                     {member.details && (
                       <p className="mt-1 text-xs text-gray-400">{member.details}</p>
                     )}
@@ -614,7 +795,7 @@ function FamilyHistorySection({ items, onAdd, onRemove }: FamilyHistorySectionPr
       {showAdd && (
         <div className="rounded-xl border-2 border-purple-200 bg-gradient-to-br from-purple-50/50 to-transparent p-4">
           <div className="mb-3 flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-[#1A1A2E]">Add Family Member</h4>
+            <h4 className="text-sm font-semibold text-[#1A1F1E]">Add Family Member</h4>
             <button
               type="button"
               onClick={() => {
@@ -633,27 +814,27 @@ function FamilyHistorySection({ items, onAdd, onRemove }: FamilyHistorySectionPr
                 value={newMember.relationship}
                 onChange={(value) => setNewMember((p) => ({ ...p, relationship: value }))}
                 placeholder="Relationship"
-                className="h-10 bg-white"
+                className={REGISTER_INPUT}
                 options={relationships}
               />
               <Input
                 placeholder="Condition (e.g. Diabetes)"
                 value={newMember.condition}
                 onChange={(e) => setNewMember((p) => ({ ...p, condition: e.target.value }))}
-                className="h-10 bg-white"
+                className={REGISTER_INPUT}
               />
             </div>
             <Input
               placeholder="Additional details (optional)"
               value={newMember.details}
               onChange={(e) => setNewMember((p) => ({ ...p, details: e.target.value }))}
-              className="h-10 bg-white"
+              className={REGISTER_INPUT}
             />
             <Button
               type="button"
               onClick={handleAdd}
               disabled={!newMember.relationship.trim() || !newMember.condition.trim()}
-              className="h-10 w-full bg-[#2D8B84] text-sm font-medium text-white hover:bg-[#1F5F5A]"
+              className="h-10 w-full bg-[#1A5345] text-sm font-medium text-white hover:bg-[#154434]"
             >
               <Plus className="mr-1.5 h-4 w-4" />
               Add Family Member
@@ -698,7 +879,7 @@ function AllergySection({ title, icon, items, onAdd, onRemove, placeholder }: Al
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {icon}
-          <span className="text-sm font-medium text-[#1A1A2E]">{title}</span>
+          <span className="text-sm font-medium text-[#374151]">{title}</span>
         </div>
         <Button
           type="button"
@@ -720,9 +901,9 @@ function AllergySection({ title, icon, items, onAdd, onRemove, placeholder }: Al
               className="group flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm transition-colors hover:border-gray-300"
             >
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-[#1A1A2E]">{item.allergen}</span>
+                <span className="text-sm font-medium text-[#374151]">{item.allergen}</span>
                 {item.reaction && (
-                  <span className="text-xs text-gray-500">Reaction: {item.reaction}</span>
+                  <span className="text-xs text-[#6B7870]">Reaction: {item.reaction}</span>
                 )}
               </div>
               <button
@@ -758,7 +939,7 @@ function AllergySection({ title, icon, items, onAdd, onRemove, placeholder }: Al
                 onClick={handleAdd}
                 disabled={!newAllergen.trim()}
                 size="sm"
-                className="h-8 bg-[#2D8B84] text-white hover:bg-[#1F5F5A]"
+                className="h-8 bg-[#1A5345] text-white hover:bg-[#154434]"
               >
                 Add
               </Button>
@@ -802,7 +983,6 @@ export function Step4MedicalHistory({
     type: "",
     category: "",
   });
-
   useEffect(() => {
     return () => {
       if (familySaveResetRef.current) clearTimeout(familySaveResetRef.current);
@@ -897,14 +1077,10 @@ export function Step4MedicalHistory({
 
   return (
     <div className="flex flex-col gap-6">
-        <div className="order-1 rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-              <Stethoscope className="h-4 w-4 text-blue-600" />
-            </div>
-            <Label className="text-base font-semibold">
-              Current chief complaint <span className="text-red-500">*</span>
-            </Label>
+        <div className={`order-1 ${REGISTER_SECTION_CARD}`}>
+          <div className="mb-4 flex items-center gap-1">
+            <RegisterSectionHeader icon={Stethoscope} label="Current chief complaint" />
+            <span className="text-sm font-bold text-[#E15C5C]">*</span>
           </div>
 
           <div className="space-y-2">
@@ -932,7 +1108,7 @@ export function Step4MedicalHistory({
               ]}
             />
             {medicalStepErrors.chiefComplaint ? (
-              <p className="text-sm text-destructive" role="alert">
+              <p className="text-sm text-[#E15C5C]" role="alert">
                 {medicalStepErrors.chiefComplaint}
               </p>
             ) : null}
@@ -940,7 +1116,7 @@ export function Step4MedicalHistory({
 
           {complaintIs("other") ? (
             <div className="mt-3 space-y-2">
-              <Label className="text-sm font-medium text-[#1A1A2E]">
+              <Label className="text-sm font-medium text-[#374151]">
                 Describe your complaint <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -956,30 +1132,27 @@ export function Step4MedicalHistory({
 
         <div className="order-2 flex flex-col gap-6">
           {complaintIs("chest-pain") ? (
-            <div className="space-y-4 rounded-lg border-l-4 border-l-red-500 bg-red-50/50 p-5">
-              <div className="flex items-center gap-2">
-                <HeartPulse className="h-5 w-5 text-red-600" />
-                <h3 className="font-semibold text-[#1A1A2E]">Chest Pain Details (OPQRST)</h3>
-              </div>
+            <div className="space-y-4 rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-5">
+              <RegisterSectionHeader icon={HeartPulse} label="Chest pain details (OPQRST)" />
 
               <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-[#1A1A2E]">Onset — date</Label>
+                    <Label className="text-sm font-medium text-[#374151]">Onset — date</Label>
                     <Input
                       type="date"
                       value={String(v("chestPainOnsetDate") ?? "")}
                       onChange={(e) => setField("chestPainOnsetDate", e.target.value)}
-                      className="h-10 bg-white"
+                      className={REGISTER_INPUT}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-[#1A1A2E]">Onset</Label>
+                    <Label className="text-sm font-medium text-[#374151]">Onset</Label>
                     <NativeSelect
                       value={String(v("chestPainOnsetType") ?? "")}
                       onChange={(val) => setField("chestPainOnsetType", val)}
                       placeholder="Sudden / Gradual"
-                      className="h-10 bg-white"
+                      className={REGISTER_INPUT}
                       options={[
                         { value: "sudden", label: "Sudden" },
                         { value: "gradual", label: "Gradual" },
@@ -1005,12 +1178,12 @@ export function Step4MedicalHistory({
                 />
 
                 <div className="space-y-2 sm:max-w-md">
-                  <Label className="text-sm font-medium text-[#1A1A2E]">Radiation</Label>
+                  <Label className="text-sm font-medium text-[#374151]">Radiation</Label>
                   <NativeSelect
                     value={String(v("chestPainRadiation") ?? "")}
                     onChange={(val) => setField("chestPainRadiation", val)}
                     placeholder="Select radiation"
-                    className="h-10 bg-white"
+                    className={REGISTER_INPUT}
                     options={[...CHEST_PAIN_RADIATION]}
                   />
                 </div>
@@ -1023,12 +1196,12 @@ export function Step4MedicalHistory({
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-[#1A1A2E]">Timing</Label>
+                    <Label className="text-sm font-medium text-[#374151]">Timing</Label>
                     <NativeSelect
                       value={String(v("chestPainTimingPattern") ?? "")}
                       onChange={(val) => setField("chestPainTimingPattern", val)}
                       placeholder="Continuous / Intermittent"
-                      className="h-10 bg-white"
+                      className={REGISTER_INPUT}
                       options={[
                         { value: "continuous", label: "Continuous" },
                         { value: "intermittent", label: "Intermittent" },
@@ -1036,12 +1209,12 @@ export function Step4MedicalHistory({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-[#1A1A2E]">Duration</Label>
+                    <Label className="text-sm font-medium text-[#374151]">Duration</Label>
                     <Input
                       placeholder="e.g. 20 minutes, 2 hours"
                       value={String(v("chestPainTimingDuration") ?? "")}
                       onChange={(e) => setField("chestPainTimingDuration", e.target.value)}
-                      className="h-10 bg-white"
+                      className={REGISTER_INPUT}
                     />
                   </div>
                 </div>
@@ -1066,15 +1239,12 @@ export function Step4MedicalHistory({
           ) : null}
 
           {complaintIs("dyspnea") ? (
-            <div className="space-y-4 rounded-lg border-l-4 border-l-blue-500 bg-blue-50/50 p-5">
-              <div className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-blue-600" />
-                <h3 className="font-semibold text-[#1A1A2E]">Dyspnea Details</h3>
-              </div>
+            <div className="space-y-4 rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-5">
+              <RegisterSectionHeader icon={Activity} label="Dyspnea details" />
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-[#1A1A2E]">Onset & progression</Label>
+                  <Label className="text-sm font-medium text-[#374151]">Onset & progression</Label>
                   <Textarea
                     placeholder="Describe onset and how symptoms changed over time"
                     value={String(v("dyspneaOnsetProgression") ?? "")}
@@ -1119,7 +1289,7 @@ export function Step4MedicalHistory({
                 />
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-[#1A1A2E]">Cough</Label>
+                  <Label className="text-sm font-medium text-[#374151]">Cough</Label>
                   <NativeSelect
                     value={String(v("dyspneaCough") ?? "")}
                     onChange={(val) => {
@@ -1130,7 +1300,7 @@ export function Step4MedicalHistory({
                       }
                     }}
                     placeholder="Select cough type"
-                    className="h-10 bg-white"
+                    className={REGISTER_INPUT}
                     options={[
                       { value: "none", label: "None" },
                       { value: "dry", label: "Dry" },
@@ -1142,22 +1312,22 @@ export function Step4MedicalHistory({
                 {String(v("dyspneaCough") ?? "") === "productive" ? (
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-[#1A1A2E]">Sputum color</Label>
+                      <Label className="text-sm font-medium text-[#374151]">Sputum color</Label>
                       <NativeSelect
                         value={String(v("dyspneaProductiveColor") ?? "")}
                         onChange={(val) => setField("dyspneaProductiveColor", val)}
                         placeholder="Color"
-                        className="h-10 bg-white"
+                        className={REGISTER_INPUT}
                         options={[...DYSPNEA_COUGH_PRODUCTIVE_COLOR]}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-[#1A1A2E]">Amount</Label>
+                      <Label className="text-sm font-medium text-[#374151]">Amount</Label>
                       <NativeSelect
                         value={String(v("dyspneaProductiveAmount") ?? "")}
                         onChange={(val) => setField("dyspneaProductiveAmount", val)}
                         placeholder="Amount"
-                        className="h-10 bg-white"
+                        className={REGISTER_INPUT}
                         options={[...DYSPNEA_COUGH_PRODUCTIVE_AMOUNT]}
                       />
                     </div>
@@ -1206,131 +1376,27 @@ export function Step4MedicalHistory({
           {complaintIs("neurological") ? <NeurologicalHpi b={hpiB} /> : null}
         </div>
 
-        <div className="order-3 space-y-4 rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100">
-                <HeartPulse className="h-4 w-4 text-amber-600" />
-              </div>
-              <h3 className="font-semibold text-[#1A1A2E]">Past Cardiac History</h3>
-            </div>
-            <button
-              type="button"
-              onClick={() => setField("noCardiacHistory", !Boolean(v("noCardiacHistory", false)))}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium ${
-                v("noCardiacHistory", false)
-                  ? "border-green-300 bg-green-100 text-green-700"
-                  : "border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {v("noCardiacHistory", false) ? <CheckCircle2 className="h-4 w-4" /> : null}
-              No Cardiac History
-            </button>
-          </div>
-
-          {!v("noCardiacHistory", false) ? (
-            <div className="space-y-3">
-              {[
-                ["pastHypertension", "High blood pressure", "Hypertension"],
-                ["pastMI", "Heart attack", "Myocardial infarction"],
-                ["pastHeartFailure", "Weak or failing heart", "Heart failure"],
-                ["pastCardiomyopathy", "Cardiomyopathy", "Heart muscle disease"],
-                ["pastValvular", "Heart valve problem", "Leaking/narrow valve"],
-                ["pastArrhythmias", "Irregular heartbeat", "Arrhythmia"],
-                ["pastStroke", "Stroke or mini-stroke", "TIA/stroke history"],
-                ["pastEndocarditis", "Heart valve infection", "Endocarditis"],
-                ["pastRheumatic", "Rheumatic fever", "Childhood rheumatic disease"],
-                ["pastPulmonaryHypertension", "Pulmonary hypertension", "High pressure in lung vessels"],
-              ].map(([field, title, subtitle]) => (
-                <div key={field} className="flex items-center justify-between gap-4 border-b border-gray-100 py-3">
-                  <div className="flex-1">
-                    <span className="text-sm font-semibold text-[#1A1A2E]">{title}</span>
-                    <p className="text-xs text-gray-500">{subtitle}</p>
-                  </div>
-                  <ChoiceButtons options={["Yes", "No", "Not sure"]} value={String(v(field))} onClick={(val) => setField(field, val)} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-green-700">
-              <CheckCircle2 className="h-5 w-5" />
-              <span className="text-sm">Patient reports no significant cardiac history</span>
-            </div>
-          )}
+        <div className="order-3">
+          <PastMedicalHistoryTabs
+            getValue={(field) => String(v(field) ?? "")}
+            onSelect={(field, val) => setField(field, val)}
+            isNoCardiacHistory={Boolean(v("noCardiacHistory", false))}
+            isNoNonCardiacHistory={Boolean(v("noNonCardiacHistory", false))}
+            onToggleNoCardiacHistory={() => setField("noCardiacHistory", !Boolean(v("noCardiacHistory", false)))}
+            onToggleNoNonCardiacHistory={() => setField("noNonCardiacHistory", !Boolean(v("noNonCardiacHistory", false)))}
+          />
         </div>
 
-        <div className="order-4 space-y-4 rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
-                <AlertCircle className="h-4 w-4 text-red-600" />
-              </div>
-              <Label className="text-base font-semibold">Past Medical History (Non-Cardiac)</Label>
-            </div>
-            <button
-              type="button"
-              onClick={() => setField("noNonCardiacHistory", !Boolean(v("noNonCardiacHistory", false)))}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium ${
-                v("noNonCardiacHistory", false)
-                  ? "border-green-300 bg-green-100 text-green-700"
-                  : "border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {v("noNonCardiacHistory", false) ? <CheckCircle2 className="h-4 w-4" /> : null}
-              No Non-Cardiac History
-            </button>
-          </div>
-
-          {!v("noNonCardiacHistory", false) ? (
-            <div className="space-y-3">
-              {[
-                ["pastStroke", "Stroke or TIA", "Brain attack or mini-stroke"],
-                ["pastCKD", "Chronic kidney disease", "Long-term kidney problems"],
-                ["pastLungDisease", "Chronic lung disease", "COPD, asthma, etc."],
-                ["pastThyroid", "Thyroid disease", "Underactive or overactive thyroid"],
-                ["pastLiver", "Liver disease", "Hepatitis, cirrhosis, etc."],
-                ["pastAnemia", "Anemia", "Low blood count"],
-                ["pastAutoimmune", "Autoimmune disease", "Lupus, RA, etc."],
-                ["pastMalignancy", "Cancer / malignancy", "Any cancer history"],
-                ["pastSleepApnea", "Sleep apnea", "Breathing pauses in sleep"],
-              ].map(([field, title, subtitle]) => (
-                <div key={field} className="flex items-center justify-between gap-4 border-b border-gray-100 py-3">
-                  <div className="flex-1">
-                    <span className="text-sm font-semibold text-[#1A1A2E]">{title}</span>
-                    <p className="text-xs text-gray-500">{subtitle}</p>
-                  </div>
-                  <ChoiceButtons options={["Yes", "No", "Not sure"]} value={String(v(field))} onClick={(val) => setField(field, val)} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-green-700">
-              <CheckCircle2 className="h-5 w-5" />
-              <span className="text-sm">Patient reports no significant non-cardiac medical history</span>
-            </div>
-          )}
-        </div>
-
-        <div className="order-5 space-y-4 rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
-          <div className="mb-2 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15">
-              <Syringe className="h-4 w-4 text-primary" />
-            </div>
-            <h3 className="font-semibold text-[#1A1A2E]">Past Interventions / Procedures</h3>
-          </div>
+        <div className={`order-4 ${REGISTER_SECTION_CARD}`}>
+          <RegisterSectionHeader icon={Syringe} label="Past interventions / procedures" className="mb-2" />
           <PastInterventionsSection
             value={v("pastInterventions")}
             onChange={(next) => setField("pastInterventions", next)}
           />
         </div>
 
-        <div className="order-6 space-y-4 rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
-              <Activity className="h-4 w-4 text-red-600" />
-            </div>
-            <h3 className="font-semibold text-[#1A1A2E]">Cardiovascular Risk Factors</h3>
-          </div>
+        <div className={`order-5 ${REGISTER_SECTION_CARD}`}>
+          <RegisterSectionHeader icon={Activity} label="Cardiovascular risk factors" />
           {[
             ["riskHypertension", "Hypertension"],
             ["riskDiabetes", "Diabetes Mellitus"],
@@ -1338,33 +1404,28 @@ export function Step4MedicalHistory({
             ["riskObesity", "Obesity"],
             ["riskSedentary", "Sedentary lifestyle"],
           ].map(([field, label]) => (
-            <div key={field} className="flex items-center justify-between border-b border-gray-100 py-2">
-              <span className="text-sm font-medium text-[#1A1A2E]">{label}</span>
+            <div key={field} className="flex items-center justify-between border-b border-[#E8E6E0]/40 py-2">
+              <span className="text-sm font-medium text-[#374151]">{label}</span>
               <ChoiceButtons options={["No", "Yes"]} value={String(v(field))} onClick={(val) => setField(field, val)} />
             </div>
           ))}
         </div>
 
-        <div className="order-7 space-y-4 rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
+        <div className={`order-6 ${REGISTER_SECTION_CARD}`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
-                <Users className="h-4 w-4 text-purple-600" />
-              </div>
-              <h3 className="font-semibold text-[#1A1A2E]">Family Medical History</h3>
-            </div>
+            <RegisterSectionHeader icon={Users} label="Family medical history" />
             <div className="flex gap-1">
               {["No", "Yes"].map((option) => (
                 <button
                   key={option}
                   type="button"
                   onClick={() => setField("hasFamilyHistory", option === "Yes")}
-                  className={`rounded-full border px-4 py-1.5 text-sm font-medium ${
+                  className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
                     Boolean(v("hasFamilyHistory", false)) === (option === "Yes")
                       ? option === "Yes"
-                        ? "border-purple-300 bg-purple-100 text-purple-700"
-                        : "border-gray-300 bg-gray-100 text-gray-700"
-                      : "border-gray-200 bg-gray-50 text-gray-500"
+                        ? "border-[#1A5345] bg-[#1A5345] text-white shadow-sm"
+                        : "border-[#E8E6E0] bg-[#F4F3ED] text-[#1A1F1E]"
+                      : "border-[#E8E6E0] bg-white text-[#6B7870] hover:border-[#A8C4BC]"
                   }`}
                 >
                   {option}
@@ -1392,20 +1453,15 @@ export function Step4MedicalHistory({
               />
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 text-gray-500">
+            <div className="flex items-center gap-2 rounded-xl border border-[#E8E6E0]/40 bg-[#F9F8F5] p-3 text-[#6B7870]">
               <CheckCircle2 className="h-4 w-4" />
               <span className="text-sm">No significant family medical history reported</span>
             </div>
           )}
         </div>
 
-        <div className="order-8 space-y-4 rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100">
-              <ShieldCheck className="h-4 w-4 text-emerald-600" />
-            </div>
-            <h3 className="font-semibold text-[#1A1A2E]">Current Medications & Allergies</h3>
-          </div>
+        <div className={`order-7 ${REGISTER_SECTION_CARD}`}>
+          <RegisterSectionHeader icon={ShieldCheck} label="Current medications & allergies" />
 
           <MedicationSection
             items={arr<MedicationItem>("medications")}
@@ -1472,7 +1528,7 @@ export function Step4MedicalHistory({
             />
 
             {arr("drugAllergies").length === 0 && arr("foodAllergies").length === 0 && arr("otherAllergies").length === 0 ? (
-              <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 text-gray-500">
+              <div className="flex items-center gap-2 rounded-xl border border-[#E8E6E0]/40 bg-[#F9F8F5] p-3 text-[#6B7870]">
                 <CheckCircle2 className="h-4 w-4" />
                 <span className="text-sm">No known allergies reported</span>
               </div>
@@ -1480,12 +1536,12 @@ export function Step4MedicalHistory({
           </div>
         </div>
 
-        <div className="order-10 flex w-full gap-4 pt-6">
-          <Button type="button" onClick={onPrevious} variant="outline" className="h-12 flex-1 rounded-xl border-2 text-base">
+        <div className="order-8 flex w-full gap-4 pt-6">
+          <Button type="button" onClick={onPrevious} variant="outline" className={REGISTER_OUTLINE_BTN}>
             <ChevronLeft className="mr-2 h-5 w-5" />
             Back
           </Button>
-          <Button type="button" onClick={onNext} className="h-12 flex-1 rounded-xl bg-[#2D8B84] text-base font-medium text-white transition-all duration-300 hover:bg-[#1F5F5A]">
+          <Button type="button" onClick={onNext} className={REGISTER_PRIMARY_BTN}>
             <span className="flex items-center gap-2">
               Continue
               <ChevronRight className="h-5 w-5" />

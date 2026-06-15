@@ -55,10 +55,10 @@ const PALP_ASSOC = [
 export function PalpitationsHpi({ b }: { b: HpiBindings }) {
   const { v, arr, setField, toggleArray } = b;
   return (
-    <div className="space-y-4 rounded-lg border-l-4 border-l-pink-500 bg-pink-50/50 p-5">
+    <div className="space-y-4 rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-5">
       <div className="flex items-center gap-2">
         <Zap className="h-5 w-5 text-pink-600" />
-        <h3 className="font-semibold text-[#1A1A2E]">Palpitations</h3>
+        <h3 className="text-sm font-bold tracking-tight text-[#1A5345]">Palpitations</h3>
       </div>
       <div className="space-y-4">
         <SegmentedField
@@ -73,7 +73,7 @@ export function PalpitationsHpi({ b }: { b: HpiBindings }) {
           ariaLabel="Onset type"
         />
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-[#1A1A2E]">Duration</Label>
+          <Label className="text-sm font-medium text-[#374151]">Duration</Label>
           <Input
             placeholder="e.g. minutes, hours, constant"
             value={String(v("palpitationsDuration"))}
@@ -164,10 +164,10 @@ export function SyncopeHpi({ b }: { b: HpiBindings }) {
     );
   };
   return (
-    <div className="space-y-4 rounded-lg border-l-4 border-l-orange-500 bg-orange-50/50 p-5">
+    <div className="space-y-4 rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-5">
       <div className="flex items-center gap-2">
         <AlertCircle className="h-5 w-5 text-orange-600" />
-        <h3 className="font-semibold text-[#1A1A2E]">Syncope / Presyncope</h3>
+        <h3 className="text-sm font-bold tracking-tight text-[#1A5345]">Syncope / Presyncope</h3>
       </div>
       <div className="space-y-4">
         <ChipMultiField
@@ -187,7 +187,7 @@ export function SyncopeHpi({ b }: { b: HpiBindings }) {
           tone="orange"
         />
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-[#1A1A2E]">Duration of LOC</Label>
+          <Label className="text-sm font-medium text-[#374151]">Duration of LOC</Label>
           <MedicalNativeSelect
             value={String(v("syncopeLocDuration"))}
             onChange={(val) => setField("syncopeLocDuration", val)}
@@ -229,7 +229,7 @@ export function SyncopeHpi({ b }: { b: HpiBindings }) {
         />
         {v("syncopePreviousSimilar") === "yes" ? (
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-[#1A1A2E]">How many episodes?</Label>
+            <Label className="text-sm font-medium text-[#374151]">How many episodes?</Label>
             <Input
               type="number"
               min={0}
@@ -261,10 +261,10 @@ const EDEMA_LOC = [
 export function EdemaHpi({ b }: { b: HpiBindings }) {
   const { v, arr, setField, toggleArray } = b;
   return (
-    <div className="space-y-4 rounded-lg border-l-4 border-l-cyan-600 bg-cyan-50/50 p-5">
+    <div className="space-y-4 rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-5">
       <div className="flex items-center gap-2">
         <Footprints className="h-5 w-5 text-cyan-700" />
-        <h3 className="font-semibold text-[#1A1A2E]">Leg swelling (Edema)</h3>
+        <h3 className="text-sm font-bold tracking-tight text-[#1A5345]">Leg swelling (Edema)</h3>
       </div>
       <div className="space-y-4">
         <ChipMultiField
@@ -317,7 +317,7 @@ export function EdemaHpi({ b }: { b: HpiBindings }) {
         />
         {v("edemaWeightGain") === "yes" ? (
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-[#1A1A2E]">How much (kg)?</Label>
+            <Label className="text-sm font-medium text-[#374151]">How much (kg)?</Label>
             <Input
               placeholder="e.g. 3"
               value={String(v("edemaWeightGainKg"))}
@@ -327,7 +327,7 @@ export function EdemaHpi({ b }: { b: HpiBindings }) {
           </div>
         ) : null}
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-[#1A1A2E]">Response to diuretics</Label>
+          <Label className="text-sm font-medium text-[#374151]">Response to diuretics</Label>
           <MedicalNativeSelect
             value={String(v("edemaDiureticResponse"))}
             onChange={(val) => setField("edemaDiureticResponse", val)}
@@ -356,15 +356,15 @@ const FATIGUE_ASSOC = [
 export function FatigueHpi({ b }: { b: HpiBindings }) {
   const { v, arr, setField, toggleArray } = b;
   return (
-    <div className="space-y-4 rounded-lg border-l-4 border-l-amber-500 bg-amber-50/50 p-5">
+    <div className="space-y-4 rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-5">
       <div className="flex items-center gap-2">
         <Moon className="h-5 w-5 text-amber-700" />
-        <h3 className="font-semibold text-[#1A1A2E]">Fatigue / exercise intolerance</h3>
+        <h3 className="text-sm font-bold tracking-tight text-[#1A5345]">Fatigue / exercise intolerance</h3>
       </div>
       <div className="space-y-4">
         <NyhaSegmented value={String(v("fatigueNYHA"))} onChange={(val) => setField("fatigueNYHA", val)} />
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-[#1A1A2E]">Onset</Label>
+          <Label className="text-sm font-medium text-[#374151]">Onset</Label>
           <Textarea
             placeholder="Describe onset"
             value={String(v("fatigueOnset"))}
@@ -388,10 +388,10 @@ export function FatigueHpi({ b }: { b: HpiBindings }) {
 export function ConstitutionalHpi({ b }: { b: HpiBindings }) {
   const { v, setField } = b;
   return (
-    <div className="space-y-4 rounded-lg border-l-4 border-l-rose-500 bg-rose-50/50 p-5">
+    <div className="space-y-4 rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-5">
       <div className="flex items-center gap-2">
         <Activity className="h-5 w-5 text-rose-600" />
-        <h3 className="font-semibold text-[#1A1A2E]">Constitutional / infective</h3>
+        <h3 className="text-sm font-bold tracking-tight text-[#1A5345]">Constitutional / infective</h3>
       </div>
       <div className="space-y-4">
         <YesNoToggle
@@ -409,7 +409,7 @@ export function ConstitutionalHpi({ b }: { b: HpiBindings }) {
         {v("constitFever") === "yes" ? (
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-[#1A1A2E]">Fever onset (date)</Label>
+              <Label className="text-sm font-medium text-[#374151]">Fever onset (date)</Label>
               <Input
                 type="date"
                 value={String(v("constitFeverOnsetDate"))}
@@ -446,7 +446,7 @@ export function ConstitutionalHpi({ b }: { b: HpiBindings }) {
         {v("constitWeightLoss") === "yes" ? (
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-[#1A1A2E]">Amount</Label>
+              <Label className="text-sm font-medium text-[#374151]">Amount</Label>
               <Input
                 placeholder="e.g. 5 kg"
                 value={String(v("constitWeightLossAmount"))}
@@ -455,7 +455,7 @@ export function ConstitutionalHpi({ b }: { b: HpiBindings }) {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-[#1A1A2E]">Timeframe</Label>
+              <Label className="text-sm font-medium text-[#374151]">Timeframe</Label>
               <Input
                 placeholder="e.g. over 2 months"
                 value={String(v("constitWeightLossTimeframe"))}
@@ -486,10 +486,10 @@ export function PeripheralVascularHpi({ b }: { b: HpiBindings }) {
     setField("pvProgression", "");
   };
   return (
-    <div className="space-y-4 rounded-lg border-l-4 border-l-indigo-500 bg-indigo-50/50 p-5">
+    <div className="space-y-4 rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-5">
       <div className="flex items-center gap-2">
         <Wind className="h-5 w-5 text-indigo-600" />
-        <h3 className="font-semibold text-[#1A1A2E]">Peripheral vascular symptoms</h3>
+        <h3 className="text-sm font-bold tracking-tight text-[#1A5345]">Peripheral vascular symptoms</h3>
       </div>
       <div className="space-y-4">
         <YesNoToggle
@@ -505,7 +505,7 @@ export function PeripheralVascularHpi({ b }: { b: HpiBindings }) {
           <div className="space-y-4 rounded-lg border border-indigo-200/60 bg-white/80 p-4">
             <ChipMultiField label="Site" field="pvSite" options={PV_SITES} selectedIds={arr("pvSite")} onToggle={toggleArray} tone="violet" />
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-[#1A1A2E]">Distance to onset (meters)</Label>
+              <Label className="text-sm font-medium text-[#374151]">Distance to onset (meters)</Label>
               <Input
                 placeholder="e.g. 100"
                 value={String(v("pvDistanceMeters"))}
@@ -537,10 +537,10 @@ export function PeripheralVascularHpi({ b }: { b: HpiBindings }) {
 export function HepaticCongestionHpi({ b }: { b: HpiBindings }) {
   const { v, setField } = b;
   return (
-    <div className="space-y-4 rounded-lg border-l-4 border-l-lime-600 bg-lime-50/40 p-5">
+    <div className="space-y-4 rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-5">
       <div className="flex items-center gap-2">
         <HeartPulse className="h-5 w-5 text-lime-800" />
-        <h3 className="font-semibold text-[#1A1A2E]">Hepatic / abdominal congestion</h3>
+        <h3 className="text-sm font-bold tracking-tight text-[#1A5345]">Hepatic / abdominal congestion</h3>
       </div>
       <div className="space-y-3">
         <YesNoToggle label="Abdominal distension" name="hep-dist" value={String(v("hepaticDistension"))} onChange={(val) => setField("hepaticDistension", val)} />
@@ -555,14 +555,14 @@ export function HepaticCongestionHpi({ b }: { b: HpiBindings }) {
 export function JaundiceHpi({ b }: { b: HpiBindings }) {
   const { v, setField } = b;
   return (
-    <div className="space-y-4 rounded-lg border-l-4 border-l-yellow-500 bg-yellow-50/50 p-5">
+    <div className="space-y-4 rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-5">
       <div className="flex items-center gap-2">
         <Sun className="h-5 w-5 text-yellow-600" aria-hidden />
-        <h3 className="font-semibold text-[#1A1A2E]">Jaundice</h3>
+        <h3 className="text-sm font-bold tracking-tight text-[#1A5345]">Jaundice</h3>
       </div>
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-[#1A1A2E]">Onset</Label>
+          <Label className="text-sm font-medium text-[#374151]">Onset</Label>
           <Input type="date" value={String(v("jaundiceOnsetDate"))} onChange={(e) => setField("jaundiceOnsetDate", e.target.value)} className="h-10 max-w-xs bg-white" />
         </div>
         <SegmentedField
@@ -592,10 +592,10 @@ const CYAN_TYPE = [
 export function CyanosisHpi({ b }: { b: HpiBindings }) {
   const { v, arr, setField, toggleArray } = b;
   return (
-    <div className="space-y-4 rounded-lg border-l-4 border-l-sky-700 bg-sky-50/50 p-5">
+    <div className="space-y-4 rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-5">
       <div className="flex items-center gap-2">
         <Skull className="h-5 w-5 text-sky-800" />
-        <h3 className="font-semibold text-[#1A1A2E]">Cyanosis</h3>
+        <h3 className="text-sm font-bold tracking-tight text-[#1A5345]">Cyanosis</h3>
       </div>
       <div className="space-y-4">
         <ChipMultiField label="Type" field="cyanosisType" options={CYAN_TYPE} selectedIds={arr("cyanosisType")} onToggle={toggleArray} tone="blue" />
@@ -628,10 +628,10 @@ export function CyanosisHpi({ b }: { b: HpiBindings }) {
 export function EmbolizationHpi({ b }: { b: HpiBindings }) {
   const { v, setField } = b;
   return (
-    <div className="space-y-4 rounded-lg border-l-4 border-l-red-700 bg-red-50/40 p-5">
+    <div className="space-y-4 rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-5">
       <div className="flex items-center gap-2">
         <Zap className="h-5 w-5 text-red-800" />
-        <h3 className="font-semibold text-[#1A1A2E]">Systemic embolization symptoms</h3>
+        <h3 className="text-sm font-bold tracking-tight text-[#1A5345]">Systemic embolization symptoms</h3>
       </div>
       <div className="space-y-3">
         <YesNoToggle label="Sudden limb pain or coldness" name="emb-limb" value={String(v("embLimbPain"))} onChange={(val) => setField("embLimbPain", val)} />
@@ -648,10 +648,10 @@ export function EmbolizationHpi({ b }: { b: HpiBindings }) {
 export function NeurologicalHpi({ b }: { b: HpiBindings }) {
   const { v, setField } = b;
   return (
-    <div className="space-y-4 rounded-lg border-l-4 border-l-purple-600 bg-purple-50/50 p-5">
+    <div className="space-y-4 rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-5">
       <div className="flex items-center gap-2">
         <Brain className="h-5 w-5 text-purple-700" />
-        <h3 className="font-semibold text-[#1A1A2E]">Neurological symptoms</h3>
+        <h3 className="text-sm font-bold tracking-tight text-[#1A5345]">Neurological symptoms</h3>
       </div>
       <div className="space-y-3">
         <YesNoToggle label="Dizziness" name="neuro-diz" value={String(v("neuroDizziness"))} onChange={(val) => setField("neuroDizziness", val)} />

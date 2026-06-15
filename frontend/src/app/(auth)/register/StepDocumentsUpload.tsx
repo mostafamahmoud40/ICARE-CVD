@@ -20,11 +20,11 @@ import type { RegisterDocumentFileMeta, RegisterDocumentsValues } from "./regist
 import { useDocumentUpload, type UploadedDocumentFile } from "./useDocumentUpload";
 
 const DOCUMENT_CATEGORIES: Array<{ value: string; label: string; icon: React.ReactNode }> = [
-  { value: "lab_report", label: "Lab Report", icon: <Beaker className="size-4 text-primary" aria-hidden /> },
-  { value: "imaging", label: "Imaging", icon: <ImageIcon className="size-4 text-primary" aria-hidden /> },
-  { value: "ecg", label: "ECG", icon: <Waves className="size-4 text-primary" aria-hidden /> },
-  { value: "prescription", label: "Prescription", icon: <Pill className="size-4 text-primary" aria-hidden /> },
-  { value: "other", label: "Other", icon: <FileText className="size-4 text-primary" aria-hidden /> },
+  { value: "lab_report", label: "Lab Report", icon: <Beaker className="size-4 text-[#1A5345]" aria-hidden /> },
+  { value: "imaging", label: "Imaging", icon: <ImageIcon className="size-4 text-[#1A5345]" aria-hidden /> },
+  { value: "ecg", label: "ECG", icon: <Waves className="size-4 text-[#1A5345]" aria-hidden /> },
+  { value: "prescription", label: "Prescription", icon: <Pill className="size-4 text-[#1A5345]" aria-hidden /> },
+  { value: "other", label: "Other", icon: <FileText className="size-4 text-[#1A5345]" aria-hidden /> },
 ];
 
 function formatBytes(n: number) {
@@ -140,12 +140,12 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
   }, []);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {/* Category and Upload Input */}
-      <div className="rounded-xl border border-border/90 bg-muted/20 p-4">
+      <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="doc-category" className="text-sm font-medium text-foreground">
+            <Label htmlFor="doc-category" className="text-[13px] font-semibold text-[#102F27]">
               Document Category
             </Label>
             <Select
@@ -155,13 +155,13 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
             >
               <SelectTrigger
                 id="doc-category"
-                className="h-10 w-full rounded-lg border-input bg-background"
+                className="h-10 w-full rounded-lg border-[#E8E6E0] bg-[#FAFAF8] text-[14px] text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0"
               >
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
-              <SelectContent className="rounded-lg">
+              <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
                 {DOCUMENT_CATEGORIES.map((c) => (
-                  <SelectItem key={c.value} value={c.value} className="cursor-pointer">
+                  <SelectItem key={c.value} value={c.value} className="h-10 cursor-pointer text-[14px] text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345]">
                     <span className="flex items-center gap-2">
                       {c.icon}
                       {c.label}
@@ -172,7 +172,7 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="doc-files" className="text-sm font-medium text-foreground">
+            <Label htmlFor="doc-files" className="text-[13px] font-semibold text-[#102F27]">
               Upload Files
             </Label>
             <Input
@@ -182,11 +182,11 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
               accept=".pdf,.jpg,.jpeg,.png,.dcm,application/pdf,image/*"
               disabled={isPending || !category}
               onChange={onFileInputChange}
-              className="h-10 cursor-pointer rounded-lg border-input bg-background file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+              className="h-10 w-full cursor-pointer rounded-lg border border-[#E8E6E0] bg-[#FAFAF8] text-[13px] text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[#1A5345] file:px-4 file:py-2 file:text-[13px] file:font-semibold file:text-white file:transition-colors hover:file:bg-[#0F3D32]"
             />
           </div>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">
+        <p className="mt-3 text-[12px] text-muted-foreground">
           Accepted: PDF, JPG, PNG, DICOM. You can upload multiple files and repeat for different categories.
         </p>
       </div>
@@ -201,8 +201,8 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
 
       {/* Pending Files for Upload */}
       {pendingFiles.length > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50/30 p-4 dark:border-amber-800 dark:bg-amber-950/30">
-          <div className="mb-3 text-sm font-medium text-amber-900 dark:text-amber-200">Pending Uploads</div>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <div className="mb-3 text-[14px] font-bold text-amber-900">Pending Uploads</div>
           <ul className="space-y-2">
             {pendingFiles.map(({ id, file }) => {
               const isUploading = uploading[id] === "uploading";
@@ -211,21 +211,21 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
               return (
                 <li
                   key={id}
-                  className="rounded-lg border border-amber-200 bg-card px-3 py-2 dark:border-amber-800"
+                  className="rounded-lg border border-amber-200 bg-white px-3 py-2 shadow-sm"
                 >
                   <div className="flex items-center gap-3">
                     <Upload className="size-4 text-amber-600" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">{file.name}</p>
+                      <p className="truncate text-[13px] font-semibold text-[#102F27]">{file.name}</p>
                       {isUploading && (
-                        <div className="mt-1 flex gap-2">
-                          <div className="h-1 flex-1 overflow-hidden rounded-full bg-amber-200 dark:bg-amber-900">
+                        <div className="mt-1 flex items-center gap-2">
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#EEF5F3]">
                             <div
-                              className="h-full bg-amber-600 transition-all"
+                              className="h-full bg-[#1A5345] transition-all"
                               style={{ width: `${progress}%` }}
                             />
                           </div>
-                          <span className="text-xs text-amber-600 dark:text-amber-400">{progress}%</span>
+                          <span className="text-[12px] font-medium text-[#1A5345]">{progress}%</span>
                         </div>
                       )}
                     </div>
@@ -233,7 +233,7 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
                       <Button
                         type="button"
                         size="sm"
-                        className="shrink-0 bg-amber-600 hover:bg-amber-700"
+                        className="h-8 shrink-0 bg-[#1A5345] text-[12px] hover:bg-[#0F3D32]"
                         onClick={() => handleUploadFile(id, file)}
                         disabled={isPending}
                       >
@@ -245,7 +245,7 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="shrink-0 text-amber-600 hover:bg-amber-50"
+                        className="h-8 w-8 shrink-0 text-[#2C6A5B] hover:bg-[#E8F0EE]"
                         onClick={() => removePendingFile(id)}
                         disabled={isPending}
                       >
@@ -261,15 +261,15 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
       )}
 
       {/* Uploaded Files */}
-      <div className="rounded-xl border border-border/90 bg-muted/20 p-4">
+      <div className="rounded-xl border border-[#E8E6E0] bg-[#FAFAF8] p-5">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <span className="text-sm font-medium text-foreground">Uploaded Files</span>
-          <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary">
+          <span className="text-[14px] font-semibold text-[#102F27]">Uploaded Files</span>
+          <span className="rounded-full bg-[#E8F0EE] px-2.5 py-0.5 text-[12px] font-bold text-[#1A5345]">
             {uploadedFiles.length} file(s)
           </span>
         </div>
         {uploadedFiles.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border bg-card py-10 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-[#cfd9d5] bg-white py-10 text-center text-[13px] text-muted-foreground">
             No files uploaded yet
           </div>
         ) : (
@@ -277,19 +277,19 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
             {uploadedFiles.map((f) => (
               <li
                 key={f.id}
-                className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                className="flex items-center justify-between gap-2 rounded-lg border border-[#E5EEEA] bg-white px-3 py-2 shadow-sm"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-foreground">{f.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {f.category} · {formatBytes(f.size)}
+                  <p className="truncate text-[13px] font-semibold text-[#102F27]">{f.name}</p>
+                  <p className="text-[12px] text-muted-foreground capitalize">
+                    {f.category.replace("_", " ")} · {formatBytes(f.size)}
                   </p>
                 </div>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  className="shrink-0 text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/40"
+                  className="h-8 w-8 shrink-0 text-red-600 hover:bg-red-50 hover:text-red-700"
                   onClick={() => removeFile(f.id)}
                   disabled={isPending}
                   aria-label={`Remove ${f.name}`}
@@ -304,7 +304,7 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
 
       {/* Additional Notes */}
       <div className="space-y-2">
-        <Label htmlFor="doc-notes" className="text-sm font-medium text-foreground">
+        <Label htmlFor="doc-notes" className="text-[13px] font-semibold text-[#102F27]">
           Additional Notes (Optional)
         </Label>
         <textarea
@@ -315,9 +315,9 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
           onChange={(e) => onFieldChange("notes", e.target.value)}
           disabled={isPending}
           className={cn(
-            "w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm text-foreground outline-none transition-colors",
-            "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-            "disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
+            "min-h-[100px] w-full resize-y rounded-lg border border-[#E8E6E0] bg-[#FAFAF8] px-3 py-2 text-[13px] text-[#102F27] outline-none transition-colors",
+            "placeholder:text-[#9CA3AF] focus-visible:border-[#1A5345] focus-visible:ring-1 focus-visible:ring-[#1A5345]/30",
+            "disabled:cursor-not-allowed disabled:opacity-50"
           )}
         />
       </div>
