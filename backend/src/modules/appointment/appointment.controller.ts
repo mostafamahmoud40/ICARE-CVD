@@ -26,6 +26,11 @@ export class AppointmentController {
     return this.appointmentService.listDoctors();
   }
 
+  @Get('doctors/directory')
+  listDoctorDirectory() {
+    return this.appointmentService.listDoctorDirectory();
+  }
+
   @Get('doctors/:doctorId/availability')
   getDoctorAvailability(
     @Param('doctorId') doctorId: string,
@@ -38,6 +43,11 @@ export class AppointmentController {
       from,
       Number.isFinite(parsedDays) ? parsedDays : undefined,
     );
+  }
+
+  @Get('doctors/:doctorId')
+  getDoctorDirectoryEntry(@Param('doctorId') doctorId: string) {
+    return this.appointmentService.getDoctorDirectoryEntry(doctorId);
   }
 
   @Get()
