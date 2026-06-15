@@ -4,19 +4,23 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  StreamableFile,
 } from '@nestjs/common';
-import { and, asc, desc, eq, inArray, ne, ne as neq } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, ne, ne as neq, sql } from 'drizzle-orm';
+import { Readable } from 'stream';
 import { DRIZZLE, type Database } from '../../database/drizzle.provider';
 import {
   conversation,
   doctor,
   message,
+  messageAttachment,
   patient,
   user,
 } from '../../database/schema';
 import type { TokenPayload } from '../auth/jwt';
+import { ChatAttachmentService } from './chat-attachment.service';
 import type { CreateConversationDto } from './dto/create-conversation.dto';
-import type { SendMessageDto } from './dto/send-message.dto';
+import type { ChatUploadIntentDto, SendMessageDto } from './dto/send-message.dto';
 
 type ChatActor = {
   userId: number;
@@ -26,7 +30,10 @@ type ChatActor = {
 
 @Injectable()
 export class ChatService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly chatAttachmentService: ChatAttachmentService,
+  ) {}
 
   async listConversations(currentUser: TokenPayload) {
     const actor = await this.resolveActor(currentUser);
@@ -39,6 +46,11 @@ export class ChatService {
               participantName: user.name,
               participantRole: user.role,
               participantUserId: user.id,
+              participantEmail: user.email,
+              participantSpecialty: sql<string | null>`null`,
+              participantClinicLocation: sql<string | null>`null`,
+              participantAvatarUrl: patient.avatarUrl,
+              participantUserAvatarUrl: user.avatarUrl,
             })
             .from(conversation)
             .innerJoin(patient, eq(conversation.patientId, patient.id))
@@ -52,6 +64,11 @@ export class ChatService {
               participantName: user.name,
               participantRole: user.role,
               participantUserId: user.id,
+              participantEmail: user.email,
+              participantSpecialty: doctor.specialty,
+              participantClinicLocation: doctor.clinicLocation,
+              participantAvatarUrl: user.avatarUrl,
+              participantUserAvatarUrl: user.avatarUrl,
             })
             .from(conversation)
             .innerJoin(doctor, eq(conversation.doctorId, doctor.id))
@@ -64,6 +81,7 @@ export class ChatService {
     const conversationIds = rows.map((r) => r.conversationId);
     const messageRows = await this.db
       .select({
+        id: message.id,
         conversationId: message.conversationId,
         text: message.message,
         senderType: message.senderType,
@@ -91,19 +109,46 @@ export class ChatService {
       }
     }
 
-    return rows.map((row) => {
+    const latestMessageIds = Array.from(latestByConversation.values()).map(
+      (row) => row.id,
+    );
+    const attachmentRows = latestMessageIds.length
+      ? await this.db
+          .select({
+            messageId: messageAttachment.messageId,
+            attachmentType: messageAttachment.attachmentType,
+          })
+          .from(messageAttachment)
+          .where(inArray(messageAttachment.messageId, latestMessageIds))
+      : [];
+
+    const attachmentTypesByMessageId = new Map<number, string[]>();
+    for (const attachment of attachmentRows) {
+      const list = attachmentTypesByMessageId.get(attachment.messageId) ?? [];
+      list.push(attachment.attachmentType);
+      attachmentTypesByMessageId.set(attachment.messageId, list);
+    }
+
+    const result = rows.map((row) => {
       const latest = latestByConversation.get(row.conversationId);
+      const attachmentTypes = latest
+        ? attachmentTypesByMessageId.get(latest.id)
+        : undefined;
       return {
         id: row.conversationId,
         participant: {
           userId: row.participantUserId,
           name: row.participantName,
           role: row.participantRole,
+          avatarUrl: row.participantAvatarUrl ?? row.participantUserAvatarUrl,
+          email: row.participantEmail ?? null,
+          specialty: row.participantSpecialty ?? null,
+          clinicLocation: row.participantClinicLocation ?? null,
         },
         unreadCount: unreadCountByConversation.get(row.conversationId) ?? 0,
         lastMessage: latest
           ? {
-              text: latest.text,
+              text: this.previewLastMessage(latest.text, attachmentTypes),
               senderType: latest.senderType,
               sentAt: latest.sentAt.toISOString(),
               isRead: latest.isRead,
@@ -111,6 +156,12 @@ export class ChatService {
           : null,
         createdAt: row.createdAt.toISOString(),
       };
+    });
+
+    return result.sort((a, b) => {
+      const aMs = new Date(a.lastMessage?.sentAt ?? a.createdAt).getTime();
+      const bMs = new Date(b.lastMessage?.sentAt ?? b.createdAt).getTime();
+      return bMs - aMs;
     });
   }
 
@@ -129,11 +180,19 @@ export class ChatService {
           userId: user.id,
           name: user.name,
           role: user.role,
+          avatarUrl: patient.avatarUrl,
+          userAvatarUrl: user.avatarUrl,
         })
         .from(patient)
         .innerJoin(user, eq(patient.userId, user.id))
         .orderBy(asc(user.name));
-      return rows.map((r) => ({ profileId: r.id, name: r.name, role: r.role }));
+      return rows.map((r) => ({
+        profileId: r.id,
+        name: r.name,
+        role: r.role,
+        avatarUrl: r.avatarUrl ?? r.userAvatarUrl,
+        specialty: null,
+      }));
     }
 
     // patient → list all doctors
@@ -143,11 +202,19 @@ export class ChatService {
         userId: user.id,
         name: user.name,
         role: user.role,
+        specialty: doctor.specialty,
+        avatarUrl: user.avatarUrl,
       })
       .from(doctor)
       .innerJoin(user, eq(doctor.userId, user.id))
       .orderBy(asc(user.name));
-    return rows.map((r) => ({ profileId: r.id, name: r.name, role: r.role }));
+    return rows.map((r) => ({
+      profileId: r.id,
+      name: r.name,
+      role: r.role,
+      avatarUrl: r.avatarUrl,
+      specialty: r.specialty,
+    }));
   }
 
   async createConversation(
@@ -236,10 +303,90 @@ export class ChatService {
         ),
       );
 
-    return rows.map((row) => ({
-      ...row,
-      sentAt: row.sentAt.toISOString(),
-    }));
+    const messageIds = rows.map((row) => row.id);
+    const attachmentRows = messageIds.length
+      ? await this.db
+          .select({
+            id: messageAttachment.id,
+            messageId: messageAttachment.messageId,
+            fileName: messageAttachment.fileName,
+            mimeType: messageAttachment.mimeType,
+            sizeBytes: messageAttachment.sizeBytes,
+            s3Key: messageAttachment.s3Key,
+            attachmentType: messageAttachment.attachmentType,
+          })
+          .from(messageAttachment)
+          .where(inArray(messageAttachment.messageId, messageIds))
+      : [];
+
+    const attachmentsByMessageId = new Map<
+      number,
+      (typeof attachmentRows)[number][]
+    >();
+    for (const attachment of attachmentRows) {
+      const list = attachmentsByMessageId.get(attachment.messageId) ?? [];
+      list.push(attachment);
+      attachmentsByMessageId.set(attachment.messageId, list);
+    }
+
+    return rows.map((row) => {
+      const attachments = attachmentsByMessageId.get(row.id) ?? [];
+      return {
+        ...row,
+        sentAt: row.sentAt.toISOString(),
+        attachments: attachments.map((attachment) => ({
+          id: attachment.id,
+          fileName: attachment.fileName,
+          mimeType: attachment.mimeType,
+          sizeBytes: attachment.sizeBytes,
+          attachmentType: attachment.attachmentType,
+          url: this.buildAttachmentFilePath(attachment.id),
+        })),
+      };
+    });
+  }
+
+  async streamAttachmentFile(attachmentId: string, currentUser: TokenPayload) {
+    const actor = await this.resolveActor(currentUser);
+    const attachment = await this.db.query.messageAttachment.findFirst({
+      where: eq(messageAttachment.id, attachmentId),
+    });
+
+    if (!attachment) {
+      throw new NotFoundException('Attachment not found');
+    }
+
+    const parentMessage = await this.db.query.message.findFirst({
+      where: eq(message.id, attachment.messageId),
+    });
+
+    if (!parentMessage) {
+      throw new NotFoundException('Attachment message not found');
+    }
+
+    await this.assertConversationAccess(parentMessage.conversationId, actor);
+
+    const object = await this.chatAttachmentService.getObjectStream(attachment.s3Key);
+    const body =
+      object.body instanceof Readable
+        ? object.body
+        : Readable.from(object.body as AsyncIterable<Uint8Array>);
+
+    return new StreamableFile(body, {
+      type: attachment.mimeType || object.contentType,
+      disposition: `inline; filename="${attachment.fileName.replace(/"/g, '')}"`,
+      length: object.contentLength,
+    });
+  }
+
+  async createAttachmentUploadIntent(
+    conversationId: number,
+    currentUser: TokenPayload,
+    dto: ChatUploadIntentDto,
+  ) {
+    const actor = await this.resolveActor(currentUser);
+    await this.assertConversationAccess(conversationId, actor);
+    return this.chatAttachmentService.createUploadIntent(conversationId, dto);
   }
 
   async sendMessage(
@@ -249,9 +396,19 @@ export class ChatService {
   ) {
     const actor = await this.resolveActor(currentUser);
     await this.assertConversationAccess(conversationId, actor);
-    const text = dto.message.trim();
-    if (!text) {
-      throw new BadRequestException('Message cannot be empty');
+
+    const text = dto.message?.trim() ?? '';
+    const attachments = dto.attachments ?? [];
+
+    if (!text && attachments.length === 0) {
+      throw new BadRequestException('Message or attachment is required');
+    }
+
+    for (const attachment of attachments) {
+      this.chatAttachmentService.validateUploadedAttachment(
+        conversationId,
+        attachment,
+      );
     }
 
     const [created] = await this.db
@@ -260,9 +417,43 @@ export class ChatService {
         conversationId,
         senderId: actor.userId,
         senderType: actor.role,
-        message: text,
+        message: text || this.buildAttachmentFallbackText(attachments),
       })
       .returning();
+
+    let savedAttachments: Array<{
+      id: string;
+      fileName: string;
+      mimeType: string;
+      sizeBytes: number;
+      attachmentType: 'image' | 'file';
+      url: string;
+    }> = [];
+
+    if (attachments.length) {
+      const inserted = await this.db
+        .insert(messageAttachment)
+        .values(
+          attachments.map((attachment) => ({
+            messageId: created.id,
+            fileName: attachment.fileName,
+            mimeType: attachment.mimeType,
+            sizeBytes: attachment.sizeBytes,
+            s3Key: attachment.s3Key,
+            attachmentType: attachment.attachmentType,
+          })),
+        )
+        .returning();
+
+      savedAttachments = inserted.map((attachment) => ({
+        id: attachment.id,
+        fileName: attachment.fileName,
+        mimeType: attachment.mimeType,
+        sizeBytes: attachment.sizeBytes,
+        attachmentType: attachment.attachmentType,
+        url: this.buildAttachmentFilePath(attachment.id),
+      }));
+    }
 
     const recipients =
       await this.getConversationParticipantUserIds(conversationId);
@@ -270,6 +461,59 @@ export class ChatService {
     return {
       ...created,
       sentAt: created.sentAt.toISOString(),
+      attachments: savedAttachments,
+      recipientUserIds: recipients,
+    };
+  }
+
+  async deleteMessage(
+    conversationId: number,
+    messageId: number,
+    currentUser: TokenPayload,
+  ) {
+    const actor = await this.resolveActor(currentUser);
+    await this.assertConversationAccess(conversationId, actor);
+
+    const row = await this.db.query.message.findFirst({
+      where: and(
+        eq(message.id, messageId),
+        eq(message.conversationId, conversationId),
+      ),
+    });
+
+    if (!row) {
+      throw new NotFoundException('Message not found');
+    }
+
+    if (row.senderId !== actor.userId) {
+      throw new ForbiddenException('Only the sender can delete this message');
+    }
+
+    const attachments = await this.db
+      .select({ s3Key: messageAttachment.s3Key })
+      .from(messageAttachment)
+      .where(eq(messageAttachment.messageId, messageId));
+
+    for (const attachment of attachments) {
+      try {
+        await this.chatAttachmentService.deleteStoredFile(attachment.s3Key);
+      } catch {
+        // Message metadata should still be removed even if object storage cleanup fails.
+      }
+    }
+
+    await this.db
+      .delete(message)
+      .where(
+        and(eq(message.id, messageId), eq(message.conversationId, conversationId)),
+      );
+
+    const recipients =
+      await this.getConversationParticipantUserIds(conversationId);
+
+    return {
+      conversationId,
+      messageId,
       recipientUserIds: recipients,
     };
   }
@@ -281,6 +525,45 @@ export class ChatService {
     const actor = await this.resolveActor(currentUser);
     await this.assertConversationAccess(conversationId, actor);
     return { ok: true };
+  }
+
+  private buildAttachmentFilePath(attachmentId: string) {
+    return `/chat/attachments/${attachmentId}/file`;
+  }
+
+  private buildAttachmentFallbackText(
+    attachments: NonNullable<SendMessageDto['attachments']>,
+  ) {
+    if (attachments.every((item) => item.attachmentType === 'image')) {
+      return attachments.length === 1 ? '📷 Photo' : `📷 ${attachments.length} photos`;
+    }
+    if (attachments.length === 1) {
+      return `📎 ${attachments[0].fileName}`;
+    }
+    return `📎 ${attachments.length} files`;
+  }
+
+  private previewLastMessage(text: string, attachmentTypes?: string[]) {
+    const trimmed = text.trim();
+    const isAttachmentFallback =
+      trimmed.startsWith('📷') || trimmed.startsWith('📎');
+    const hasUserCaption = trimmed.length > 0 && !isAttachmentFallback;
+
+    if (hasUserCaption) return trimmed;
+
+    if (attachmentTypes?.length) {
+      if (attachmentTypes.every((type) => type === 'image')) return 'Photo';
+      return 'Document';
+    }
+
+    return this.previewMessageText(text);
+  }
+
+  private previewMessageText(text: string) {
+    const trimmed = text.trim();
+    if (trimmed.startsWith('📷')) return 'Photo';
+    if (trimmed.startsWith('📎')) return 'Document';
+    return text;
   }
 
   private async resolveActor(currentUser: TokenPayload): Promise<ChatActor> {
@@ -327,6 +610,19 @@ export class ChatService {
     }
 
     return row;
+  }
+
+  async getOtherParticipantUserIds(conversationId: number, excludeUserId: number) {
+    const ids = await this.getConversationParticipantUserIds(conversationId);
+    return ids.filter((id) => id !== excludeUserId);
+  }
+
+  async getUserDisplayName(userId: number): Promise<string> {
+    const row = await this.db.query.user.findFirst({
+      where: eq(user.id, userId),
+      columns: { name: true },
+    });
+    return row?.name ?? 'Someone';
   }
 
   private async getConversationParticipantUserIds(conversationId: number) {
