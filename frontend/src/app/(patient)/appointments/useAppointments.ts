@@ -13,6 +13,7 @@ type DoctorApiRow = {
   name: string
   title: string
   experience: string
+  avatarUrl?: string | null
   specialties: { icon: string; label: string; color: "primary" | "secondary" }[]
 }
 
@@ -71,6 +72,7 @@ async function fetchAppointmentsPage(): Promise<AppointmentsPageData> {
   const doctors = (doctorsResult.status === "fulfilled" ? doctorsResult.value.data : []).map((d) => ({
     ...d,
     rating: 4.8,
+    avatarUrl: d.avatarUrl ?? undefined,
   }))
   const appointments = (appointmentsResult.status === "fulfilled" ? appointmentsResult.value.data : []).map(
     mapAppointmentRow,

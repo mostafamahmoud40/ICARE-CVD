@@ -74,6 +74,7 @@ type BookingSummaryProps = {
   selectedSlot: string
   fees: FeeRow[]
   onConfirm: () => void
+  isSubmitting?: boolean
   className?: string
 }
 
@@ -83,6 +84,7 @@ export function BookingSummary({
   selectedSlot,
   fees,
   onConfirm,
+  isSubmitting = false,
   className,
 }: BookingSummaryProps) {
   const selectedDateLabel = selectedDate
@@ -145,9 +147,10 @@ export function BookingSummary({
         <Button
           type="button"
           onClick={onConfirm}
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border-0 bg-[#1A5345] text-[13px] font-bold text-white shadow-sm hover:bg-[#133F34]"
+          disabled={isSubmitting}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border-0 bg-[#1A5345] text-[13px] font-bold text-white shadow-sm hover:bg-[#133F34] disabled:opacity-60"
         >
-          Confirm appointment
+          {isSubmitting ? "Booking…" : "Confirm appointment"}
           <ArrowRightIcon className="size-4" aria-hidden />
         </Button>
 

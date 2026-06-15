@@ -33,6 +33,7 @@ export type DoctorInfo = {
   rating: number
   specialties: { icon: string; label: string; color: "primary" | "secondary" }[]
   experience: string
+  avatarUrl?: string
 }
 
 export type Attachment = {
