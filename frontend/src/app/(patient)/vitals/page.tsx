@@ -142,7 +142,7 @@ export default function VitalsPage() {
               iconClassName="text-[#1A5345]"
               value={`${currentVitals.bloodPressure.systolic}/${currentVitals.bloodPressure.diastolic}`}
               unit="mmHg"
-              trend={currentVitals.bloodPressure.trend as "up" | "down" | "stable"}
+              trend={currentVitals.bloodPressure.trend}
               trendValue={currentVitals.bloodPressure.trendValue}
               trendGoodDirection="down"
               aiBadgeText="Within your normal range"
@@ -154,7 +154,7 @@ export default function VitalsPage() {
               iconClassName="text-[#CC5533]"
               value={currentVitals.heartRate.value}
               unit="bpm"
-              trend={currentVitals.heartRate.trend as "up" | "down" | "stable"}
+              trend={currentVitals.heartRate.trend}
               trendValue={currentVitals.heartRate.trendValue}
               trendGoodDirection="down"
               aiBadgeText="Stable for your age"
@@ -166,7 +166,7 @@ export default function VitalsPage() {
               iconClassName="text-emerald-600"
               value={currentVitals.spo2.value}
               unit="%"
-              trend={currentVitals.spo2.trend as "up" | "down" | "stable"}
+              trend={currentVitals.spo2.trend}
               trendValue={currentVitals.spo2.trendValue}
               trendGoodDirection="up"
               aiBadgeText="Excellent"
@@ -178,7 +178,7 @@ export default function VitalsPage() {
               iconClassName="text-amber-600"
               value={currentVitals.weight.value}
               unit="kg"
-              trend={currentVitals.weight.trend as "up" | "down" | "stable"}
+              trend={currentVitals.weight.trend}
               trendValue={currentVitals.weight.trendValue}
               trendGoodDirection="down"
               aiBadgeText="Faster drop than usual"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -9,7 +9,9 @@ import {
   clearAuthTokens,
   getAccessToken,
   getAuthUser,
+  getAuthUserSnapshot,
   setAuthTokens,
+  subscribeAuthUser,
   type AuthUser,
 } from "@/lib/auth-tokens";
 
@@ -17,15 +19,13 @@ type Role = "admin" | "patient" | "assistant" | "doctor";
 
 export function useRequireRole(role: Role) {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const user = useSyncExternalStore(subscribeAuthUser, getAuthUserSnapshot, () => null);
 
   useEffect(() => {
-    setMounted(true);
-
     const token = getAccessToken();
-    const user = getAuthUser();
+    const storedUser = getAuthUser();
 
-    if (!token || !user || user.role !== role) {
+    if (!token || !storedUser || storedUser.role !== role) {
       clearAuthTokens();
       router.replace("/login");
       return;
@@ -58,7 +58,5 @@ export function useRequireRole(role: Role) {
     router.replace("/login");
   }, [router]);
 
-  const user: AuthUser | null = mounted ? getAuthUser() : null;
-
-  return { logout, user, mounted };
+  return { logout, user, mounted: user !== null };
 }

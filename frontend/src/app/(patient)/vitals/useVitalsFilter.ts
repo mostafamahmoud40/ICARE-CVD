@@ -2,7 +2,7 @@
 
 import { useMemo } from "react"
 
-import type { VitalHistoryRecord } from "./vitals.mock"
+import type { VitalHistoryRecord } from "./vitals.types"
 
 export type TimeRange = "1W" | "1M" | "3M"
 

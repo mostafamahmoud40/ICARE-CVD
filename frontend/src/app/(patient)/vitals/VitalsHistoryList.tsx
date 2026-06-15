@@ -3,7 +3,7 @@
 import { ActivityIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import type { VitalHistoryRecord } from "./vitals.mock"
+import type { VitalHistoryRecord } from "./vitals.types"
 
 export interface VitalsHistoryListProps {
   data: VitalHistoryRecord[]

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import Image from "next/image"
 import { 
   PhoneIcon, 
   VideoIcon, 
@@ -14,74 +13,106 @@ import {
   SendIcon,
   MessageCircleIcon,
   FileIcon,
-  DownloadIcon
+  DownloadIcon,
+  Trash2Icon,
+  XIcon,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import type { ChatContact, ChatMessage } from "./chat.types"
+import {
+  callMetaFromLabel,
+  type CallKind,
+} from "./chat-call"
+import { getAuthUser } from "@/lib/auth-tokens"
+import { formatFileSize } from "./chat-api"
+import { resolveChatAttachmentUrl } from "./chat-attachment-url"
+import { CHAT_ATTACHMENT_ACCEPT } from "./use-chat-attachment-upload"
+import type {
+  ChatContact,
+  ChatMessage,
+  ChatOutgoingAttachment,
+  SendChatMessageInput,
+} from "./chat.types"
+
+function nameInitials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+function isAutoAttachmentLabel(text: string) {
+  return text.startsWith("📷") || text.startsWith("📎")
+}
+
+function canDeleteMessage(msg: ChatMessage) {
+  const numericId = Number(msg.id)
+  return msg.isSender && Number.isFinite(numericId) && numericId > 0
+}
+
+type ImagePreviewState = {
+  url: string
+  fileName: string
+}
+
+type PendingAttachment = {
+  file: File
+  previewUrl: string | null
+  attachmentType: "image" | "file"
+}
+
+function inferPendingAttachmentType(file: File): "image" | "file" {
+  if (file.type.startsWith("image/")) return "image"
+  const extension = file.name.split(".").pop()?.toLowerCase()
+  if (extension && ["jpg", "jpeg", "png", "webp", "gif"].includes(extension)) {
+    return "image"
+  }
+  return "file"
+}
 
 interface ChatWindowProps {
   activeContact: ChatContact | undefined
   messages: ChatMessage[]
-  onSendMessage: (text: string) => void | Promise<void>
+  currentUserAvatar?: string
+  onSendMessage: (input: SendChatMessageInput) => void | Promise<void>
+  onUploadAttachment?: (file: File) => Promise<ChatOutgoingAttachment>
+  isUploadingAttachment?: boolean
+  onDeleteMessage?: (messageId: string) => void | Promise<void>
+  onTypingChange?: (isTyping: boolean) => void
   onToggleInfo?: () => void
+  onInitiateCall?: (contactId: string, kind: CallKind) => void
 }
 
-// Custom mock messages mapped by mock contact ID to match the screenshot
-const INITIAL_MOCK_CONVERSATIONS: Record<string, ChatMessage[]> = {
-  "mock-anthony": [
-    {
-      id: "mock-m1",
-      contactId: "mock-anthony",
-      text: "[IMAGES]", 
-      time: "8:55 PM",
-      isSender: false,
-      status: "read",
-    },
-    {
-      id: "mock-m2",
-      contactId: "mock-anthony",
-      text: "Sed ut perspiciatis unde omnis iste natus error accusantium doloremque laudantium",
-      time: "8:55 PM",
-      isSender: true,
-      status: "read",
-    },
-    {
-      id: "mock-m3",
-      contactId: "mock-anthony",
-      text: "[FILE]admin_v1.0.zip|25mb",
-      time: "8:55 PM",
-      isSender: true,
-      status: "read",
-    },
-    {
-      id: "mock-m4",
-      contactId: "mock-anthony",
-      text: "You wait for notice. Consectetuorem ipsum dolor sit? OK?",
-      time: "8:55 PM",
-      isSender: false,
-      status: "read",
-    },
-    {
-      id: "mock-m5",
-      contactId: "mock-anthony",
-      text: "Sed ut perspiciatis unde omnis iste natus error accusantium doloremque laudantium",
-      time: "8:55 PM",
-      isSender: true,
-      status: "read",
-    },
-  ],
-}
-
-export function ChatWindow({ activeContact, messages, onSendMessage, onToggleInfo }: ChatWindowProps) {
-  const [mockConversations, setMockConversations] = useState<Record<string, ChatMessage[]>>(INITIAL_MOCK_CONVERSATIONS)
+export function ChatWindow({
+  activeContact,
+  messages,
+  currentUserAvatar = "",
+  onSendMessage,
+  onUploadAttachment,
+  isUploadingAttachment = false,
+  onDeleteMessage,
+  onTypingChange,
+  onToggleInfo,
+  onInitiateCall,
+}: ChatWindowProps) {
   const [inputText, setInputText] = useState("")
+  const [previewImage, setPreviewImage] = useState<ImagePreviewState | null>(null)
+  const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const typingStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Get current messages list (real or mock)
-  const isMock = activeContact?.id.startsWith("mock-") ?? false
-  const activeMessages = isMock && activeContact
-    ? mockConversations[activeContact.id] || []
-    : messages
+  useEffect(() => {
+    if (!previewImage) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPreviewImage(null)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [previewImage])
+
+  const activeMessages = messages
 
   // Scroll to bottom when messages list changes
   useEffect(() => {
@@ -89,6 +120,56 @@ export function ChatWindow({ activeContact, messages, onSendMessage, onToggleInf
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [activeMessages])
+
+  useEffect(() => {
+    return () => {
+      if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current)
+      onTypingChange?.(false)
+    }
+  }, [activeContact?.id, onTypingChange])
+
+  useEffect(() => {
+    setPendingAttachment((prev) => {
+      if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl)
+      return null
+    })
+    setInputText("")
+  }, [activeContact?.id])
+
+  useEffect(() => {
+    return () => {
+      if (pendingAttachment?.previewUrl) {
+        URL.revokeObjectURL(pendingAttachment.previewUrl)
+      }
+    }
+  }, [pendingAttachment?.previewUrl])
+
+  const clearPendingAttachment = () => {
+    setPendingAttachment((prev) => {
+      if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl)
+      return null
+    })
+  }
+
+  const scheduleTypingStop = () => {
+    if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current)
+    typingStopTimerRef.current = setTimeout(() => {
+      onTypingChange?.(false)
+    }, 2000)
+  }
+
+  const handleInputChange = (value: string) => {
+    setInputText(value)
+    if (!onTypingChange) return
+
+    if (value.trim()) {
+      onTypingChange(true)
+      scheduleTypingStop()
+    } else {
+      if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current)
+      onTypingChange(false)
+    }
+  }
 
   if (!activeContact) {
     return (
@@ -104,30 +185,58 @@ export function ChatWindow({ activeContact, messages, onSendMessage, onToggleInf
     )
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const text = inputText.trim()
+
+    if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current)
+    onTypingChange?.(false)
+
+    if (pendingAttachment && onUploadAttachment) {
+      try {
+        const uploaded = await onUploadAttachment(pendingAttachment.file)
+        await onSendMessage({
+          text: text || undefined,
+          attachments: [uploaded],
+        })
+        clearPendingAttachment()
+        setInputText("")
+      } catch {
+        // Toast handled in upload hook
+      }
+      return
+    }
+
     if (!text) return
 
-    if (isMock) {
-      // Append to mock state locally
-      const newMsg: ChatMessage = {
-        id: `mock-user-${Date.now()}`,
-        contactId: activeContact.id,
-        text,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isSender: true,
-        status: "sent",
-      }
-      setMockConversations((prev) => ({
-        ...prev,
-        [activeContact.id]: [...(prev[activeContact.id] || []), newMsg],
-      }))
-    } else {
-      // Send real message
-      onSendMessage(text)
-    }
+    await onSendMessage({ text })
     setInputText("")
+  }
+
+  const handlePickAttachment = () => {
+    if (isUploadingAttachment) return
+    fileInputRef.current?.click()
+  }
+
+  const handleAttachmentSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+    if (!file || !activeContact) return
+
+    setPendingAttachment((prev) => {
+      if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl)
+      const attachmentType = inferPendingAttachmentType(file)
+      return {
+        file,
+        previewUrl: attachmentType === "image" ? URL.createObjectURL(file) : null,
+        attachmentType,
+      }
+    })
+  }
+
+  const handleInitiateCall = (kind: CallKind) => {
+    if (!activeContact) return
+    onInitiateCall?.(activeContact.id, kind)
   }
 
   const initials = activeContact.name
@@ -135,6 +244,7 @@ export function ChatWindow({ activeContact, messages, onSendMessage, onToggleInf
     .map((n) => n[0])
     .join("")
     .slice(0, 2)
+  const currentUser = getAuthUser()
 
   return (
     <div className="flex flex-1 flex-col bg-[#F9F8F5] relative overflow-hidden border border-[#E8E6E0]/60 rounded-2xl shadow-sm">
@@ -146,13 +256,10 @@ export function ChatWindow({ activeContact, messages, onSendMessage, onToggleInf
         <div className="flex items-center gap-4">
           <div className="relative shrink-0">
             <Avatar className="size-14 border border-slate-100 shadow-2xs relative bg-white">
-              {activeContact.avatar ? (
-                <AvatarImage src={activeContact.avatar} alt={activeContact.name} />
-              ) : (
-                <AvatarFallback className="bg-[#1A5345]/10 text-[#1A5345] font-semibold text-sm">
-                  {initials}
-                </AvatarFallback>
-              )}
+              <AvatarImage src={activeContact.avatar} alt={activeContact.name} />
+              <AvatarFallback className="bg-[#1A5345]/10 text-[#1A5345] font-semibold text-sm">
+                {initials}
+              </AvatarFallback>
             </Avatar>
             {activeContact.online && (
               <span className="absolute bottom-0.5 right-0 size-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />
@@ -160,9 +267,18 @@ export function ChatWindow({ activeContact, messages, onSendMessage, onToggleInf
           </div>
           <div className="flex flex-col gap-0.5">
             <h3 className="text-[17px] font-bold text-[#1A1F1E]">{activeContact.name}</h3>
-            {activeContact.online && (
+            {activeContact.isTyping ? (
+              <p className="flex items-center gap-1 text-[13px] font-medium text-muted-foreground">
+                is typing
+                <span className="flex items-center gap-0.5 ml-0.5">
+                  <span className="size-1 rounded-full bg-muted-foreground/60 animate-bounce" />
+                  <span className="size-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="size-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+                </span>
+              </p>
+            ) : activeContact.online ? (
               <p className="text-[13px] font-medium text-emerald-600">Online</p>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -173,7 +289,20 @@ export function ChatWindow({ activeContact, messages, onSendMessage, onToggleInf
           <button type="button" className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-all duration-200 hover:bg-slate-100 hover:text-[#1A1F1E] cursor-pointer">
             <SearchIcon className="size-5" />
           </button>
-          <button type="button" className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-all duration-200 hover:bg-slate-100 hover:text-[#1A1F1E] cursor-pointer">
+          <button
+            type="button"
+            onClick={() => handleInitiateCall("voice")}
+            className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-all duration-200 hover:bg-slate-100 hover:text-[#1A1F1E] cursor-pointer"
+            aria-label="Start voice call"
+          >
+            <PhoneIcon className="size-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleInitiateCall("video")}
+            className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-all duration-200 hover:bg-slate-100 hover:text-[#1A1F1E] cursor-pointer"
+            aria-label="Start video call"
+          >
             <VideoIcon className="size-5" />
           </button>
           <button type="button" className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-all duration-200 hover:bg-slate-100 hover:text-[#1A1F1E] cursor-pointer">
@@ -193,89 +322,154 @@ export function ChatWindow({ activeContact, messages, onSendMessage, onToggleInf
       {/* Messages */}
       <div ref={scrollRef} className="relative z-0 flex-1 overflow-y-auto px-6 pt-4 pb-32 custom-scrollbar space-y-4">
         {activeMessages.map((msg) => {
-          const isSender = msg.isSender
-          const senderName = isSender ? "John Smith" : activeContact.name
-          const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${senderName.replace(" ", "")}`
+          const callMeta = callMetaFromLabel(msg.text)
+          if (callMeta) {
+            return (
+              <MissedCallEvent
+                key={msg.id}
+                kind={callMeta.kind}
+                direction={callMeta.direction}
+                time={msg.time}
+              />
+            )
+          }
 
-          // Parse special mock text formats
-          const isImages = msg.text === "[IMAGES]"
-          const isFile = msg.text.startsWith("[FILE]")
+          const isSender = msg.isSender
+          const senderName = isSender ? (currentUser?.name ?? "You") : activeContact.name
+          const avatarUrl = isSender ? currentUserAvatar : activeContact.avatar
+          const avatarInitials = nameInitials(senderName)
+
+          const imageAttachments =
+            msg.attachments?.filter((item) => item.attachmentType === "image") ?? []
+          const fileAttachments =
+            msg.attachments?.filter((item) => item.attachmentType === "file") ?? []
+          const hasRealAttachments = Boolean(msg.attachments?.length)
+          const showCaption =
+            Boolean(msg.text?.trim()) && !isAutoAttachmentLabel(msg.text)
+          const showAttachmentPlaceholder =
+            !hasRealAttachments && isAutoAttachmentLabel(msg.text)
 
           return (
             <div key={msg.id} className={`flex w-full mb-6 gap-3 ${isSender ? "justify-end" : "justify-start"}`}>
               {/* Avatar Left (Incoming) */}
               {!isSender && (
                 <div className="relative size-8 shrink-0 pt-1">
-                  <Image
-                    src={avatarUrl}
-                    alt={senderName}
-                    width={32}
-                    height={32}
-                    unoptimized
-                    className="size-8 rounded-full bg-slate-200 object-cover shadow-sm ring-1 ring-black/5"
-                  />
+                  <Avatar className="size-8 border border-slate-100 shadow-sm ring-1 ring-black/5">
+                    <AvatarImage src={avatarUrl} alt={senderName} />
+                    <AvatarFallback className="bg-[#1A5345]/10 text-[#1A5345] text-[10px] font-semibold">
+                      {avatarInitials}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
               )}
 
               {/* Message Column */}
               <div className={`flex flex-col min-w-0 max-w-[75%] ${isSender ? "items-end" : "items-start"}`}>
                 {/* Header */}
-                <div className={`flex items-center justify-between w-full mb-1.5 gap-4 ${isSender ? "flex-row-reverse" : "flex-row"}`}>
+                <div className={`mb-1.5 flex items-center gap-2 ${isSender ? "flex-row-reverse" : "flex-row"}`}>
                   <span className="text-[12px] font-medium text-[#1A1F1E]">{senderName}</span>
-                  <div className={`flex items-center gap-2 ${isSender ? "flex-row-reverse" : "flex-row"}`}>
-                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">{msg.time || "8:55 PM"}</span>
-                  </div>
+                  {canDeleteMessage(msg) && onDeleteMessage ? (
+                    <button
+                      type="button"
+                      onClick={() => void onDeleteMessage(msg.id)}
+                      className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
+                      aria-label="Delete message"
+                    >
+                      <Trash2Icon className="size-3.5" />
+                    </button>
+                  ) : null}
                 </div>
 
                 {/* Content rendering */}
-                {isImages ? (
-                  <div className="flex gap-1.5 max-w-[320px]">
-                    {Array.from({ length: 2 }).map((_, i) => (
-                      <div
-                        key={`img-${i}`}
-                        className="group relative h-[140px] w-[150px] overflow-hidden rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 shadow-sm transition-transform duration-300 hover:scale-[1.02] hover:shadow-md cursor-pointer border border-[#E8E6E0]"
-                      >
-                        <div className="size-full bg-gradient-to-br from-slate-300/40 via-slate-200/40 to-slate-400/40 flex items-center justify-center text-muted-foreground/50 backdrop-blur-sm">
-                          <svg className="size-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                            <rect x="3" y="3" width="18" height="18" rx="2" />
-                            <circle cx="8.5" cy="8.5" r="1.5" />
-                            <path d="m21 15-5-5L5 21" />
-                          </svg>
-                        </div>
+                {hasRealAttachments ? (
+                  <div className="flex flex-col gap-2">
+                    {imageAttachments.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 max-w-[320px]">
+                        {imageAttachments.map((attachment) => {
+                          const imageUrl = resolveChatAttachmentUrl(attachment.url)
+                          return (
+                          <button
+                            key={attachment.id}
+                            type="button"
+                            onClick={() =>
+                              setPreviewImage({
+                                url: imageUrl,
+                                fileName: attachment.fileName,
+                              })
+                            }
+                            className="group relative h-[140px] w-[150px] overflow-hidden rounded-xl border border-[#E8E6E0] bg-white shadow-sm transition-transform duration-300 hover:scale-[1.02] hover:shadow-md cursor-pointer"
+                            aria-label={`Open image ${attachment.fileName}`}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={imageUrl}
+                              alt={attachment.fileName}
+                              className="size-full object-cover"
+                            />
+                          </button>
+                          )
+                        })}
                       </div>
-                    ))}
-                  </div>
-                ) : isFile ? (
-                  (() => {
-                    const clean = msg.text.replace("[FILE]", "")
-                    const [fileName, fileSize] = clean.split("|")
-                    return (
-                      <div className="group flex items-center gap-3 rounded-xl border border-[#E5EEEA] bg-white px-4 py-3 max-w-[280px] shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#1A5345]/20 cursor-pointer">
+                    ) : null}
+                    {fileAttachments.map((attachment) => (
+                      <a
+                        key={attachment.id}
+                        href={resolveChatAttachmentUrl(attachment.url)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group flex items-center gap-3 rounded-xl border border-[#E5EEEA] bg-white px-4 py-3 max-w-[280px] shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#1A5345]/20"
+                      >
                         <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#F5F5F3] group-hover:bg-[#1A5345]/10">
                           <FileIcon className="size-5 text-[#6B7870] group-hover:text-[#1A5345]" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[13px] font-semibold text-[#1A1F1E]">{fileName}</p>
-                          <p className="text-[11px] text-muted-foreground">{fileSize}</p>
+                          <p className="truncate text-[13px] font-semibold text-[#1A1F1E]">
+                            {attachment.fileName}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {formatFileSize(attachment.sizeBytes)}
+                          </p>
                         </div>
-                        <button type="button" className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-[#1A5345]/10 hover:text-[#1A5345] cursor-pointer">
-                          <DownloadIcon className="size-4" />
-                        </button>
+                        <DownloadIcon className="size-4 shrink-0 text-muted-foreground group-hover:text-[#1A5345]" />
+                      </a>
+                    ))}
+                    {showCaption ? (
+                      <div
+                        className={`relative w-fit max-w-full min-w-[120px] px-4 pt-2.5 pb-6 text-[14px] leading-relaxed shadow-sm ${
+                          isSender
+                            ? "bg-[#EEF2F6] rounded-2xl rounded-tr-xs text-[#1A1F1E]"
+                            : "bg-white border border-[#E8E6E0]/80 rounded-2xl rounded-tl-xs text-[#1A1F1E]"
+                        }`}
+                      >
+                        <p className="break-words [overflow-wrap:anywhere] whitespace-pre-wrap pr-12">
+                          {msg.text}
+                        </p>
+                        <span className="absolute bottom-1.5 right-3 text-[11px] text-muted-foreground whitespace-nowrap">
+                          {msg.time}
+                        </span>
                       </div>
-                    )
-                  })()
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground px-1">{msg.time}</span>
+                    )}
+                  </div>
+                ) : showAttachmentPlaceholder ? (
+                  <div className="flex h-[140px] w-[150px] items-center justify-center rounded-xl border border-dashed border-[#E8E6E0] bg-white text-[12px] text-muted-foreground">
+                    Loading attachment...
+                  </div>
                 ) : (
                   <div
-                    className={`max-w-[480px] px-4 py-2.5 text-[14px] leading-relaxed shadow-sm transition-all duration-200 ${
-                      // Colored red text for the specific mock message
-                      msg.id === "mock-m5" ? "text-red-500 font-medium bg-[#EEF2F6]" : ""
-                    } ${
-                      !isSender && msg.id !== "mock-m5" ? "bg-white border border-[#E8E6E0]/80 rounded-2xl rounded-tl-xs text-[#1A1F1E]" : ""
-                    } ${
-                      isSender && msg.id !== "mock-m5" ? "bg-[#EEF2F6] rounded-2xl rounded-tr-xs text-[#1A1F1E]" : ""
+                    className={`relative w-fit max-w-full min-w-[120px] px-4 pt-2.5 pb-6 text-[14px] leading-relaxed shadow-sm transition-all duration-200 ${
+                      !isSender
+                        ? "bg-white border border-[#E8E6E0]/80 rounded-2xl rounded-tl-xs text-[#1A1F1E]"
+                        : "bg-[#EEF2F6] rounded-2xl rounded-tr-xs text-[#1A1F1E]"
                     }`}
                   >
-                    {msg.text}
+                    <p className="break-words [overflow-wrap:anywhere] whitespace-pre-wrap pr-12">
+                      {msg.text}
+                    </p>
+                    <span className="absolute bottom-1.5 right-3 text-[11px] text-muted-foreground whitespace-nowrap">
+                      {msg.time}
+                    </span>
                   </div>
                 )}
               </div>
@@ -283,14 +477,12 @@ export function ChatWindow({ activeContact, messages, onSendMessage, onToggleInf
               {/* Avatar Right (Outgoing) */}
               {isSender && (
                 <div className="relative size-8 shrink-0 pt-1">
-                  <Image
-                    src={avatarUrl}
-                    alt={senderName}
-                    width={32}
-                    height={32}
-                    unoptimized
-                    className="size-8 rounded-full bg-slate-200 object-cover shadow-sm ring-1 ring-black/5"
-                  />
+                  <Avatar className="size-8 border border-slate-100 shadow-sm ring-1 ring-black/5">
+                    <AvatarImage src={avatarUrl} alt={senderName} />
+                    <AvatarFallback className="bg-[#1A5345]/10 text-[#1A5345] text-[10px] font-semibold">
+                      {avatarInitials}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
               )}
             </div>
@@ -300,21 +492,73 @@ export function ChatWindow({ activeContact, messages, onSendMessage, onToggleInf
 
       {/* Input */}
       <div className="absolute bottom-0 left-0 right-0 z-10 px-6 pb-6 pt-16 bg-gradient-to-t from-[#F9F8F5] via-[#F9F8F5]/95 to-transparent pointer-events-none">
+        <div className="pointer-events-auto mx-auto max-w-4xl flex flex-col gap-2">
+          {pendingAttachment ? (
+            <div className="flex items-center gap-3 rounded-2xl border border-[#E5EEEA]/80 bg-white px-3 py-2.5 shadow-sm">
+              {pendingAttachment.previewUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={pendingAttachment.previewUrl}
+                  alt={pendingAttachment.file.name}
+                  className="size-14 shrink-0 rounded-lg object-cover border border-[#E8E6E0]"
+                />
+              ) : (
+                <div className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-[#F5F5F3] border border-[#E8E6E0]">
+                  <FileIcon className="size-6 text-[#6B7870]" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-semibold text-[#1A1F1E]">
+                  {pendingAttachment.file.name}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {pendingAttachment.attachmentType === "image"
+                    ? "Add a caption, then press send"
+                    : "Add a message (optional), then press send"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={clearPendingAttachment}
+                disabled={isUploadingAttachment}
+                className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer disabled:opacity-50"
+                aria-label="Remove attachment"
+              >
+                <XIcon className="size-4" />
+              </button>
+            </div>
+          ) : null}
+
         <form
           onSubmit={handleSubmit}
-          className="pointer-events-auto mx-auto max-w-4xl flex items-center gap-2 rounded-full border border-[#E5EEEA]/80 bg-white px-2 py-1.5 shadow-[0_8px_30px_rgba(26,83,69,0.06)] transition-all duration-300 focus-within:border-[#1A5345]/40 focus-within:ring-4 focus-within:ring-[#1A5345]/10 hover:border-[#1A5345]/30"
+          className="flex items-center gap-2 rounded-full border border-[#E5EEEA]/80 bg-white px-2 py-1.5 shadow-[0_8px_30px_rgba(26,83,69,0.06)] transition-all duration-300 focus-within:border-[#1A5345]/40 focus-within:ring-4 focus-within:ring-[#1A5345]/10 hover:border-[#1A5345]/30"
         >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={CHAT_ATTACHMENT_ACCEPT}
+            className="hidden"
+            onChange={handleAttachmentSelected}
+          />
           <button
             type="button"
-            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1A5345]/10 text-[#1A5345] transition-all duration-200 hover:bg-[#1A5345] hover:text-white cursor-pointer"
+            onClick={handlePickAttachment}
+            disabled={isUploadingAttachment}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1A5345]/10 text-[#1A5345] transition-all duration-200 hover:bg-[#1A5345] hover:text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
           >
             <PlusIcon className="size-5" />
           </button>
 
           <input
             value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Write your message..."
+            onChange={(e) => handleInputChange(e.target.value)}
+            placeholder={
+              pendingAttachment
+                ? pendingAttachment.attachmentType === "image"
+                  ? "Add a caption..."
+                  : "Add a message..."
+                : "Write your message..."
+            }
             className="flex-1 bg-transparent py-2.5 px-3 text-[15px] outline-none placeholder:text-muted-foreground/60 font-medium text-[#1A1F1E]"
           />
 
@@ -333,12 +577,86 @@ export function ChatWindow({ activeContact, messages, onSendMessage, onToggleInf
             </button>
             <button
               type="submit"
-              className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1A5345] to-[#0F3D32] text-white shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 cursor-pointer"
+              disabled={isUploadingAttachment || (!inputText.trim() && !pendingAttachment)}
+              className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1A5345] to-[#0F3D32] text-white shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             >
               <SendIcon className="size-[18px] ml-0.5" />
             </button>
           </div>
         </form>
+        </div>
+      </div>
+
+      {previewImage ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          onClick={() => setPreviewImage(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image preview"
+        >
+          <button
+            type="button"
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-4 right-4 flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 cursor-pointer"
+            aria-label="Close image preview"
+          >
+            <XIcon className="size-5" />
+          </button>
+          <div
+            className="flex max-h-[90vh] max-w-[min(92vw,1100px)] flex-col items-center gap-3"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="max-w-full truncate px-2 text-center text-sm text-white/80">
+              {previewImage.fileName}
+            </p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewImage.url}
+              alt={previewImage.fileName}
+              className="max-h-[78vh] w-auto max-w-full rounded-lg object-contain shadow-2xl"
+            />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function MissedCallEvent({
+  kind,
+  direction,
+  time,
+}: {
+  kind: CallKind
+  direction: "outgoing" | "incoming"
+  time: string
+}) {
+  const Icon = kind === "video" ? VideoIcon : PhoneIcon
+  const isOutgoing = direction === "outgoing"
+  const label =
+    kind === "video"
+      ? isOutgoing
+        ? "You tried a video call"
+        : "Missed video call"
+      : isOutgoing
+        ? "You tried a call"
+        : "Missed call"
+
+  return (
+    <div className="flex justify-center py-2">
+      <div className="flex flex-col items-center gap-1">
+        <div
+          className={`inline-flex items-center gap-2 rounded-full border bg-white px-4 py-2 text-[13px] font-semibold shadow-sm ${
+            isOutgoing
+              ? "border-[#E8E6E0] text-[#6B7870]"
+              : "border-[#F5D0D6] text-[#E8345E]"
+          }`}
+        >
+          <Icon className="size-4 shrink-0" strokeWidth={2} />
+          {label}
+        </div>
+        {time ? <span className="text-[11px] font-medium text-muted-foreground">{time}</span> : null}
       </div>
     </div>
   )
