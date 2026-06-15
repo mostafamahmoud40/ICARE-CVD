@@ -23,8 +23,9 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { LanguageSwitcher } from "@/components/shared/language-switcher"
 import { DoctorHeaderSearch } from "./DoctorHeaderSearch"
+import { DoctorNotificationsDropdown } from "./doctor-notifications/DoctorNotificationsDropdown"
 import { fetchDoctorAccount } from "./doctor-account/doctorAccount.api"
 import {
   getDoctorHeaderProfileSnapshot,
@@ -151,6 +152,18 @@ const ROUTES: RouteEntry[] = [
     icon: MessageCircleIcon,
   },
   {
+    match: (p) => p === "/doctor-account/notifications",
+    title: "Notifications",
+    subtitle: "Alerts and updates for your practice",
+    icon: BellIcon,
+  },
+  {
+    match: (p) => p === "/doctor-account",
+    title: "Account",
+    subtitle: "Profile and practice settings",
+    icon: User2Icon,
+  },
+  {
     match: (p) => p === "/doctor-dashboard",
     title: "Doctor dashboard",
     subtitle: "Overview & patient insights",
@@ -254,18 +267,9 @@ export function DoctorInsetHeader({ user, logout }: DoctorInsetHeaderProps) {
       <DoctorHeaderSearch />
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          asChild
-          className="relative size-9 rounded-xl text-[#6B7870] hover:bg-[#F9F8F5] hover:text-[#1A5345]"
-        >
-          <Link href="/doctor-account/notifications" aria-label="Notifications">
-            <BellIcon className="size-[18px]" strokeWidth={2} />
-            <span className="absolute right-2 top-2 size-2 rounded-full bg-[#CC5533] ring-2 ring-white" />
-          </Link>
-        </Button>
+        <LanguageSwitcher />
+
+        <DoctorNotificationsDropdown />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
