@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { count, desc, eq, gte, lt, ne, and } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import { appointment, doctor, patient, user } from '../../database/schema';
@@ -15,6 +16,8 @@ import type {
 import { AppointmentService } from '../appointment/appointment.service';
 
 type DoctorRow = { id: string; name: string; specialty: string | null; avatarUrl: string | null };
+
+const doctorUser = alias(user, 'doctor_user');
 
 @Injectable()
 export class AssistantAppointmentService {
@@ -74,13 +77,17 @@ export class AssistantAppointmentService {
         patientEmail: user.email,
         patientDateOfBirth: patient.dateOfBirth,
         patientGender: patient.gender,
+        patientAvatarUrl: patient.avatarUrl,
+        patientUserAvatarUrl: user.avatarUrl,
         doctorId: doctor.id,
         doctorSpecialty: doctor.specialty,
+        doctorAvatarUrl: doctorUser.avatarUrl,
       })
       .from(appointment)
       .innerJoin(patient, eq(appointment.patientId, patient.id))
       .innerJoin(user, eq(patient.userId, user.id))
       .innerJoin(doctor, eq(appointment.doctorId, doctor.id))
+      .innerJoin(doctorUser, eq(doctor.userId, doctorUser.id))
       .orderBy(desc(appointment.scheduledAt));
 
     const doctorIdSet = new Set(rows.map((r) => r.doctorId));
@@ -95,8 +102,13 @@ export class AssistantAppointmentService {
       patientEmail: row.patientEmail,
       patientAge: this.computeAge(row.patientDateOfBirth),
       patientGender: row.patientGender,
+      patientAvatarUrl: this.resolveAvatarUrl(
+        row.patientAvatarUrl,
+        row.patientUserAvatarUrl,
+      ),
       doctorId: row.doctorId,
       doctorName: doctorNames.get(row.doctorId) ?? 'Unknown',
+      doctorAvatarUrl: this.resolveAvatarUrl(row.doctorAvatarUrl, null),
       department: row.doctorSpecialty ?? 'Cardiology',
       scheduledAt: row.scheduledAt.toISOString(),
       visitType: row.visitType,
@@ -126,13 +138,17 @@ export class AssistantAppointmentService {
         patientEmail: user.email,
         patientDateOfBirth: patient.dateOfBirth,
         patientGender: patient.gender,
+        patientAvatarUrl: patient.avatarUrl,
+        patientUserAvatarUrl: user.avatarUrl,
         doctorId: doctor.id,
         doctorSpecialty: doctor.specialty,
+        doctorAvatarUrl: doctorUser.avatarUrl,
       })
       .from(appointment)
       .innerJoin(patient, eq(appointment.patientId, patient.id))
       .innerJoin(user, eq(patient.userId, user.id))
       .innerJoin(doctor, eq(appointment.doctorId, doctor.id))
+      .innerJoin(doctorUser, eq(doctor.userId, doctorUser.id))
       .where(eq(appointment.id, appointmentId))
       .limit(1);
 
@@ -151,7 +167,12 @@ export class AssistantAppointmentService {
       patientEmail: a.patientEmail,
       patientAge: this.computeAge(a.patientDateOfBirth),
       patientGender: a.patientGender,
+      patientAvatarUrl: this.resolveAvatarUrl(
+        a.patientAvatarUrl,
+        a.patientUserAvatarUrl,
+      ),
       doctorName: doctorNames.get(a.doctorId) ?? 'Unknown',
+      doctorAvatarUrl: this.resolveAvatarUrl(a.doctorAvatarUrl, null),
       department: a.doctorSpecialty ?? 'Cardiology',
       scheduledAt: a.scheduledAt.toISOString(),
       visitType: a.visitType,
@@ -411,15 +432,32 @@ export class AssistantAppointmentService {
   }
 
   async listPatients() {
-    return this.db
+    const rows = await this.db
       .select({
         id: patient.id,
         name: user.name,
         phone: user.phone,
+        patientAvatarUrl: patient.avatarUrl,
+        userAvatarUrl: user.avatarUrl,
       })
       .from(patient)
       .innerJoin(user, eq(patient.userId, user.id))
       .where(eq(user.role, 'patient'));
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      phone: row.phone,
+      avatarUrl: this.resolveAvatarUrl(row.patientAvatarUrl, row.userAvatarUrl),
+    }));
+  }
+
+  private resolveAvatarUrl(
+    primary: string | null | undefined,
+    fallback: string | null | undefined,
+  ): string | null {
+    const value = primary?.trim() || fallback?.trim() || null;
+    return value || null;
   }
 
   private async batchDoctorNames(

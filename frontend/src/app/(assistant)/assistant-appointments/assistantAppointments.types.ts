@@ -35,7 +35,9 @@ export type AssistantAppointment = {
   patientEmail: string
   patientAge?: number | null
   patientGender?: AssistantPatientGender | null
+  patientAvatarUrl?: string | null
   doctorName: string
+  doctorAvatarUrl?: string | null
   department: string
   scheduledAt: string
   visitType: AssistantAppointmentVisitType
@@ -71,6 +73,7 @@ export type DoctorOption = {
   id: string
   name: string | null
   specialty: string | null
+  avatarUrl?: string | null
 }
 
 export type AvailableSlotOption = {
@@ -82,6 +85,7 @@ export type PatientOption = {
   id: string
   name: string | null
   phone: string | null
+  avatarUrl?: string | null
 }
 
 export type CreateAppointmentPayload = {

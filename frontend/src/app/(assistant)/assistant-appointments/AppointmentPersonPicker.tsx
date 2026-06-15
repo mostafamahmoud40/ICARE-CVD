@@ -7,12 +7,13 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { AssistantProfileAvatar } from "@/app/(assistant)/AssistantProfileAvatar"
 
 export type AppointmentPersonPickerItem = {
   id: string
   name: string
   subtitle: string | null
-  avatarSrc: string
+  avatarUrl?: string | null
   /** Extra text used only for search (e.g. phone); never shown in the UI */
   searchMatch?: string | null
 }
@@ -106,10 +107,12 @@ export function AppointmentPersonPicker({
           >
             {selected ? (
               <span className="flex min-h-12 min-w-0 flex-1 items-center gap-3">
-                <img
-                  src={selected.avatarSrc}
-                  alt=""
-                  className="size-10 shrink-0 rounded-full border border-[#E8E6E0]/80 bg-[#F9F8F5] object-cover"
+                <AssistantProfileAvatar
+                  name={selected.name}
+                  avatarUrl={selected.avatarUrl}
+                  className="size-10 shrink-0 rounded-full border border-[#E8E6E0]/80"
+                  sizes="40px"
+                  initialsClassName="text-[12px]"
                 />
                 <span className="min-w-0 flex-1 text-left">
                   <span className="block truncate font-serif text-[15px] font-bold leading-tight text-[#1A1F1E]">
@@ -192,10 +195,12 @@ export function AppointmentPersonPicker({
                     isSel ? "bg-[#E0E7E1]" : "hover:bg-[#E8F0EE]/70"
                   )}
                 >
-                  <img
-                    src={item.avatarSrc}
-                    alt=""
-                    className="size-10 shrink-0 rounded-full border border-[#E8E6E0]/70 bg-[#F9F8F5] object-cover"
+                  <AssistantProfileAvatar
+                    name={item.name}
+                    avatarUrl={item.avatarUrl}
+                    className="size-10 shrink-0 rounded-full border border-[#E8E6E0]/70"
+                    sizes="40px"
+                    initialsClassName="text-[12px]"
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-serif text-[15px] font-bold leading-tight text-[#1A1F1E]">

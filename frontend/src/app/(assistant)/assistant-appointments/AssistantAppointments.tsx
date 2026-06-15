@@ -90,6 +90,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { showIcareToast } from "@/components/shared/icare-toast"
+import { AssistantProfileAvatar } from "@/app/(assistant)/AssistantProfileAvatar"
 
 import type {
   AssistantAppointment,
@@ -218,14 +219,6 @@ function formatAppointmentDate(value: string): string {
   }).format(new Date(value))
 }
 
-function getAvatarUrl(name: unknown, idFallback: unknown): string {
-  const fromName =
-    typeof name === "string" ? name.trim() : name != null ? String(name).trim() : ""
-  const fromId = idFallback != null && idFallback !== "" ? String(idFallback) : ""
-  const raw = (fromName || fromId || "x").replace(/\s+/g, "")
-  return `https://i.pravatar.cc/150?u=${encodeURIComponent(raw)}`
-}
-
 function pickerDisplayName(name: unknown, fallback: string): string {
   const s =
     typeof name === "string" ? name.trim() : name != null ? String(name).trim() : ""
@@ -297,7 +290,7 @@ export function AssistantAppointments({
         id: String(p.id),
         name: pickerDisplayName(p.name, "Unnamed patient"),
         subtitle: p.phone != null ? String(p.phone) : null,
-        avatarSrc: getAvatarUrl(p.name, p.id),
+        avatarUrl: p.avatarUrl,
       })),
     [patients],
   )
@@ -308,7 +301,7 @@ export function AssistantAppointments({
         id: String(d.id),
         name: pickerDisplayName(d.name, "Unnamed doctor"),
         subtitle: d.specialty != null ? String(d.specialty) : null,
-        avatarSrc: getAvatarUrl(d.name, d.id),
+        avatarUrl: d.avatarUrl,
       })),
     [doctors],
   )
@@ -674,13 +667,13 @@ export function AssistantAppointments({
                       <tr key={appointment.id} className="group cursor-pointer border-t border-[#E8E6E0]/40 transition-colors hover:bg-[#F9F8F5]/50">
                         <td className="py-4 pr-4 pl-4 align-middle">
                           <div className="flex items-start gap-3">
-                             <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
-                                <img 
-                                  src={getAvatarUrl(appointment.patientName, appointment.id)} 
-                                  alt="" 
-                                  className="size-full object-cover"
-                                />
-                             </div>
+                             <AssistantProfileAvatar
+                                name={appointment.patientName}
+                                avatarUrl={appointment.patientAvatarUrl}
+                                className="size-11 shrink-0 rounded-full border border-[#E8E6E0]/60"
+                                sizes="44px"
+                                initialsClassName="text-[13px]"
+                             />
                              <div className="min-w-0">
                                 <p className="truncate font-serif text-[15px] font-bold leading-snug text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">
                                   {appointment.patientName}
@@ -696,13 +689,13 @@ export function AssistantAppointments({
                         </td>
                         <td className="py-4 px-4 align-middle">
                            <div className="flex items-center gap-2.5">
-                              <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1A5345]/10 bg-[#E5EEEA]">
-                                 <img 
-                                   src={getAvatarUrl(appointment.doctorName, appointment.doctorId ?? appointment.id)} 
-                                   alt="" 
-                                   className="size-full object-cover"
-                                 />
-                              </div>
+                              <AssistantProfileAvatar
+                                 name={appointment.doctorName}
+                                 avatarUrl={appointment.doctorAvatarUrl}
+                                 className="size-8 shrink-0 rounded-full border border-[#1A5345]/10"
+                                 sizes="32px"
+                                 initialsClassName="text-[10px]"
+                              />
                               <p className="truncate text-[14px] font-bold text-[#1A1F1E]">{appointment.doctorName}</p>
                            </div>
                         </td>
@@ -859,17 +852,20 @@ export function AssistantAppointments({
                                              onClick={(e) => e.stopPropagation()} 
                                              className="relative transition-transform hover:scale-110 active:scale-95"
                                            >
-                                              <div className={cn(
-                                                "size-8 rounded-full border-2 border-white ring-1 ring-black/5 overflow-hidden shadow-sm",
-                                                app.status === 'confirmed' ? "ring-[#1A5345]/30" : 
-                                                app.status === 'cancelled' ? "ring-red-300" : "ring-amber-200"
-                                              )}>
-                                                <img
-                                                  src={getAvatarUrl(app.patientName, app.id)}
-                                                  alt={app.patientName ?? ""}
-                                                  className="size-full object-cover"
-                                                />
-                                              </div>
+                                              <AssistantProfileAvatar
+                                                name={app.patientName}
+                                                avatarUrl={app.patientAvatarUrl}
+                                                className={cn(
+                                                  "size-8 rounded-full border-2 border-white ring-1 ring-black/5 shadow-sm",
+                                                  app.status === "confirmed"
+                                                    ? "ring-[#1A5345]/30"
+                                                    : app.status === "cancelled"
+                                                      ? "ring-red-300"
+                                                      : "ring-amber-200",
+                                                )}
+                                                sizes="32px"
+                                                initialsClassName="text-[10px]"
+                                              />
                                            </button>
                                         </PopoverTrigger>
                                         <PopoverContent 
@@ -877,13 +873,13 @@ export function AssistantAppointments({
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                            <div className="flex items-start gap-3">
-                                              <div className="size-10 rounded-full bg-[#F3F4F6] overflow-hidden shrink-0">
-                                                 <img
-                                                   src={getAvatarUrl(app.patientName, app.id)}
-                                                   alt=""
-                                                   className="size-full"
-                                                 />
-                                              </div>
+                                              <AssistantProfileAvatar
+                                                 name={app.patientName}
+                                                 avatarUrl={app.patientAvatarUrl}
+                                                 className="size-10 shrink-0 rounded-full"
+                                                 sizes="40px"
+                                                 initialsClassName="text-[12px]"
+                                              />
                                               <div className="min-w-0">
                                                  <p className="text-[14px] font-bold text-[#1A1F1E] truncate">{app.patientName}</p>
                                                  <p className="text-[11px] font-bold text-muted-foreground mt-0.5">{formatLocalTimeRangeAmPm(app.scheduledAt)} · {app.doctorName}</p>
@@ -965,13 +961,13 @@ export function AssistantAppointments({
                                         className="flex w-full items-center gap-3 rounded-lg border border-[#E8E6E0] bg-white p-2.5 text-left transition-colors hover:bg-[#FAFAF9]"
                                      >
                                         <div className="relative shrink-0">
-                                           <div className="size-10 overflow-hidden rounded-md border border-[#E8E6E0] bg-[#F9F8F5]">
-                                              <img
-                                                 src={getAvatarUrl(app.patientName, app.id)}
-                                                 alt=""
-                                                 className="size-full object-cover"
-                                              />
-                                           </div>
+                                           <AssistantProfileAvatar
+                                              name={app.patientName}
+                                              avatarUrl={app.patientAvatarUrl}
+                                              className="size-10 rounded-md border border-[#E8E6E0]"
+                                              sizes="40px"
+                                              initialsClassName="text-[12px]"
+                                           />
                                            <span
                                               className="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-[#1A1F1E] text-white ring-2 ring-white"
                                               title={
@@ -1023,13 +1019,13 @@ export function AssistantAppointments({
                <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-4 sm:px-6">
                   <div className="flex items-center justify-between gap-3">
                      <div className="flex items-center gap-3">
-                        <div className="relative size-11 shrink-0 overflow-hidden rounded-full border border-[#E8E6E0] bg-white shadow-sm">
-                           <img 
-                              src={getAvatarUrl(selectedAppointment.patientName, selectedAppointment.id)} 
-                              alt=""
-                              className="size-full object-cover"
-                           />
-                        </div>
+                        <AssistantProfileAvatar
+                           name={selectedAppointment.patientName}
+                           avatarUrl={selectedAppointment.patientAvatarUrl}
+                           className="size-11 shrink-0 rounded-full border border-[#E8E6E0] shadow-sm"
+                           sizes="44px"
+                           initialsClassName="text-[13px]"
+                        />
                         <div className="min-w-0">
                            <DialogTitle className="font-serif text-[18px] font-bold leading-tight tracking-tight text-[#1A1F1E]">
                               {selectedAppointment.patientName}
