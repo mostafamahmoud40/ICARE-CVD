@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { SearchIcon, PlusIcon, Loader2Icon, PhoneIcon, UsersIcon } from "lucide-react"
+import { SearchIcon, PlusIcon, Loader2Icon, PhoneIcon, UsersIcon, ImageIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -14,6 +14,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { fetchDirectory, createOrGetConversation } from "./chat-api"
+import { resolveChatAvatarUrl } from "./chat-avatar"
+import { MISSED_VIDEO_CALL_LABEL, MISSED_VOICE_CALL_LABEL, OUTGOING_VIDEO_CALL_LABEL, OUTGOING_VOICE_CALL_LABEL, INCOMING_VIDEO_RING_LABEL, INCOMING_VOICE_RING_LABEL, OUTGOING_RING_LABEL } from "./chat-call"
+import {
+  CHAT_LAST_MESSAGE_DOCUMENT,
+  CHAT_LAST_MESSAGE_PHOTO,
+  isDocumentLastMessagePreview,
+  isPhotoLastMessagePreview,
+} from "./chat-message-preview"
 import type { ChatContact } from "./chat.types"
 import { getAuthUser } from "@/lib/auth-tokens"
 
@@ -25,79 +33,6 @@ interface ChatSidebarProps {
 }
 
 type FilterTab = "chat" | "call" | "contacts"
-
-const MOCK_SIDEBAR_CONTACTS: ChatContact[] = [
-  {
-    id: "mock-anthony",
-    name: "Anthony Lewis",
-    role: "Doctor",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=AnthonyLewis",
-    lastMessage: "is typing...",
-    time: "02:40 PM",
-    unread: 0,
-    online: true,
-  },
-  {
-    id: "mock-elliot",
-    name: "Elliot Murray",
-    role: "Assistant",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=ElliotMurray",
-    lastMessage: "Document",
-    time: "06:12 AM",
-    unread: 0,
-    online: true,
-  },
-  {
-    id: "mock-stephan",
-    name: "Stephan Peralt",
-    role: "Doctor",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=StephanPeralt",
-    lastMessage: "Missed Video Call",
-    time: "03:15 AM",
-    unread: 0,
-    online: false,
-  },
-  {
-    id: "mock-rebecca",
-    name: "Rebecca Smith",
-    role: "Patient",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=RebeccaSmith",
-    lastMessage: "Hi How are you 🔥",
-    time: "Sunday",
-    unread: 25,
-    online: true,
-  },
-  {
-    id: "mock-harvey",
-    name: "Harvey Smith",
-    role: "Doctor",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=HarveySmith",
-    lastMessage: "Haha oh man 🔥",
-    time: "03:15 AM",
-    unread: 12,
-    online: true,
-  },
-  {
-    id: "mock-lori",
-    name: "Lori Broaddus",
-    role: "Assistant",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=LoriBroaddus",
-    lastMessage: "Do you know which...",
-    time: "02:40 PM",
-    unread: 0,
-    online: true,
-  },
-  {
-    id: "mock-brian",
-    name: "Brian Villalobos",
-    role: "Patient",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=BrianVillalobos",
-    lastMessage: "Do you know which...",
-    time: "06:12 AM",
-    unread: 0,
-    online: true,
-  },
-]
 
 export function ChatSidebar({
   contacts,
@@ -119,29 +54,19 @@ export function ChatSidebar({
     staleTime: 60_000,
   })
 
-  // Blend backend contacts and mock contacts together
-  const allContactsMap = new Map<string, ChatContact>()
-  
-  // 1. Add mock contacts
-  MOCK_SIDEBAR_CONTACTS.forEach((c) => allContactsMap.set(c.id, c))
-  // 2. Add real backend contacts (overwrite or append)
-  contacts.forEach((c) => allContactsMap.set(c.id, c))
-  
-  const allContactsList = Array.from(allContactsMap.values())
-
-  // Filter contacts by search query
-  const filteredContacts = allContactsList.filter((c) =>
-    c.name.toLowerCase().includes(filterSearch.toLowerCase()) ||
-    (c.lastMessage && c.lastMessage.toLowerCase().includes(filterSearch.toLowerCase()))
+  const filteredContacts = contacts.filter(
+    (c) =>
+      c.name.toLowerCase().includes(filterSearch.toLowerCase()) ||
+      (c.lastMessage && c.lastMessage.toLowerCase().includes(filterSearch.toLowerCase())),
   )
 
-  // Split into Favorites (top 5) and Direct Messages (rest)
-  const favorites = filteredContacts.slice(0, 5)
-  const directMessages = filteredContacts.slice(5)
-
-  const filteredDirectory = (directoryQuery.data ?? []).filter((u) =>
-    u.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredDirectory = (directoryQuery.data ?? []).filter((u) => {
+    const q = searchQuery.toLowerCase()
+    return (
+      u.name.toLowerCase().includes(q) ||
+      (u.specialty?.toLowerCase().includes(q) ?? false)
+    )
+  })
 
   const createConversationMutation = useMutation({
     mutationFn: async (profileId: string) => {
@@ -225,6 +150,10 @@ export function ChatSidebar({
                       >
                         <div className="relative shrink-0">
                           <Avatar className="size-10 border border-slate-100 shadow-2xs relative bg-white">
+                            <AvatarImage
+                              src={resolveChatAvatarUrl(u.avatarUrl)}
+                              alt={u.name}
+                            />
                             <AvatarFallback className="bg-[#1A5345]/10 text-[#1A5345] font-bold text-sm">
                               {u.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                             </AvatarFallback>
@@ -232,7 +161,11 @@ export function ChatSidebar({
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="truncate font-bold text-[14px] text-[#1A1F1E]">{u.name}</p>
-                          <p className="truncate text-[11px] text-muted-foreground capitalize mt-0.5">{u.role}</p>
+                          <p className="truncate text-[11px] text-muted-foreground mt-0.5">
+                            {u.role === "doctor" && u.specialty
+                              ? u.specialty
+                              : u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                          </p>
                         </div>
                         {isPending && <Loader2Icon className="size-4 animate-spin shrink-0 text-muted-foreground" />}
                       </button>
@@ -282,31 +215,25 @@ export function ChatSidebar({
 
       {/* Contact Lists */}
       <div className="flex-1 overflow-y-auto px-2 custom-scrollbar">
-        {/* Favourites Section */}
-        <SectionHeader title="Favourite" onAdd={() => setIsDialogOpen(true)} />
-        <div className="flex flex-col pb-4">
-          {favorites.map((contact) => (
-            <ContactRowItem
-              key={contact.id}
-              contact={contact}
-              isActive={activeContactId === contact.id}
-              onClick={() => onSelectContact(contact.id)}
-            />
-          ))}
-        </div>
-
-        {/* Direct Messages Section */}
-        <SectionHeader title="Direct Messages" onAdd={() => setIsDialogOpen(true)} />
-        <div className="flex flex-col pb-6">
-          {directMessages.map((contact) => (
-            <ContactRowItem
-              key={contact.id}
-              contact={contact}
-              isActive={activeContactId === contact.id}
-              onClick={() => onSelectContact(contact.id)}
-            />
-          ))}
-        </div>
+        {filteredContacts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
+            <p className="text-[14px] font-semibold text-[#1A1F1E]">No conversations yet</p>
+            <p className="mt-2 max-w-[220px] text-[12px] text-muted-foreground">
+              Start a new chat with the + button to message a doctor or patient.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col pb-6">
+            {filteredContacts.map((contact) => (
+              <ContactRowItem
+                key={contact.id}
+                contact={contact}
+                isActive={activeContactId === contact.id}
+                onClick={() => onSelectContact(contact.id)}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -339,28 +266,6 @@ function FilterTabButton({
   )
 }
 
-function SectionHeader({
-  title,
-  onAdd,
-}: {
-  title: string
-  onAdd: () => void
-}) {
-  return (
-    <div className="flex items-center justify-between px-3 py-2">
-      <span className="text-[12px] font-semibold text-[#6B7870]">{title}</span>
-      <button
-        type="button"
-        onClick={onAdd}
-        className="flex size-6 items-center justify-center rounded-md text-muted-foreground transition-all duration-200 hover:bg-[#1A5345]/10 hover:text-[#1A5345] cursor-pointer"
-        aria-label={`Add to ${title}`}
-      >
-        <PlusIcon className="size-3.5" />
-      </button>
-    </div>
-  )
-}
-
 function ContactRowItem({
   contact,
   isActive,
@@ -370,9 +275,16 @@ function ContactRowItem({
   isActive: boolean
   onClick: () => void
 }) {
-  const isTyping = contact.lastMessage === "is typing..."
-  const isDocument = contact.lastMessage === "Document"
-  const isMissedCall = contact.lastMessage === "Missed Video Call"
+  const isTyping = contact.isTyping === true
+  const isDocument = isDocumentLastMessagePreview(contact.lastMessage)
+  const isPhoto = isPhotoLastMessagePreview(contact.lastMessage)
+  const isMissedVideoCall = contact.lastMessage === MISSED_VIDEO_CALL_LABEL
+  const isMissedVoiceCall = contact.lastMessage === MISSED_VOICE_CALL_LABEL
+  const isOutgoingVideoCall = contact.lastMessage === OUTGOING_VIDEO_CALL_LABEL
+  const isOutgoingVoiceCall = contact.lastMessage === OUTGOING_VOICE_CALL_LABEL
+  const isIncomingVideoRing = contact.lastMessage === INCOMING_VIDEO_RING_LABEL
+  const isIncomingVoiceRing = contact.lastMessage === INCOMING_VOICE_RING_LABEL
+  const isOutgoingRing = contact.lastMessage === OUTGOING_RING_LABEL
 
   let statusContent: React.ReactNode = <span className="truncate">{contact.lastMessage}</span>
 
@@ -387,6 +299,13 @@ function ContactRowItem({
         </span>
       </span>
     )
+  } else if (isPhoto) {
+    statusContent = (
+      <span className="flex items-center gap-1.5 truncate text-[14px] text-muted-foreground">
+        <ImageIcon className="size-4 shrink-0 text-muted-foreground" strokeWidth={2} />
+        {CHAT_LAST_MESSAGE_PHOTO}
+      </span>
+    )
   } else if (isDocument) {
     statusContent = (
       <span className="flex items-center gap-1.5 truncate text-[14px] text-muted-foreground">
@@ -394,10 +313,10 @@ function ContactRowItem({
           <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
           <polyline points="14 2 14 8 20 8" />
         </svg>
-        Document
+        {CHAT_LAST_MESSAGE_DOCUMENT}
       </span>
     )
-  } else if (isMissedCall) {
+  } else if (isMissedVideoCall) {
     statusContent = (
       <span className="flex items-center gap-1.5 truncate text-[14px] text-[#E8345E]">
         <svg className="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -405,7 +324,52 @@ function ContactRowItem({
           <rect x="2" y="6" width="12" height="12" rx="2" />
           <line x1="2" y1="6" x2="14" y2="18" />
         </svg>
-        Missed Video Call
+        {MISSED_VIDEO_CALL_LABEL}
+      </span>
+    )
+  } else if (isMissedVoiceCall) {
+    statusContent = (
+      <span className="flex items-center gap-1.5 truncate text-[14px] text-[#E8345E]">
+        <PhoneIcon className="size-4 shrink-0" strokeWidth={2} />
+        {MISSED_VOICE_CALL_LABEL}
+      </span>
+    )
+  } else if (isOutgoingVideoCall) {
+    statusContent = (
+      <span className="flex items-center gap-1.5 truncate text-[14px] text-[#6B7870]">
+        <svg className="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="m22 8-6 4 6 4V8Z" />
+          <rect x="2" y="6" width="12" height="12" rx="2" />
+        </svg>
+        {OUTGOING_VIDEO_CALL_LABEL}
+      </span>
+    )
+  } else if (isOutgoingVoiceCall) {
+    statusContent = (
+      <span className="flex items-center gap-1.5 truncate text-[14px] text-[#6B7870]">
+        <PhoneIcon className="size-4 shrink-0" strokeWidth={2} />
+        {OUTGOING_VOICE_CALL_LABEL}
+      </span>
+    )
+  } else if (isIncomingVideoRing || isIncomingVoiceRing) {
+    statusContent = (
+      <span className="flex items-center gap-1.5 truncate text-[14px] font-semibold text-[#1A5345] animate-pulse">
+        {isIncomingVideoRing ? (
+          <svg className="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="m22 8-6 4 6 4V8Z" />
+            <rect x="2" y="6" width="12" height="12" rx="2" />
+          </svg>
+        ) : (
+          <PhoneIcon className="size-4 shrink-0" strokeWidth={2} />
+        )}
+        {contact.lastMessage}
+      </span>
+    )
+  } else if (isOutgoingRing) {
+    statusContent = (
+      <span className="flex items-center gap-1.5 truncate text-[14px] text-[#6B7870] animate-pulse">
+        <PhoneIcon className="size-4 shrink-0" strokeWidth={2} />
+        {OUTGOING_RING_LABEL}
       </span>
     )
   } else {
@@ -432,13 +396,10 @@ function ContactRowItem({
     >
       <div className="relative size-11 shrink-0">
         <Avatar className="size-11 border border-slate-100 shadow-2xs relative bg-white">
-          {contact.avatar ? (
-            <AvatarImage src={contact.avatar} alt={contact.name} />
-          ) : (
-            <AvatarFallback className="bg-[#1A5345]/10 text-[#1A5345] font-semibold text-sm">
-              {initials}
-            </AvatarFallback>
-          )}
+          <AvatarImage src={contact.avatar} alt={contact.name} />
+          <AvatarFallback className="bg-[#1A5345]/10 text-[#1A5345] font-semibold text-sm">
+            {initials}
+          </AvatarFallback>
         </Avatar>
         {contact.online && (
           <span className="absolute bottom-0 right-0 size-3 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />

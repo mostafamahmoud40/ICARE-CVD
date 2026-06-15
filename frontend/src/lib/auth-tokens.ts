@@ -17,6 +17,44 @@ const REFRESH_TOKEN_KEY = "ICARE_CVD_REFRESH_TOKEN";
 const USER_KEY = "ICARE_CVD_USER";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 
+const authUserListeners = new Set<() => void>();
+
+export function subscribeAuthUser(listener: () => void) {
+  authUserListeners.add(listener);
+  return () => authUserListeners.delete(listener);
+}
+
+function notifyAuthUserListeners() {
+  authUserListeners.forEach((listener) => listener());
+}
+
+let authUserSnapshotRaw: string | null | undefined;
+let authUserSnapshot: AuthUser | null = null;
+
+export function getAuthUserSnapshot(): AuthUser | null {
+  const storage = safeGetStorage();
+  if (!storage) return null;
+
+  const raw = storage.getItem(USER_KEY);
+  if (raw === authUserSnapshotRaw) {
+    return authUserSnapshot;
+  }
+
+  authUserSnapshotRaw = raw;
+  if (!raw) {
+    authUserSnapshot = null;
+    return null;
+  }
+
+  try {
+    authUserSnapshot = JSON.parse(raw) as AuthUser;
+  } catch {
+    authUserSnapshot = null;
+  }
+
+  return authUserSnapshot;
+}
+
 function safeGetStorage() {
   try {
     if (typeof window === "undefined") return null;
@@ -48,6 +86,7 @@ export function setAuthTokens(tokens: AuthTokens) {
     }
   }
   setCookie(ACCESS_TOKEN_KEY, tokens.accessToken, COOKIE_MAX_AGE);
+  notifyAuthUserListeners();
 }
 
 export function getAccessToken(): string | null {
@@ -76,4 +115,5 @@ export function clearAuthTokens() {
     storage.removeItem(USER_KEY);
   }
   deleteCookie(ACCESS_TOKEN_KEY);
+  notifyAuthUserListeners();
 }
