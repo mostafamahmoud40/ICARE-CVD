@@ -69,11 +69,20 @@ export function ChatSidebar({
   })
 
   const createConversationMutation = useMutation({
-    mutationFn: async (profileId: string) => {
-      const isDoctor = currentUser?.role === "doctor"
-      return createOrGetConversation(
-        isDoctor ? { patientId: profileId } : { doctorId: profileId }
-      )
+    mutationFn: async (entry: { profileId: string; role: string }) => {
+      if (currentUser?.role === "doctor") {
+        return createOrGetConversation({ patientId: entry.profileId })
+      }
+      if (currentUser?.role === "patient") {
+        return createOrGetConversation({ doctorId: entry.profileId })
+      }
+      if (currentUser?.role === "assistant") {
+        if (entry.role === "doctor") {
+          return createOrGetConversation({ doctorId: entry.profileId })
+        }
+        return createOrGetConversation({ patientId: entry.profileId })
+      }
+      throw new Error("Unsupported role for chat")
     },
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] })
@@ -82,6 +91,20 @@ export function ChatSidebar({
       setSearchQuery("")
     },
   })
+
+  const newChatDialogTitle =
+    currentUser?.role === "doctor"
+      ? "Start chat with patient"
+      : currentUser?.role === "patient"
+        ? "Start chat with doctor"
+        : "Start chat with doctor or patient"
+
+  const newChatSearchPlaceholder =
+    currentUser?.role === "doctor"
+      ? "Search patients..."
+      : currentUser?.role === "patient"
+        ? "Search doctors..."
+        : "Search doctors or patients..."
 
   return (
     <div className="flex h-full w-full flex-col border-r border-[#E8E6E0]/70 bg-[#F9F8F5]/80 backdrop-blur-md shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10 lg:w-[330px] shrink-0">
@@ -107,14 +130,14 @@ export function ChatSidebar({
             <DialogContent className="sm:max-w-md rounded-2xl border border-[#E8E6E0]/70 bg-white p-6 shadow-[0_12px_40px_rgba(26,83,69,0.08)]">
               <DialogHeader>
                 <DialogTitle className="text-[16px] font-bold text-[#1A1F1E]">
-                  {currentUser?.role === "doctor" ? "Start Chat with Patient" : "Start Chat with Doctor"}
+                  {newChatDialogTitle}
                 </DialogTitle>
               </DialogHeader>
 
               <div className="relative mt-2 mb-3">
                 <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder={currentUser?.role === "doctor" ? "Search patients..." : "Search doctors..."}
+                  placeholder={newChatSearchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9 h-11 rounded-xl border-[#E8E6E0]/80 bg-[#F9F8F5]/80 text-[14px] shadow-2xs transition-all focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#1A5345]/20 focus-visible:border-[#1A5345]"
@@ -138,14 +161,21 @@ export function ChatSidebar({
                   </div>
                 ) : (
                   filteredDirectory.map((u) => {
+                    const mutationKey = `${u.role}:${u.profileId}`
                     const isPending =
                       createConversationMutation.isPending &&
-                      createConversationMutation.variables === u.profileId
+                      createConversationMutation.variables?.profileId === u.profileId &&
+                      createConversationMutation.variables?.role === u.role
                     return (
                       <button
-                        key={u.profileId}
+                        key={mutationKey}
                         disabled={createConversationMutation.isPending}
-                        onClick={() => createConversationMutation.mutate(u.profileId)}
+                        onClick={() =>
+                          createConversationMutation.mutate({
+                            profileId: u.profileId,
+                            role: u.role,
+                          })
+                        }
                         className="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all duration-300 border border-[#E8E6E0]/40 bg-white hover:shadow-md disabled:opacity-60 cursor-pointer shadow-2xs"
                       >
                         <div className="relative shrink-0">
@@ -164,7 +194,11 @@ export function ChatSidebar({
                           <p className="truncate text-[11px] text-muted-foreground mt-0.5">
                             {u.role === "doctor" && u.specialty
                               ? u.specialty
-                              : u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                              : u.role === "patient"
+                                ? "Patient"
+                                : u.role === "assistant"
+                                  ? "Clinical assistant"
+                                  : u.role.charAt(0).toUpperCase() + u.role.slice(1)}
                           </p>
                         </div>
                         {isPending && <Loader2Icon className="size-4 animate-spin shrink-0 text-muted-foreground" />}

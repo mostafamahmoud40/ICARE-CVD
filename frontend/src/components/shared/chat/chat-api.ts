@@ -13,6 +13,7 @@ export type DirectoryUser = {
  * Fetch the available user directory from the real backend.
  * Doctor → returns all patients
  * Patient → returns all doctors
+ * Assistant → returns all doctors and patients
  */
 export async function fetchDirectory(): Promise<DirectoryUser[]> {
   const { data } = await apiClient.get<DirectoryUser[]>("/chat/directory")

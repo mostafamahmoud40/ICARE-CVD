@@ -10,7 +10,11 @@ import {
 import { conversation } from './conversation.schema';
 import { user } from './users.schema';
 
-export const senderTypeEnum = pgEnum('sender_type_enum', ['doctor', 'patient']);
+export const senderTypeEnum = pgEnum('sender_type_enum', [
+  'doctor',
+  'patient',
+  'assistant',
+]);
 
 export const message = pgTable('messages', {
   id: serial('id').primaryKey(),
