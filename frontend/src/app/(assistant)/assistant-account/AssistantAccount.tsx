@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useState, type ComponentType } from "react"
+import { useMemo, useState, type ComponentType } from "react"
 import type {
   AssistantProfile,
   AssistantWorkStats,
@@ -69,7 +69,9 @@ import {
 } from "lucide-react"
 import { EditAssistantProfileDialog } from "./EditAssistantProfileDialog"
 import { ShiftDayDetailDialog } from "./ShiftDayDetailDialog"
-import { useAssistantAccountProfile } from "./useAssistantAccountProfile"
+import type { AssistantProfileEditValues } from "./assistantAccount.schema"
+import { profileToEditValues } from "./assistantAccount.schema"
+import { AssistantProfileAvatar } from "../AssistantProfileAvatar"
 import { ActivityTimeline } from "./ActivityTimeline"
 import { ActivityDetailDialog } from "./ActivityDetailDialog"
 
@@ -84,11 +86,6 @@ function formatDateTimeShort(iso: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(iso))
-}
-
-function assistantAvatarSrc(profile: AssistantProfile) {
-  if (profile.avatarUrl) return profile.avatarUrl
-  return `https://i.pravatar.cc/400?u=${encodeURIComponent(profile.id)}`
 }
 
 /* ────────────────────────────────────────────
@@ -161,7 +158,7 @@ function ProfileHeaderCard({
   profile: AssistantProfile
   onEdit: () => void
 }) {
-  const avatarSrc = assistantAvatarSrc(profile)
+  const avatarSrc = profile.avatarUrl
 
   return (
     <Card className={accountPageCardClassName}>
@@ -169,16 +166,13 @@ function ProfileHeaderCard({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <div className="relative shrink-0">
-              <div className="relative size-16 overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-[#F4F3EF] shadow-sm sm:size-[4.5rem]">
-                <Image
-                  src={avatarSrc}
-                  alt={profile.fullName}
-                  fill
-                  unoptimized
-                  sizes="72px"
-                  className="object-cover"
-                />
-              </div>
+              <AssistantProfileAvatar
+                name={profile.fullName}
+                avatarUrl={avatarSrc}
+                className="size-16 rounded-xl border border-[#E8E6E0]/60 shadow-sm sm:size-[4.5rem]"
+                initialsClassName="text-[18px] sm:text-[20px]"
+                sizes="72px"
+              />
               <span
                 className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-white bg-emerald-500"
                 aria-hidden
@@ -829,20 +823,24 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ cla
    ──────────────────────────────────────────── */
 
 export function AssistantAccount({
-  initialProfile,
+  profile,
   workStats,
   activities,
   weeklyStats,
   shifts,
+  onSaveProfile,
+  isSaving,
 }: {
-  initialProfile: AssistantProfile
+  profile: AssistantProfile
   workStats: AssistantWorkStats
   activities: ActivityEntry[]
   weeklyStats: WeeklyStat[]
   shifts: ShiftEntry[]
+  onSaveProfile: (values: AssistantProfileEditValues) => Promise<void>
+  isSaving: boolean
 }) {
-  const { profile, editOpen, setEditOpen, saveProfile, isSaving, editDefaults } =
-    useAssistantAccountProfile(initialProfile)
+  const [editOpen, setEditOpen] = useState(false)
+  const editDefaults = useMemo(() => profileToEditValues(profile), [profile])
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
@@ -850,7 +848,10 @@ export function AssistantAccount({
         open={editOpen}
         onOpenChange={setEditOpen}
         initialValues={editDefaults}
-        onSubmit={saveProfile}
+        onSubmit={async (values) => {
+          await onSaveProfile(values)
+          setEditOpen(false)
+        }}
         isPending={isSaving}
       />
       <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-white">

@@ -34,6 +34,9 @@ import { useRequireRole } from "@/hooks/use-require-role"
 import { cn } from "@/lib/utils"
 import { QUEUE_ROUTES, queueNavModeFromPathname } from "./assistant-queue/queueNavMode"
 import { AssistantInsetHeader } from "./AssistantInsetHeader"
+import { AssistantProfileAvatar } from "./AssistantProfileAvatar"
+import { clearAssistantHeaderProfileCache } from "./assistantHeaderProfile.cache"
+import { useAssistantHeaderProfile } from "./useAssistantHeaderProfile"
 
 import {
   Sidebar,
@@ -65,24 +68,16 @@ const assistantSerif = Lora({
   display: "swap",
 })
 
-/** Title-case when the stored name is ALL CAPS; otherwise leave as-is. */
-function formatDisplayLabel(raw: string | null | undefined, fallback: string): string {
-  const t = (raw ?? "").trim()
-  if (!t) return fallback
-  if (t === t.toUpperCase() && /[A-Z]/.test(t)) {
-    return t
-      .split(/\s+/)
-      .map((w) => (w ? w.charAt(0) + w.slice(1).toLowerCase() : w))
-      .join(" ")
-  }
-  return t
-}
-
 export default function AssistantLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname()
-  const { logout, user, mounted } = useRequireRole("assistant")
+  const { logout: baseLogout, user, mounted } = useRequireRole("assistant")
+
+  const logout = () => {
+    clearAssistantHeaderProfileCache()
+    baseLogout()
+  }
 
   return (
     <div
@@ -112,6 +107,7 @@ function AssistantLayoutContent({
 }) {
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
+  const { displayName, displayEmail, avatarUrl } = useAssistantHeaderProfile(user)
   const searchParams = useSearchParams()
   const [isQueueOpen, setIsQueueOpen] = useState(() => pathname.startsWith("/assistant-queue"))
   const [isProceduresOpen, setIsProceduresOpen] = useState(() => pathname.startsWith("/assistant-procedures"))
@@ -478,11 +474,13 @@ function AssistantLayoutContent({
                       >
                         <div className="relative shrink-0">
                           <div className="size-11 rounded-[16px] bg-white p-0.5 shadow-sm border border-[#E8E6E0]/60 overflow-hidden group-hover:scale-105 transition-transform duration-300">
-                             <img 
-                               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${mounted && user ? encodeURIComponent(formatDisplayLabel(user.name, "Assistant")) : "Assistant"}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
-                               alt="Avatar" 
-                               className="size-full object-cover rounded-[14px]"
-                             />
+                            <AssistantProfileAvatar
+                              name={displayName}
+                              avatarUrl={avatarUrl}
+                              className="size-full rounded-[14px]"
+                              initialsClassName="text-[13px]"
+                              sizes="44px"
+                            />
                           </div>
                           <span className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full bg-[#22C55E] border-2 border-white shadow-sm z-10" />
                         </div>
@@ -490,7 +488,7 @@ function AssistantLayoutContent({
                         {isCollapsed ? null : (
                           <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 text-left">
                             <span className="truncate font-sans text-[15px] font-bold text-[#1A1F1E]">
-                              {mounted && user ? formatDisplayLabel(user.name, "Assistant") : "Assistant"}
+                              {mounted ? displayName : "Assistant"}
                             </span>
                             <div className="flex items-center gap-1.5">
                                <span className="size-1 rounded-full bg-[#1A5345]/30" />
@@ -516,15 +514,17 @@ function AssistantLayoutContent({
                 >
                   <div className="flex items-center gap-2.5 border-b border-[#E8E6E0]/40 bg-[#F9F8F5]/80 px-3 py-2 backdrop-blur-md">
                     <div className="size-9 shrink-0 overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-white p-px shadow-sm">
-                       <img 
-                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${mounted && user ? encodeURIComponent(formatDisplayLabel(user.name, "Assistant")) : "Assistant"}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
-                         alt="Avatar" 
-                         className="size-full object-cover rounded-[10px]"
-                       />
+                      <AssistantProfileAvatar
+                        name={displayName}
+                        avatarUrl={avatarUrl}
+                        className="size-full rounded-[10px]"
+                        initialsClassName="text-[11px]"
+                        sizes="36px"
+                      />
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col gap-0">
                       <span className="truncate font-sans text-[14px] font-bold leading-tight text-[#1A1F1E]">
-                        {mounted && user ? formatDisplayLabel(user.name, "Assistant") : "Assistant"}
+                        {mounted ? displayName : "Assistant"}
                       </span>
                       <p className="mt-0.5 truncate font-sans text-[10px] font-medium leading-snug text-muted-foreground">
                         Clinical assistant
@@ -532,7 +532,9 @@ function AssistantLayoutContent({
                           {" "}
                           ·{" "}
                         </span>
-                        <span className="text-muted-foreground/80">{mounted && user ? user.email : "assistant@icare.com"}</span>
+                        <span className="text-muted-foreground/80">
+                          {mounted ? displayEmail : "assistant@icare.com"}
+                        </span>
                       </p>
                     </div>
                   </div>

@@ -1,20 +1,12 @@
-import { AssistantAccount } from "./AssistantAccount"
-import {
-  MOCK_PROFILE,
-  MOCK_ACTIVITY_LOG,
-  MOCK_WEEKLY_STATS,
-  MOCK_SHIFT_SCHEDULE,
-  MOCK_WORK_STATS,
-} from "./assistantAccount.mock"
+import type { Metadata } from "next"
+
+import { AssistantAccountPageContainer } from "./AssistantAccountPageContainer"
+
+export const metadata: Metadata = {
+  title: "My account | ICARE-CVD",
+  description: "Assistant profile, schedule, and activity.",
+}
 
 export default function AssistantAccountPage() {
-  return (
-    <AssistantAccount
-      initialProfile={MOCK_PROFILE}
-      workStats={MOCK_WORK_STATS}
-      activities={MOCK_ACTIVITY_LOG}
-      weeklyStats={MOCK_WEEKLY_STATS}
-      shifts={MOCK_SHIFT_SCHEDULE}
-    />
-  )
+  return <AssistantAccountPageContainer />
 }

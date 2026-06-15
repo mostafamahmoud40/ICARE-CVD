@@ -62,7 +62,7 @@ export function EditAssistantProfileDialog({
       const avatarUrl =
         initialValues.avatarUrl && AVATAR_OPTIONS.includes(initialValues.avatarUrl)
           ? initialValues.avatarUrl
-          : AVATAR_OPTIONS[0] ?? ""
+          : undefined
       setForm({ ...initialValues, avatarUrl })
       setErrors({})
     }
@@ -125,6 +125,23 @@ export function EditAssistantProfileDialog({
                     <img src={avatar} alt="Avatar option" className="size-full rounded-full object-cover" />
                   </button>
                 ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {form.avatarUrl ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setField("avatarUrl", undefined)}
+                    className="h-8 px-2 text-[12px] font-semibold text-[#6B7870] hover:text-[#1A1F1E]"
+                  >
+                    Remove photo
+                  </Button>
+                ) : (
+                  <p className="text-[11px] font-medium text-muted-foreground">
+                    No photo selected — your initials will be shown instead.
+                  </p>
+                )}
               </div>
               {errors.avatarUrl ? (
                 <p className="mt-1 text-[11px] text-red-600">{errors.avatarUrl}</p>
