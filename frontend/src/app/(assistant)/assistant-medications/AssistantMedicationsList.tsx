@@ -3,11 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FilterIcon, FlagIcon, PillIcon, SearchIcon, SparklesIcon } from "lucide-react";
+import { FlagIcon, PillIcon, SearchIcon, SparklesIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Breadcrumb,
@@ -25,6 +23,8 @@ import {
   RiskBadge,
 } from "./assistantMedications.shared";
 import { useAssistantMedications } from "./useAssistantMedications";
+import { MedicationsListFiltersPopover } from "./MedicationsListFiltersPopover";
+import { countActiveMedicationListFilters } from "./assistantMedications.filters";
 
 function formatPatientRowId(internalId: string) {
   const raw = internalId.replace(/^#/, "").trim();
@@ -35,7 +35,11 @@ export function AssistantMedicationsList() {
   const router = useRouter();
   const vm = useAssistantMedications();
 
-  const totalOpenFlags = vm.profiles.reduce((acc, p) => acc + p.flags.filter((f) => f.status === "open").length, 0);
+  const totalOpenFlags = vm.allProfiles.reduce(
+    (acc, p) => acc + p.flags.filter((f) => f.status === "open").length,
+    0,
+  );
+  const activeFilterCount = countActiveMedicationListFilters(vm.listFilters);
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
@@ -96,39 +100,16 @@ export function AssistantMedicationsList() {
                 className={medicationsListSearchInputClassName}
               />
             </div>
-            <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
-              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-                <label className="flex cursor-pointer items-center gap-2.5 px-1">
-                  <Checkbox
-                    checked={vm.flaggedOnly}
-                    onCheckedChange={(v) => vm.setFlaggedOnly(Boolean(v))}
-                    className="rounded-md border-[#E8E6E0] data-[state=checked]:border-[#1A5345] data-[state=checked]:bg-[#1A5345]"
-                  />
-                  <span className="text-[12px] font-bold text-muted-foreground transition-colors hover:text-[#1A1F1E]">
-                    Flagged only
-                  </span>
-                </label>
-                <label className="flex cursor-pointer items-center gap-2.5 px-1">
-                  <Checkbox
-                    checked={vm.followUpOnly}
-                    onCheckedChange={(v) => vm.setFollowUpOnly(Boolean(v))}
-                    className="rounded-md border-[#E8E6E0] data-[state=checked]:border-[#1A5345] data-[state=checked]:bg-[#1A5345]"
-                  />
-                  <span className="text-[12px] font-bold text-muted-foreground transition-colors hover:text-[#1A1F1E]">
-                    Follow-up queue only
-                  </span>
-                </label>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                title="Filter view"
-                aria-label="Filter view"
-                className="size-8 shrink-0 rounded-lg text-muted-foreground hover:bg-transparent hover:text-[#1A1F1E] sm:size-9"
-              >
-                <FilterIcon className="size-4" strokeWidth={2} />
-              </Button>
+            <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+              {vm.hasActiveListFilters ? (
+                <span className="hidden text-[11px] font-bold text-[#1A5345] sm:inline">
+                  {activeFilterCount} filter{activeFilterCount === 1 ? "" : "s"} active
+                </span>
+              ) : null}
+              <MedicationsListFiltersPopover
+                filters={vm.listFilters}
+                onChange={vm.setListFilters}
+              />
             </div>
           </div>
         </div>

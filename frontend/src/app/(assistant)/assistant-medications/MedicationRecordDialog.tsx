@@ -18,6 +18,11 @@ import {
   BeakerIcon
 } from "lucide-react";
 import { type MedicationType } from "./assistantMedications.types";
+import {
+  buildDoseTimesFromFrequency,
+  isHighFrequencySchedule,
+  mockDoseStatus,
+} from "./medicationDoseSchedule";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -49,28 +54,9 @@ export function MedicationRecordDialog({
     totalDays: 30,
   };
 
-  // Generate dynamic dose times based on frequency
-  let doseTimes = [
-    { time: "08:00 AM", label: "Morning" },
-    { time: "08:00 PM", label: "Evening" }
-  ];
-
-  if (frequencyLabel.includes("QD")) {
-    doseTimes = [{ time: "09:00 AM", label: "Daily" }];
-  } else if (frequencyLabel.includes("TID") || frequencyLabel.includes("Q8H")) {
-    doseTimes = [
-      { time: "06:00 AM", label: "Morning" },
-      { time: "02:00 PM", label: "Afternoon" },
-      { time: "10:00 PM", label: "Night" }
-    ];
-  } else if (frequencyLabel.includes("QID")) {
-    doseTimes = [
-      { time: "08:00 AM", label: "Morning" },
-      { time: "12:00 PM", label: "Noon" },
-      { time: "04:00 PM", label: "Afternoon" },
-      { time: "08:00 PM", label: "Evening" }
-    ];
-  }
+  // Generate dose times from frequency (Q3H = every 3 hours, BID = twice daily, etc.)
+  const doseTimes = buildDoseTimesFromFrequency(frequencyLabel);
+  const highFrequency = isHighFrequencySchedule(doseTimes);
 
   // Generate mock timeline
   const generateMockTimeline = () => {
@@ -79,17 +65,17 @@ export function MedicationRecordDialog({
     for (let i = 0; i < 7; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      
-      const dayDoses = doseTimes.map((dt) => {
-        // Randomly assign taken/missed for mock realism
-        const isMissed = Math.random() > 0.85;
-        return {
-          time: dt.time,
-          label: dt.label,
-          status: isMissed ? "missed" : "taken"
-        };
+      const dateStr = d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
       });
+
+      const dayDoses = doseTimes.map((dt, doseIndex) => ({
+        time: dt.time,
+        label: dt.label,
+        status: mockDoseStatus(i, doseIndex, frequencyLabel),
+      }));
 
       arr.push({ date: dateStr, doses: dayDoses });
     }
@@ -177,23 +163,48 @@ export function MedicationRecordDialog({
                <div className="bg-white rounded-2xl border border-[#E8E6E0] overflow-hidden shadow-sm">
                   <div className="divide-y divide-[#E8E6E0]/60">
                      {timeline.map((day, i) => (
-                       <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-[#F9F8F5]/50 transition-colors gap-3 sm:gap-0 border-b border-[#E8E6E0]/60 last:border-0">
-                          <span className="text-[13px] font-bold text-[#1A1F1E] w-[120px]">{day.date}</span>
-                          
-                          <div className="flex flex-1 flex-wrap items-center justify-start sm:justify-end gap-x-6 gap-y-3">
+                       <div
+                         key={i}
+                         className={cn(
+                           "border-b border-[#E8E6E0]/60 p-4 transition-colors last:border-0 hover:bg-[#F9F8F5]/50",
+                           highFrequency
+                             ? "flex flex-col gap-3"
+                             : "flex flex-col justify-between gap-3 sm:flex-row sm:items-center sm:gap-0",
+                         )}
+                       >
+                          <span className="text-[13px] font-bold text-[#1A1F1E] sm:w-[120px]">{day.date}</span>
+
+                          <div
+                            className={cn(
+                              "flex flex-1 gap-3",
+                              highFrequency
+                                ? "grid grid-cols-2 sm:grid-cols-4"
+                                : "flex-wrap items-center justify-start sm:justify-end gap-x-6 gap-y-3",
+                            )}
+                          >
                              {day.doses.map((dose, idx) => (
-                               <div key={idx} className="flex items-center gap-2 min-w-[90px]">
-                                  {dose.label === "Night" || dose.label === "Evening" ? (
-                                    <MoonIcon className="size-4 text-indigo-500" />
+                               <div
+                                 key={idx}
+                                 className={cn(
+                                   "flex items-center gap-2",
+                                   highFrequency ? "min-w-0 rounded-lg border border-[#E8E6E0]/50 bg-[#FAFAF8] px-2.5 py-2" : "min-w-[90px]",
+                                 )}
+                               >
+                                  {highFrequency ? (
+                                    <ClockIcon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
+                                  ) : dose.label === "Night" || dose.label === "Evening" || dose.label === "Bedtime" ? (
+                                    <MoonIcon className="size-4 text-indigo-500" aria-hidden />
                                   ) : (
-                                    <SunIcon className="size-4 text-amber-500" />
+                                    <SunIcon className="size-4 text-amber-500" aria-hidden />
                                   )}
-                                  <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold text-muted-foreground mb-0.5 leading-none">{dose.time}</span>
+                                  <div className="flex min-w-0 flex-col">
+                                    <span className="mb-0.5 text-[10px] font-bold leading-none text-muted-foreground">
+                                      {dose.time}
+                                    </span>
                                     {dose.status === "taken" ? (
-                                      <Badge className="bg-emerald-500 text-white hover:bg-emerald-500 border-0 text-[10px] px-2 py-0.5 rounded-lg shadow-none w-fit leading-none">Taken</Badge>
+                                      <Badge className="w-fit rounded-lg border-0 bg-emerald-500 px-2 py-0.5 text-[10px] leading-none text-white shadow-none hover:bg-emerald-500">Taken</Badge>
                                     ) : (
-                                      <Badge className="bg-rose-500 text-white hover:bg-rose-500 border-0 text-[10px] px-2 py-0.5 rounded-lg shadow-none w-fit leading-none">Missed</Badge>
+                                      <Badge className="w-fit rounded-lg border-0 bg-rose-500 px-2 py-0.5 text-[10px] leading-none text-white shadow-none hover:bg-rose-500">Missed</Badge>
                                     )}
                                   </div>
                                </div>
