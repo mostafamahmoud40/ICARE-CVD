@@ -17,8 +17,6 @@ import {
   PencilLineIcon,
   FileTextIcon,
   PillIcon,
-  SyringeIcon,
-  BeakerIcon,
   SparklesIcon,
   StethoscopeIcon,
   XIcon,
@@ -47,11 +45,16 @@ import {
   AdherencePill,
   formatDate,
   formatDateTime,
-  MedicationDots,
   MedicationSnapshotCard,
   medicationsScrollbarCss,
   RiskBadge,
 } from "./assistantMedications.shared";
+import {
+  PatientMedicationsTableSection,
+  type PastMedicationTableRow,
+} from "./PatientMedicationsTableSection";
+import { mapPastMedicationToRow } from "./assistantPatientMedications.mapper";
+import { MOCK_PAST_MEDICATIONS } from "../assistant-patients/[patientId]/assistantPatientProfile.mock";
 import { useAssistantMedications } from "./useAssistantMedications";
 import { FlagMedicationDialog } from "./FlagMedicationDialog";
 import { MedicationReminderDialog } from "./MedicationReminderDialog";
@@ -62,25 +65,6 @@ import { MedicationRecordDialog } from "./MedicationRecordDialog";
 type AssistantMedicationsPatientDetailProps = {
   /** Resolved in `page.tsx` via `await params` (Next.js 15+). */
   patientId?: string
-}
-
-function MedicationIcon({ type, className }: { type?: "pill" | "injection" | "solution"; className?: string }) {
-  if (type === "injection") return <SyringeIcon className={cn("text-sky-500", className)} />;
-  if (type === "solution") return <BeakerIcon className={cn("text-purple-500", className)} />;
-  return (
-    <svg 
-      className={cn("drop-shadow-sm", className)} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <g transform="rotate(-45 12 12)">
-        <path d="M7 12V8C7 5.23858 9.23858 3 12 3C14.7614 3 17 5.23858 17 8V12H7Z" fill="#3B82F6" />
-        <path d="M7 12V16C7 18.7614 9.23858 21 12 21C14.7614 21 17 18.7614 17 16V12H7Z" fill="#EF4444" />
-        <line x1="7" y1="12" x2="17" y2="12" stroke="white" strokeWidth="1.5" />
-      </g>
-    </svg>
-  );
 }
 
 export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRoute }: AssistantMedicationsPatientDetailProps = {}) {
@@ -104,6 +88,27 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
   const [escalateMedicationId, setEscalateMedicationId] = useState<string | null>(null);
   const [escalationReason, setEscalationReason] = useState("");
   const [medicationsTab, setMedicationsTab] = useState<"active" | "past">("active");
+
+  const pastMedications = useMemo(
+    () => MOCK_PAST_MEDICATIONS.map(mapPastMedicationToRow),
+    [],
+  );
+
+  const openMedRecord = (med: MedicationLine) => {
+    setRecordMedName(med.name);
+    setRecordMedStrength(med.strength);
+    setRecordMedType(med.type);
+    setRecordMedDosage(med.dosageInstructions);
+    setRecordMedFrequency(med.frequencyLabel);
+  };
+
+  const openPastMedRecord = (row: PastMedicationTableRow) => {
+    setRecordMedName(row.name);
+    setRecordMedStrength(row.strength);
+    setRecordMedType("pill");
+    setRecordMedDosage(row.dosageInstructions);
+    setRecordMedFrequency("");
+  };
 
   const flagMedication = useMemo(() => 
     vm.selectedProfile?.medications.find((m) => m.id === flagMedId) ?? null,
@@ -293,143 +298,54 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
                       
                       {/* Left Side: Medications Table */}
                       <div className="xl:col-span-2 space-y-8">
-                         <section>
-                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                                <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-                                   <div className="flex items-center gap-2">
-                                      <PillIcon className="size-5 text-[#1A5345]" />
-                                      <h3 className="text-[18px] font-bold text-[#1A1F1E]">Medications</h3>
-                                   </div>
-                                   <div className="flex items-center rounded-lg border border-[#E8E6E0] bg-[#F9F8F5] p-0.5 shadow-sm">
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        onClick={() => setMedicationsTab("active")}
-                                        className={cn("h-7 rounded-md px-3 text-[11px] font-bold transition-all", medicationsTab === "active" ? "bg-white text-[#1A1F1E] shadow-sm" : "text-muted-foreground hover:text-[#1A1F1E]")}
-                                      >
-                                         Active
-                                      </Button>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        onClick={() => setMedicationsTab("past")}
-                                        className={cn("h-7 rounded-md px-3 text-[11px] font-bold transition-all", medicationsTab === "past" ? "bg-white text-[#1A1F1E] shadow-sm" : "text-muted-foreground hover:text-[#1A1F1E]")}
-                                      >
-                                         Past & History
-                                      </Button>
-                                   </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                   <Button onClick={() => alert('Preparing Adherence Report for ' + vm.selectedProfile?.fullName + '...')} variant="outline" size="sm" className="h-8 rounded-lg border-[#E8E6E0] bg-white text-[12px] font-bold text-[#1A5345] hover:bg-[#F9F8F5] shadow-sm">
-                                      <FileTextIcon className="size-3.5 mr-1.5" />
-                                      Adherence report
-                                   </Button>
-                                </div>
-                             </div>
-                            
-                            <div className="rounded-2xl border border-[#E8E6E0]/80 bg-white overflow-hidden shadow-sm">
-                               <div className="overflow-x-auto">
-                                  <table className="w-full text-left border-collapse min-w-[700px]">
-                                     <thead>
-                                        <tr className="bg-[#F9F8F5] border-b border-[#E8E6E0]/60">
-                                           <th className="px-5 py-4 text-[13px] font-bold tracking-normal text-[#1A1F1E]">Drug name</th>
-                                           <th className="px-5 py-4 text-[13px] font-bold tracking-normal text-[#1A1F1E]">Dosage</th>
-                                           <th className="px-5 py-4 text-[13px] font-bold tracking-normal text-[#1A1F1E]">7-day adherence</th>
-                                           <th className="px-5 py-4 text-right text-[13px] font-bold tracking-normal text-[#1A1F1E]">Actions</th>
-                                        </tr>
-                                     </thead>
-                                     <tbody className="divide-y divide-[#E8E6E0]/40">
-                                        {medicationsTab === "active" ? vm.selectedProfile.medications.map((m) => (
-                                           <tr key={m.id} className="group hover:bg-[#F9F8F5]/30 transition-colors">
-                                              <td className="px-5 py-4">
-                                                 <div className="flex items-center gap-2">
-                                                    <p className="text-[14px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">{m.name}</p>
-                                                    <MedicationIcon type={m.type} className="size-[18px] shrink-0 opacity-90" />
-                                                 </div>
-                                                 <p className="text-[11px] font-medium text-muted-foreground mt-0.5">{m.strength}</p>
-                                              </td>
-                                              <td className="px-5 py-4">
-                                                 <p className="text-[13px] font-medium text-[#1A1F1E]/80 leading-relaxed max-w-[200px]">{m.dosageInstructions}</p>
-                                              </td>
-                                              <td className="px-5 py-4">
-                                                 <div className="flex max-w-[148px] flex-col gap-1.5">
-                                                    <MedicationDots history={m.adherenceHistory7d} />
-                                                    <div className="flex items-center gap-2">
-                                                       <div className="h-1 min-w-0 flex-1 rounded-full bg-[#E8E6E0] overflow-hidden">
-                                                          <div
-                                                             className={cn(
-                                                               "h-full rounded-full bg-emerald-500",
-                                                               m.adherencePct7d < 85 && "bg-amber-500",
-                                                               m.adherencePct7d < 65 && "bg-rose-500"
-                                                             )}
-                                                             style={{ width: `${m.adherencePct7d}%` }}
-                                                          />
-                                                       </div>
-                                                       <span className="shrink-0 text-[10px] font-bold tabular-nums text-muted-foreground">
-                                                          {m.adherencePct7d}%
-                                                       </span>
-                                                    </div>
-                                                 </div>
-                                              </td>
-                                              <td className="px-5 py-4 text-right">
-                                                 <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button variant="ghost" size="icon" className="size-8 border-0 bg-transparent text-rose-600 hover:bg-transparent hover:text-rose-700 shadow-none transition-colors" onClick={() => setFlagMedId(m.id)}>
-                                                       <FlagIcon className="size-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" className="size-8 border-0 bg-transparent text-violet-600 hover:bg-transparent hover:text-violet-700 shadow-none transition-colors" onClick={() => openEscalation(m, `${m.name} ${m.strength} needs review.`)}>
-                                                       <StethoscopeIcon className="size-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" className="size-8 border-0 bg-transparent text-[#1A5345] hover:bg-transparent hover:text-[#0F3D32] shadow-none transition-colors" onClick={() => openMedReminder(m)}>
-                                                       <BellIcon className="size-4" />
-                                                    </Button>
-                                                    <DropdownMenu>
-                                                       <DropdownMenuTrigger asChild>
-                                                          <Button variant="ghost" size="icon" className="size-8 border-0 bg-transparent text-muted-foreground hover:bg-transparent hover:text-[#1A1F1E] shadow-none transition-colors">
-                                                             <MoreVerticalIcon className="size-4" />
-                                                          </Button>
-                                                       </DropdownMenuTrigger>
-                                                       <DropdownMenuContent align="end" className="rounded-xl p-1.5 w-48 shadow-lg border-[#E8E6E0]/60">
-                                                          <DropdownMenuItem onClick={() => setEditLine(m)}>
-                                                             <PencilLineIcon className="size-3.5 mr-2" />
-                                                             Edit care note
-                                                          </DropdownMenuItem>
-                                                          <DropdownMenuItem onClick={() => { setRecordMedName(m.name); setRecordMedStrength(m.strength); setRecordMedType(m.type); setRecordMedDosage(m.dosageInstructions); setRecordMedFrequency(m.frequencyLabel); }}>
-                                                             <ClockIcon className="size-3.5 mr-2" />
-                                                             View history
-                                                          </DropdownMenuItem>
-                                                       </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                 </div>
-                                              </td>
-                                           </tr>
-                                        )) : (
-                                           <tr className="group hover:bg-[#F9F8F5]/30 transition-colors">
-                                              <td className="px-5 py-4">
-                                                 <div className="flex items-center gap-2">
-                                                    <p className="text-[14px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">Lisinopril</p>
-                                                    <MedicationIcon type="pill" className="size-[18px] shrink-0 opacity-60 grayscale" />
-                                                 </div>
-                                                 <p className="text-[11px] font-medium text-muted-foreground mt-0.5">10 mg</p>
-                                              </td>
-                                              <td className="px-5 py-4">
-                                                 <p className="text-[13px] font-medium text-[#1A1F1E]/80 leading-relaxed max-w-[200px]">1 tablet daily. Discontinued on Feb 10, 2026 due to dry cough.</p>
-                                              </td>
-                                              <td className="px-5 py-4">
-                                                 <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-0 text-[10px] font-bold">Discontinued</Badge>
-                                              </td>
-                                              <td className="px-5 py-4 text-right">
-                                                 <Button variant="ghost" size="sm" onClick={() => { setRecordMedName("Lisinopril"); setRecordMedStrength("10 mg"); setRecordMedType("pill"); setRecordMedDosage("1 tablet every morning"); setRecordMedFrequency("QD AM"); }} className="h-8 rounded-lg text-[11px] font-bold text-[#1A5345] hover:bg-[#1A5345]/5">
-                                                    <ClockIcon className="size-3.5 mr-1.5" />
-                                                    View record
-                                                 </Button>
-                                              </td>
-                                           </tr>
-                                        )}
-                                     </tbody>
-                                  </table>
+                         <PatientMedicationsTableSection
+                            medications={vm.selectedProfile.medications}
+                            pastMedications={pastMedications}
+                            medicationsTab={medicationsTab}
+                            onMedicationsTabChange={setMedicationsTab}
+                            onViewPastRecord={openPastMedRecord}
+                            toolbarEnd={
+                               <Button
+                                  onClick={() => alert('Preparing Adherence Report for ' + vm.selectedProfile?.fullName + '...')}
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 rounded-lg border-[#E8E6E0] bg-white text-[12px] font-bold text-[#1A5345] shadow-sm hover:bg-[#F9F8F5]"
+                               >
+                                  <FileTextIcon className="size-3.5 mr-1.5" />
+                                  Adherence report
+                               </Button>
+                            }
+                            renderActiveActions={(m) => (
+                               <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button variant="ghost" size="icon" className="size-8 border-0 bg-transparent text-rose-600 hover:bg-transparent hover:text-rose-700 shadow-none transition-colors" onClick={() => setFlagMedId(m.id)}>
+                                     <FlagIcon className="size-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="size-8 border-0 bg-transparent text-violet-600 hover:bg-transparent hover:text-violet-700 shadow-none transition-colors" onClick={() => openEscalation(m, `${m.name} ${m.strength} needs review.`)}>
+                                     <StethoscopeIcon className="size-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="size-8 border-0 bg-transparent text-[#1A5345] hover:bg-transparent hover:text-[#0F3D32] shadow-none transition-colors" onClick={() => openMedReminder(m)}>
+                                     <BellIcon className="size-4" />
+                                  </Button>
+                                  <DropdownMenu>
+                                     <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="size-8 border-0 bg-transparent text-muted-foreground hover:bg-transparent hover:text-[#1A1F1E] shadow-none transition-colors">
+                                           <MoreVerticalIcon className="size-4" />
+                                        </Button>
+                                     </DropdownMenuTrigger>
+                                     <DropdownMenuContent align="end" className="rounded-xl p-1.5 w-48 shadow-lg border-[#E8E6E0]/60">
+                                        <DropdownMenuItem onClick={() => setEditLine(m)}>
+                                           <PencilLineIcon className="size-3.5 mr-2" />
+                                           Edit care note
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => openMedRecord(m)}>
+                                           <ClockIcon className="size-3.5 mr-2" />
+                                           View history
+                                        </DropdownMenuItem>
+                                     </DropdownMenuContent>
+                                  </DropdownMenu>
                                </div>
-                            </div>
-                         </section>
+                            )}
+                         />
 
                          {/* Contact & Escalation History - Dual Lists */}
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
