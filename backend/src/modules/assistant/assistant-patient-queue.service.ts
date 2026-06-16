@@ -10,6 +10,10 @@ import type { Database } from '../../database/drizzle.provider';
 import {
   allergy,
   appointment,
+  consultation,
+  consultationDiagnosis,
+  consultationPrescription,
+  diagnosis,
   doctor,
   medication,
   patient,
@@ -145,6 +149,150 @@ export class AssistantPatientQueueService {
         vitalAlertCounts,
       ),
     );
+  }
+
+  async getVisitOutcomes(queueId: string) {
+    const row = await this.db
+      .select({
+        patientId: appointment.patientId,
+        appointmentId: patientQueue.appointmentId,
+        queueStatus: patientQueue.status,
+        doctorName: user.name,
+        doctorSpecialty: doctor.specialty,
+      })
+      .from(patientQueue)
+      .innerJoin(appointment, eq(patientQueue.appointmentId, appointment.id))
+      .innerJoin(patient, eq(appointment.patientId, patient.id))
+      .innerJoin(doctor, eq(appointment.doctorId, doctor.id))
+      .innerJoin(user, eq(doctor.userId, user.id))
+      .where(eq(patientQueue.id, queueId))
+      .limit(1);
+
+    if (!row.length) throw new NotFoundException('Queue entry not found');
+
+    const { patientId, appointmentId, queueStatus, doctorName, doctorSpecialty } =
+      row[0];
+
+    const cons = await this.db.query.consultation.findFirst({
+      where: eq(consultation.appointmentId, appointmentId),
+      orderBy: desc(consultation.startedAt),
+    });
+
+    const prescriptionDoc = await this.db.query.patientDocument.findFirst({
+      where: and(
+        eq(patientDocument.patientId, patientId),
+        eq(patientDocument.category, 'prescription'),
+      ),
+      orderBy: desc(patientDocument.createdAt),
+    });
+
+    let prescriptionItems: {
+      id: string
+      name: string
+      dose: string
+      frequency: string
+      duration: string | null
+      instructions: string | null
+    }[] = [];
+
+    let reportDiagnoses: {
+      icdCode: string
+      description: string
+      type: string
+    }[] = [];
+
+    if (cons) {
+      const rxRows = await this.db
+        .select({
+          id: consultationPrescription.id,
+          name: medication.name,
+          dose: medication.dose,
+          frequency: medication.frequency,
+          duration: consultationPrescription.duration,
+          instructions: medication.instructions,
+        })
+        .from(consultationPrescription)
+        .innerJoin(
+          medication,
+          eq(consultationPrescription.medicationId, medication.id),
+        )
+        .where(eq(consultationPrescription.consultationId, cons.id));
+
+      prescriptionItems = rxRows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        dose: r.dose,
+        frequency: r.frequency,
+        duration: r.duration,
+        instructions: r.instructions,
+      }));
+
+      const dxRows = await this.db
+        .select({
+          icdCode: diagnosis.icdCode,
+          description: diagnosis.description,
+          type: consultationDiagnosis.type,
+        })
+        .from(consultationDiagnosis)
+        .innerJoin(diagnosis, eq(consultationDiagnosis.diagnosisId, diagnosis.id))
+        .where(eq(consultationDiagnosis.consultationId, cons.id));
+
+      reportDiagnoses = dxRows.map((d) => ({
+        icdCode: d.icdCode,
+        description: d.description,
+        type: d.type,
+      }));
+    }
+
+    const hasPrescriptionData =
+      prescriptionItems.length > 0 || Boolean(prescriptionDoc);
+    const hasReportContent = Boolean(
+      cons &&
+        (cons.chiefComplaint?.trim() ||
+          cons.plan?.trim() ||
+          cons.physicalExam?.trim() ||
+          cons.notes?.trim() ||
+          reportDiagnoses.length > 0),
+    );
+    const consultationCompleted = cons?.status === 'completed';
+
+    const prescriptionStatus = hasPrescriptionData
+      ? 'ready'
+      : cons && queueStatus === 'completed'
+        ? 'pending'
+        : 'pending';
+
+    const reportStatus =
+      consultationCompleted && hasReportContent
+        ? 'ready'
+        : cons
+          ? 'pending'
+          : 'pending';
+
+    return {
+      patientId,
+      consultationId: cons?.id ?? null,
+      doctorName,
+      doctorSpecialty: doctorSpecialty ?? 'General',
+      prescription: {
+        status: prescriptionStatus,
+        medicationCount: prescriptionItems.length,
+        documentId: prescriptionDoc?.id ?? null,
+        items: prescriptionItems,
+      },
+      report: {
+        status: reportStatus,
+        chiefComplaint: cons?.chiefComplaint ?? null,
+        historyOfPresentIllness: cons?.historyOfPresentIllness ?? null,
+        physicalExam: cons?.physicalExam ?? null,
+        plan: cons?.plan ?? null,
+        followUpTimeframe: cons?.followUpTimeframe ?? null,
+        followUpInstructions: cons?.followUpInstructions ?? null,
+        notes: cons?.notes ?? null,
+        diagnoses: reportDiagnoses,
+        completedAt: cons?.completedAt?.toISOString() ?? null,
+      },
+    };
   }
 
   async listQueuePatientDocuments(queueId: string) {

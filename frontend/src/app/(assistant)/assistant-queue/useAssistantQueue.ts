@@ -63,26 +63,30 @@ export function useAssistantQueue() {
   const queueQuery = useQuery<QueuePatient[], Error>({
     queryKey: queueKey(filter),
     queryFn: () => fetchQueueEntries(filter),
-    staleTime: 30 * 1000,
+    staleTime: 20 * 1000,
+    refetchInterval: 30 * 1000,
   })
 
   /** Always-on snapshot for live floor (deduped with queueQuery when filter is `active`). */
   const activeSnapshotQuery = useQuery<QueuePatient[], Error>({
     queryKey: queueKey("active"),
     queryFn: () => fetchQueueEntries("active"),
-    staleTime: 30 * 1000,
+    staleTime: 20 * 1000,
+    refetchInterval: 30 * 1000,
   })
 
   const statsQuery = useQuery<QueueStats, Error>({
     queryKey: statsKey,
     queryFn: fetchStats,
-    staleTime: 30 * 1000,
+    staleTime: 20 * 1000,
+    refetchInterval: 30 * 1000,
   })
 
   const historyQuery = useQuery<QueuePatient[], Error>({
     queryKey: ["assistant-patient-queue", "history"],
     queryFn: fetchHistoryPatients,
-    staleTime: 30 * 1000,
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
   })
 
   const invalidateAll = async () => {

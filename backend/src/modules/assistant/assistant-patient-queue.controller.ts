@@ -42,6 +42,11 @@ export class AssistantPatientQueueController {
     return this.service.listQueuePatientDocuments(queueId);
   }
 
+  @Get(':queueId/visit-outcomes')
+  getVisitOutcomes(@Param('queueId') queueId: string) {
+    return this.service.getVisitOutcomes(queueId);
+  }
+
   @Post(':queueId/documents')
   registerQueuePatientDocument(
     @Param('queueId') queueId: string,

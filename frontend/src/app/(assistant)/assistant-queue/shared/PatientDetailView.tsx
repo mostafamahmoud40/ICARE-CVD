@@ -21,6 +21,7 @@ import type { QueuePatient } from "../assistantQueue.types"
 import { PRIORITY_CONFIG, VISIT_TYPE_CONFIG } from "../assistantQueue.config"
 import { formatShortTime } from "../assistantQueue.liveBoard"
 import { PatientStudiesUploadSection } from "../PatientStudiesUploadSection"
+import { PatientVisitOutcomesSection } from "../PatientVisitOutcomesSection"
 import { StatusBadge } from "./StatusBadge"
 
 export function PatientDetailView({
@@ -221,7 +222,14 @@ export function PatientDetailView({
           </div>
         </div>
 
-        <PatientStudiesUploadSection queueEntryId={patient.queueEntryId} />
+        {patient.status === "completed" ? (
+          <PatientVisitOutcomesSection
+            queueEntryId={patient.queueEntryId}
+            patientName={patient.fullName}
+          />
+        ) : (
+          <PatientStudiesUploadSection queueEntryId={patient.queueEntryId} />
+        )}
 
         {patient.notes && (
           <div className="rounded-xl border border-[#E8E6E0] bg-white p-4 shadow-sm">
