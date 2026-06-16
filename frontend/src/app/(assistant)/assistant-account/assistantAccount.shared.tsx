@@ -1,9 +1,33 @@
 "use client";
 
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /** Visual tokens aligned with `/assistant-medications` list & detail pages. */
+
+/** Section title row — icon only, no tile (matches assistant pages). */
+export function AccountSectionHeading({
+  icon: Icon,
+  title,
+  iconClassName = "text-[#1A5345]",
+}: {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  iconClassName?: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Icon className={cn("size-5 shrink-0", iconClassName)} aria-hidden />
+      <h3 className="text-[15px] font-bold text-[#1A1F1E] sm:text-[16px]">{title}</h3>
+    </div>
+  );
+}
+
+export function AccountSectionIntro({ children }: { children: ReactNode }) {
+  return (
+    <p className="mt-1 text-[11px] font-medium text-muted-foreground sm:text-[12px]">{children}</p>
+  );
+}
 
 /** Same shell + hover as queue `StatCell`. */
 export const accountStatCellClassName =

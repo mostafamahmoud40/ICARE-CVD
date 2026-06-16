@@ -15,9 +15,6 @@ import type {
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -25,7 +22,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import {
   accountStatCellClassName,
-  AccountCardHeaderIcon,
+  AccountSectionHeading,
   accountPageCardClassName,
   accountSectionDescClassName,
   accountSectionTitleClassName,
@@ -56,7 +53,6 @@ import {
   ClipboardListIcon,
   LockIcon,
   ShieldCheckIcon,
-  BellIcon,
   BarChart3Icon,
   FileTextIcon,
   EyeIcon,
@@ -290,40 +286,25 @@ export function AssistantSecuritySettingsCard({ security }: { security: Security
 
   return (
     <Card className={accountPageCardClassName}>
-      <CardHeader className="space-y-1 border-b border-[#E8E6E0]/40 bg-white px-5 py-5 sm:px-6 sm:py-6">
-        <div className="flex items-center gap-3">
-          <AccountCardHeaderIcon icon={ShieldCheckIcon} />
-          <div>
-            <CardTitle className="font-serif text-[18px] font-bold tracking-tight text-[#1A1F1E] sm:text-[22px]">Sign-in Protection</CardTitle>
-            <CardDescription className="text-[13px] font-medium text-[#6B7870] sm:text-[14px]">
-              Strengthen your account security and monitor access
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-8 p-6 sm:p-8">
-        <div className="group relative flex flex-col gap-5 rounded-2xl border border-[#E8E6E0]/70 bg-[#FBFDFC]/50 p-5 transition-colors hover:border-[#1A5345]/20 hover:bg-white sm:flex-row sm:items-center sm:justify-between sm:p-6">
-          <div className="flex min-w-0 items-start gap-4 sm:items-center">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-[#E8E6E0]/60 bg-white shadow-sm">
-              <ShieldCheckIcon className="size-6 text-[#1A5345]" aria-hidden />
-            </div>
-            <div className="min-w-0 space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <p className="text-[15px] font-bold text-[#1A1F1E]">Two-factor authentication</p>
-                <Badge
-                  variant="secondary"
+      <CardContent className="space-y-4 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <ShieldCheckIcon className="mt-0.5 size-5 shrink-0 text-[#1A5345]" aria-hidden />
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[13px] font-bold text-[#1A1F1E] sm:text-[14px]">
+                  Two-factor authentication
+                </p>
+                <span
                   className={cn(
-                    "px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
-                    twoFactorOn
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border-amber-200 bg-amber-50 text-amber-700"
+                    "inline-flex rounded-lg px-2 py-0.5 text-[10px] font-bold text-white",
+                    twoFactorOn ? "bg-emerald-600" : "bg-amber-500",
                   )}
                 >
-                  {twoFactorOn ? "Active" : "Highly Recommended"}
-                </Badge>
+                  {twoFactorOn ? "Active" : "Highly recommended"}
+                </span>
               </div>
-              <p className="text-[13px] leading-relaxed text-[#6B7870]">
+              <p className="text-[11px] leading-relaxed text-muted-foreground sm:text-[12px]">
                 {twoFactorOn
                   ? "Your account is protected by an additional verification layer."
                   : "Add an extra layer of security to prevent unauthorized access to clinical data."}
@@ -333,52 +314,46 @@ export function AssistantSecuritySettingsCard({ security }: { security: Security
           <Button
             variant="outline"
             size="sm"
-            className="h-10 shrink-0 gap-2 self-stretch rounded-xl border-[#1A5345]/20 bg-white px-5 text-[13px] font-bold text-[#1A5345] transition-all hover:bg-[#1A5345] hover:text-white sm:self-center"
+            className="h-8 shrink-0 gap-2 rounded-lg border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A5345] shadow-sm hover:bg-[#F6FBF9]"
           >
-            {twoFactorOn ? "Modify Settings" : "Secure Account"}
+            {twoFactorOn ? "Modify settings" : "Secure account"}
           </Button>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#E8E6E0] to-transparent" />
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6B7870]">System Logs</p>
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#E8E6E0] to-transparent" />
-          </div>
-          
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <SecurityStatRow
-              icon={LockIcon}
-              label="Security Protocol"
-              value={formatDate(security.lastPasswordChange)}
-            />
-            <SecurityStatRow
-              icon={LogInIcon}
-              label="Last Access"
-              value={formatDateTimeShort(security.lastLogin)}
-            />
-            <SecurityStatRow
-              icon={MonitorSmartphoneIcon}
-              label="Active Sessions"
-              value={`${security.activeSessions} ${security.activeSessions === 1 ? "device" : "devices"}`}
-            />
-          </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <SecurityStatRow
+            icon={LockIcon}
+            label="Last password change"
+            value={formatDate(security.lastPasswordChange)}
+          />
+          <SecurityStatRow
+            icon={LogInIcon}
+            label="Last sign-in"
+            value={formatDateTimeShort(security.lastLogin)}
+          />
+          <SecurityStatRow
+            icon={MonitorSmartphoneIcon}
+            label="Active sessions"
+            value={`${security.activeSessions} ${security.activeSessions === 1 ? "device" : "devices"}`}
+          />
         </div>
 
-        <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:gap-4">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Button
             variant="outline"
-            className="h-12 flex-1 gap-2.5 rounded-xl border-[#E8E6E0] bg-white text-[14px] font-bold text-[#102F27] shadow-sm transition-all hover:border-[#1A5345]/30 hover:bg-[#F8FAFA]"
+            size="sm"
+            className="h-8 flex-1 gap-2 rounded-lg border-[#E8E6E0] bg-white text-[12px] font-bold text-[#102F27] shadow-sm hover:bg-[#F9F8F5]"
           >
-            <LockIcon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
-            Refresh Credentials
+            <LockIcon className="size-3.5 shrink-0 text-[#1A5345]" aria-hidden />
+            Change password
           </Button>
           <Button
             variant="outline"
-            className="h-12 flex-1 gap-2.5 rounded-xl border-red-100 bg-white text-[14px] font-bold text-red-600 shadow-sm transition-all hover:bg-red-50 hover:border-red-200"
+            size="sm"
+            className="h-8 flex-1 gap-2 rounded-lg border-red-200/80 bg-white text-[12px] font-bold text-red-600 shadow-sm hover:bg-red-50"
           >
-            <EyeIcon className="size-4 shrink-0" aria-hidden />
-            Terminate All Sessions
+            <EyeIcon className="size-3.5 shrink-0" aria-hidden />
+            Sign out all devices
           </Button>
         </div>
       </CardContent>
@@ -396,12 +371,10 @@ function SecurityStatRow({
   value: string
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 sm:px-5 sm:py-3.5">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
-        <Icon className="size-4 text-[#1A5345]" aria-hidden />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-medium text-[#6B7870]">{label}</p>
+    <div className={accountStatCellClassName}>
+      <Icon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold text-[#6B7870] sm:text-[11px]">{label}</p>
         <p className="truncate text-[13px] font-semibold text-[#1A1F1E]">{value}</p>
       </div>
     </div>
@@ -460,9 +433,8 @@ export function AssistantNotificationsSettingsCard({
   const rows = [
     {
       id: "assistant-notif-emergency",
-      title: "Emergency Alerts",
-      description: "Critical bypass for immediate medical interventions.",
-      iconWrap: "bg-red-50 ring-red-100",
+      title: "Emergency alerts",
+      description: "Critical alerts for immediate medical interventions.",
       Icon: AlertTriangleIcon,
       iconClass: "text-red-600",
       checked: emergencyAlerts,
@@ -470,19 +442,17 @@ export function AssistantNotificationsSettingsCard({
     },
     {
       id: "assistant-notif-appointment",
-      title: "Appointment Reminders",
-      description: "Schedule synchronization and patient arrivals.",
-      iconWrap: "bg-blue-50 ring-blue-100",
+      title: "Appointment reminders",
+      description: "Schedule updates and patient arrivals.",
       Icon: CalendarDaysIcon,
-      iconClass: "text-blue-600",
+      iconClass: "text-[#1A5345]",
       checked: appointmentReminders,
       setChecked: setAppointmentReminders,
     },
     {
       id: "assistant-notif-checklist",
-      title: "Checklist Updates",
-      description: "Real-time task completion and directive alerts.",
-      iconWrap: "bg-emerald-50 ring-emerald-100",
+      title: "Checklist updates",
+      description: "Task completion and workflow alerts.",
       Icon: ClipboardListIcon,
       iconClass: "text-emerald-600",
       checked: checklistUpdates,
@@ -490,11 +460,10 @@ export function AssistantNotificationsSettingsCard({
     },
     {
       id: "assistant-notif-doctor",
-      title: "Physician Directives",
-      description: "Direct communications from attending specialists.",
-      iconWrap: "bg-orange-50 ring-orange-100",
+      title: "Physician messages",
+      description: "Direct communications from attending doctors.",
       Icon: MessageCircleIcon,
-      iconClass: "text-orange-600",
+      iconClass: "text-amber-600",
       checked: doctorMessages,
       setChecked: setDoctorMessages,
     },
@@ -502,49 +471,29 @@ export function AssistantNotificationsSettingsCard({
 
   return (
     <Card className={accountPageCardClassName}>
-      <CardHeader className="space-y-1 border-b border-[#E8E6E0]/40 bg-white px-5 py-5 sm:px-6 sm:py-6">
-        <div className="flex items-center gap-3">
-          <AccountCardHeaderIcon icon={BellIcon} iconClassName="text-amber-600" />
-          <div>
-            <CardTitle className="font-serif text-[18px] font-bold tracking-tight text-[#1A1F1E] sm:text-[22px]">Notification Channels</CardTitle>
-            <CardDescription className="text-[13px] font-medium text-[#6B7870] sm:text-[14px]">
-              Configure high-priority clinical alert delivery systems
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-4 sm:p-6">
-        <div className="divide-y divide-[#E8E6E0]/40">
-          {rows.map((row) => {
-            const Icon = row.Icon
-            return (
-              <div 
-                key={row.id} 
-                className="group relative flex items-center gap-4 rounded-xl px-2 py-5 transition-colors hover:bg-[#F9F8F5] sm:px-4 sm:py-6"
-              >
-                <div
-                  className={cn(
-                    "flex size-11 shrink-0 items-center justify-center rounded-2xl ring-1 transition-all duration-500 group-hover:scale-110",
-                    row.iconWrap,
-                  )}
-                >
-                  <Icon className={cn("size-5", row.iconClass)} />
-                </div>
-                <div className="min-w-0 flex-1 space-y-1">
-                  <p className="text-[15px] font-bold text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">{row.title}</p>
-                  <p className="text-[13px] leading-relaxed text-[#6B7870]">
-                    {row.description}
-                  </p>
-                </div>
-                <PreferenceSwitch
-                  id={row.id}
-                  checked={row.checked}
-                  onCheckedChange={row.setChecked}
-                />
+      <CardContent className="divide-y divide-[#E8E6E0]/50 p-0">
+        {rows.map((row) => {
+          const Icon = row.Icon
+          return (
+            <div
+              key={row.id}
+              className="flex items-center gap-3 px-4 py-3.5 sm:px-5 sm:py-4"
+            >
+              <Icon className={cn("size-4 shrink-0", row.iconClass)} aria-hidden />
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <p className="text-[13px] font-bold text-[#1A1F1E]">{row.title}</p>
+                <p className="text-[11px] leading-relaxed text-muted-foreground sm:text-[12px]">
+                  {row.description}
+                </p>
               </div>
-            )
-          })}
-        </div>
+              <PreferenceSwitch
+                id={row.id}
+                checked={row.checked}
+                onCheckedChange={row.setChecked}
+              />
+            </div>
+          )
+        })}
       </CardContent>
     </Card>
   )
@@ -564,46 +513,31 @@ export function AssistantDisplayPreferencesCard({
 
   return (
     <Card className={accountPageCardClassName}>
-      <CardHeader className="space-y-1 border-b border-[#E8E6E0]/40 bg-white px-5 py-5 sm:px-6 sm:py-6">
-        <div className="flex items-center gap-3">
-          <AccountCardHeaderIcon icon={SlidersHorizontalIcon} />
-          <div>
-            <CardTitle className="font-serif text-[18px] font-bold tracking-tight text-[#1A1F1E] sm:text-[22px]">Display Preferences</CardTitle>
-            <CardDescription className="text-[13px] font-medium text-[#6B7870] sm:text-[14px]">
-              Personalize your workspace aesthetic and localization
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4 p-6 sm:p-8">
-        <div className="group flex items-center justify-between rounded-2xl border border-[#E8E6E0]/70 bg-[#FBFDFC]/50 p-4 transition-colors hover:border-[#1A5345]/20 hover:bg-white sm:p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm">
-              <ThemeIcon className="size-5 text-[#1A5345]" aria-hidden />
-            </div>
-            <div className="space-y-0.5">
-              <span className="text-[14px] font-bold text-[#1A1F1E] sm:text-[15px]">Interface Theme</span>
-              <p className="text-[11px] font-medium text-[#6B7870]">Adapts to your environment</p>
+      <CardContent className="divide-y divide-[#E8E6E0]/50 p-0">
+        <div className="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5 sm:py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <ThemeIcon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-[13px] font-bold text-[#1A1F1E]">Interface theme</p>
+              <p className="text-[11px] text-muted-foreground sm:text-[12px]">Light, dark, or system default</p>
             </div>
           </div>
-          <Badge variant="secondary" className="rounded-lg border border-[#E8E6E0]/80 bg-white px-3 py-1 text-[11px] font-bold capitalize text-[#1A5345]">
+          <span className="inline-flex rounded-lg bg-[#1A5345] px-2 py-0.5 text-[10px] font-bold capitalize text-white">
             {preferences.theme}
-          </Badge>
+          </span>
         </div>
 
-        <div className="group flex items-center justify-between rounded-2xl border border-[#E8E6E0]/70 bg-[#FBFDFC]/50 p-4 transition-colors hover:border-[#1A5345]/20 hover:bg-white sm:p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm">
-              <GlobeIcon className="size-5 text-[#1A5345]" aria-hidden />
-            </div>
-            <div className="space-y-0.5">
-              <span className="text-[14px] font-bold text-[#1A1F1E] sm:text-[15px]">Regional Language</span>
-              <p className="text-[11px] font-medium text-[#6B7870]">Clinical terminology localization</p>
+        <div className="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5 sm:py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <GlobeIcon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-[13px] font-bold text-[#1A1F1E]">Language</p>
+              <p className="text-[11px] text-muted-foreground sm:text-[12px]">Clinical terminology locale</p>
             </div>
           </div>
-          <Badge variant="secondary" className="rounded-lg border border-[#E8E6E0]/80 bg-white px-3 py-1 text-[11px] font-bold text-[#1A5345]">
+          <span className="inline-flex rounded-lg bg-slate-500 px-2 py-0.5 text-[10px] font-bold text-white">
             English (US)
-          </Badge>
+          </span>
         </div>
       </CardContent>
     </Card>
@@ -613,21 +547,6 @@ export function AssistantDisplayPreferencesCard({
 /* ────────────────────────────────────────────
    6. Weekly / Monthly Stats
    ──────────────────────────────────────────── */
-
-function AccountSectionHeading({
-  icon: Icon,
-  title,
-}: {
-  icon: ComponentType<{ className?: string }>
-  title: string
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <Icon className="size-5 text-[#1A5345]" aria-hidden />
-      <h3 className="text-[18px] font-bold text-[#1A1F1E]">{title}</h3>
-    </div>
-  )
-}
 
 const weeklyMetricKeys = Object.keys(accountWeeklyMetrics) as Array<
   keyof typeof accountWeeklyMetrics
