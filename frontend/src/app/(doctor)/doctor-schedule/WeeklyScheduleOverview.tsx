@@ -1,6 +1,6 @@
 "use client"
 
-import { CalendarDaysIcon, ClockIcon, HourglassIcon, UsersIcon } from "lucide-react"
+import { ClockIcon, HourglassIcon, UsersIcon } from "lucide-react"
 
 import {
   Select,
@@ -33,20 +33,17 @@ export function WeeklyScheduleOverview({
   return (
     <section
       aria-label="Your weekly schedule overview"
-      className="overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm"
+      className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]"
     >
-      <div className="flex flex-col gap-3 border-b border-[#E8E6E0]/40 bg-[#F9F8F5]/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <CalendarDaysIcon className="size-4 sm:size-5 text-[#1A5345]" aria-hidden />
-          <div className="flex flex-col gap-0.5">
-            <h2 className="font-sans text-[12px] sm:text-[14px] font-bold text-[#1A1F1E]">Weekly Schedule</h2>
-            <p className="font-sans text-[10px] sm:text-[11px] text-muted-foreground">
-              Your availability overview for the week
-            </p>
-          </div>
+      <div className="flex flex-col gap-3 border-b border-[#E8E6E0]/50 bg-[#FAFAF8]/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="space-y-0.5">
+          <h2 className="font-serif text-[16px] font-bold text-[#1A1F1E] sm:text-[17px]">Weekly overview</h2>
+          <p className="text-[13px] font-medium text-muted-foreground">
+            Visual timeline of your working hours and breaks
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 self-start rounded-full border border-[#E8E6E0] bg-white px-2 py-1 pl-2.5 text-[10px] sm:text-[11px] font-medium text-[#1A1F1E] shadow-sm sm:self-auto">
+          <div className="flex items-center gap-1.5 self-start rounded-xl border border-[#E8E6E0] bg-white px-2.5 py-1.5 text-[12px] font-medium text-[#1A1F1E] shadow-sm sm:self-auto">
             <ClockIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
             <span className="shrink-0 text-muted-foreground">Slot</span>
             <Select
@@ -55,7 +52,7 @@ export function WeeklyScheduleOverview({
             >
               <SelectTrigger
                 aria-label="Appointment slot length in minutes"
-                className="h-6 w-[72px] shrink-0 justify-center gap-0 border-0 bg-[#E8F0EE]/50 hover:bg-[#E8F0EE] px-2 text-[10px] sm:text-[11px] font-bold text-[#1A5345] shadow-none ring-0 focus:ring-2 focus:ring-[#1A5345]/20 data-[size=default]:h-6 [&_svg]:hidden rounded-md"
+                className="h-7 w-[76px] shrink-0 justify-center gap-0 rounded-lg border-0 bg-[#E8F0EE]/50 px-2 text-[11px] font-bold text-[#1A5345] shadow-none ring-0 hover:bg-[#E8F0EE] focus:ring-2 focus:ring-[#1A5345]/20 data-[size=default]:h-7 [&_svg]:hidden"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -69,7 +66,7 @@ export function WeeklyScheduleOverview({
             </Select>
           </div>
 
-          <div className="flex items-center gap-1.5 self-start rounded-full border border-[#E8E6E0] bg-white px-2 py-1 pl-2.5 text-[10px] sm:text-[11px] font-medium text-[#1A1F1E] shadow-sm sm:self-auto">
+          <div className="flex items-center gap-1.5 self-start rounded-xl border border-[#E8E6E0] bg-white px-2.5 py-1.5 text-[12px] font-medium text-[#1A1F1E] shadow-sm sm:self-auto">
             <HourglassIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
             <span className="shrink-0 text-muted-foreground">Buffer</span>
             <Select
@@ -78,7 +75,7 @@ export function WeeklyScheduleOverview({
             >
               <SelectTrigger
                 aria-label="Buffer time between slots"
-                className="h-6 w-[72px] shrink-0 justify-center gap-0 border-0 bg-amber-50 hover:bg-amber-100 px-2 text-[10px] sm:text-[11px] font-bold text-amber-700 shadow-none ring-0 focus:ring-2 focus:ring-amber-500/20 data-[size=default]:h-6 [&_svg]:hidden rounded-md"
+                className="h-7 w-[76px] shrink-0 justify-center gap-0 rounded-lg border-0 bg-amber-50 px-2 text-[11px] font-bold text-amber-700 shadow-none ring-0 hover:bg-amber-100 focus:ring-2 focus:ring-amber-500/20 data-[size=default]:h-7 [&_svg]:hidden"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -94,7 +91,7 @@ export function WeeklyScheduleOverview({
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="p-5 sm:p-6">
         <TimelineHeader />
         <div className="divide-y divide-[#E8E6E0]/60">
           {schedule.days.map((day) => (
@@ -116,7 +113,7 @@ function TimelineHeader() {
   }
 
   return (
-    <div className="mb-2 ml-[80px] sm:ml-[96px] flex items-end justify-between text-[9px] font-medium text-muted-foreground">
+    <div className="mb-2 ml-[80px] sm:ml-[96px] flex items-end justify-between text-[10px] font-medium text-muted-foreground">
       {hours.map((hour, i) => (
         <div key={hour} className="flex flex-col items-center">
           <span>{formatHour(hour)}</span>
@@ -166,7 +163,7 @@ function DayTimelineRow({ day }: { day: DayAvailability }) {
       </div>
 
       <div className="relative flex-1">
-        <div className="relative h-8 sm:h-10 rounded-md sm:rounded-lg bg-[#F9F8F5] ring-1 ring-inset ring-[#E8E6E0]/50">
+        <div className="relative h-10 rounded-xl bg-[#F4F3ED] ring-1 ring-inset ring-[#E8E6E0]/60">
           {active ? (
             <>
               {day.periods.map((period) => {

@@ -306,10 +306,26 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
   }
 
   return (
-    <section className="overflow-hidden rounded-xl border border-[#E8E6E0] bg-white shadow-sm animate-in fade-in duration-500">
-      <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/80 px-4 py-3 sm:px-5 sm:py-4">
-        <h2 className="font-sans text-[12px] sm:text-[14px] font-bold text-[#1A1F1E]">Schedule Details</h2>
-        <p className="mt-0.5 text-[10px] sm:text-[11px] text-muted-foreground">Manage working periods and blocked times for each day</p>
+    <section className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)] animate-in fade-in duration-500">
+      <div className="border-b border-[#E8E6E0]/50 bg-[#FAFAF8]/80 px-5 py-4 sm:px-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-0.5">
+            <h2 className="font-serif text-[16px] font-bold text-[#1A1F1E] sm:text-[17px]">Schedule details</h2>
+            <p className="text-[13px] font-medium text-muted-foreground">
+              Manage working periods and blocked times for each day
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block size-2.5 rounded-sm bg-[#1A5345]" />
+              Working
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block size-2.5 rounded-sm border border-red-200 bg-red-50" />
+              Break
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
