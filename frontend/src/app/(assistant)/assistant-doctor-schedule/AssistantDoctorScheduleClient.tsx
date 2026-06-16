@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Image from "next/image"
+import { useSearchParams } from "next/navigation"
 import {
   ArrowRightLeftIcon,
   BanIcon,
@@ -2129,16 +2130,22 @@ function AssistantDoctorScheduleBody({
 }
 
 export function AssistantDoctorScheduleClient() {
+  const searchParams = useSearchParams()
   const doctorsQuery = useAssistantScheduleDoctors()
   const doctors = doctorsQuery.data ?? []
 
   const [doctorId, setDoctorId] = React.useState("")
 
   React.useEffect(() => {
+    const fromQuery = searchParams.get("doctorId")?.trim()
+    if (fromQuery && doctors.some((doctor) => doctor.id === fromQuery)) {
+      setDoctorId(fromQuery)
+      return
+    }
     if (!doctorId && doctors.length > 0) {
       setDoctorId(doctors[0]!.id)
     }
-  }, [doctorId, doctors])
+  }, [doctorId, doctors, searchParams])
 
   const {
     bundle,
