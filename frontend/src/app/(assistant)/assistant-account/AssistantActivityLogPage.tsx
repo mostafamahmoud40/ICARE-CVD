@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
+import { useLocale } from "next-intl"
 import {
   ArrowLeftIcon,
   CalendarDaysIcon,
@@ -23,8 +24,6 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { ActivityEntry } from "./assistantAccount.types"
 import {
-  ACTIVITY_PERIOD_OPTIONS,
-  ACTIVITY_TYPE_OPTIONS,
   countActivitiesByType,
   filterActivities,
   groupActivitiesByDate,
@@ -34,8 +33,19 @@ import {
 import { ActivityTimeline } from "./ActivityTimeline"
 import { ActivityDetailDialog } from "./ActivityDetailDialog"
 import { accountPageCardClassName, assistantAccountScrollbarCss } from "./assistantAccount.shared"
+import {
+  formatActivityGroupLabel,
+  useActivityPeriodOptions,
+  useActivityTypeOptions,
+  useAssistantAccountTranslations,
+} from "./account-i18n"
 
 export function AssistantActivityLogPage({ activities }: { activities: ActivityEntry[] }) {
+  const locale = useLocale()
+  const { t } = useAssistantAccountTranslations()
+  const periodOptions = useActivityPeriodOptions()
+  const typeOptions = useActivityTypeOptions()
+
   const [period, setPeriod] = useState<ActivityPeriodFilter>("month")
   const [typeFilter, setTypeFilter] = useState<ActivityTypeFilter>("all")
   const [search, setSearch] = useState("")
@@ -47,7 +57,21 @@ export function AssistantActivityLogPage({ activities }: { activities: ActivityE
   )
 
   const counts = useMemo(() => countActivitiesByType(filtered), [filtered])
-  const grouped = useMemo(() => groupActivitiesByDate(filtered), [filtered])
+  const labelForTimestamp = useCallback(
+    (iso: string) => formatActivityGroupLabel(iso, t, locale),
+    [t, locale],
+  )
+  const grouped = useMemo(
+    () => groupActivitiesByDate(filtered, labelForTimestamp),
+    [filtered, labelForTimestamp],
+  )
+
+  const statTiles = [
+    { key: "total", label: t("activity.statTotal"), value: counts.total },
+    { key: "patients", label: t("activity.statPatients"), value: counts.patient },
+    { key: "appointments", label: t("activity.statAppointments"), value: counts.appointment },
+    { key: "queue", label: t("activity.statQueue"), value: counts.queue },
+  ] as const
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
@@ -66,7 +90,7 @@ export function AssistantActivityLogPage({ activities }: { activities: ActivityE
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
                     <Link href="/assistant-dashboard" className="text-[10px] font-medium sm:text-[11px]">
-                      Dashboard
+                      {t("breadcrumbDashboard")}
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
@@ -74,14 +98,14 @@ export function AssistantActivityLogPage({ activities }: { activities: ActivityE
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
                     <Link href="/assistant-account" className="text-[10px] font-medium sm:text-[11px]">
-                      Account
+                      {t("breadcrumbAccount")}
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
                   <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">
-                    Activity log
+                    {t("activity.breadcrumb")}
                   </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
@@ -93,12 +117,11 @@ export function AssistantActivityLogPage({ activities }: { activities: ActivityE
               <div className="flex items-center gap-2">
                 <MessageSquareTextIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
                 <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px]">
-                  Activity log
+                  {t("activity.title")}
                 </h1>
               </div>
               <p className="max-w-2xl text-[13px] font-medium text-muted-foreground sm:text-[14px]">
-                Everything you have done in the clinic — filter by week, month, year, or browse the full
-                history.
+                {t("activity.subtitle")}
               </p>
             </div>
 
@@ -107,16 +130,16 @@ export function AssistantActivityLogPage({ activities }: { activities: ActivityE
               className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A1F1E] shadow-sm transition-colors hover:bg-slate-50 hover:text-[#1A5345]"
             >
               <ArrowLeftIcon className="size-3.5" aria-hidden />
-              Back to account
+              {t("activity.backToAccount")}
             </Link>
           </div>
 
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <nav
-              aria-label="Activity period"
+              aria-label={t("activity.periodAria")}
               className="flex gap-1.5 overflow-x-auto rounded-2xl border border-[#E8E6E0]/70 bg-[#F9F8F5] p-1.5"
             >
-              {ACTIVITY_PERIOD_OPTIONS.map((option) => {
+              {periodOptions.map((option) => {
                 const isActive = period === option.key
                 return (
                   <button
@@ -124,7 +147,7 @@ export function AssistantActivityLogPage({ activities }: { activities: ActivityE
                     type="button"
                     onClick={() => setPeriod(option.key)}
                     className={cn(
-                      "inline-flex min-h-9 shrink-0 flex-col items-start rounded-xl px-3.5 py-1.5 text-left transition-colors sm:min-h-10 sm:px-4",
+                      "inline-flex min-h-9 shrink-0 flex-col items-start rounded-xl px-3.5 py-1.5 text-start transition-colors sm:min-h-10 sm:px-4",
                       isActive
                         ? "bg-[#1A5345] text-white shadow-sm"
                         : "text-muted-foreground hover:bg-white hover:text-[#1A1F1E]",
@@ -147,14 +170,9 @@ export function AssistantActivityLogPage({ activities }: { activities: ActivityE
             </nav>
 
             <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3">
-              {[
-                { label: "Total", value: counts.total },
-                { label: "Patients", value: counts.patient },
-                { label: "Appointments", value: counts.appointment },
-                { label: "Queue", value: counts.queue },
-              ].map((stat) => (
+              {statTiles.map((stat) => (
                 <div
-                  key={stat.label}
+                  key={stat.key}
                   className="flex min-w-[88px] flex-col items-center justify-center rounded-xl border border-[#E8E6E0]/70 bg-white px-3 py-2 shadow-sm"
                 >
                   <span className="text-[16px] font-bold leading-none tabular-nums text-[#1A5345]">
@@ -170,20 +188,20 @@ export function AssistantActivityLogPage({ activities }: { activities: ActivityE
 
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <div className="relative min-w-0 flex-1 sm:min-w-[220px]">
-              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9CA3AF]" />
+              <SearchIcon className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-[#9CA3AF]" />
               <Input
                 type="search"
-                placeholder="Search actions, patients, or notes…"
+                placeholder={t("activity.searchPlaceholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-10 rounded-lg border-[#E8E6E0] bg-white pl-9 text-[13px]"
+                className="h-10 rounded-lg border-[#E8E6E0] bg-white ps-9 text-[13px]"
               />
               {search ? (
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9CA3AF] transition-colors hover:text-[#6B7870]"
-                  aria-label="Clear search"
+                  className="absolute end-2 top-1/2 -translate-y-1/2 text-[#9CA3AF] transition-colors hover:text-[#6B7870]"
+                  aria-label={t("activity.clearSearch")}
                 >
                   <XIcon className="size-4" />
                 </button>
@@ -191,7 +209,7 @@ export function AssistantActivityLogPage({ activities }: { activities: ActivityE
             </div>
 
             <div className="flex items-center gap-1 overflow-x-auto rounded-2xl border border-[#E8E6E0] bg-white p-1 shadow-sm">
-              {ACTIVITY_TYPE_OPTIONS.map((option) => {
+              {typeOptions.map((option) => {
                 const isActive = typeFilter === option.key
                 return (
                   <button
@@ -221,9 +239,9 @@ export function AssistantActivityLogPage({ activities }: { activities: ActivityE
               <CardContent className="p-8">
                 <div className="flex flex-col items-center gap-2 text-center">
                   <CalendarDaysIcon className="size-8 text-[#B8D4CB]" aria-hidden />
-                  <p className="text-[14px] font-bold text-[#1A1F1E]">No activity in this period</p>
+                  <p className="text-[14px] font-bold text-[#1A1F1E]">{t("activity.emptyTitle")}</p>
                   <p className="max-w-sm text-[12px] font-medium text-[#6B7870]">
-                    Try a wider date range or clear your search and type filters.
+                    {t("activity.emptyHint")}
                   </p>
                 </div>
               </CardContent>

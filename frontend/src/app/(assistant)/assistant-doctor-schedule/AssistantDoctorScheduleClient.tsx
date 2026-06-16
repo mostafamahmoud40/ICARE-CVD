@@ -86,6 +86,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { useAssistantPageTranslations } from "../use-assistant-i18n"
 
 import { nextCalendarDateForWeekday } from "./assistantDoctorSchedule.date"
 import { computeAvailableSlotsForDay } from "./assistantDoctorSchedule.slots"
@@ -1328,10 +1329,12 @@ function DoctorScheduleDoctorPicker({
   doctors,
   doctorId,
   onDoctorIdChange,
+  t,
 }: {
   doctors: AssistantScheduleDoctor[]
   doctorId: string
   onDoctorIdChange: (id: string) => void
+  t: (key: string, values?: Record<string, string | number | Date>) => string
 }) {
   const [open, setOpen] = React.useState(false)
   const selected = doctors.find((d) => d.id === doctorId)
@@ -1362,7 +1365,7 @@ function DoctorScheduleDoctorPicker({
                 </div>
               </>
             ) : (
-              <span className="text-muted-foreground">Choose doctor</span>
+                  <span className="text-muted-foreground">{t("chooseDoctor")}</span>
             )}
           </div>
           <ChevronsUpDownIcon className="ml-2 size-4 shrink-0 opacity-50" aria-hidden />
@@ -1373,10 +1376,10 @@ function DoctorScheduleDoctorPicker({
         align="start"
       >
         <Command>
-          <CommandInput placeholder="Search by name or specialty…" className="h-10" />
+          <CommandInput placeholder={t("searchDoctor")} className="h-10" />
           <CommandList className="max-h-[min(320px,48vh)]">
             <CommandEmpty className="py-6 text-sm text-muted-foreground">
-              No doctor matches.
+              {t("noDoctorMatches")}
             </CommandEmpty>
             <CommandGroup>
               {doctors.map((d) => (
@@ -1471,6 +1474,30 @@ function AssistantDoctorScheduleBody({
   deletingDayExtraId,
   doctorName,
 }: AssistantDoctorScheduleBodyProps) {
+  const { t } = useAssistantPageTranslations("doctorSchedule")
+  const scheduleTableLabels = React.useMemo(
+    () => ({
+      title: t("table.title"),
+      subtitle: t("table.subtitle"),
+      legendWorking: t("table.legendWorking"),
+      legendBreak: t("table.legendBreak"),
+      colDay: t("table.day"),
+      colStatus: t("table.status"),
+      colMaxVisits: t("table.maxVisits"),
+      colWorkingPeriods: t("table.workingPeriods"),
+      colBlockedTimes: t("table.blockedTimes"),
+      open: t("table.open"),
+      off: t("table.off"),
+      noPeriods: t("table.noPeriods"),
+      noBlocks: t("table.noBlocks"),
+      addPeriod: t("table.addPeriod"),
+      addBlock: t("table.addBlock"),
+      removePeriod: t("table.removePeriod"),
+      removeBlock: t("table.removeBlock"),
+      to: t("table.to"),
+    }),
+    [t]
+  )
   const [view, setView] = React.useState<ViewMode>("week")
   const [draft, setDraft] = React.useState(() => structuredClone(bundle.schedule))
   const [calendarMonth, setCalendarMonth] = React.useState(() => new Date())
@@ -1590,7 +1617,7 @@ function AssistantDoctorScheduleBody({
                   onClick={() => setView("week")}
                 >
                   <Table2Icon className="mr-2 size-4 shrink-0" aria-hidden />
-                  <span className="truncate">Weekly table</span>
+                  <span className="truncate">{t("weeklyTable")}</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs text-xs">
@@ -1613,7 +1640,7 @@ function AssistantDoctorScheduleBody({
                   onClick={() => setView("day")}
                 >
                   <CalendarDaysIcon className="mr-2 size-4 shrink-0" aria-hidden />
-                  <span className="truncate">Daily sessions</span>
+                  <span className="truncate">{t("dailySessions")}</span>
                   <span className="ml-1.5 hidden items-center gap-1 sm:inline-flex">
                     {bookingCount > 0 ? (
                       <Badge
@@ -1656,7 +1683,7 @@ function AssistantDoctorScheduleBody({
                   onClick={() => setView("blocked")}
                 >
                   <BanIcon className="mr-2 size-4 shrink-0" aria-hidden />
-                  <span className="truncate">Blocked dates</span>
+                  <span className="truncate">{t("blockedDates")}</span>
                   {draft.blockedDates.length > 0 ? (
                     <Badge
                       variant="secondary"
@@ -1689,7 +1716,7 @@ function AssistantDoctorScheduleBody({
                   onClick={() => setView("calendar")}
                 >
                   <CalendarRangeIcon className="mr-2 size-4 shrink-0" aria-hidden />
-                  <span className="truncate">Calendar</span>
+                  <span className="truncate">{t("calendar")}</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs text-xs">
@@ -1714,7 +1741,7 @@ function AssistantDoctorScheduleBody({
                   onClick={() => setView("ai")}
                 >
                   <SparklesIcon className="mr-2 size-4 shrink-0" aria-hidden />
-                  <span className="truncate">AI assistant</span>
+                  <span className="truncate">{t("aiAssistant")}</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs text-xs">
@@ -1730,7 +1757,7 @@ function AssistantDoctorScheduleBody({
             {hasChanges ? (
               <Badge className="h-7 gap-1.5 rounded-lg border-amber-200 bg-amber-50 px-2.5 text-[10px] font-bold text-amber-700">
                 <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
-                Unsaved changes
+                {t("unsavedChanges")}
               </Badge>
             ) : null}
             <Button
@@ -1741,7 +1768,7 @@ function AssistantDoctorScheduleBody({
               onClick={() => setExportOpen(true)}
             >
               <PrinterIcon className="size-4" aria-hidden />
-              Export
+              {t("export")}
             </Button>
           </div>
         </div>
@@ -1814,7 +1841,7 @@ function AssistantDoctorScheduleBody({
           </div>
           <div className="min-w-0">
             <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Slot Duration
+              {t("slotDuration")}
             </p>
             <p className="text-lg font-bold tabular-nums text-[#1A1F1E]">
               {draft.slotDurationMinutes}
@@ -1829,7 +1856,7 @@ function AssistantDoctorScheduleBody({
           </div>
           <div className="min-w-0">
             <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Active Days
+              {t("activeDays")}
             </p>
             <p className="text-lg font-bold tabular-nums text-[#1A1F1E]">
               {draft.days.filter((d) => d.enabled).length}
@@ -1844,7 +1871,7 @@ function AssistantDoctorScheduleBody({
           </div>
           <div className="min-w-0">
             <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Bookings
+              {t("bookings")}
             </p>
             <p className="text-lg font-bold tabular-nums text-[#1A1F1E]">{bookingCount}</p>
           </div>
@@ -1856,7 +1883,7 @@ function AssistantDoctorScheduleBody({
           </div>
           <div className="min-w-0">
             <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Blocked
+              {t("blocked")}
             </p>
             <p className="text-lg font-bold tabular-nums text-[#1A1F1E]">
               {draft.blockedDates.length}
@@ -1893,15 +1920,15 @@ function AssistantDoctorScheduleBody({
         <div className="space-y-4">
           <Card className="border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
             <CardHeader className="border-b border-[#E8E6E0]/50 pb-3">
-              <CardTitle className="font-serif text-base text-[#1A1F1E]">Slot settings</CardTitle>
+              <CardTitle className="font-serif text-base text-[#1A1F1E]">{t("slotSettings.title")}</CardTitle>
               <CardDescription>
-                Same fields as the doctor portal; saved locally for now.
+                {t("slotSettings.description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-6 pt-4">
               <div className="space-y-1.5">
                 <Label htmlFor="slot-len" className="text-xs font-semibold">
-                  Slot length (minutes)
+                  {t("slotSettings.slotLength")}
                 </Label>
                 <Input
                   id="slot-len"
@@ -1915,7 +1942,7 @@ function AssistantDoctorScheduleBody({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="buffer" className="text-xs font-semibold">
-                  Buffer between slots (minutes)
+                  {t("slotSettings.bufferBetween")}
                 </Label>
                 <Input
                   id="buffer"
@@ -1930,7 +1957,7 @@ function AssistantDoctorScheduleBody({
             </CardContent>
           </Card>
 
-          <ScheduleTable days={draft.days} onDayChange={handleDayChange} />
+          <ScheduleTable days={draft.days} onDayChange={handleDayChange} labels={scheduleTableLabels} />
         </div>
       ) : null}
 
@@ -2106,7 +2133,7 @@ function AssistantDoctorScheduleBody({
             <div className="flex items-center gap-2">
               <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
               <p className="text-[13px] font-medium text-[#1A1F1E] sm:text-[14px]">
-                Schedule has unsaved changes
+                {t("saveChangesBanner")}
               </p>
             </div>
             <Button
@@ -2120,7 +2147,7 @@ function AssistantDoctorScheduleBody({
               ) : (
                 <SaveIcon className="mr-2 size-4" aria-hidden />
               )}
-              Save schedule for {doctorName}
+              {t("saveForDoctor", { doctor: doctorName })}
             </Button>
           </div>
         </div>
@@ -2130,6 +2157,7 @@ function AssistantDoctorScheduleBody({
 }
 
 export function AssistantDoctorScheduleClient() {
+  const { t } = useAssistantPageTranslations("doctorSchedule")
   const searchParams = useSearchParams()
   const doctorsQuery = useAssistantScheduleDoctors()
   const doctors = doctorsQuery.data ?? []
@@ -2168,7 +2196,7 @@ export function AssistantDoctorScheduleClient() {
     deletingDayExtraId,
   } = useAssistantDoctorSchedule(doctorId)
 
-  const selectedDoctorName = doctors.find((d) => d.id === doctorId)?.name ?? "Doctor"
+  const selectedDoctorName = doctors.find((d) => d.id === doctorId)?.name ?? t("doctor")
 
   const scheduleFingerprint = React.useMemo(
     () => (bundle ? JSON.stringify(bundle.schedule) : ""),
@@ -2182,11 +2210,10 @@ export function AssistantDoctorScheduleClient() {
       <header className="bg-transparent px-6 pb-3 pt-4 sm:px-8">
         <div className="space-y-0.5">
           <h1 className="font-serif text-[22px] font-bold tracking-tight text-[#102F27] sm:text-[26px]">
-            Doctor schedule
+            {t("title")}
           </h1>
           <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
-            Review the weekly grid, adjust working periods, inspect each day&apos;s sessions, and
-            pause a session when the doctor must step away. All changes are saved to the database.
+            {t("subtitle")}
           </p>
         </div>
       </header>
@@ -2194,8 +2221,8 @@ export function AssistantDoctorScheduleClient() {
       <div className="flex min-h-0 flex-1 flex-col space-y-6 px-6 pb-10 sm:px-8">
         <Card className="border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
           <CardHeader className="border-b border-[#E8E6E0]/50 pb-4">
-            <CardTitle className="font-serif text-lg text-[#1A1F1E]">Select doctor</CardTitle>
-            <CardDescription>Each doctor has their own weekly schedule in the database.</CardDescription>
+            <CardTitle className="font-serif text-lg text-[#1A1F1E]">{t("selectDoctor")}</CardTitle>
+            <CardDescription>{t("selectDoctorHint")}</CardDescription>
           </CardHeader>
           <CardContent className="pt-4">
             <div className="flex max-w-md flex-col gap-2">
@@ -2203,12 +2230,13 @@ export function AssistantDoctorScheduleClient() {
                 htmlFor="doctor-select"
                 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
               >
-                Doctor
+                {t("doctor")}
               </Label>
               <DoctorScheduleDoctorPicker
                 doctors={doctors}
                 doctorId={doctorId}
                 onDoctorIdChange={setDoctorId}
+                t={t}
               />
             </div>
           </CardContent>
@@ -2220,7 +2248,7 @@ export function AssistantDoctorScheduleClient() {
           </div>
         ) : doctors.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#E8E6E0] bg-white px-6 py-12 text-center text-sm text-muted-foreground">
-            No doctors found. Add doctor profiles in the admin panel first.
+            {t("noDoctors")}
           </div>
         ) : isLoading || !bundle ? (
           <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-[#E8E6E0]/70 bg-white">

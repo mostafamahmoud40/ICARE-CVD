@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import { assistantProfileEditSchema } from "./assistantAccount.schema"
 import type { AssistantProfileEditValues } from "./assistantAccount.schema"
+import { useAssistantAccountTranslations } from "./account-i18n"
 
 const DEPARTMENT_OPTIONS = [
   "Cardiology",
@@ -31,6 +32,14 @@ const DEPARTMENT_OPTIONS = [
   "Nephrology",
   "General Practice",
 ] as const
+
+const DEPARTMENT_LABEL_KEYS: Record<(typeof DEPARTMENT_OPTIONS)[number], string> = {
+  Cardiology: "Cardiology",
+  "Internal Medicine": "InternalMedicine",
+  Endocrinology: "Endocrinology",
+  Nephrology: "Nephrology",
+  "General Practice": "GeneralPractice",
+}
 
 const AVATAR_OPTIONS = Array.from({ length: 6 }, (_, i) => `/avatars/avatar-${i + 1}.svg`)
 
@@ -54,6 +63,7 @@ export function EditAssistantProfileDialog({
   onSubmit,
   isPending,
 }: EditAssistantProfileDialogProps) {
+  const { t } = useAssistantAccountTranslations()
   const [form, setForm] = useState(initialValues)
   const [errors, setErrors] = useState<FieldErrors>({})
 
@@ -97,9 +107,9 @@ export function EditAssistantProfileDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 overflow-hidden rounded-2xl border border-[#E8E6E0]/80 bg-[#F9F8F5] p-0 shadow-[0_20px_60px_-12px_rgba(26,83,69,0.18)] sm:max-w-[560px]">
-        <DialogHeader className="border-b border-[#E8E6E0]/60 bg-white px-6 py-4 text-left">
+        <DialogHeader className="border-b border-[#E8E6E0]/60 bg-white px-6 py-4 text-start">
           <DialogTitle className="font-serif text-[18px] font-bold text-[#1A1F1E]">
-            Edit profile
+            {t("editDialog.title")}
           </DialogTitle>
         </DialogHeader>
 
@@ -107,7 +117,7 @@ export function EditAssistantProfileDialog({
           <div className="space-y-6 px-6 py-5">
             <div>
               <h3 className="mb-3 text-[12px] font-bold uppercase tracking-wider text-[#6B7870]">
-                Avatar profile
+                {t("editDialog.avatarSection")}
               </h3>
               <div className="mb-2 flex flex-wrap gap-4">
                 {AVATAR_OPTIONS.map((avatar) => (
@@ -122,7 +132,7 @@ export function EditAssistantProfileDialog({
                         : "border-transparent bg-slate-50 hover:bg-slate-100",
                     )}
                   >
-                    <img src={avatar} alt="Avatar option" className="size-full rounded-full object-cover" />
+                    <img src={avatar} alt={t("editDialog.avatarOption")} className="size-full rounded-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -135,11 +145,11 @@ export function EditAssistantProfileDialog({
                     onClick={() => setField("avatarUrl", undefined)}
                     className="h-8 px-2 text-[12px] font-semibold text-[#6B7870] hover:text-[#1A1F1E]"
                   >
-                    Remove photo
+                    {t("editDialog.removePhoto")}
                   </Button>
                 ) : (
                   <p className="text-[11px] font-medium text-muted-foreground">
-                    No photo selected — your initials will be shown instead.
+                    {t("editDialog.noPhoto")}
                   </p>
                 )}
               </div>
@@ -152,18 +162,18 @@ export function EditAssistantProfileDialog({
 
             <div>
               <h3 className="mb-3 text-[12px] font-bold uppercase tracking-wider text-[#6B7870]">
-                Basic information
+                {t("editDialog.basicInfo")}
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field>
                   <FieldLabel htmlFor="edit-full-name" className="text-[12px] font-bold text-[#1A1F1E]">
-                    Full name
+                    {t("editDialog.fullName")}
                   </FieldLabel>
                   <Input
                     id="edit-full-name"
                     value={form.fullName}
                     onChange={(e) => setField("fullName", e.target.value)}
-                    placeholder="Sara Ahmed"
+                    placeholder={t("editDialog.fullNamePlaceholder")}
                     autoComplete="name"
                     className={inputClassName}
                   />
@@ -174,14 +184,14 @@ export function EditAssistantProfileDialog({
 
                 <Field>
                   <FieldLabel htmlFor="edit-email" className="text-[12px] font-bold text-[#1A1F1E]">
-                    Email
+                    {t("editDialog.email")}
                   </FieldLabel>
                   <Input
                     id="edit-email"
                     type="email"
                     value={form.email}
                     onChange={(e) => setField("email", e.target.value)}
-                    placeholder="name@icare-cvd.com"
+                    placeholder={t("editDialog.emailPlaceholder")}
                     autoComplete="email"
                     className={inputClassName}
                   />
@@ -192,14 +202,14 @@ export function EditAssistantProfileDialog({
 
                 <Field>
                   <FieldLabel htmlFor="edit-phone" className="text-[12px] font-bold text-[#1A1F1E]">
-                    Phone number
+                    {t("editDialog.phone")}
                   </FieldLabel>
                   <Input
                     id="edit-phone"
                     type="tel"
                     value={form.phone}
                     onChange={(e) => setField("phone", e.target.value)}
-                    placeholder="+20 100 000 0000"
+                    placeholder={t("editDialog.phonePlaceholder")}
                     autoComplete="tel"
                     className={inputClassName}
                   />
@@ -214,16 +224,16 @@ export function EditAssistantProfileDialog({
 
             <div>
               <h3 className="mb-3 text-[12px] font-bold uppercase tracking-wider text-[#6B7870]">
-                Professional details
+                {t("editDialog.professionalDetails")}
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field>
                   <FieldLabel className="text-[12px] font-bold text-[#1A1F1E]">
-                    Department
+                    {t("editDialog.department")}
                   </FieldLabel>
                   <Select value={form.department} onValueChange={(v) => setField("department", v)}>
                     <SelectTrigger className="h-9 w-full rounded-lg border border-[#E8E6E0] bg-white px-3 text-[13px] font-medium text-[#1A1F1E] shadow-sm transition-all hover:bg-slate-50 focus:ring-0">
-                      <SelectValue placeholder="Select department" />
+                      <SelectValue placeholder={t("editDialog.selectDepartment")} />
                     </SelectTrigger>
                     <SelectContent className="rounded-lg border border-[#cfd9d5] bg-white shadow-lg">
                       {DEPARTMENT_OPTIONS.map((dept) => (
@@ -232,7 +242,7 @@ export function EditAssistantProfileDialog({
                           value={dept}
                           className="cursor-pointer text-[12px] font-bold text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345]"
                         >
-                          {dept}
+                          {t(`editDialog.departments.${DEPARTMENT_LABEL_KEYS[dept]}`)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -244,7 +254,7 @@ export function EditAssistantProfileDialog({
 
                 <Field>
                   <FieldLabel htmlFor="edit-experience" className="text-[12px] font-bold text-[#1A1F1E]">
-                    Experience (years)
+                    {t("editDialog.experienceYears")}
                   </FieldLabel>
                   <Input
                     id="edit-experience"
@@ -253,7 +263,7 @@ export function EditAssistantProfileDialog({
                     max={50}
                     value={form.experienceYears}
                     onChange={(e) => setField("experienceYears", Number(e.target.value))}
-                    placeholder="0"
+                    placeholder={t("editDialog.experiencePlaceholder")}
                     className={inputClassName}
                   />
                   {errors.experienceYears ? (
@@ -262,7 +272,7 @@ export function EditAssistantProfileDialog({
                 </Field>
               </div>
               <p className="mt-3 text-[11px] font-medium text-muted-foreground">
-                Staff ID and join date cannot be changed from this screen.
+                {t("editDialog.immutableFields")}
               </p>
             </div>
           </div>
@@ -276,7 +286,7 @@ export function EditAssistantProfileDialog({
               disabled={isPending}
               className="h-8 rounded-lg border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] hover:bg-[#F9F8F5]"
             >
-              Cancel
+              {t("editDialog.cancel")}
             </Button>
             <Button
               type="submit"
@@ -285,7 +295,7 @@ export function EditAssistantProfileDialog({
               className="h-8 gap-1.5 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34]"
             >
               {isPending ? <Loader2Icon className="size-3.5 animate-spin" aria-hidden /> : null}
-              {isPending ? "Saving…" : "Save changes"}
+              {isPending ? t("editDialog.saving") : t("editDialog.save")}
             </Button>
           </div>
         </form>

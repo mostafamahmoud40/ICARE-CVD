@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { useTranslations } from "next-intl"
+import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import { DoctorCard } from "./DoctorCard"
 import { useAssistantDoctorsDirectory } from "./useAssistantDoctors"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { SearchIcon, XIcon, UsersIcon, ActivityIcon, ClockIcon, PhoneOffIcon, Loader2Icon } from "lucide-react"
 
 export function DoctorDirectoryContainer() {
-  const t = useTranslations("assistant.pages.doctors")
+  const { t } = useAssistantPageTranslations("doctors")
   const doctorsQuery = useAssistantDoctorsDirectory()
   const doctors = doctorsQuery.data ?? []
   const [search, setSearch] = useState("")

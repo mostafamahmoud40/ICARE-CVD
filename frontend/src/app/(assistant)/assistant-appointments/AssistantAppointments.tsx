@@ -3,7 +3,8 @@
 import Link from "next/link"
 import * as React from "react"
 import { useEffect, useMemo, useState } from "react"
-import { useLocale, useTranslations } from "next-intl"
+import { useLocale } from "next-intl"
+import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import {
   ActivityIcon,
   CalendarPlus2Icon,
@@ -237,8 +238,7 @@ export function AssistantAppointments({
   patients,
   defaultCreateDialogOpen = false,
 }: AssistantAppointmentsProps) {
-  const t = useTranslations("assistant.pages.appointments")
-  const ts = useTranslations("assistant.shared")
+  const { t, ts } = useAssistantPageTranslations("appointments")
   const locale = useLocale()
 
   const statusLabel = useMemo(
@@ -447,7 +447,7 @@ export function AssistantAppointments({
           </div>
 
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
-            <div className="min-w-0 space-y-0.5">
+            <div className="min-w-0 flex-1 space-y-0.5">
               <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px] lg:text-[26px]">
                 {t("title")}
               </h1>
@@ -455,9 +455,9 @@ export function AssistantAppointments({
                 {t("subtitle")}
               </p>
             </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
              {/* View Mode Toggle */}
-             <div className="mr-1 flex items-center rounded-xl border border-[#E8E6E0] bg-white p-0.5 shadow-sm sm:mr-2">
+             <div className="me-1 flex shrink-0 items-center rounded-xl border border-[#E8E6E0] bg-white p-0.5 shadow-sm sm:me-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -831,8 +831,8 @@ export function AssistantAppointments({
           <div className="h-full flex flex-col rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)] overflow-hidden animate-in zoom-in-95 duration-500">
              {/* Days of week header */}
              <div className="grid grid-cols-7 border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/50">
-                {weekdayLabels.map(day => (
-                   <div key={day} className="px-4 py-3 text-center text-[12px] font-bold text-muted-foreground uppercase tracking-widest border-r last:border-0 border-[#E8E6E0]/40">
+                {weekdayLabels.map((day, index) => (
+                   <div key={index} className="px-4 py-3 text-center text-[12px] font-bold text-muted-foreground uppercase tracking-widest border-e last:border-e-0 border-[#E8E6E0]/40">
                       {day}
                    </div>
                 ))}

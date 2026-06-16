@@ -15,7 +15,7 @@ interface SharedMediaSectionProps {
 }
 
 export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
-  const t = useTranslations("chat.sharedMedia")
+  const t = useTranslations("chat")
   const [activeTab, setActiveTab] = useState<SharedMediaTab>("photos")
   const [previewImage, setPreviewImage] = useState<{ url: string; fileName: string } | null>(null)
 
@@ -23,23 +23,23 @@ export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
   const totalCount = media.photos.length + media.files.length + media.links.length
 
   const tabs: { key: SharedMediaTab; label: string; count: number }[] = [
-    { key: "photos", label: t("photos"), count: media.photos.length },
-    { key: "files", label: t("files"), count: media.files.length },
-    { key: "links", label: t("links"), count: media.links.length },
+    { key: "photos", label: t("sharedMedia.photos"), count: media.photos.length },
+    { key: "files", label: t("sharedMedia.files"), count: media.files.length },
+    { key: "links", label: t("sharedMedia.links"), count: media.links.length },
   ]
 
   return (
     <>
       <div className="px-8 py-6">
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-[15px] font-bold text-[#1A1F1E]">{t("title")}</span>
+          <span className="text-[15px] font-bold text-[#1A1F1E]">{t("sharedMedia.title")}</span>
           {totalCount > 0 ? (
             <span className="text-[13px] font-semibold text-[#1A5345]">({totalCount})</span>
           ) : null}
         </div>
 
         {totalCount === 0 ? (
-          <p className="text-[13px] text-muted-foreground">{t("emptyHint")}</p>
+          <p className="text-[13px] text-muted-foreground">{t("sharedMedia.emptyHint")}</p>
         ) : (
           <>
             <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -62,12 +62,12 @@ export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
 
             {activeTab === "photos" ? (
               media.photos.length === 0 ? (
-                <p className="text-[13px] text-muted-foreground">{t("noPhotos")}</p>
+                <p className="text-[13px] text-muted-foreground">{t("sharedMedia.noPhotos")}</p>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
                   {media.photos.map((item) => {
                     const imageUrl = resolveChatAttachmentUrl(item.url)
-                    const fileName = item.fileName ?? t("photo")
+                    const fileName = item.fileName ?? t("sharedMedia.photo")
                     return (
                       <button
                         key={item.id}
@@ -96,7 +96,7 @@ export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
 
             {activeTab === "files" ? (
               media.files.length === 0 ? (
-                <p className="text-[13px] text-muted-foreground">{t("noFiles")}</p>
+                <p className="text-[13px] text-muted-foreground">{t("sharedMedia.noFiles")}</p>
               ) : (
                 <div className="space-y-2">
                   {media.files.map((item) => (
@@ -112,10 +112,10 @@ export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[13px] font-semibold text-[#1A1F1E]">
-                          {item.fileName ?? t("file")}
+                          {item.fileName ?? t("sharedMedia.file")}
                         </p>
                         <p className="text-[11px] text-muted-foreground">
-                          {item.sizeBytes ? formatFileSize(item.sizeBytes) : t("document")}
+                          {item.sizeBytes ? formatFileSize(item.sizeBytes) : t("sharedMedia.document")}
                           {item.time ? ` · ${item.time}` : ""}
                         </p>
                       </div>
@@ -128,7 +128,7 @@ export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
 
             {activeTab === "links" ? (
               media.links.length === 0 ? (
-                <p className="text-[13px] text-muted-foreground">{t("noLinks")}</p>
+                <p className="text-[13px] text-muted-foreground">{t("sharedMedia.noLinks")}</p>
               ) : (
                 <div className="space-y-2">
                   {media.links.map((item) => (
@@ -170,7 +170,7 @@ export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
             onClick={() => setPreviewImage(null)}
             className="absolute end-4 top-4 rounded-full bg-white/10 px-3 py-1.5 text-[13px] font-medium text-white cursor-pointer"
           >
-            {t("close")}
+            {t("sharedMedia.close")}
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img

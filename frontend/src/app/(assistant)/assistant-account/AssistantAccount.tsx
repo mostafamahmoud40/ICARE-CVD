@@ -24,12 +24,20 @@ import {
   accountStatCellClassName,
   AccountSectionHeading,
   accountPageCardClassName,
-  accountSectionDescClassName,
-  accountSectionTitleClassName,
-  accountShiftStatusStyles,
-  accountWeeklyMetrics,
   assistantAccountScrollbarCss,
 } from "./assistantAccount.shared"
+import {
+  formatAccountDate,
+  formatAccountDateTimeShort,
+  isShiftTodayAtIndex,
+  localizeShiftEntry,
+  shiftDetailPrimary,
+  translateWeekStatDay,
+  translateDepartmentName,
+  useAccountShiftStatusStyles,
+  useAccountWeeklyMetrics,
+  useAssistantAccountTranslations,
+} from "./account-i18n"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -74,50 +82,40 @@ import { profileToEditValues } from "./assistantAccount.schema"
 import { AssistantProfileAvatar } from "../AssistantProfileAvatar"
 import { ActivityTimeline } from "./ActivityTimeline"
 import { ActivityDetailDialog } from "./ActivityDetailDialog"
-
-function formatDate(iso: string) {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "long" }).format(new Date(iso))
-}
-
-function formatDateTimeShort(iso: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso))
-}
-
-/* ────────────────────────────────────────────
-   Existing cards (Profile, Professional, Stats, Actions)
-   ──────────────────────────────────────────── */
+import { useLocale } from "next-intl"
 
 function formatStatCount(value: number) {
   return value > 0 ? String(value) : "—"
 }
 
 function WorkStatsBanner({ workStats }: { workStats: AssistantWorkStats }) {
+  const { t } = useAssistantAccountTranslations()
+
   const tiles = [
     {
-      label: "Patients today",
+      key: "patientsToday",
+      label: t("workStats.patientsToday"),
       value: workStats.patientsHandledToday,
       icon: UsersIcon,
       iconColor: "text-[#1A5345]",
     },
     {
-      label: "Appointments",
+      key: "appointments",
+      label: t("workStats.appointments"),
       value: workStats.appointmentsScheduled,
       icon: CalendarClockIcon,
       iconColor: "text-[#2D6B5C]",
     },
     {
-      label: "Tasks done",
+      key: "tasksDone",
+      label: t("workStats.tasksDone"),
       value: workStats.tasksCompleted,
       icon: CheckCircleIcon,
       iconColor: "text-[#5A7A70]",
     },
     {
-      label: "Queue managed",
+      key: "queueManaged",
+      label: t("workStats.queueManaged"),
       value: workStats.queueManaged,
       icon: ClipboardListIcon,
       iconColor: "text-[#C26D2A]",
@@ -126,9 +124,9 @@ function WorkStatsBanner({ workStats }: { workStats: AssistantWorkStats }) {
 
   return (
     <div className="mt-4 grid w-full grid-cols-2 gap-3 lg:grid-cols-4">
-      {tiles.map(({ label, value, icon: Icon, iconColor }) => (
+      {tiles.map(({ key, label, value, icon: Icon, iconColor }) => (
         <div
-          key={label}
+          key={key}
           className="flex items-center justify-between gap-3 rounded-lg border border-[#E8E6E0] bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
         >
           <div className="min-w-0">
@@ -158,7 +156,10 @@ function ProfileHeaderCard({
   profile: AssistantProfile
   onEdit: () => void
 }) {
+  const locale = useLocale()
+  const { t } = useAssistantAccountTranslations()
   const avatarSrc = profile.avatarUrl
+  const staffIdSuffix = profile.id.split("-").pop() ?? profile.id
 
   return (
     <Card className={accountPageCardClassName}>
@@ -186,16 +187,18 @@ function ProfileHeaderCard({
                 </h2>
                 <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold text-white">
                   <span className="size-1.5 rounded-full bg-white/90" aria-hidden />
-                  Online
+                  {t("online")}
                 </span>
               </div>
-              <p className="text-[12px] font-medium text-muted-foreground">Care Assistant · {profile.department}</p>
+              <p className="text-[12px] font-medium text-muted-foreground">
+                {t("careAssistant")} · {translateDepartmentName(profile.department, t)}
+              </p>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-[#6B7870]">
-                <span>{profile.experienceYears} yrs experience</span>
+                <span>{t("yrsExperience", { years: profile.experienceYears })}</span>
                 <span aria-hidden>·</span>
-                <span>Since {formatDate(profile.joinedAt)}</span>
+                <span>{t("since", { date: formatAccountDate(profile.joinedAt, locale) })}</span>
                 <span aria-hidden>·</span>
-                <span className="tabular-nums">ID CVD-{profile.id.split("-").pop() ?? profile.id}</span>
+                <span className="tabular-nums">{t("staffId", { id: staffIdSuffix })}</span>
               </div>
             </div>
           </div>
@@ -208,17 +211,21 @@ function ProfileHeaderCard({
             className="h-8 shrink-0 gap-2 self-start rounded-lg border border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] shadow-sm transition-colors hover:bg-slate-50 hover:text-[#1A5345] sm:self-center"
           >
             <PencilLineIcon className="size-3.5" aria-hidden />
-            Edit profile
+            {t("editProfile")}
           </Button>
         </div>
 
         <Separator className="my-4 bg-[#E8E6E0]/60" />
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <InfoRow icon={MailIcon} label="Email" value={profile.email} />
-          <InfoRow icon={PhoneIcon} label="Phone" value={profile.phone} />
-          <InfoRow icon={Building2Icon} label="Department" value={profile.department} />
-          <InfoRow icon={BriefcaseIcon} label="Experience" value={`${profile.experienceYears} years`} />
+          <InfoRow icon={MailIcon} label={t("profile.email")} value={profile.email} />
+          <InfoRow icon={PhoneIcon} label={t("profile.phone")} value={profile.phone} />
+          <InfoRow icon={Building2Icon} label={t("profile.department")} value={translateDepartmentName(profile.department, t)} />
+          <InfoRow
+            icon={BriefcaseIcon}
+            label={t("profile.experience")}
+            value={t("yearsExperience", { years: profile.experienceYears })}
+          />
         </div>
       </CardContent>
     </Card>
@@ -231,6 +238,7 @@ function ProfileHeaderCard({
    ──────────────────────────────────────────── */
 
 function ActivityLogCard({ activities }: { activities: ActivityEntry[] }) {
+  const { t } = useAssistantAccountTranslations()
   const [selectedEntry, setSelectedEntry] = useState<ActivityEntry | null>(null)
   const items = activities.slice(0, 4)
 
@@ -243,13 +251,13 @@ function ActivityLogCard({ activities }: { activities: ActivityEntry[] }) {
           if (!open) setSelectedEntry(null)
         }}
       />
-      <AccountSectionHeading icon={MessageSquareTextIcon} title="Recent activity" />
+      <AccountSectionHeading icon={MessageSquareTextIcon} title={t("recentActivity")} />
       <Card className={cn(accountPageCardClassName, "flex min-h-0 flex-1 flex-col")}>
         <CardContent className="flex min-h-0 flex-1 flex-col p-5 sm:p-6">
           <div className="min-h-0 flex-1">
             <ActivityTimeline
               entries={items}
-              emptyMessage="No recent activity."
+              emptyMessage={t("noRecentActivity")}
               onSelect={setSelectedEntry}
             />
           </div>
@@ -260,7 +268,7 @@ function ActivityLogCard({ activities }: { activities: ActivityEntry[] }) {
                 href="/assistant-account/activity"
                 className="flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-[12px] font-bold text-[#1A5345] transition-colors hover:text-[#133F34]"
               >
-                View all activity
+                {t("viewAllActivity")}
                 <ArrowRightIcon className="size-3.5" aria-hidden />
               </Link>
             </div>
@@ -276,7 +284,11 @@ function ActivityLogCard({ activities }: { activities: ActivityEntry[] }) {
    ──────────────────────────────────────────── */
 
 export function AssistantSecuritySettingsCard({ security }: { security: SecurityInfo }) {
+  const locale = useLocale()
+  const { t } = useAssistantAccountTranslations()
   const twoFactorOn = security.twoFactorEnabled
+  const sessionLabel =
+    security.activeSessions === 1 ? t("security.device") : t("security.devices")
 
   return (
     <Card className={accountPageCardClassName}>
@@ -287,7 +299,7 @@ export function AssistantSecuritySettingsCard({ security }: { security: Security
             <div className="min-w-0 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-[13px] font-bold text-[#1A1F1E] sm:text-[14px]">
-                  Two-factor authentication
+                  {t("security.twoFactor")}
                 </p>
                 <span
                   className={cn(
@@ -295,13 +307,11 @@ export function AssistantSecuritySettingsCard({ security }: { security: Security
                     twoFactorOn ? "bg-emerald-600" : "bg-amber-500",
                   )}
                 >
-                  {twoFactorOn ? "Active" : "Highly recommended"}
+                  {twoFactorOn ? t("security.twoFactorActive") : t("security.twoFactorRecommended")}
                 </span>
               </div>
               <p className="text-[11px] leading-relaxed text-muted-foreground sm:text-[12px]">
-                {twoFactorOn
-                  ? "Your account is protected by an additional verification layer."
-                  : "Add an extra layer of security to prevent unauthorized access to clinical data."}
+                {twoFactorOn ? t("security.twoFactorOnDesc") : t("security.twoFactorOffDesc")}
               </p>
             </div>
           </div>
@@ -310,25 +320,25 @@ export function AssistantSecuritySettingsCard({ security }: { security: Security
             size="sm"
             className="h-8 shrink-0 gap-2 rounded-lg border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A5345] shadow-sm hover:bg-[#F6FBF9]"
           >
-            {twoFactorOn ? "Modify settings" : "Secure account"}
+            {twoFactorOn ? t("security.modifySettings") : t("security.secureAccount")}
           </Button>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
           <SecurityStatRow
             icon={LockIcon}
-            label="Last password change"
-            value={formatDate(security.lastPasswordChange)}
+            label={t("security.lastPasswordChange")}
+            value={formatAccountDate(security.lastPasswordChange, locale)}
           />
           <SecurityStatRow
             icon={LogInIcon}
-            label="Last sign-in"
-            value={formatDateTimeShort(security.lastLogin)}
+            label={t("security.lastSignIn")}
+            value={formatAccountDateTimeShort(security.lastLogin, locale)}
           />
           <SecurityStatRow
             icon={MonitorSmartphoneIcon}
-            label="Active sessions"
-            value={`${security.activeSessions} ${security.activeSessions === 1 ? "device" : "devices"}`}
+            label={t("security.activeSessions")}
+            value={`${security.activeSessions} ${sessionLabel}`}
           />
         </div>
 
@@ -339,7 +349,7 @@ export function AssistantSecuritySettingsCard({ security }: { security: Security
             className="h-8 flex-1 gap-2 rounded-lg border-[#E8E6E0] bg-white text-[12px] font-bold text-[#102F27] shadow-sm hover:bg-[#F9F8F5]"
           >
             <LockIcon className="size-3.5 shrink-0 text-[#1A5345]" aria-hidden />
-            Change password
+            {t("security.changePassword")}
           </Button>
           <Button
             variant="outline"
@@ -347,7 +357,7 @@ export function AssistantSecuritySettingsCard({ security }: { security: Security
             className="h-8 flex-1 gap-2 rounded-lg border-red-200/80 bg-white text-[12px] font-bold text-red-600 shadow-sm hover:bg-red-50"
           >
             <EyeIcon className="size-3.5 shrink-0" aria-hidden />
-            Sign out all devices
+            {t("security.signOutAll")}
           </Button>
         </div>
       </CardContent>
@@ -417,6 +427,7 @@ export function AssistantNotificationsSettingsCard({
 }: {
   preferences: AssistantPreferences
 }) {
+  const { t } = useAssistantAccountTranslations()
   const [emergencyAlerts, setEmergencyAlerts] = useState(preferences.emergencyAlerts)
   const [appointmentReminders, setAppointmentReminders] = useState(
     preferences.appointmentReminders,
@@ -427,8 +438,8 @@ export function AssistantNotificationsSettingsCard({
   const rows = [
     {
       id: "assistant-notif-emergency",
-      title: "Emergency alerts",
-      description: "Critical alerts for immediate medical interventions.",
+      title: t("notifications.emergency"),
+      description: t("notifications.emergencyDesc"),
       Icon: AlertTriangleIcon,
       iconClass: "text-red-600",
       checked: emergencyAlerts,
@@ -436,8 +447,8 @@ export function AssistantNotificationsSettingsCard({
     },
     {
       id: "assistant-notif-appointment",
-      title: "Appointment reminders",
-      description: "Schedule updates and patient arrivals.",
+      title: t("notifications.appointment"),
+      description: t("notifications.appointmentDesc"),
       Icon: CalendarDaysIcon,
       iconClass: "text-[#1A5345]",
       checked: appointmentReminders,
@@ -445,8 +456,8 @@ export function AssistantNotificationsSettingsCard({
     },
     {
       id: "assistant-notif-checklist",
-      title: "Checklist updates",
-      description: "Task completion and workflow alerts.",
+      title: t("notifications.checklist"),
+      description: t("notifications.checklistDesc"),
       Icon: ClipboardListIcon,
       iconClass: "text-emerald-600",
       checked: checklistUpdates,
@@ -454,8 +465,8 @@ export function AssistantNotificationsSettingsCard({
     },
     {
       id: "assistant-notif-doctor",
-      title: "Physician messages",
-      description: "Direct communications from attending doctors.",
+      title: t("notifications.doctor"),
+      description: t("notifications.doctorDesc"),
       Icon: MessageCircleIcon,
       iconClass: "text-amber-600",
       checked: doctorMessages,
@@ -498,12 +509,21 @@ export function AssistantDisplayPreferencesCard({
 }: {
   preferences: AssistantPreferences
 }) {
+  const locale = useLocale()
+  const { t } = useAssistantAccountTranslations()
   const ThemeIcon =
     preferences.theme === "dark"
       ? MoonIcon
       : preferences.theme === "light"
         ? SunIcon
         : LaptopIcon
+
+  const themeLabel =
+    preferences.theme === "dark"
+      ? t("preferences.themeDark")
+      : preferences.theme === "light"
+        ? t("preferences.themeLight")
+        : t("preferences.themeSystem")
 
   return (
     <Card className={accountPageCardClassName}>
@@ -512,12 +532,12 @@ export function AssistantDisplayPreferencesCard({
           <div className="flex min-w-0 items-center gap-3">
             <ThemeIcon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
             <div className="min-w-0 space-y-0.5">
-              <p className="text-[13px] font-bold text-[#1A1F1E]">Interface theme</p>
-              <p className="text-[11px] text-muted-foreground sm:text-[12px]">Light, dark, or system default</p>
+              <p className="text-[13px] font-bold text-[#1A1F1E]">{t("preferences.interfaceTheme")}</p>
+              <p className="text-[11px] text-muted-foreground sm:text-[12px]">{t("preferences.interfaceThemeDesc")}</p>
             </div>
           </div>
-          <span className="inline-flex rounded-lg bg-[#1A5345] px-2 py-0.5 text-[10px] font-bold capitalize text-white">
-            {preferences.theme}
+          <span className="inline-flex rounded-lg bg-[#1A5345] px-2 py-0.5 text-[10px] font-bold text-white">
+            {themeLabel}
           </span>
         </div>
 
@@ -525,12 +545,12 @@ export function AssistantDisplayPreferencesCard({
           <div className="flex min-w-0 items-center gap-3">
             <GlobeIcon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
             <div className="min-w-0 space-y-0.5">
-              <p className="text-[13px] font-bold text-[#1A1F1E]">Language</p>
-              <p className="text-[11px] text-muted-foreground sm:text-[12px]">Clinical terminology locale</p>
+              <p className="text-[13px] font-bold text-[#1A1F1E]">{t("preferences.language")}</p>
+              <p className="text-[11px] text-muted-foreground sm:text-[12px]">{t("preferences.languageDesc")}</p>
             </div>
           </div>
           <span className="inline-flex rounded-lg bg-slate-500 px-2 py-0.5 text-[10px] font-bold text-white">
-            English (US)
+            {locale === "ar" ? t("preferences.languageAr") : t("preferences.languageEn")}
           </span>
         </div>
       </CardContent>
@@ -542,11 +562,10 @@ export function AssistantDisplayPreferencesCard({
    6. Weekly / Monthly Stats
    ──────────────────────────────────────────── */
 
-const weeklyMetricKeys = Object.keys(accountWeeklyMetrics) as Array<
-  keyof typeof accountWeeklyMetrics
->
-
 function WeeklyDayStatCard({ day, patients, appointments, tasks }: WeeklyStat) {
+  const { t } = useAssistantAccountTranslations()
+  const weeklyMetrics = useAccountWeeklyMetrics()
+  const dayLabel = translateWeekStatDay(day, t)
   const total = patients + appointments + tasks
   const segments = [
     { key: "patients" as const, count: patients },
@@ -558,8 +577,8 @@ function WeeklyDayStatCard({ day, patients, appointments, tasks }: WeeklyStat) {
   return (
     <div className="rounded-xl border border-[#E8E6E0]/60 bg-white p-3.5 shadow-sm transition-shadow hover:shadow-md">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <span className="text-[12px] font-bold text-[#1A1F1E]">{day}</span>
-        <div className="text-right">
+        <span className="text-[12px] font-bold text-[#1A1F1E]">{dayLabel}</span>
+        <div className="text-end">
           <p
             className={cn(
               "font-serif text-[18px] font-bold leading-none tabular-nums",
@@ -568,17 +587,22 @@ function WeeklyDayStatCard({ day, patients, appointments, tasks }: WeeklyStat) {
           >
             {formatStatCount(total)}
           </p>
-          <p className="mt-0.5 text-[10px] font-medium text-muted-foreground">total</p>
+          <p className="mt-0.5 text-[10px] font-medium text-muted-foreground">{t("total")}</p>
         </div>
       </div>
 
       <div
         className="flex h-2 overflow-hidden rounded-full bg-[#E8E6E0]/80"
         role="img"
-        aria-label={`${day}: ${patients} patients, ${appointments} appointments, ${tasks} tasks`}
+        aria-label={t("weeklyAria", {
+          day: dayLabel,
+          patients,
+          appointments,
+          tasks,
+        })}
       >
         {activeSegments.map((segment) => {
-          const metric = accountWeeklyMetrics[segment.key]
+          const metric = weeklyMetrics[segment.key]
           const width = total ? (segment.count / total) * 100 : 0
           return (
             <div
@@ -592,7 +616,7 @@ function WeeklyDayStatCard({ day, patients, appointments, tasks }: WeeklyStat) {
 
       <div className="mt-2.5 flex flex-wrap gap-1.5">
         {segments.map((segment) => {
-          const metric = accountWeeklyMetrics[segment.key]
+          const metric = weeklyMetrics[segment.key]
           const hasValue = segment.count > 0
           return (
             <span
@@ -615,15 +639,19 @@ function WeeklyDayStatCard({ day, patients, appointments, tasks }: WeeklyStat) {
 }
 
 function WeeklyStatsCard({ stats }: { stats: WeeklyStat[] }) {
+  const { t } = useAssistantAccountTranslations()
+  const weeklyMetrics = useAccountWeeklyMetrics()
+  const weeklyMetricKeys = Object.keys(weeklyMetrics) as Array<keyof typeof weeklyMetrics>
+
   return (
     <section className="space-y-4">
-      <AccountSectionHeading icon={BarChart3Icon} title="Weekly performance" />
+      <AccountSectionHeading icon={BarChart3Icon} title={t("weeklyPerformance")} />
       <Card className={accountPageCardClassName}>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8E6E0]/50 bg-[#FBFDFC]/60 px-5 py-3.5 sm:px-6">
-          <p className="text-[11px] font-bold text-[#6B7870]">Daily breakdown</p>
+          <p className="text-[11px] font-bold text-[#6B7870]">{t("dailyBreakdown")}</p>
           <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             {weeklyMetricKeys.map((key) => {
-              const metric = accountWeeklyMetrics[key]
+              const metric = weeklyMetrics[key]
               return (
                 <span key={key} className="inline-flex items-center gap-1.5">
                   <span className={cn("size-2 shrink-0 rounded-full", metric.dotClass)} aria-hidden />
@@ -646,61 +674,6 @@ function WeeklyStatsCard({ stats }: { stats: WeeklyStat[] }) {
   )
 }
 
-const SHIFT_FALLBACK_BY_INDEX: { dayName: string; dayBadge: string }[] = [
-  { dayName: "Sunday", dayBadge: "Su" },
-  { dayName: "Monday", dayBadge: "Mo" },
-  { dayName: "Tuesday", dayBadge: "Tu" },
-  { dayName: "Wednesday", dayBadge: "We" },
-  { dayName: "Thursday", dayBadge: "Th" },
-  { dayName: "Friday", dayBadge: "Fr" },
-  { dayName: "Saturday", dayBadge: "Sa" },
-]
-
-/** Any Arabic-script code points — reject so UI stays English-only */
-const ARABIC_SCRIPT = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/
-
-function normalizeShiftEntry(raw: ShiftEntry, index: number): ShiftEntry {
-  const fb = SHIFT_FALLBACK_BY_INDEX[index] ?? SHIFT_FALLBACK_BY_INDEX[0]!
-
-  const dayNameRaw = raw.dayName?.trim()
-  const dayName =
-    dayNameRaw && !ARABIC_SCRIPT.test(dayNameRaw) ? dayNameRaw : fb.dayName
-
-  const badgeRaw = raw.dayBadge?.trim()
-  const dayBadge =
-    badgeRaw && !ARABIC_SCRIPT.test(badgeRaw)
-      ? badgeRaw.length > 3
-        ? badgeRaw.slice(0, 3)
-        : badgeRaw
-      : fb.dayBadge
-
-  const tr = raw.timeRange
-  const timeRange =
-    typeof tr === "string" && tr.trim().length > 0 && !ARABIC_SCRIPT.test(tr)
-      ? tr.trim()
-      : null
-
-  return {
-    id: raw.id ? String(raw.id) : `shift-row-${index}`,
-    dayName,
-    dayBadge,
-    timeRange,
-    status: raw.status,
-    note:
-      raw.note &&
-      String(raw.note).trim().length > 0 &&
-      !ARABIC_SCRIPT.test(String(raw.note))
-        ? raw.note
-        : undefined,
-  }
-}
-
-function shiftDetailPrimary(shift: ShiftEntry): string {
-  if (shift.timeRange && shift.timeRange.length > 0) return shift.timeRange
-  if (shift.status === "holiday") return "Day off"
-  return "Hours not set"
-}
-
 /* ────────────────────────────────────────────
    8. Shift Schedule
    ──────────────────────────────────────────── */
@@ -716,11 +689,6 @@ function shiftStatusIcon(status: ShiftEntry["status"]) {
   }
 }
 
-function isShiftToday(dayName: string) {
-  const todayName = SHIFT_FALLBACK_BY_INDEX[new Date().getDay()]?.dayName
-  return Boolean(todayName && dayName === todayName)
-}
-
 const SHIFT_STATUS_ICON_COLOR: Record<ShiftEntry["status"], string> = {
   active: "text-[#1A5345]",
   "half-day": "text-amber-600",
@@ -729,15 +697,18 @@ const SHIFT_STATUS_ICON_COLOR: Record<ShiftEntry["status"], string> = {
 
 function ShiftScheduleRow({
   shift,
+  isToday,
   onSelect,
 }: {
   shift: ShiftEntry
+  isToday: boolean
   onSelect: (shift: ShiftEntry) => void
 }) {
-  const style = accountShiftStatusStyles[shift.status]
+  const { t } = useAssistantAccountTranslations()
+  const statusStyles = useAccountShiftStatusStyles()
+  const style = statusStyles[shift.status]
   const StatusIcon = shiftStatusIcon(shift.status)
-  const detailPrimary = shiftDetailPrimary(shift)
-  const today = isShiftToday(shift.dayName)
+  const detailPrimary = shiftDetailPrimary(shift, t)
 
   return (
     <button
@@ -746,7 +717,7 @@ function ShiftScheduleRow({
       className={cn(
         accountStatCellClassName,
         style.rowClass,
-        "items-start w-full text-left transition-all hover:border-[#1A5345]/20 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1A5345]/25",
+        "items-start w-full text-start transition-all hover:border-[#1A5345]/20 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1A5345]/25",
       )}
     >
       <StatusIcon className={cn("size-5 shrink-0", SHIFT_STATUS_ICON_COLOR[shift.status])} aria-hidden />
@@ -754,14 +725,14 @@ function ShiftScheduleRow({
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[18px] font-bold leading-none tabular-nums text-[#1A1F1E]">{shift.dayBadge}</span>
           <span className="text-[13px] font-semibold text-[#1A1F1E]">{shift.dayName}</span>
-          {today && (
+          {isToday ? (
             <span className="rounded-md bg-[#1A5345] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-              Today
+              {t("shift.today")}
             </span>
-          )}
+          ) : null}
           <Badge
             variant="default"
-            className={cn("ml-auto shrink-0 gap-1 rounded-lg px-2 py-0.5 text-[10px] font-bold", style.badgeClass)}
+            className={cn("ms-auto shrink-0 gap-1 rounded-lg px-2 py-0.5 text-[10px] font-bold", style.badgeClass)}
           >
             {style.label}
           </Badge>
@@ -776,24 +747,38 @@ function ShiftScheduleRow({
 }
 
 function ShiftScheduleCard({ shifts }: { shifts: ShiftEntry[] }) {
+  const { t } = useAssistantAccountTranslations()
   const [selectedShift, setSelectedShift] = useState<ShiftEntry | null>(null)
-  const rows = shifts.map(normalizeShiftEntry)
+  const [selectedIsToday, setSelectedIsToday] = useState(false)
+  const rows = shifts.map((raw, index) => ({
+    shift: localizeShiftEntry(raw, index, t),
+    isToday: isShiftTodayAtIndex(raw, index),
+  }))
 
   return (
     <section className="flex h-full flex-col space-y-4">
       <ShiftDayDetailDialog
         shift={selectedShift}
+        isToday={selectedIsToday}
         open={selectedShift !== null}
         onOpenChange={(open) => {
           if (!open) setSelectedShift(null)
         }}
       />
-      <AccountSectionHeading icon={CalendarDaysIcon} title="Work schedule" />
+      <AccountSectionHeading icon={CalendarDaysIcon} title={t("workSchedule")} />
       <Card className={cn(accountPageCardClassName, "flex min-h-0 flex-1 flex-col")}>
         <CardContent className="flex min-h-0 flex-1 flex-col p-5 sm:p-6">
           <div className="min-h-0 flex-1 space-y-2">
-            {rows.map((shift) => (
-              <ShiftScheduleRow key={shift.id} shift={shift} onSelect={setSelectedShift} />
+            {rows.map(({ shift, isToday }) => (
+              <ShiftScheduleRow
+                key={shift.id}
+                shift={shift}
+                isToday={isToday}
+                onSelect={(entry) => {
+                  setSelectedShift(entry)
+                  setSelectedIsToday(isToday)
+                }}
+              />
             ))}
           </div>
         </CardContent>
@@ -839,6 +824,7 @@ export function AssistantAccount({
   onSaveProfile: (values: AssistantProfileEditValues) => Promise<void>
   isSaving: boolean
 }) {
+  const { t } = useAssistantAccountTranslations()
   const [editOpen, setEditOpen] = useState(false)
   const editDefaults = useMemo(() => profileToEditValues(profile), [profile])
 
@@ -862,13 +848,15 @@ export function AssistantAccount({
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
                     <Link href="/assistant-dashboard" className="text-[10px] font-medium sm:text-[11px]">
-                      Dashboard
+                      {t("breadcrumbDashboard")}
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">Account</BreadcrumbPage>
+                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">
+                    {t("breadcrumbAccount")}
+                  </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -877,10 +865,10 @@ export function AssistantAccount({
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
             <div className="min-w-0 space-y-0.5">
               <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px] lg:text-[26px]">
-                My account
+                {t("title")}
               </h1>
               <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
-                Profile, weekly schedule, performance, and recent activity.
+                {t("subtitle")}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -892,7 +880,7 @@ export function AssistantAccount({
               >
                 <Link href="/assistant-account/settings">
                   <SlidersHorizontalIcon className="size-3.5" aria-hidden />
-                  Settings
+                  {t("settings")}
                 </Link>
               </Button>
               <Button
@@ -902,7 +890,7 @@ export function AssistantAccount({
                 className="h-8 gap-2 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]"
               >
                 <PencilLineIcon className="size-3.5" strokeWidth={2.5} aria-hidden />
-                Edit profile
+                {t("editProfile")}
               </Button>
             </div>
           </div>

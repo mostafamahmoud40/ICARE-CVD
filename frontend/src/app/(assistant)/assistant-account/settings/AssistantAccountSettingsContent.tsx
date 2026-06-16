@@ -13,9 +13,11 @@ import {
 } from "../AssistantAccount"
 import { MOCK_PREFERENCES, MOCK_SECURITY } from "../assistantAccount.mock"
 import { AccountSectionHeading, AccountSectionIntro } from "../assistantAccount.shared"
+import { useAssistantAccountTranslations } from "../account-i18n"
 
 export function AssistantAccountSettingsContent() {
   const active = useAssistantSettingsSection()
+  const { t } = useAssistantAccountTranslations()
 
   return (
     <AssistantSettingsPageContainer>
@@ -27,10 +29,8 @@ export function AssistantAccountSettingsContent() {
           className="space-y-3"
         >
           <div>
-            <AccountSectionHeading icon={ShieldCheckIcon} title="Sign-in protection" />
-            <AccountSectionIntro>
-              Strengthen your account security and monitor access.
-            </AccountSectionIntro>
+            <AccountSectionHeading icon={ShieldCheckIcon} title={t("security.sectionTitle")} />
+            <AccountSectionIntro>{t("security.sectionIntro")}</AccountSectionIntro>
           </div>
           <AssistantSecuritySettingsCard security={MOCK_SECURITY} />
         </section>
@@ -46,12 +46,10 @@ export function AssistantAccountSettingsContent() {
           <div>
             <AccountSectionHeading
               icon={BellIcon}
-              title="Notification channels"
+              title={t("notifications.sectionTitle")}
               iconClassName="text-amber-600"
             />
-            <AccountSectionIntro>
-              Choose which clinical alerts reach you during your shift.
-            </AccountSectionIntro>
+            <AccountSectionIntro>{t("notifications.sectionIntro")}</AccountSectionIntro>
           </div>
           <AssistantNotificationsSettingsCard preferences={MOCK_PREFERENCES} />
         </section>
@@ -65,10 +63,8 @@ export function AssistantAccountSettingsContent() {
           className="space-y-3"
         >
           <div>
-            <AccountSectionHeading icon={SlidersHorizontalIcon} title="Display preferences" />
-            <AccountSectionIntro>
-              Theme and language settings for your assistant workspace.
-            </AccountSectionIntro>
+            <AccountSectionHeading icon={SlidersHorizontalIcon} title={t("preferences.sectionTitle")} />
+            <AccountSectionIntro>{t("preferences.sectionIntro")}</AccountSectionIntro>
           </div>
           <AssistantDisplayPreferencesCard preferences={MOCK_PREFERENCES} />
         </section>

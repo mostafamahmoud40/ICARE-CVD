@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useTranslations } from "next-intl"
+import { useAssistantPageTranslations, useAssistantSharedTranslations } from "../use-assistant-i18n"
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
@@ -116,7 +116,7 @@ function formatDate(dateString: string | null): string {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const ts = useTranslations("assistant.shared")
+  const ts = useAssistantSharedTranslations()
   const variants: Record<string, { className: string; labelKey: "statusInTreatment" | "statusDischarged" | "statusMonitoring" }> = {
     "in-treatment": { className: "bg-[#1A5345] text-white", labelKey: "statusInTreatment" },
     discharged: { className: "bg-[#6B7870] text-white", labelKey: "statusDischarged" },
@@ -134,7 +134,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function RiskBadge({ level }: { level: string }) {
-  const ts = useTranslations("assistant.shared")
+  const ts = useAssistantSharedTranslations()
   const variants: Record<string, { className: string; labelKey: "riskHigh" | "riskModerate" | "riskStable" }> = {
     high: { className: "bg-rose-500 text-white", labelKey: "riskHigh" },
     moderate: { className: "bg-amber-500 text-white", labelKey: "riskModerate" },
@@ -175,8 +175,7 @@ function DepartmentBadge({ department }: { department: DepartmentConfig }) {
 }
 
 export function PatientsList({ patients, addPatientState, initialSearchQuery = "", initialSheetOpen = false }: PatientsListProps) {
-  const t = useTranslations("assistant.pages.patients")
-  const ts = useTranslations("assistant.shared")
+  const { t, ts } = useAssistantPageTranslations("patients")
   const [isSheetOpen, setIsSheetOpen] = useState(initialSheetOpen)
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")

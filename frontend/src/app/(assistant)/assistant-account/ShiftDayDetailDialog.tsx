@@ -20,28 +20,11 @@ import {
 import { cn } from "@/lib/utils"
 
 import type { ShiftEntry } from "./assistantAccount.types"
-import { accountShiftStatusStyles } from "./assistantAccount.shared"
-
-const SHIFT_FALLBACK_BY_INDEX: { dayName: string; dayBadge: string }[] = [
-  { dayName: "Sunday", dayBadge: "Su" },
-  { dayName: "Monday", dayBadge: "Mo" },
-  { dayName: "Tuesday", dayBadge: "Tu" },
-  { dayName: "Wednesday", dayBadge: "We" },
-  { dayName: "Thursday", dayBadge: "Th" },
-  { dayName: "Friday", dayBadge: "Fr" },
-  { dayName: "Saturday", dayBadge: "Sa" },
-]
-
-function isShiftToday(dayName: string) {
-  const todayName = SHIFT_FALLBACK_BY_INDEX[new Date().getDay()]?.dayName
-  return Boolean(todayName && dayName === todayName)
-}
-
-function shiftDetailPrimary(shift: ShiftEntry): string {
-  if (shift.timeRange && shift.timeRange.length > 0) return shift.timeRange
-  if (shift.status === "holiday") return "Day off"
-  return "Hours not set"
-}
+import {
+  shiftDetailPrimary,
+  useAccountShiftStatusStyles,
+  useAssistantAccountTranslations,
+} from "./account-i18n"
 
 function parseShiftNote(note?: string) {
   if (!note?.trim()) return {}
@@ -85,16 +68,25 @@ function DetailCell({
 
 type ShiftDayDetailDialogProps = {
   shift: ShiftEntry | null
+  isToday?: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function ShiftDayDetailDialog({ shift, open, onOpenChange }: ShiftDayDetailDialogProps) {
+export function ShiftDayDetailDialog({
+  shift,
+  isToday = false,
+  open,
+  onOpenChange,
+}: ShiftDayDetailDialogProps) {
+  const { t } = useAssistantAccountTranslations()
+  const statusStyles = useAccountShiftStatusStyles()
+
   if (!shift) return null
 
-  const style = accountShiftStatusStyles[shift.status]
-  const today = isShiftToday(shift.dayName)
-  const hours = shiftDetailPrimary(shift)
+  const style = statusStyles[shift.status]
+  const today = isToday
+  const hours = shiftDetailPrimary(shift, t)
   const parsedNote = parseShiftNote(shift.note)
 
   const detailCells: Array<{
@@ -104,15 +96,15 @@ export function ShiftDayDetailDialog({ shift, open, onOpenChange }: ShiftDayDeta
     value: string
     span?: boolean
   }> = [
-    { key: "hours", icon: ClockIcon, label: "Hours", value: hours },
-    { key: "status", icon: CalendarDaysIcon, label: "Shift status", value: style.label },
+    { key: "hours", icon: ClockIcon, label: t("shift.detail.hours"), value: hours },
+    { key: "status", icon: CalendarDaysIcon, label: t("shift.detail.shiftStatus"), value: style.label },
   ]
 
   if (parsedNote.location) {
     detailCells.push({
       key: "location",
       icon: Building2Icon,
-      label: "Location",
+      label: t("shift.detail.location"),
       value: parsedNote.location,
     })
   }
@@ -120,7 +112,7 @@ export function ShiftDayDetailDialog({ shift, open, onOpenChange }: ShiftDayDeta
     detailCells.push({
       key: "doctor",
       icon: StethoscopeIcon,
-      label: "Assigned doctor",
+      label: t("shift.detail.assignedDoctor"),
       value: parsedNote.doctor,
     })
   }
@@ -128,7 +120,7 @@ export function ShiftDayDetailDialog({ shift, open, onOpenChange }: ShiftDayDeta
     detailCells.push({
       key: "notes",
       icon: CalendarDaysIcon,
-      label: "Notes",
+      label: t("shift.detail.notes"),
       value: parsedNote.extra,
       span: true,
     })
@@ -143,15 +135,15 @@ export function ShiftDayDetailDialog({ shift, open, onOpenChange }: ShiftDayDeta
         <button
           type="button"
           onClick={() => onOpenChange(false)}
-          className="absolute right-3 top-3 z-10 flex size-8 items-center justify-center rounded-lg border border-[#E8E6E0]/60 bg-white/90 text-muted-foreground shadow-sm transition-colors hover:bg-[#F9F8F5] hover:text-[#1A5345] sm:right-4 sm:top-4"
-          aria-label="Close"
+          className="absolute end-3 top-3 z-10 flex size-8 items-center justify-center rounded-lg border border-[#E8E6E0]/60 bg-white/90 text-muted-foreground shadow-sm transition-colors hover:bg-[#F9F8F5] hover:text-[#1A5345] sm:end-4 sm:top-4"
+          aria-label={t("shift.detail.close")}
         >
           <XIcon className="size-3.5" />
         </button>
 
         <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-4 sm:px-6">
-          <DialogHeader className="gap-0 space-y-0 text-left">
-            <div className="flex items-start gap-3.5 pr-8">
+          <DialogHeader className="gap-0 space-y-0 text-start">
+            <div className="flex items-start gap-3.5 pe-8">
               <CalendarDaysIcon className="mt-0.5 size-6 shrink-0 text-[#1A5345] sm:size-7" aria-hidden />
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -160,7 +152,7 @@ export function ShiftDayDetailDialog({ shift, open, onOpenChange }: ShiftDayDeta
                   </DialogTitle>
                   {today ? (
                     <span className="rounded-md bg-[#1A5345] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                      Today
+                      {t("shift.today")}
                     </span>
                   ) : null}
                   <Badge
@@ -190,11 +182,11 @@ export function ShiftDayDetailDialog({ shift, open, onOpenChange }: ShiftDayDeta
 
           {shift.status === "holiday" ? (
             <p className="rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] px-4 py-3.5 text-[13px] font-medium leading-relaxed text-muted-foreground sm:text-[14px]">
-              You are not scheduled to work on this day. Use this time for rest or approved leave.
+              {t("shift.detail.holidayHint")}
             </p>
           ) : shift.status === "half-day" ? (
             <p className="rounded-xl border border-amber-200/70 bg-amber-50/60 px-4 py-3.5 text-[13px] font-medium leading-relaxed text-amber-900/80 sm:text-[14px]">
-              This is a shortened shift. Confirm handover tasks before leaving early.
+              {t("shift.detail.halfDayHint")}
             </p>
           ) : null}
         </div>
@@ -206,7 +198,7 @@ export function ShiftDayDetailDialog({ shift, open, onOpenChange }: ShiftDayDeta
             onClick={() => onOpenChange(false)}
             className="h-10 w-full rounded-xl border-[#E8E6E0] bg-white text-[13px] font-bold text-[#1A5345] shadow-sm hover:bg-white hover:text-[#133F34]"
           >
-            Close
+            {t("shift.detail.close")}
           </Button>
         </div>
       </DialogContent>

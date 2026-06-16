@@ -1,7 +1,8 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { useLocale, useTranslations } from "next-intl"
+import { useLocale } from "next-intl"
+import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import {
   AlertTriangleIcon,
   CalendarDaysIcon,
@@ -78,8 +79,7 @@ export function AssistantQueue({
   pastVisitsPatients,
   pastVisitsLoading,
 }: AssistantQueueProps) {
-  const t = useTranslations("assistant.pages.queue")
-  const ts = useTranslations("assistant.shared")
+  const { t, ts } = useAssistantPageTranslations("queue")
   const locale = useLocale()
   const pageLoading = queueNavMode === "history" ? pastVisitsLoading : isLoading
 
