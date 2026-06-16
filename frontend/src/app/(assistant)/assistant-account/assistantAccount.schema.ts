@@ -10,7 +10,7 @@ export const assistantProfileEditSchema = z.object({
     .int()
     .min(0, "Cannot be negative")
     .max(50),
-  avatarUrl: z.string().trim().min(1, "Please select an avatar."),
+  avatarUrl: z.string().trim().optional(),
 });
 
 export type AssistantProfileEditValues = z.infer<typeof assistantProfileEditSchema>;
@@ -27,7 +27,7 @@ export function profileToEditValues(profile: {
   const avatarUrl =
     profile.avatarUrl && presetAvatars.includes(profile.avatarUrl)
       ? profile.avatarUrl
-      : presetAvatars[0] ?? "";
+      : undefined;
 
   return {
     fullName: profile.fullName,

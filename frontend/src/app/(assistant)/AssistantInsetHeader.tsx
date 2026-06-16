@@ -1,7 +1,5 @@
 "use client"
 
-import { useState } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { AuthUser } from "@/lib/auth-tokens"
@@ -38,6 +36,8 @@ import {
 import { cn } from "@/lib/utils"
 import { AssistantHeaderSearch } from "./AssistantHeaderSearch"
 import { AssistantNotificationsDropdown } from "./assistant-notifications/AssistantNotificationsDropdown"
+import { AssistantProfileAvatar } from "./AssistantProfileAvatar"
+import { useAssistantHeaderProfile } from "./useAssistantHeaderProfile"
 
 type RouteEntry = { prefix: string; title: string; subtitle: string; icon: LucideIcon }
 
@@ -159,18 +159,6 @@ const DEFAULT_ENTRY: RouteEntry = {
   icon: LayoutDashboardIcon,
 }
 
-function formatDisplayLabel(raw: string | null | undefined, fallback: string): string {
-  const t = (raw ?? "").trim()
-  if (!t) return fallback
-  if (t === t.toUpperCase() && /[A-Z]/.test(t)) {
-    return t
-      .split(/\s+/)
-      .map((w) => (w ? w.charAt(0) + w.slice(1).toLowerCase() : w))
-      .join(" ")
-  }
-  return t
-}
-
 function resolveRoute(pathname: string): RouteEntry {
   const normalized = pathname.replace(
     /^\/assistant\/assistant-account/,
@@ -185,10 +173,6 @@ function resolveRoute(pathname: string): RouteEntry {
   return DEFAULT_ENTRY
 }
 
-function assistantAvatarUrl(name: string) {
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,c0aede,d1d4f9`
-}
-
 function HeaderAccountAvatar({
   name,
   avatarUrl,
@@ -196,32 +180,21 @@ function HeaderAccountAvatar({
   showOnlineDot = false,
 }: {
   name: string
-  avatarUrl: string
+  avatarUrl: string | null | undefined
   size?: "sm" | "md"
   showOnlineDot?: boolean
 }) {
-  const [imageFailed, setImageFailed] = useState(false)
   const boxClass = size === "sm" ? "size-10" : "size-11"
 
   return (
     <div className={cn("relative shrink-0", boxClass)}>
-      <div className="relative size-full overflow-hidden rounded-full bg-[#F4F3EF]">
-        {!imageFailed ? (
-          <Image
-            src={avatarUrl}
-            alt={name}
-            fill
-            unoptimized
-            sizes="44px"
-            className="object-cover"
-            onError={() => setImageFailed(true)}
-          />
-        ) : (
-          <div className="flex size-full items-center justify-center text-[#B0BAB4]">
-            <User2Icon className="size-5" strokeWidth={1.5} aria-hidden />
-          </div>
-        )}
-      </div>
+      <AssistantProfileAvatar
+        name={name}
+        avatarUrl={avatarUrl}
+        className="size-full rounded-full"
+        initialsClassName="text-[12px]"
+        sizes="44px"
+      />
       {showOnlineDot ? (
         <span
           className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-white bg-[#22C55E]"
@@ -240,10 +213,7 @@ type AssistantInsetHeaderProps = {
 export function AssistantInsetHeader({ user, logout }: AssistantInsetHeaderProps) {
   const pathname = usePathname()
   const { title, subtitle, icon: Icon } = resolveRoute(pathname)
-
-  const displayName = formatDisplayLabel(user?.name, "Assistant")
-  const displayEmail = user?.email ?? "assistant@icare.com"
-  const avatarUrl = assistantAvatarUrl(displayName)
+  const { displayName, displayEmail, avatarUrl } = useAssistantHeaderProfile(user)
 
   return (
     <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-[#E8E6E0]/80 bg-white px-4 sm:gap-4 sm:px-6">

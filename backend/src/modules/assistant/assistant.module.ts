@@ -15,6 +15,8 @@ import { AssistantPatientQueueController } from './assistant-patient-queue.contr
 import { AssistantPatientQueueService } from './assistant-patient-queue.service';
 import { AssistantDoctorScheduleController } from './assistant-doctor-schedule.controller';
 import { AssistantDoctorScheduleService } from './assistant-doctor-schedule.service';
+import { AssistantAccountController } from './account/assistant-account.controller';
+import { AssistantAccountService } from './account/assistant-account.service';
 
 @Module({
   imports: [
@@ -29,12 +31,14 @@ import { AssistantDoctorScheduleService } from './assistant-doctor-schedule.serv
     AssistantAppointmentController,
     AssistantPatientQueueController,
     AssistantDoctorScheduleController,
+    AssistantAccountController,
   ],
   providers: [
     AssistantService,
     AssistantAppointmentService,
     AssistantPatientQueueService,
     AssistantDoctorScheduleService,
+    AssistantAccountService,
     AssistantGuard,
     AuthJwtService,
     AccessTokenGuard,
