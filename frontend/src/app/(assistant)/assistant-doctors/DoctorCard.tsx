@@ -1,9 +1,10 @@
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { UsersIcon, ArrowRightIcon, PlusIcon, MessageCircleIcon, MapPinIcon, ClockIcon } from "lucide-react"
+import { UsersIcon, ArrowRightIcon, MessageCircleIcon, MapPinIcon, ClockIcon } from "lucide-react"
 import type { AssistantDoctorDirectoryItem, DoctorStatus, LoadLevel } from "./assistantDoctors.types"
 import { AssistantProfileAvatar } from "@/app/(assistant)/AssistantProfileAvatar"
+import { assistantDoctorChatHref } from "@/components/shared/chat/use-chat-deep-link"
 
 const STATUS_CONFIG: Record<DoctorStatus, { label: string; dot: string; text: string }> = {
   "available": { label: "Available", dot: "bg-emerald-500", text: "text-emerald-700" },
@@ -87,27 +88,16 @@ export function DoctorCard({ doctor }: DoctorCardProps) {
           </Link>
         </Button>
         <Button
+          asChild
           variant="ghost"
           size="sm"
           className="size-8 border-0 bg-transparent text-[#6B7870] hover:bg-transparent hover:text-[#1A5345] shadow-none"
         >
-          <MessageCircleIcon className="size-4" />
+          <Link href={assistantDoctorChatHref(doctor.id)} aria-label={`Chat with ${doctor.name}`}>
+            <MessageCircleIcon className="size-4" />
+          </Link>
         </Button>
       </div>
-    </Card>
-  )
-}
-
-export function AddPractitionerCard() {
-  return (
-    <Card className="flex flex-col items-center justify-center p-5 border border-dashed border-[#E8E6E0] bg-[#F9F8F5]/30 rounded-2xl text-center shadow-none hover:bg-[#F9F8F5] hover:border-[#1A5345]/30 transition-all cursor-pointer group min-h-[220px]">
-      <div className="size-12 rounded-full bg-white border border-[#E8E6E0] flex items-center justify-center text-[#6B7870] mb-4 group-hover:text-[#1A5345] group-hover:border-[#1A5345]/30 group-hover:shadow-sm transition-all">
-        <PlusIcon className="size-5" />
-      </div>
-      <h3 className="text-[15px] font-bold text-[#1A1F1E] mb-1">Add Doctor</h3>
-      <p className="text-[12px] text-[#6B7870] max-w-[160px]">
-        Register a new practitioner to the directory
-      </p>
     </Card>
   )
 }

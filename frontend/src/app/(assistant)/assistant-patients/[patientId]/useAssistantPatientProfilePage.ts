@@ -15,7 +15,6 @@ import {
   WindIcon,
 } from "lucide-react"
 
-import { MOCK_ACTIVE_MEDICATIONS_ASSISTANT } from "./assistantPatientProfile.mock"
 import type {
   AssistantAppointmentRow,
   AssistantLabReportRow,
@@ -143,21 +142,12 @@ export function useAssistantPatientProfilePage({ routePatientId }: UseAssistantP
   const searchParams = useSearchParams()
 
   const [activeTab, setActiveTab] = useState<string>("overview")
-  const [medicationSubTab, setMedicationSubTab] = useState<"active" | "past">("active")
-  const [medicationDetailId, setMedicationDetailId] = useState<string | null>(null)
   const [isAddVitalsOpen, setIsAddVitalsOpen] = useState(false)
   const [expandedLabId, setExpandedLabId] = useState<string | null>(null)
   const [selectedLabReport, setSelectedLabReport] = useState<AssistantLabReportRow | null>(null)
   const [selectedPrescription, setSelectedPrescription] = useState<AssistantPrescriptionRow | null>(null)
   const [vitalReadingDetail, setVitalReadingDetail] = useState<AssistantVitalsHistoryRow | null>(null)
   const [appointmentDetail, setAppointmentDetail] = useState<AssistantAppointmentRow | null>(null)
-
-  useEffect(() => {
-    if (activeTab !== "medications") {
-      setMedicationSubTab("active")
-      setMedicationDetailId(null)
-    }
-  }, [activeTab])
 
   const patient = useMemo(() => buildMockPatient(patientId), [patientId])
 
@@ -210,11 +200,6 @@ export function useAssistantPatientProfilePage({ routePatientId }: UseAssistantP
     return hubViewParam === key
   }
 
-  const medicationDetail =
-    medicationDetailId != null
-      ? MOCK_ACTIVE_MEDICATIONS_ASSISTANT.find((m) => m.id === medicationDetailId) ?? null
-      : null
-
   return {
     patientId,
     pathname,
@@ -229,11 +214,6 @@ export function useAssistantPatientProfilePage({ routePatientId }: UseAssistantP
     showHubSoon,
     activeTab,
     setActiveTab,
-    medicationSubTab,
-    setMedicationSubTab,
-    medicationDetailId,
-    setMedicationDetailId,
-    medicationDetail,
     isAddVitalsOpen,
     setIsAddVitalsOpen,
     expandedLabId,

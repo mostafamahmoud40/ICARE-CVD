@@ -107,10 +107,8 @@ import { Documents } from "@/components/patient-profile/Documents"
 
 import { useAssistantPatientProfilePage } from "./useAssistantPatientProfilePage"
 import {
-  MOCK_ACTIVE_MEDICATIONS_ASSISTANT,
   MOCK_APPOINTMENTS,
   MOCK_LAB_RESULTS,
-  MOCK_PAST_MEDICATIONS,
   MOCK_PRESCRIPTIONS,
   MOCK_VISIT_HISTORY,
   MOCK_VITALS_HISTORY,
@@ -131,6 +129,7 @@ import {
 import { AddVitalsDialog } from "./AddVitalsDialog"
 import { LabReportDialog } from "./LabReportDialog"
 import { PrescriptionDialog } from "./PrescriptionDialog"
+import { AssistantPatientMedicationsTab } from "./AssistantPatientMedicationsTab"
 
 type AssistantPatientProfilePageProps = {
   patientId: string
@@ -149,11 +148,6 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
     showHubSoon,
     activeTab,
     setActiveTab,
-    medicationSubTab,
-    setMedicationSubTab,
-    medicationDetailId,
-    setMedicationDetailId,
-    medicationDetail,
     isAddVitalsOpen,
     setIsAddVitalsOpen,
     expandedLabId,
@@ -1925,209 +1919,7 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
               )}
 
               {activeTab === "medications" && (
-                <div className="flex flex-col gap-5 animate-in fade-in duration-300">
-                  <div className="flex flex-col gap-4 border-b border-[#E8E6E0]/60 pb-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className="text-[16px] font-bold text-[#1A1F1E]">Medications</h3>
-                      <button
-                        type="button"
-                        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1A5345] to-[#0F3D32] text-white shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95"
-                        aria-label="Add medication"
-                      >
-                        <PlusIcon className="size-4" strokeWidth={2} />
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMedicationSubTab("active")
-                          setMedicationDetailId(null)
-                        }}
-                        className={`rounded-full px-4 py-1.5 text-[12px] font-semibold transition-all duration-200 ease-out ${
-                          medicationSubTab === "active"
-                            ? "scale-[1.02] bg-[#1A5345] text-white shadow-md"
-                            : "bg-[#F5F5F3]/80 text-muted-foreground hover:bg-[#E8F0EE] hover:text-[#1A5345]"
-                        }`}
-                      >
-                        Active
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMedicationSubTab("past")
-                          setMedicationDetailId(null)
-                        }}
-                        className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-semibold transition-all duration-200 ease-out ${
-                          medicationSubTab === "past"
-                            ? "scale-[1.02] bg-[#1A5345] text-white shadow-md"
-                            : "bg-[#F5F5F3]/80 text-muted-foreground hover:bg-[#E8F0EE] hover:text-[#1A5345]"
-                        }`}
-                      >
-                        <HistoryIcon className="size-3.5" strokeWidth={2} />
-                        Past
-                      </button>
-                    </div>
-                    <p className="text-[12px] leading-snug text-muted-foreground">
-                      {medicationSubTab === "active"
-                        ? "What the patient takes now — use clock times when coaching intake, visit prep, or pharmacy follow-up."
-                        : "Ended, discontinued, or completed courses (read-only)."}
-                    </p>
-                  </div>
-
-                  {medicationSubTab === "active" && (
-                  <div className="flex flex-col">
-                    {MOCK_ACTIVE_MEDICATIONS_ASSISTANT.map((m) => {
-                      const MedIcon = m.Icon
-                      return (
-                        <div
-                          key={m.id}
-                          className="group flex flex-col md:flex-row md:items-center py-4 px-2 sm:px-4 -mx-2 sm:-mx-4 rounded-xl hover:bg-[#F9F8F5] transition-colors border-b border-[#E8E6E0]/60 last:border-0"
-                        >
-                          <div className="flex items-center gap-4 w-full md:w-[28%] shrink-0 mb-4 md:mb-0">
-                            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#F3F2F0] group-hover:bg-white transition-colors">
-                              <MedIcon className="size-5 text-[#6B7870]" strokeWidth={2} aria-hidden />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <h4 className="text-[15px] font-bold text-[#1A1F1E]">{m.name}</h4>
-                                <Badge className="bg-[#E5F5EE] text-[#1A5345] hover:bg-[#E5F5EE] border-0 h-5 px-2 rounded-full text-[10px] font-bold tracking-wide shrink-0">
-                                  Active
-                                </Badge>
-                              </div>
-                              <p className="text-[13px] font-medium text-muted-foreground mt-0.5">{m.strength}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-1.5 w-full md:w-[30%] shrink-0 md:px-4 mb-4 md:mb-0">
-                            <span className="text-[12px] font-medium text-muted-foreground">When to take</span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {m.timesOfDay.map((t) => (
-                                <span
-                                  key={t}
-                                  className="inline-flex items-center rounded-full bg-[#E8F0EE] px-2.5 py-0.5 text-[12px] font-bold tabular-nums text-[#1A5345]"
-                                >
-                                  {t}
-                                </span>
-                              ))}
-                            </div>
-                            <p className="text-[12px] font-medium text-[#1A1F1E]">{m.frequencyLabel}</p>
-                            <p className="text-[11px] leading-snug text-muted-foreground line-clamp-2">{m.withFood}</p>
-                          </div>
-
-                          <div className="flex flex-col gap-1 w-full md:w-[22%] shrink-0 md:px-4 mb-4 md:mb-0">
-                            <span className="text-[12px] font-medium text-muted-foreground">Adherence (reported)</span>
-                            <span className={`text-[12px] font-bold mt-0.5 ${m.adherenceTextClass}`}>{m.adherencePct}%</span>
-                            <div className="h-1.5 w-full bg-[#E8E6E0] rounded-full overflow-hidden mt-0.5 group-hover:bg-[#E8E6E0]/60 transition-colors">
-                              <div
-                                className={`h-full rounded-full ${m.adherenceBarClass}`}
-                                style={{ width: `${m.adherencePct}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between md:justify-end gap-4 w-full md:w-[20%] shrink-0 mt-2 md:mt-0 pt-4 md:pt-0 border-t border-[#E8E6E0]/60 md:border-0 md:pl-4">
-                            {m.supply.variant === "warning" ? (
-                              <div className="flex items-center gap-1.5 text-[12px] font-bold text-[#D9772B] bg-[#FFF0E0] px-3 py-1.5 rounded-full group-hover:bg-white border border-transparent group-hover:border-[#FFF0E0] transition-colors max-w-[200px]">
-                                <AlertTriangleIcon className="size-3.5 shrink-0" aria-hidden />
-                                <span className="leading-tight">{m.supply.label}</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1.5 text-[12px] font-bold text-[#1A5345] bg-[#F2FAF6] px-3 py-1.5 rounded-full group-hover:bg-white border border-transparent group-hover:border-[#F2FAF6] transition-colors max-w-[200px]">
-                                <CheckCircle2Icon className="size-3.5 shrink-0 text-emerald-500" aria-hidden />
-                                <span className="leading-tight">{m.supply.label}</span>
-                              </div>
-                            )}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-8 text-muted-foreground hover:text-[#1A1F1E] shrink-0"
-                                  aria-label={`Actions for ${m.name}`}
-                                >
-                                  <MoreVerticalIcon className="size-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-44">
-                                <DropdownMenuItem
-                                  className="cursor-pointer text-[13px] font-medium"
-                                  onSelect={() => setMedicationDetailId(m.id)}
-                                >
-                                  <FileTextIcon className="mr-2 size-3.5 text-muted-foreground" />
-                                  Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer text-[13px] font-medium">
-                                  <EditIcon className="mr-2 size-3.5 text-muted-foreground" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer text-[13px] font-medium text-red-600 focus:bg-red-50 focus:text-red-600">
-                                  <Trash2Icon className="mr-2 size-3.5" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  )}
-
-                  {medicationSubTab === "past" && (
-                    <div className="flex flex-col">
-                      {MOCK_PAST_MEDICATIONS.map((p) => (
-                        <div
-                          key={p.id}
-                          className="group flex flex-col gap-3 border-b border-[#E8E6E0]/60 py-4 last:border-0 sm:flex-row sm:items-start sm:gap-4"
-                        >
-                          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-2 ring-white">
-                            <HistoryIcon className="size-5 text-[#6B7870]" strokeWidth={2} aria-hidden />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h4 className="text-[15px] font-bold text-[#1A1F1E]">{p.name}</h4>
-                              <Badge
-                                variant="outline"
-                                className={
-                                  p.kind === "discontinued"
-                                    ? "h-5 border-amber-200 bg-amber-50 text-[10px] font-bold text-amber-900"
-                                    : "h-5 border-emerald-200 bg-emerald-50 text-[10px] font-bold text-emerald-900"
-                                }
-                              >
-                                {p.kind === "discontinued" ? "Discontinued" : "Course completed"}
-                              </Badge>
-                            </div>
-                            <p className="mt-0.5 text-[13px] font-medium text-muted-foreground">{p.strength}</p>
-                            <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{p.note}</p>
-                            <p className="mt-1.5 text-[11px] font-medium text-muted-foreground">
-                              Ended {p.endedOn}
-                            </p>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-8 shrink-0 text-muted-foreground hover:text-[#1A1F1E]"
-                                aria-label={`Actions for ${p.name}`}
-                              >
-                                <MoreVerticalIcon className="size-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44">
-                              <DropdownMenuItem className="cursor-pointer text-[13px] font-medium">
-                                <FileTextIcon className="mr-2 size-3.5 text-muted-foreground" />
-                                Details
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <AssistantPatientMedicationsTab patientId={patientId} />
               )}
 
               {activeTab !== "overview" && activeTab !== "medications" && (
@@ -2149,136 +1941,6 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
         )}
       </div>
 
-      <Dialog
-        open={medicationDetail !== null}
-        onOpenChange={(open) => {
-          if (!open) setMedicationDetailId(null)
-        }}
-      >
-        <DialogContent className="max-h-[min(90vh,720px)] overflow-y-auto sm:max-w-[650px] p-0 bg-[#F9F8F5] border-[#E8E6E0]">
-          {medicationDetail ? (
-            <div className="p-6">
-              <DialogHeader className="text-left border-b border-[#E8E6E0]/60 pb-5 mb-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white shadow-sm border border-[#E8E6E0]/60">
-                    {medicationDetail.strength.includes("Injection") ? (
-                      <SyringeIcon className="size-6 text-[#6B7870]" strokeWidth={2} />
-                    ) : (
-                      <PillIcon className="size-6 text-[#6B7870]" strokeWidth={2} />
-                    )}
-                  </div>
-                  <div>
-                    <DialogTitle className="text-[18px] font-bold text-[#1A1F1E]">{medicationDetail.name}</DialogTitle>
-                    <p className="text-[13px] font-medium text-muted-foreground mt-0.5">{medicationDetail.strength}</p>
-                  </div>
-                </div>
-              </DialogHeader>
-              <div className="flex flex-col gap-6 text-[13px] px-1 pb-2 mt-2">
-                
-                {/* 1. Schedule & Instructions - Side by side cards */}
-                <div className="flex flex-col sm:flex-row gap-4">
-                  {/* Schedule Card */}
-                  <div className="flex-1 rounded-2xl bg-white p-5 border border-[#E8E6E0]/60 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-colors relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                      <ClockIcon className="size-16" />
-                    </div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="size-7 rounded-full bg-white flex items-center justify-center shadow-[0_2px_8px_-4px_rgba(0,0,0,0.1)]">
-                        <ClockIcon className="size-3.5 text-[#1A5345]" />
-                      </div>
-                      <p className="text-[13px] font-bold text-[#1A1F1E]">Schedule</p>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {medicationDetail.timesOfDay.map((t) => (
-                        <span
-                          key={t}
-                          className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 text-[13px] font-bold tabular-nums text-[#1A1F1E] shadow-sm border border-[#E8E6E0]/40"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                    <p className="font-bold text-[#1A5345] text-[14px]">{medicationDetail.frequencyLabel}</p>
-                    <p className="font-medium text-muted-foreground text-[12px] mt-0.5">{medicationDetail.details.sigSummary}</p>
-                  </div>
-
-                  {/* Instruction Card */}
-                  <div className="flex-1 rounded-2xl bg-white p-5 border border-[#E8E6E0]/60 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-colors relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                      <FileTextIcon className="size-16" />
-                    </div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="size-7 rounded-full bg-white flex items-center justify-center shadow-[0_2px_8px_-4px_rgba(0,0,0,0.1)]">
-                        <FileTextIcon className="size-3.5 text-[#1A5345]" />
-                      </div>
-                      <p className="text-[13px] font-bold text-[#1A1F1E]">Instructions</p>
-                    </div>
-                    
-                    <p className="font-semibold text-[#1A1F1E] text-[14px] leading-relaxed mb-4">
-                      "{medicationDetail.instructionPatient}"
-                    </p>
-
-                    {medicationDetail.withFood && (
-                      <span className="inline-flex items-center gap-1.5 bg-white border border-[#E8E6E0]/60 text-[#1A5345] px-2.5 py-1 rounded-lg text-[12px] font-bold shadow-sm">
-                        <SaladIcon className="size-3.5" />
-                        {medicationDetail.withFood}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* 2. Metadata Tags */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white border border-[#E8E6E0]/80 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.05)] flex-1 min-w-[120px]">
-                    <CalendarIcon className="size-4 text-muted-foreground/70" />
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-muted-foreground leading-none mb-1">Therapy Start</span>
-                      <span className="font-bold text-[#1A1F1E] text-[12px] leading-none">{medicationDetail.details.startedOn}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white border border-[#E8E6E0]/80 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.05)] flex-1 min-w-[120px]">
-                    <PillIcon className="size-4 text-muted-foreground/70" />
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-muted-foreground leading-none mb-1">Quantity</span>
-                      <span className="font-bold text-[#1A1F1E] text-[12px] leading-none">{medicationDetail.details.quantity}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-1 min-w-[120px] items-center gap-2.5 rounded-xl border border-[#E8E6E0]/80 bg-white px-3 py-2 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.05)]">
-                    <RefreshCwIcon className="size-4 shrink-0 text-[#1A5345]/85" strokeWidth={2} aria-hidden />
-                    <div className="flex flex-col">
-                      <span className="mb-1 text-[10px] font-bold leading-none text-muted-foreground">Refills left</span>
-                      <span className="text-[12px] font-bold tabular-nums leading-none text-[#1A1F1E]">
-                        {medicationDetail.details.refillsRemaining}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* DOCTOR SECTION (DO NOT TOUCH THE STRUCTURE/CLASSES, ONLY MARGINS) */}
-                <div className="mt-3 border-t border-[#E8E6E0]/60 pt-5">
-                  <p className="text-[12px] font-medium text-muted-foreground mb-3">Prescribing Doctor</p>
-                  {/* EXACT HTML FROM PREVIOUS ITERATION */}
-                  <div className="group flex items-center gap-3 p-3 rounded-2xl bg-white hover:bg-[#F9F8F5] transition-colors cursor-pointer border border-[#E8E6E0]/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)]">
-                    <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#F3F2F0] overflow-hidden border border-[#E8E6E0]/60">
-                      <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${medicationDetail.details.prescriber.replace(' ', '')}&backgroundColor=f3f2f0`} alt="Doctor avatar" className="size-full object-cover" />
-                    </div>
-                    <div className="flex flex-col flex-1">
-                      <p className="text-[14px] font-bold text-[#1A5345] group-hover:text-[#1A1F1E] transition-colors">{medicationDetail.details.prescriber}</p>
-                      <p className="text-[12px] font-medium text-muted-foreground mt-0.5">Cardiology Dept.</p>
-                    </div>
-                    <Button variant="outline" size="icon" className="size-8 text-muted-foreground group-hover:text-[#1A1F1E] group-hover:bg-white shrink-0 shadow-sm border-[#E8E6E0]/80 transition-all rounded-xl">
-                      <MailIcon className="size-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
       <AddVitalsDialog open={isAddVitalsOpen} onOpenChange={setIsAddVitalsOpen} />
     </div>
   )

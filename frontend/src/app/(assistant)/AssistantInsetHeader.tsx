@@ -216,14 +216,16 @@ export function AssistantInsetHeader({ user, logout }: AssistantInsetHeaderProps
   const { displayName, displayEmail, avatarUrl } = useAssistantHeaderProfile(user)
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-[#E8E6E0]/80 bg-white px-4 sm:gap-4 sm:px-6">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <Icon className="size-5 shrink-0 text-[#1A5345]" strokeWidth={2} aria-hidden />
+    <header className="sticky top-0 z-20 flex min-h-[4.5rem] shrink-0 items-center justify-between gap-3 border-b border-[#E8E6E0]/80 bg-white px-4 py-3 sm:gap-4 sm:px-6">
+      <div className="flex min-w-0 items-start gap-3">
+        <Icon className="mt-0.5 size-6 shrink-0 text-[#1A5345]" strokeWidth={2} aria-hidden />
         <div className="min-w-0">
-          <h1 className="truncate font-sans text-[13px] font-bold tracking-tight text-[#102F27] sm:text-[14px]">
+          <h1 className="truncate font-serif text-[18px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[20px]">
             {title}
           </h1>
-          <p className="truncate font-sans text-[10px] text-[#6B7870] sm:text-[11px]">{subtitle}</p>
+          <p className="mt-0.5 truncate text-[12px] font-medium text-muted-foreground sm:text-[13px]">
+            {subtitle}
+          </p>
         </div>
       </div>
 

@@ -429,7 +429,7 @@ export function Inbox({
   const showMobileDetail = Boolean(selectedMessage)
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col bg-[#F9F8F5]">
+    <div className="flex h-[calc(100vh-4.5rem)] flex-col bg-[#F9F8F5]">
       <div className="flex items-center justify-between bg-transparent px-8 py-8 z-20 relative">
         <div>
           <h1 className="text-[32px] font-bold text-[#1A1F1E] tracking-tight font-serif">Inbox</h1>
