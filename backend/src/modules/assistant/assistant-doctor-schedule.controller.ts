@@ -17,6 +17,7 @@ import type { TokenPayload } from '../auth/jwt';
 import { UpdateDoctorScheduleDto } from '../doctor/schedule/dto/update-doctor-schedule.dto';
 
 import { AssistantDoctorScheduleService } from './assistant-doctor-schedule.service';
+import { AssistantDoctorsService } from './assistant-doctors.service';
 import { AssistantGuard } from './assistant.guard';
 import { CreateScheduleDayExtraDto } from './dto/schedule-day-extra.dto';
 import { SetDoctorArrivalDto } from './dto/set-doctor-arrival.dto';
@@ -25,7 +26,23 @@ import { ScheduleAiAnalyzeDto, ScheduleAiChatDto } from './dto/schedule-ai-chat.
 @Controller('assistant/doctors')
 @UseGuards(AccessTokenGuard, AssistantGuard)
 export class AssistantDoctorScheduleController {
-  constructor(private readonly service: AssistantDoctorScheduleService) {}
+  constructor(
+    private readonly service: AssistantDoctorScheduleService,
+    private readonly doctorsService: AssistantDoctorsService,
+  ) {}
+
+  @Get('directory')
+  listDoctorDirectory(@CurrentUser() _user: TokenPayload) {
+    return this.doctorsService.listDirectory();
+  }
+
+  @Get(':doctorId/clinic-profile')
+  getDoctorClinicProfile(
+    @CurrentUser() _user: TokenPayload,
+    @Param('doctorId') doctorId: string,
+  ) {
+    return this.doctorsService.getClinicProfile(doctorId);
+  }
 
   @Get(':doctorId/schedule')
   getScheduleBundle(

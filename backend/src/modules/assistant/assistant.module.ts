@@ -15,6 +15,7 @@ import { AssistantPatientQueueController } from './assistant-patient-queue.contr
 import { AssistantPatientQueueService } from './assistant-patient-queue.service';
 import { AssistantDoctorScheduleController } from './assistant-doctor-schedule.controller';
 import { AssistantDoctorScheduleService } from './assistant-doctor-schedule.service';
+import { AssistantDoctorsService } from './assistant-doctors.service';
 import { AssistantAccountController } from './account/assistant-account.controller';
 import { AssistantAccountService } from './account/assistant-account.service';
 
@@ -38,6 +39,7 @@ import { AssistantAccountService } from './account/assistant-account.service';
     AssistantAppointmentService,
     AssistantPatientQueueService,
     AssistantDoctorScheduleService,
+    AssistantDoctorsService,
     AssistantAccountService,
     AssistantGuard,
     AuthJwtService,
