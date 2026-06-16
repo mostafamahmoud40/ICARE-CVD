@@ -471,7 +471,9 @@ export function useChat() {
   const bumpConversationForCall = useCallback(
     (conversationId: string, label: string, sentAt: string, incrementUnread: boolean) => {
       const senderType =
-        currentUser?.role === "doctor" || currentUser?.role === "patient"
+        currentUser?.role === "doctor" ||
+        currentUser?.role === "patient" ||
+        currentUser?.role === "assistant"
           ? currentUser.role
           : "doctor"
       const syntheticMessage: MessageApiRow = {

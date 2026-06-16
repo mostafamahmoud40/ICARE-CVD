@@ -145,6 +145,18 @@ export const MOCK_MEDICATION_PROFILES: PatientMedicationProfile[] = [
         nextRefillDue: "2026-05-18",
         adherenceHistory7d: [true, true, true, true, true, true, true],
       },
+      {
+        id: "ml5q3h",
+        name: "Furosemide",
+        strength: "20 mg",
+        type: "pill",
+        dosageInstructions: "1 tablet every 3 hours while leg swelling persists (max 8 doses/day)",
+        frequencyLabel: "Q3H",
+        adherencePct7d: 76,
+        missedLast7d: 4,
+        nextRefillDue: "2026-05-22",
+        adherenceHistory7d: [true, true, false, true, true, false, true],
+      },
     ],
     flags: [],
     aiInsights: [

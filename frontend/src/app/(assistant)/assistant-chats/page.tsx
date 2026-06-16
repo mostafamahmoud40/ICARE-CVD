@@ -1,59 +1,86 @@
 "use client"
 
-import { useState } from "react"
-import { ChatListPanel } from "./ChatListPanel"
-import { ConversationPanel } from "./ConversationPanel"
-import { ContactInfoPanel } from "./ContactInfoPanel"
-import {
-  MOCK_FAVOURITES,
-  MOCK_DIRECT_MESSAGES,
-  MOCK_MESSAGES,
-  MOCK_CONTACT_DETAILS,
-} from "./assistantChats.mock"
+import { useMemo, useState } from "react"
+import { useChat } from "@/components/shared/chat/use-chat"
+import { ChatSidebar } from "@/components/shared/chat/chat-sidebar"
+import { ChatWindow } from "@/components/shared/chat/chat-window"
+import { ContactInfoPanel } from "@/components/shared/chat/contact-info-panel"
+import { resolveChatContact } from "@/components/shared/chat/chat-contact"
 
 export default function AssistantChatsPage() {
-  const [activeContactId, setActiveContactId] = useState<string | null>("1")
+  const {
+    contacts,
+    activeContactId,
+    setActiveContactId,
+    messages,
+    sendMessage,
+    startNewChat,
+    notifyTyping,
+    recordMissedCall,
+    callPreviewByContactId,
+    currentUserAvatar,
+    uploadChatAttachment,
+    isUploadingAttachment,
+    deleteMessage,
+  } = useChat()
+
   const [showInfoPanel, setShowInfoPanel] = useState(true)
 
-  /* ── Derive display values from the selected contact ──────── */
-  const allContacts = [...MOCK_FAVOURITES, ...MOCK_DIRECT_MESSAGES]
-  const activeContact = allContacts.find((c) => c.id === activeContactId)
-
-  const handleSendMessage = (text: string) => {
-    // TODO: wire to real API via useChat() hook
-    console.log("Send:", text)
-  }
+  const activeContact = useMemo(
+    () => resolveChatContact(activeContactId, contacts, callPreviewByContactId),
+    [activeContactId, contacts, callPreviewByContactId],
+  )
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-[#F9F8F5]">
-      {/* Left: Contact List */}
-      <ChatListPanel
-        favourites={MOCK_FAVOURITES}
-        directMessages={MOCK_DIRECT_MESSAGES}
+    <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-[#F9F8F5]">
+      <ChatSidebar
+        contacts={contacts}
         activeContactId={activeContactId}
         onSelectContact={setActiveContactId}
+        onStartNewChat={startNewChat}
       />
 
-      {/* Center: Conversation */}
-      <ConversationPanel
-        contactName={activeContact?.name ?? null}
-        contactAvatar={activeContact?.avatarColor ?? null}
-        isOnline={activeContact?.isOnline ?? false}
-        messages={MOCK_MESSAGES}
-        onSendMessage={handleSendMessage}
+      <ChatWindow
+        activeContact={activeContact}
+        messages={messages}
+        currentUserAvatar={currentUserAvatar}
+        onSendMessage={sendMessage}
+        onUploadAttachment={uploadChatAttachment}
+        isUploadingAttachment={isUploadingAttachment}
+        onDeleteMessage={deleteMessage}
+        onTypingChange={notifyTyping}
         onToggleInfo={() => setShowInfoPanel((prev) => !prev)}
+        onInitiateCall={recordMissedCall}
       />
 
-      {/* Right: Contact Info (toggleable) */}
-      {showInfoPanel && <ContactInfoPanel details={MOCK_CONTACT_DETAILS} />}
+      {showInfoPanel && activeContact ? (
+        <ContactInfoPanel
+          contact={activeContact}
+          messages={messages}
+          onClose={() => setShowInfoPanel(false)}
+          onInitiateCall={recordMissedCall}
+        />
+      ) : null}
 
-      {/* Custom scrollbar styles */}
-      <style dangerouslySetInnerHTML={{__html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: hsl(var(--muted-foreground) / 0.2); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.4); }
-      `}} />
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: hsl(var(--muted-foreground) / 0.2);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: hsl(var(--muted-foreground) / 0.4);
+        }
+      `,
+        }}
+      />
     </div>
   )
 }

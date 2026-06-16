@@ -63,7 +63,7 @@ export type ConversationApiRow = {
   unreadCount: number
   lastMessage: {
     text: string
-    senderType: "doctor" | "patient"
+    senderType: "doctor" | "patient" | "assistant"
     sentAt: string
     isRead: boolean
   } | null
@@ -74,7 +74,7 @@ export type MessageApiRow = {
   id: number
   conversationId: number
   senderId: number
-  senderType: "doctor" | "patient"
+  senderType: "doctor" | "patient" | "assistant"
   message: string
   isRead: boolean
   sentAt: string

@@ -42,9 +42,14 @@ export function ContactInfoPanel({
     .slice(0, 2)
 
   const isDoctor = contact.role === "doctor"
+  const isAssistant = contact.role === "assistant"
   const subtitle = isDoctor
     ? contact.specialty?.trim() || "Doctor"
-    : contact.role || "Contact"
+    : isAssistant
+      ? "Clinical assistant"
+      : contact.role === "patient"
+        ? "Patient"
+        : contact.role || "Contact"
 
   const detailRows = isDoctor
     ? [

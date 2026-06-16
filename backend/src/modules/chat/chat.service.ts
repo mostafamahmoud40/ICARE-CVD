@@ -6,10 +6,11 @@ import {
   NotFoundException,
   StreamableFile,
 } from '@nestjs/common';
-import { and, asc, desc, eq, inArray, ne, ne as neq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { Readable } from 'stream';
 import { DRIZZLE, type Database } from '../../database/drizzle.provider';
 import {
+  assistant,
   conversation,
   doctor,
   message,
@@ -22,10 +23,25 @@ import { ChatAttachmentService } from './chat-attachment.service';
 import type { CreateConversationDto } from './dto/create-conversation.dto';
 import type { ChatUploadIntentDto, SendMessageDto } from './dto/send-message.dto';
 
+type ChatActorRole = 'doctor' | 'patient' | 'assistant';
+
 type ChatActor = {
   userId: number;
-  role: 'doctor' | 'patient';
+  role: ChatActorRole;
   profileId: string;
+};
+
+type ConversationListRow = {
+  conversationId: number;
+  createdAt: Date;
+  participantName: string;
+  participantRole: string;
+  participantUserId: number;
+  participantEmail: string | null;
+  participantSpecialty: string | null;
+  participantClinicLocation: string | null;
+  participantAvatarUrl: string | null;
+  participantUserAvatarUrl: string | null;
 };
 
 @Injectable()
@@ -37,44 +53,7 @@ export class ChatService {
 
   async listConversations(currentUser: TokenPayload) {
     const actor = await this.resolveActor(currentUser);
-    const rows =
-      actor.role === 'doctor'
-        ? await this.db
-            .select({
-              conversationId: conversation.id,
-              createdAt: conversation.createdAt,
-              participantName: user.name,
-              participantRole: user.role,
-              participantUserId: user.id,
-              participantEmail: user.email,
-              participantSpecialty: sql<string | null>`null`,
-              participantClinicLocation: sql<string | null>`null`,
-              participantAvatarUrl: patient.avatarUrl,
-              participantUserAvatarUrl: user.avatarUrl,
-            })
-            .from(conversation)
-            .innerJoin(patient, eq(conversation.patientId, patient.id))
-            .innerJoin(user, eq(patient.userId, user.id))
-            .where(eq(conversation.doctorId, actor.profileId))
-            .orderBy(desc(conversation.createdAt))
-        : await this.db
-            .select({
-              conversationId: conversation.id,
-              createdAt: conversation.createdAt,
-              participantName: user.name,
-              participantRole: user.role,
-              participantUserId: user.id,
-              participantEmail: user.email,
-              participantSpecialty: doctor.specialty,
-              participantClinicLocation: doctor.clinicLocation,
-              participantAvatarUrl: user.avatarUrl,
-              participantUserAvatarUrl: user.avatarUrl,
-            })
-            .from(conversation)
-            .innerJoin(doctor, eq(conversation.doctorId, doctor.id))
-            .innerJoin(user, eq(doctor.userId, user.id))
-            .where(eq(conversation.patientId, actor.profileId))
-            .orderBy(desc(conversation.createdAt));
+    const rows = await this.fetchConversationListRows(actor);
 
     if (!rows.length) return [];
 
@@ -165,11 +144,6 @@ export class ChatService {
     });
   }
 
-  /**
-   * Returns all users the current actor can start a conversation with.
-   * - Doctor  → all patients in the system
-   * - Patient → all doctors in the system
-   */
   async listDirectory(currentUser: TokenPayload) {
     const actor = await this.resolveActor(currentUser);
 
@@ -195,11 +169,31 @@ export class ChatService {
       }));
     }
 
-    // patient → list all doctors
-    const rows = await this.db
+    if (actor.role === 'patient') {
+      const rows = await this.db
+        .select({
+          id: doctor.id,
+          userId: user.id,
+          name: user.name,
+          role: user.role,
+          specialty: doctor.specialty,
+          avatarUrl: user.avatarUrl,
+        })
+        .from(doctor)
+        .innerJoin(user, eq(doctor.userId, user.id))
+        .orderBy(asc(user.name));
+      return rows.map((r) => ({
+        profileId: r.id,
+        name: r.name,
+        role: r.role,
+        avatarUrl: r.avatarUrl,
+        specialty: r.specialty,
+      }));
+    }
+
+    const doctorRows = await this.db
       .select({
         id: doctor.id,
-        userId: user.id,
         name: user.name,
         role: user.role,
         specialty: doctor.specialty,
@@ -208,13 +202,35 @@ export class ChatService {
       .from(doctor)
       .innerJoin(user, eq(doctor.userId, user.id))
       .orderBy(asc(user.name));
-    return rows.map((r) => ({
-      profileId: r.id,
-      name: r.name,
-      role: r.role,
-      avatarUrl: r.avatarUrl,
-      specialty: r.specialty,
-    }));
+
+    const patientRows = await this.db
+      .select({
+        id: patient.id,
+        name: user.name,
+        role: user.role,
+        avatarUrl: patient.avatarUrl,
+        userAvatarUrl: user.avatarUrl,
+      })
+      .from(patient)
+      .innerJoin(user, eq(patient.userId, user.id))
+      .orderBy(asc(user.name));
+
+    return [
+      ...doctorRows.map((r) => ({
+        profileId: r.id,
+        name: r.name,
+        role: r.role,
+        avatarUrl: r.avatarUrl,
+        specialty: r.specialty,
+      })),
+      ...patientRows.map((r) => ({
+        profileId: r.id,
+        name: r.name,
+        role: r.role,
+        avatarUrl: r.avatarUrl ?? r.userAvatarUrl,
+        specialty: null,
+      })),
+    ];
   }
 
   async createConversation(
@@ -223,55 +239,47 @@ export class ChatService {
   ) {
     const actor = await this.resolveActor(currentUser);
 
-    const pair =
-      actor.role === 'doctor'
-        ? {
-            doctorId: actor.profileId,
-            patientId: dto.patientId,
-          }
-        : {
-            doctorId: dto.doctorId,
-            patientId: actor.profileId,
-          };
-
-    if (!pair.doctorId || !pair.patientId) {
-      throw new BadRequestException('doctorId and patientId are required');
+    if (actor.role === 'doctor') {
+      if (!dto.patientId) {
+        throw new BadRequestException('patientId is required');
+      }
+      return this.createDoctorPatientConversation(
+        actor.profileId,
+        dto.patientId,
+      );
     }
 
-    const doctorExists = await this.db.query.doctor.findFirst({
-      where: eq(doctor.id, pair.doctorId),
-    });
-    if (!doctorExists) {
-      throw new NotFoundException('Doctor profile not found');
+    if (actor.role === 'patient') {
+      if (!dto.doctorId) {
+        throw new BadRequestException('doctorId is required');
+      }
+      return this.createDoctorPatientConversation(
+        dto.doctorId,
+        actor.profileId,
+      );
     }
 
-    const patientExists = await this.db.query.patient.findFirst({
-      where: eq(patient.id, pair.patientId),
-    });
-    if (!patientExists) {
-      throw new NotFoundException('Patient profile not found');
+    if (dto.doctorId && dto.patientId) {
+      throw new BadRequestException(
+        'Provide either doctorId or patientId, not both',
+      );
     }
 
-    const existing = await this.db.query.conversation.findFirst({
-      where: and(
-        eq(conversation.doctorId, pair.doctorId),
-        eq(conversation.patientId, pair.patientId),
-      ),
-    });
-
-    if (existing) {
-      return existing;
+    if (dto.doctorId) {
+      return this.createAssistantDoctorConversation(
+        actor.profileId,
+        dto.doctorId,
+      );
     }
 
-    const [created] = await this.db
-      .insert(conversation)
-      .values({
-        doctorId: pair.doctorId,
-        patientId: pair.patientId,
-      })
-      .returning();
+    if (dto.patientId) {
+      return this.createAssistantPatientConversation(
+        actor.profileId,
+        dto.patientId,
+      );
+    }
 
-    return created;
+    throw new BadRequestException('doctorId or patientId is required');
   }
 
   async listMessages(conversationId: number, currentUser: TokenPayload) {
@@ -527,6 +535,298 @@ export class ChatService {
     return { ok: true };
   }
 
+  async getOtherParticipantUserIds(conversationId: number, excludeUserId: number) {
+    const ids = await this.getConversationParticipantUserIds(conversationId);
+    return ids.filter((id) => id !== excludeUserId);
+  }
+
+  async getUserDisplayName(userId: number): Promise<string> {
+    const row = await this.db.query.user.findFirst({
+      where: eq(user.id, userId),
+      columns: { name: true },
+    });
+    return row?.name ?? 'Someone';
+  }
+
+  private async fetchConversationListRows(
+    actor: ChatActor,
+  ): Promise<ConversationListRow[]> {
+    if (actor.role === 'doctor') {
+      const [patients, assistants] = await Promise.all([
+        this.db
+          .select({
+            conversationId: conversation.id,
+            createdAt: conversation.createdAt,
+            participantName: user.name,
+            participantRole: user.role,
+            participantUserId: user.id,
+            participantEmail: user.email,
+            participantSpecialty: sql<string | null>`null`,
+            participantClinicLocation: sql<string | null>`null`,
+            participantAvatarUrl: patient.avatarUrl,
+            participantUserAvatarUrl: user.avatarUrl,
+          })
+          .from(conversation)
+          .innerJoin(patient, eq(conversation.patientId, patient.id))
+          .innerJoin(user, eq(patient.userId, user.id))
+          .where(
+            and(
+              eq(conversation.conversationType, 'doctor_patient'),
+              eq(conversation.doctorId, actor.profileId),
+            ),
+          )
+          .orderBy(desc(conversation.createdAt)),
+        this.db
+          .select({
+            conversationId: conversation.id,
+            createdAt: conversation.createdAt,
+            participantName: user.name,
+            participantRole: sql<string>`'assistant'`,
+            participantUserId: user.id,
+            participantEmail: user.email,
+            participantSpecialty: sql<string | null>`null`,
+            participantClinicLocation: sql<string | null>`null`,
+            participantAvatarUrl: user.avatarUrl,
+            participantUserAvatarUrl: user.avatarUrl,
+          })
+          .from(conversation)
+          .innerJoin(assistant, eq(conversation.assistantId, assistant.id))
+          .innerJoin(user, eq(assistant.userId, user.id))
+          .where(
+            and(
+              eq(conversation.conversationType, 'assistant_doctor'),
+              eq(conversation.doctorId, actor.profileId),
+            ),
+          )
+          .orderBy(desc(conversation.createdAt)),
+      ]);
+      return [...patients, ...assistants];
+    }
+
+    if (actor.role === 'patient') {
+      const [doctors, assistants] = await Promise.all([
+        this.db
+          .select({
+            conversationId: conversation.id,
+            createdAt: conversation.createdAt,
+            participantName: user.name,
+            participantRole: user.role,
+            participantUserId: user.id,
+            participantEmail: user.email,
+            participantSpecialty: doctor.specialty,
+            participantClinicLocation: doctor.clinicLocation,
+            participantAvatarUrl: user.avatarUrl,
+            participantUserAvatarUrl: user.avatarUrl,
+          })
+          .from(conversation)
+          .innerJoin(doctor, eq(conversation.doctorId, doctor.id))
+          .innerJoin(user, eq(doctor.userId, user.id))
+          .where(
+            and(
+              eq(conversation.conversationType, 'doctor_patient'),
+              eq(conversation.patientId, actor.profileId),
+            ),
+          )
+          .orderBy(desc(conversation.createdAt)),
+        this.db
+          .select({
+            conversationId: conversation.id,
+            createdAt: conversation.createdAt,
+            participantName: user.name,
+            participantRole: sql<string>`'assistant'`,
+            participantUserId: user.id,
+            participantEmail: user.email,
+            participantSpecialty: sql<string | null>`null`,
+            participantClinicLocation: sql<string | null>`null`,
+            participantAvatarUrl: user.avatarUrl,
+            participantUserAvatarUrl: user.avatarUrl,
+          })
+          .from(conversation)
+          .innerJoin(assistant, eq(conversation.assistantId, assistant.id))
+          .innerJoin(user, eq(assistant.userId, user.id))
+          .where(
+            and(
+              eq(conversation.conversationType, 'assistant_patient'),
+              eq(conversation.patientId, actor.profileId),
+            ),
+          )
+          .orderBy(desc(conversation.createdAt)),
+      ]);
+      return [...doctors, ...assistants];
+    }
+
+    const [doctors, patients] = await Promise.all([
+      this.db
+        .select({
+          conversationId: conversation.id,
+          createdAt: conversation.createdAt,
+          participantName: user.name,
+          participantRole: user.role,
+          participantUserId: user.id,
+          participantEmail: user.email,
+          participantSpecialty: doctor.specialty,
+          participantClinicLocation: doctor.clinicLocation,
+          participantAvatarUrl: user.avatarUrl,
+          participantUserAvatarUrl: user.avatarUrl,
+        })
+        .from(conversation)
+        .innerJoin(doctor, eq(conversation.doctorId, doctor.id))
+        .innerJoin(user, eq(doctor.userId, user.id))
+        .where(
+          and(
+            eq(conversation.conversationType, 'assistant_doctor'),
+            eq(conversation.assistantId, actor.profileId),
+          ),
+        )
+        .orderBy(desc(conversation.createdAt)),
+      this.db
+        .select({
+          conversationId: conversation.id,
+          createdAt: conversation.createdAt,
+          participantName: user.name,
+          participantRole: user.role,
+          participantUserId: user.id,
+          participantEmail: user.email,
+          participantSpecialty: sql<string | null>`null`,
+          participantClinicLocation: sql<string | null>`null`,
+          participantAvatarUrl: patient.avatarUrl,
+          participantUserAvatarUrl: user.avatarUrl,
+        })
+        .from(conversation)
+        .innerJoin(patient, eq(conversation.patientId, patient.id))
+        .innerJoin(user, eq(patient.userId, user.id))
+        .where(
+          and(
+            eq(conversation.conversationType, 'assistant_patient'),
+            eq(conversation.assistantId, actor.profileId),
+          ),
+        )
+        .orderBy(desc(conversation.createdAt)),
+    ]);
+
+    return [...doctors, ...patients];
+  }
+
+  private async createDoctorPatientConversation(
+    doctorId: string,
+    patientId: string,
+  ) {
+    const doctorExists = await this.db.query.doctor.findFirst({
+      where: eq(doctor.id, doctorId),
+    });
+    if (!doctorExists) {
+      throw new NotFoundException('Doctor profile not found');
+    }
+
+    const patientExists = await this.db.query.patient.findFirst({
+      where: eq(patient.id, patientId),
+    });
+    if (!patientExists) {
+      throw new NotFoundException('Patient profile not found');
+    }
+
+    const existing = await this.db.query.conversation.findFirst({
+      where: and(
+        eq(conversation.conversationType, 'doctor_patient'),
+        eq(conversation.doctorId, doctorId),
+        eq(conversation.patientId, patientId),
+      ),
+    });
+
+    if (existing) return existing;
+
+    const [created] = await this.db
+      .insert(conversation)
+      .values({
+        conversationType: 'doctor_patient',
+        doctorId,
+        patientId,
+      })
+      .returning();
+
+    return created;
+  }
+
+  private async createAssistantDoctorConversation(
+    assistantId: string,
+    doctorId: string,
+  ) {
+    const assistantExists = await this.db.query.assistant.findFirst({
+      where: eq(assistant.id, assistantId),
+    });
+    if (!assistantExists) {
+      throw new NotFoundException('Assistant profile not found');
+    }
+
+    const doctorExists = await this.db.query.doctor.findFirst({
+      where: eq(doctor.id, doctorId),
+    });
+    if (!doctorExists) {
+      throw new NotFoundException('Doctor profile not found');
+    }
+
+    const existing = await this.db.query.conversation.findFirst({
+      where: and(
+        eq(conversation.conversationType, 'assistant_doctor'),
+        eq(conversation.assistantId, assistantId),
+        eq(conversation.doctorId, doctorId),
+      ),
+    });
+
+    if (existing) return existing;
+
+    const [created] = await this.db
+      .insert(conversation)
+      .values({
+        conversationType: 'assistant_doctor',
+        assistantId,
+        doctorId,
+      })
+      .returning();
+
+    return created;
+  }
+
+  private async createAssistantPatientConversation(
+    assistantId: string,
+    patientId: string,
+  ) {
+    const assistantExists = await this.db.query.assistant.findFirst({
+      where: eq(assistant.id, assistantId),
+    });
+    if (!assistantExists) {
+      throw new NotFoundException('Assistant profile not found');
+    }
+
+    const patientExists = await this.db.query.patient.findFirst({
+      where: eq(patient.id, patientId),
+    });
+    if (!patientExists) {
+      throw new NotFoundException('Patient profile not found');
+    }
+
+    const existing = await this.db.query.conversation.findFirst({
+      where: and(
+        eq(conversation.conversationType, 'assistant_patient'),
+        eq(conversation.assistantId, assistantId),
+        eq(conversation.patientId, patientId),
+      ),
+    });
+
+    if (existing) return existing;
+
+    const [created] = await this.db
+      .insert(conversation)
+      .values({
+        conversationType: 'assistant_patient',
+        assistantId,
+        patientId,
+      })
+      .returning();
+
+    return created;
+  }
+
   private buildAttachmentFilePath(attachmentId: string) {
     return `/chat/attachments/${attachmentId}/file`;
   }
@@ -587,7 +887,19 @@ export class ChatService {
       };
     }
 
-    throw new ForbiddenException('Only doctor and patient can use chat');
+    if (currentUser.role === 'assistant') {
+      const profile = await this.db.query.assistant.findFirst({
+        where: eq(assistant.userId, currentUser.sub),
+      });
+      if (!profile) throw new NotFoundException('Assistant profile not found');
+      return {
+        userId: currentUser.sub,
+        role: 'assistant',
+        profileId: profile.id,
+      };
+    }
+
+    throw new ForbiddenException('Chat is not available for this role');
   }
 
   private async assertConversationAccess(
@@ -601,43 +913,97 @@ export class ChatService {
       throw new NotFoundException('Conversation not found');
     }
 
-    const isOwner =
-      (actor.role === 'doctor' && row.doctorId === actor.profileId) ||
-      (actor.role === 'patient' && row.patientId === actor.profileId);
+    const type = row.conversationType ?? 'doctor_patient';
 
-    if (!isOwner) {
-      throw new ForbiddenException('No access to this conversation');
+    if (type === 'doctor_patient') {
+      const isOwner =
+        (actor.role === 'doctor' && row.doctorId === actor.profileId) ||
+        (actor.role === 'patient' && row.patientId === actor.profileId);
+      if (!isOwner) {
+        throw new ForbiddenException('No access to this conversation');
+      }
+      return row;
     }
 
-    return row;
-  }
+    if (type === 'assistant_doctor') {
+      const isOwner =
+        (actor.role === 'assistant' && row.assistantId === actor.profileId) ||
+        (actor.role === 'doctor' && row.doctorId === actor.profileId);
+      if (!isOwner) {
+        throw new ForbiddenException('No access to this conversation');
+      }
+      return row;
+    }
 
-  async getOtherParticipantUserIds(conversationId: number, excludeUserId: number) {
-    const ids = await this.getConversationParticipantUserIds(conversationId);
-    return ids.filter((id) => id !== excludeUserId);
-  }
+    if (type === 'assistant_patient') {
+      const isOwner =
+        (actor.role === 'assistant' && row.assistantId === actor.profileId) ||
+        (actor.role === 'patient' && row.patientId === actor.profileId);
+      if (!isOwner) {
+        throw new ForbiddenException('No access to this conversation');
+      }
+      return row;
+    }
 
-  async getUserDisplayName(userId: number): Promise<string> {
-    const row = await this.db.query.user.findFirst({
-      where: eq(user.id, userId),
-      columns: { name: true },
-    });
-    return row?.name ?? 'Someone';
+    throw new ForbiddenException('No access to this conversation');
   }
 
   private async getConversationParticipantUserIds(conversationId: number) {
-    const rows = await this.db
-      .select({
-        doctorUserId: doctor.userId,
-        patientUserId: patient.userId,
-      })
-      .from(conversation)
-      .innerJoin(doctor, eq(conversation.doctorId, doctor.id))
-      .innerJoin(patient, eq(conversation.patientId, patient.id))
-      .where(eq(conversation.id, conversationId));
+    const row = await this.db.query.conversation.findFirst({
+      where: eq(conversation.id, conversationId),
+    });
+    if (!row) return [];
 
-    const pair = rows[0];
-    if (!pair) return [];
-    return [pair.doctorUserId, pair.patientUserId];
+    const type = row.conversationType ?? 'doctor_patient';
+
+    if (type === 'doctor_patient' && row.doctorId && row.patientId) {
+      const rows = await this.db
+        .select({
+          doctorUserId: doctor.userId,
+          patientUserId: patient.userId,
+        })
+        .from(conversation)
+        .innerJoin(doctor, eq(conversation.doctorId, doctor.id))
+        .innerJoin(patient, eq(conversation.patientId, patient.id))
+        .where(eq(conversation.id, conversationId));
+
+      const pair = rows[0];
+      if (!pair) return [];
+      return [pair.doctorUserId, pair.patientUserId];
+    }
+
+    if (type === 'assistant_doctor' && row.assistantId && row.doctorId) {
+      const rows = await this.db
+        .select({
+          assistantUserId: assistant.userId,
+          doctorUserId: doctor.userId,
+        })
+        .from(conversation)
+        .innerJoin(assistant, eq(conversation.assistantId, assistant.id))
+        .innerJoin(doctor, eq(conversation.doctorId, doctor.id))
+        .where(eq(conversation.id, conversationId));
+
+      const pair = rows[0];
+      if (!pair) return [];
+      return [pair.assistantUserId, pair.doctorUserId];
+    }
+
+    if (type === 'assistant_patient' && row.assistantId && row.patientId) {
+      const rows = await this.db
+        .select({
+          assistantUserId: assistant.userId,
+          patientUserId: patient.userId,
+        })
+        .from(conversation)
+        .innerJoin(assistant, eq(conversation.assistantId, assistant.id))
+        .innerJoin(patient, eq(conversation.patientId, patient.id))
+        .where(eq(conversation.id, conversationId));
+
+      const pair = rows[0];
+      if (!pair) return [];
+      return [pair.assistantUserId, pair.patientUserId];
+    }
+
+    return [];
   }
 }

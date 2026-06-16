@@ -17,6 +17,12 @@ import type {
   MedicationReminderChannel,
 } from "./assistantMedications.types";
 import { MOCK_MEDICATION_PROFILES } from "./assistantMedications.mock";
+import {
+  DEFAULT_MEDICATION_LIST_FILTERS,
+  hasActiveMedicationListFilters,
+  matchesAdherenceFilter,
+  type MedicationListFilters,
+} from "./assistantMedications.filters";
 
 const QUERY_KEY = ["assistant", "medication-adherence"] as const;
 const REFILL_LOOKAHEAD_DAYS = 7;
@@ -145,8 +151,9 @@ export function useAssistantMedications(opts?: { routePatientId?: string | null 
   const qc = useQueryClient();
   const [listSelectedPatientId, setListSelectedPatientId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [flaggedOnly, setFlaggedOnly] = useState(false);
-  const [followUpOnly, setFollowUpOnly] = useState(false);
+  const [listFilters, setListFilters] = useState<MedicationListFilters>(
+    DEFAULT_MEDICATION_LIST_FILTERS,
+  );
 
   const { data: profiles = [], isLoading } = useQuery({
     queryKey: QUERY_KEY,
@@ -161,15 +168,18 @@ export function useAssistantMedications(opts?: { routePatientId?: string | null 
     const term = searchTerm.trim().toLowerCase();
     const followUpPatientIds = new Set(buildFollowUpItems(profiles).map((item) => item.patientId));
     return profiles.filter((p) => {
-      if (flaggedOnly && getOpenFlags(p).length === 0) return false;
-      if (followUpOnly && !followUpPatientIds.has(p.id)) return false;
+      if (listFilters.flaggedOnly && getOpenFlags(p).length === 0) return false;
+      if (listFilters.followUpOnly && !followUpPatientIds.has(p.id)) return false;
+      if (listFilters.riskTier !== "all" && p.riskTier !== listFilters.riskTier) return false;
+      if (!matchesAdherenceFilter(p.overallAdherencePct, listFilters.adherence)) return false;
+      if (listFilters.aiInsightsOnly && p.aiInsights.length === 0) return false;
       if (!term) return true;
       const medsHit = p.medications.some((m) => m.name.toLowerCase().includes(term));
       return (
         p.fullName.toLowerCase().includes(term) || medsHit || (p.phone?.includes(term) ?? false)
       );
     });
-  }, [profiles, searchTerm, flaggedOnly, followUpOnly]);
+  }, [profiles, searchTerm, listFilters]);
 
   const followUpItems = useMemo(() => buildFollowUpItems(profiles), [profiles]);
 
@@ -396,10 +406,10 @@ export function useAssistantMedications(opts?: { routePatientId?: string | null 
     isLoading,
     searchTerm,
     setSearchTerm,
-    flaggedOnly,
-    setFlaggedOnly,
-    followUpOnly,
-    setFollowUpOnly,
+    listFilters,
+    setListFilters,
+    hasActiveListFilters: hasActiveMedicationListFilters(listFilters),
+    resetListFilters: () => setListFilters(DEFAULT_MEDICATION_LIST_FILTERS),
     selectedPatientId,
     selectPatient: setListSelectedPatientId,
     clearSelection: () => setListSelectedPatientId(null),
