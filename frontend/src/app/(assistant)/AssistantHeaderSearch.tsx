@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import {
   CalendarClockIcon,
@@ -37,8 +38,8 @@ import { cn } from "@/lib/utils"
 
 type SearchEntry = {
   id: string
-  label: string
-  hint: string
+  titleKey: `header.${string}.title`
+  subtitleKey: `header.${string}.subtitle`
   href: string
   icon: LucideIcon
   keywords: string[]
@@ -47,56 +48,56 @@ type SearchEntry = {
 const SEARCH_ENTRIES: SearchEntry[] = [
   {
     id: "dashboard",
-    label: "Today's Command Center",
-    hint: "Live queue, appointments, and triage",
+    titleKey: "header.dashboard.title",
+    subtitleKey: "header.dashboard.subtitle",
     href: "/assistant-dashboard",
     icon: LayoutDashboardIcon,
     keywords: ["home", "overview", "dashboard", "command"],
   },
   {
     id: "queue",
-    label: "Live desk",
-    hint: "Active queue and consultation pipeline",
+    titleKey: "header.queueLiveDesk.title",
+    subtitleKey: "header.queueLiveDesk.subtitle",
     href: "/assistant-queue/live-desk",
     icon: UsersIcon,
     keywords: ["queue", "waiting", "live", "desk"],
   },
   {
     id: "patients",
-    label: "Patients",
-    hint: "Records, visits, and care plans",
+    titleKey: "header.patients.title",
+    subtitleKey: "header.patients.subtitle",
     href: "/assistant-patients",
     icon: ClipboardListIcon,
     keywords: ["patient", "records", "chart"],
   },
   {
     id: "appointments",
-    label: "Appointments",
-    hint: "Schedule and booking management",
+    titleKey: "header.appointments.title",
+    subtitleKey: "header.appointments.subtitle",
     href: "/assistant-appointments",
     icon: CalendarClockIcon,
     keywords: ["appointment", "booking", "schedule"],
   },
   {
     id: "inbox",
-    label: "Inbox",
-    hint: "Tasks and messages needing attention",
+    titleKey: "header.inbox.title",
+    subtitleKey: "header.inbox.subtitle",
     href: "/assistant-inbox",
     icon: InboxIcon,
     keywords: ["inbox", "tasks", "messages"],
   },
   {
     id: "chats",
-    label: "Chats",
-    hint: "Conversations with patients and staff",
+    titleKey: "header.chats.title",
+    subtitleKey: "header.chats.subtitle",
     href: "/assistant-chats",
     icon: MessageCircleIcon,
     keywords: ["chat", "messages"],
   },
   {
     id: "schedule",
-    label: "Doctor schedule",
-    hint: "Weekly hours and session blocks",
+    titleKey: "header.doctorSchedule.title",
+    subtitleKey: "header.doctorSchedule.subtitle",
     href: "/assistant-doctor-schedule",
     icon: CalendarDaysIcon,
     keywords: ["doctor", "schedule", "hours"],
@@ -106,26 +107,30 @@ const SEARCH_ENTRIES: SearchEntry[] = [
 function SearchTrigger({
   className,
   onClick,
+  placeholder,
+  openLabel,
 }: {
   className?: string
   onClick: () => void
+  placeholder: string
+  openLabel: string
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "relative flex h-9 w-full min-w-0 items-center rounded-xl border border-[#E8E6E0]/80 bg-[#F9F8F5]/80 pl-9 pr-3 text-left text-[13px] text-[#6B7870] shadow-sm transition-all hover:border-[#1A5345]/30 hover:bg-white focus-visible:border-[#1A5345]/40 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#1A5345]/15",
+        "relative flex h-9 w-full min-w-0 items-center rounded-xl border border-[#E8E6E0]/80 bg-[#F9F8F5]/80 ps-9 pe-3 text-start text-[13px] text-[#6B7870] shadow-sm transition-all hover:border-[#1A5345]/30 hover:bg-white focus-visible:border-[#1A5345]/40 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#1A5345]/15",
         className,
       )}
-      aria-label="Open search"
+      aria-label={openLabel}
     >
       <SearchIcon
-        className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9CA3AF]"
+        className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-[#9CA3AF]"
         aria-hidden
       />
-      <span className="truncate">Search patients, appointments...</span>
-      <kbd className="pointer-events-none ml-auto hidden rounded-md border border-[#E8E6E0]/80 bg-white px-1.5 py-0.5 font-sans text-[10px] font-semibold text-[#9CA3AF] lg:inline">
+      <span className="truncate">{placeholder}</span>
+      <kbd className="pointer-events-none ms-auto hidden rounded-md border border-[#E8E6E0]/80 bg-white px-1.5 py-0.5 font-sans text-[10px] font-semibold text-[#9CA3AF] lg:inline">
         ⌘K
       </kbd>
     </button>
@@ -134,7 +139,19 @@ function SearchTrigger({
 
 export function AssistantHeaderSearch() {
   const router = useRouter()
+  const tCommon = useTranslations("common.search")
+  const tAssistant = useTranslations("assistant")
   const [open, setOpen] = useState(false)
+
+  const localizedEntries = useMemo(
+    () =>
+      SEARCH_ENTRIES.map((entry) => ({
+        ...entry,
+        label: tAssistant(entry.titleKey),
+        hint: tAssistant(entry.subtitleKey),
+      })),
+    [tAssistant],
+  )
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -155,7 +172,11 @@ export function AssistantHeaderSearch() {
   return (
     <>
       <div className="hidden min-w-0 max-w-md flex-1 md:block">
-        <SearchTrigger onClick={() => setOpen(true)} />
+        <SearchTrigger
+          onClick={() => setOpen(true)}
+          placeholder={tCommon("placeholder")}
+          openLabel={tCommon("open")}
+        />
       </div>
 
       <Button
@@ -163,7 +184,7 @@ export function AssistantHeaderSearch() {
         variant="ghost"
         size="icon"
         className="size-9 rounded-xl text-[#6B7870] hover:bg-[#F9F8F5] hover:text-[#1A5345] md:hidden"
-        aria-label="Open search"
+        aria-label={tCommon("open")}
         onClick={() => setOpen(true)}
       >
         <SearchIcon className="size-[18px]" strokeWidth={2} />
@@ -179,30 +200,30 @@ export function AssistantHeaderSearch() {
             )}
           >
             <DialogHeader className="sr-only">
-              <DialogTitle>Search</DialogTitle>
-              <DialogDescription>Search patients, appointments, and pages</DialogDescription>
+              <DialogTitle>{tCommon("dialogTitle")}</DialogTitle>
+              <DialogDescription>{tCommon("dialogDescription")}</DialogDescription>
             </DialogHeader>
 
             <Command
               className="rounded-none bg-white [&_[data-slot=command-input-wrapper]]:border-0"
               filter={(value, search) => {
-                const entry = SEARCH_ENTRIES.find((item) => item.id === value)
+                const entry = localizedEntries.find((item) => item.id === value)
                 if (!entry) return 0
                 const haystack = [entry.label, entry.hint, ...entry.keywords].join(" ").toLowerCase()
                 return haystack.includes(search.toLowerCase()) ? 1 : 0
               }}
             >
               <CommandInput
-                placeholder="Search patients, appointments, pages..."
+                placeholder={tCommon("inputPlaceholder")}
                 wrapperClassName="h-14 border-0 px-4"
                 className="border-0 text-[15px]"
               />
               <CommandList className="max-h-[min(60vh,420px)] px-2 pb-3">
                 <CommandEmpty className="py-8 text-center text-[13px] text-muted-foreground">
-                  No results found.
+                  {tCommon("empty")}
                 </CommandEmpty>
-                <CommandGroup heading="Pages">
-                  {SEARCH_ENTRIES.map((entry) => {
+                <CommandGroup heading={tCommon("pagesGroup")}>
+                  {localizedEntries.map((entry) => {
                     const Icon = entry.icon
                     return (
                       <CommandItem
@@ -224,13 +245,13 @@ export function AssistantHeaderSearch() {
             </Command>
 
             <div className="flex items-center justify-between gap-3 px-4 py-2.5 text-[11px] text-muted-foreground">
-              <span>Quick navigation</span>
+              <span>{tCommon("quickNav")}</span>
               <Link
                 href="/assistant-patients"
                 className="font-medium text-[#1A5345] hover:underline"
                 onClick={() => setOpen(false)}
               >
-                Browse all patients
+                {tCommon("browseAllPatients")}
               </Link>
             </div>
           </DialogPrimitive.Content>

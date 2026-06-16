@@ -1,6 +1,7 @@
 "use client"
 
 import type { ComponentType } from "react"
+import { useLocale } from "next-intl"
 import {
   CalendarClockIcon,
   ClipboardListIcon,
@@ -8,25 +9,11 @@ import {
   UsersIcon,
 } from "lucide-react"
 import type { ActivityEntry } from "./assistantAccount.types"
-
-function formatTimeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
-}
-
-function formatDateTimeShort(iso: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso))
-}
+import {
+  formatAccountDateTimeShort,
+  formatAccountTimeAgo,
+  useAssistantAccountTranslations,
+} from "./account-i18n"
 
 export function activityTypeIcon(type: ActivityEntry["type"]): ComponentType<{ className?: string }> {
   switch (type) {
@@ -43,15 +30,19 @@ export function activityTypeIcon(type: ActivityEntry["type"]): ComponentType<{ c
 
 export function ActivityTimeline({
   entries,
-  emptyMessage = "No activity found.",
+  emptyMessage,
   onSelect,
 }: {
   entries: ActivityEntry[]
   emptyMessage?: string
   onSelect?: (entry: ActivityEntry) => void
 }) {
+  const locale = useLocale()
+  const { t } = useAssistantAccountTranslations()
+  const resolvedEmpty = emptyMessage ?? t("emptyActivity")
+
   if (entries.length === 0) {
-    return <p className="py-8 text-center text-[13px] font-medium text-[#6B7870] sm:text-[14px]">{emptyMessage}</p>
+    return <p className="py-8 text-center text-[13px] font-medium text-[#6B7870] sm:text-[14px]">{resolvedEmpty}</p>
   }
 
   return (
@@ -70,14 +61,14 @@ export function ActivityTimeline({
                   dateTime={entry.timestamp}
                   className="shrink-0 text-[11px] font-medium tabular-nums text-[#6B7870] sm:text-[12px]"
                 >
-                  {formatTimeAgo(entry.timestamp)}
+                  {formatAccountTimeAgo(entry.timestamp, t)}
                 </time>
               </div>
               <p className="mt-1 text-[13px] font-medium leading-relaxed text-[#6B7870] sm:text-[14px]">
                 {entry.description}
               </p>
               <p className="mt-1.5 text-[11px] font-medium tabular-nums text-[#6B7870]/75 sm:text-[12px]">
-                {formatDateTimeShort(entry.timestamp)}
+                {formatAccountDateTimeShort(entry.timestamp, locale)}
               </p>
             </div>
           </>

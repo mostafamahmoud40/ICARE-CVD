@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslations } from "next-intl"
 import {
   MailIcon,
   PhoneIcon,
@@ -31,6 +32,7 @@ export function ContactInfoPanel({
   onClose,
   onInitiateCall,
 }: ContactInfoPanelProps) {
+  const t = useTranslations("chat")
   const [notifications, setNotifications] = useState(true)
   const [favourite, setFavourite] = useState(false)
   const [muted, setMuted] = useState(false)
@@ -44,23 +46,23 @@ export function ContactInfoPanel({
   const isDoctor = contact.role === "doctor"
   const isAssistant = contact.role === "assistant"
   const subtitle = isDoctor
-    ? contact.specialty?.trim() || "Doctor"
+    ? contact.specialty?.trim() || t("roles.doctor")
     : isAssistant
-      ? "Clinical assistant"
+      ? t("roles.assistant")
       : contact.role === "patient"
-        ? "Patient"
-        : contact.role || "Contact"
+        ? t("roles.patient")
+        : contact.role || t("roles.contact")
 
   const detailRows = isDoctor
     ? [
-        { label: "Specialty", value: contact.specialty?.trim() || "—" },
-        { label: "Email", value: contact.email?.trim() || "—" },
-        { label: "Clinic address", value: contact.clinicLocation?.trim() || "—" },
+        { label: t("contactPanel.specialty"), value: contact.specialty?.trim() || "—" },
+        { label: t("contactPanel.email"), value: contact.email?.trim() || "—" },
+        { label: t("contactPanel.clinicAddress"), value: contact.clinicLocation?.trim() || "—" },
       ]
-    : [{ label: "Email", value: contact.email?.trim() || "—" }]
+    : [{ label: t("contactPanel.email"), value: contact.email?.trim() || "—" }]
 
   return (
-    <div className="hidden xl:flex h-full w-[340px] shrink-0 flex-col overflow-y-auto border-l border-[#E8E6E0]/60 bg-white shadow-[-4px_0_24px_rgba(0,0,0,0.02)] custom-scrollbar z-10 animate-in slide-in-from-right duration-300">
+    <div className="custom-scrollbar z-10 hidden h-full w-[340px] shrink-0 animate-in flex-col overflow-y-auto border-s border-[#E8E6E0]/60 bg-white shadow-[-4px_0_24px_rgba(0,0,0,0.02)] duration-300 slide-in-from-right xl:flex">
       {/* Profile Header */}
       <div className="flex flex-col items-center px-6 pt-10 pb-6">
         <div className="relative">
@@ -71,7 +73,7 @@ export function ContactInfoPanel({
             </AvatarFallback>
           </Avatar>
           {contact.online && (
-            <span className="absolute bottom-0.5 right-0 size-3.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+            <span className="absolute bottom-0.5 end-0 size-3.5 rounded-full bg-emerald-500 ring-2 ring-white" />
           )}
         </div>
         <h3 className="mt-4 text-[18px] font-bold text-[#1A1F1E]">{contact.name}</h3>
@@ -82,7 +84,7 @@ export function ContactInfoPanel({
           <button
             type="button"
             className="flex size-[42px] items-center justify-center rounded-full border border-[#E8E6E0] text-muted-foreground transition-all duration-300 hover:bg-[#EEF5F3]/40 hover:text-[#1A5345] cursor-pointer"
-            aria-label="Email contact"
+            aria-label={t("actions.emailContact")}
           >
             <MailIcon className="size-[18px]" strokeWidth={1.5} />
           </button>
@@ -90,7 +92,7 @@ export function ContactInfoPanel({
             type="button"
             onClick={() => onInitiateCall?.(contact.id, "voice")}
             className="flex size-[42px] items-center justify-center rounded-full border border-[#E8E6E0] text-muted-foreground transition-all duration-300 hover:bg-[#EEF5F3]/40 hover:text-[#1A5345] cursor-pointer"
-            aria-label="Start voice call"
+            aria-label={t("actions.startVoiceCall")}
           >
             <PhoneIcon className="size-[18px]" strokeWidth={1.5} />
           </button>
@@ -98,14 +100,14 @@ export function ContactInfoPanel({
             type="button"
             onClick={() => onInitiateCall?.(contact.id, "video")}
             className="flex size-[42px] items-center justify-center rounded-full border border-[#E8E6E0] text-muted-foreground transition-all duration-300 hover:bg-[#EEF5F3]/40 hover:text-[#1A5345] cursor-pointer"
-            aria-label="Start video call"
+            aria-label={t("actions.startVideoCall")}
           >
             <VideoIcon className="size-[18px]" strokeWidth={1.5} />
           </button>
           <button
             type="button"
             className="flex size-[42px] items-center justify-center rounded-full border border-[#E8E6E0] text-muted-foreground transition-all duration-300 hover:bg-[#EEF5F3]/40 hover:text-[#1A5345] cursor-pointer"
-            aria-label="More options"
+            aria-label={t("actions.moreOptions")}
           >
             <MoreHorizontalIcon className="size-[18px]" strokeWidth={1.5} />
           </button>
@@ -131,19 +133,19 @@ export function ContactInfoPanel({
       <div className="px-4 py-4 space-y-2">
         <ToggleRow
           icon={<BellIcon className="size-[18px]" strokeWidth={1.5} />}
-          label="Notifications"
+          label={t("contactPanel.notifications")}
           enabled={notifications}
           onToggle={() => setNotifications(!notifications)}
         />
         <ToggleRow
           icon={<StarIcon className="size-[18px]" strokeWidth={1.5} />}
-          label="Add To Favourites"
+          label={t("contactPanel.addToFavourites")}
           enabled={favourite}
           onToggle={() => setFavourite(!favourite)}
         />
         <ToggleRow
           icon={<Volume2Icon className="size-[18px]" strokeWidth={1.5} />}
-          label="Mute"
+          label={t("contactPanel.mute")}
           enabled={muted}
           onToggle={() => setMuted(!muted)}
         />
@@ -153,8 +155,8 @@ export function ContactInfoPanel({
 
       {/* Actions */}
       <div className="px-4 py-4 space-y-2">
-        <ActionRow icon={<Trash2Icon className="size-[18px]" strokeWidth={1.5} />} label="Clear Chat" />
-        <ActionRow icon={<FlagIcon className="size-[18px]" strokeWidth={1.5} />} label="Report Contact" />
+        <ActionRow icon={<Trash2Icon className="size-[18px]" strokeWidth={1.5} />} label={t("contactPanel.clearChat")} />
+        <ActionRow icon={<FlagIcon className="size-[18px]" strokeWidth={1.5} />} label={t("contactPanel.reportContact")} />
       </div>
     </div>
   )
@@ -184,7 +186,7 @@ function ToggleRow({
     <button
       type="button"
       onClick={onToggle}
-      className="group flex w-full items-center gap-4 rounded-[12px] px-4 py-3 text-left transition-all duration-200 hover:bg-slate-50 cursor-pointer"
+      className="group flex w-full items-center gap-4 rounded-[12px] px-4 py-3 text-start transition-all duration-200 hover:bg-slate-50 cursor-pointer"
     >
       <span className="text-muted-foreground">{icon}</span>
       <span className="flex-1 text-[15px] font-bold text-[#1A1F1E]">{label}</span>
@@ -194,8 +196,8 @@ function ToggleRow({
         }`}
       >
         <div
-          className={`absolute top-[3px] size-[16px] rounded-full bg-white shadow-sm transition-transform duration-300 ${
-            enabled ? "translate-x-[23px]" : "translate-x-[3px]"
+          className={`absolute top-[3px] size-[16px] rounded-full bg-white shadow-sm transition-all duration-300 ${
+            enabled ? "start-[23px]" : "start-[3px]"
           }`}
         />
       </div>
@@ -207,7 +209,7 @@ function ActionRow({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <button
       type="button"
-      className="group flex w-full items-center gap-4 rounded-[12px] px-4 py-3 text-left transition-all duration-200 hover:bg-slate-50 cursor-pointer"
+      className="group flex w-full items-center gap-4 rounded-[12px] px-4 py-3 text-start transition-all duration-200 hover:bg-slate-50 cursor-pointer"
     >
       <span className="text-muted-foreground">{icon}</span>
       <span className="text-[15px] font-bold text-muted-foreground">{label}</span>

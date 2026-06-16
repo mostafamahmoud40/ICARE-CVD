@@ -1,6 +1,8 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { useLocale } from "next-intl"
+import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import {
   AlertTriangleIcon,
   CalendarDaysIcon,
@@ -77,6 +79,8 @@ export function AssistantQueue({
   pastVisitsPatients,
   pastVisitsLoading,
 }: AssistantQueueProps) {
+  const { t, ts } = useAssistantPageTranslations("queue")
+  const locale = useLocale()
   const pageLoading = queueNavMode === "history" ? pastVisitsLoading : isLoading
 
   if (pageLoading) {
@@ -84,7 +88,7 @@ export function AssistantQueue({
       <main className="flex h-full flex-1 items-center justify-center bg-[#F9F8F5]">
         <div className="flex flex-col items-center gap-3">
           <div className="size-8 animate-spin rounded-full border-2 border-[#1A5345] border-t-transparent" />
-          <p className="text-[11px] text-muted-foreground">Loading queue…</p>
+          <p className="text-[11px] text-muted-foreground">{t("loading")}</p>
         </div>
       </main>
     )
@@ -95,7 +99,7 @@ export function AssistantQueue({
       <main className="flex h-full flex-1 items-center justify-center bg-[#F9F8F5]">
         <div className="flex flex-col items-center gap-3">
           <AlertTriangleIcon className="size-8 text-red-400" />
-          <p className="text-[11px] text-red-600">Failed to load patient queue.</p>
+          <p className="text-[11px] text-red-600">{t("loadError")}</p>
         </div>
       </main>
     )
@@ -116,10 +120,10 @@ export function AssistantQueue({
             </div>
             <div>
               <h1 className="font-serif text-[18px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[20px]">
-                Patient Queue
+                {t("title")}
               </h1>
               <p className="text-[12px] font-medium text-muted-foreground">
-                {new Intl.DateTimeFormat(undefined, { dateStyle: "full" }).format(new Date())}
+                {new Intl.DateTimeFormat(locale, { dateStyle: "full" }).format(new Date())}
               </p>
             </div>
           </div>
@@ -129,7 +133,7 @@ export function AssistantQueue({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white/60 opacity-75"></span>
               <span className="relative inline-flex rounded-full size-1.5 bg-white"></span>
             </span>
-            Live
+            {t("live")}
           </span>
         </div>
       </div>
@@ -142,43 +146,43 @@ export function AssistantQueue({
               icon={UsersIcon}
               iconColor="text-[#1A5345]"
               value={stats.totalToday}
-              label="total today"
+              label={t("statTotalToday")}
             />
             <StatCell
               icon={PlayCircleIcon}
               iconColor="text-[#0F3D32]"
               value={stats.inConsultation}
-              label="in consultation"
+              label={t("statInConsultation")}
             />
             <StatCell
               icon={ClockIcon}
               iconColor="text-amber-600"
               value={stats.inWaiting}
-              label="waiting"
+              label={t("statWaiting")}
             />
             <StatCell
               icon={LogInIcon}
               iconColor="text-[#9A6B2F]"
               value={stats.arrived}
-              label="arrived"
+              label={t("statArrived")}
             />
             <StatCell
               icon={CalendarDaysIcon}
               iconColor="text-[#4F6D64]"
               value={stats.scheduled}
-              label="scheduled"
+              label={t("statScheduled")}
             />
             <StatCell
               icon={CheckCircle2Icon}
               iconColor="text-[#8A6230]"
               value={stats.completed}
-              label="completed"
+              label={t("statCompleted")}
             />
             <StatCell
               icon={TimerIcon}
               iconColor="text-[#4F6D64]"
               value={`${stats.avgWaitMin}m`}
-              label="avg wait"
+              label={t("statAvgWait")}
             />
           </div>
         </div>
@@ -200,7 +204,7 @@ export function AssistantQueue({
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search patient, doctor…"
+                placeholder={t("searchPlaceholder")}
                 className="h-8 border-[#E8E6E0] bg-white pl-8 text-[11px] placeholder:text-[#9CA3AF]"
               />
               {searchTerm && (
@@ -208,7 +212,7 @@ export function AssistantQueue({
                   type="button"
                   onClick={() => setSearchTerm("")}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7870]"
-                  aria-label="Clear search"
+                  aria-label={ts("clearSearch")}
                 >
                   <XIcon className="size-3.5" />
                 </button>
@@ -241,8 +245,8 @@ export function AssistantQueue({
                 </div>
                 <p className="px-3 text-center text-[10px] text-[#6B7870]">
                   {queueNavMode === "schedule"
-                    ? "No pending arrivals."
-                    : "No patients in this category."}
+                    ? t("noPendingArrivals")
+                    : t("noPatientsInCategory")}
                 </p>
               </div>
             )}

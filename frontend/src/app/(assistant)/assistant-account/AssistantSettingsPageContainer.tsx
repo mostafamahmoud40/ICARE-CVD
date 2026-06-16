@@ -19,14 +19,18 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { assistantAccountScrollbarCss } from "./assistantAccount.shared"
+import { useAssistantAccountTranslations } from "./account-i18n"
 
-const SECTIONS = [
-  { id: "security" as const, label: "Security", icon: ShieldCheckIcon },
-  { id: "notifications" as const, label: "Notifications", icon: BellIcon },
-  { id: "preferences" as const, label: "Preferences", icon: SlidersHorizontalIcon },
-]
+function useSettingsSections() {
+  const { t } = useAssistantAccountTranslations()
+  return [
+    { id: "security" as const, label: t("settingsPage.security"), icon: ShieldCheckIcon },
+    { id: "notifications" as const, label: t("settingsPage.notifications"), icon: BellIcon },
+    { id: "preferences" as const, label: t("settingsPage.preferences"), icon: SlidersHorizontalIcon },
+  ]
+}
 
-type SectionId = (typeof SECTIONS)[number]["id"]
+type SectionId = "security" | "notifications" | "preferences"
 
 function readHash(): SectionId | "" {
   if (typeof window === "undefined") return ""
@@ -57,6 +61,8 @@ function setSettingsSection(id: SectionId) {
 
 export function AssistantSettingsPageContainer({ children }: { children: ReactNode }) {
   const active = useAssistantSettingsSection()
+  const { t } = useAssistantAccountTranslations()
+  const sections = useSettingsSections()
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
@@ -68,7 +74,7 @@ export function AssistantSettingsPageContainer({ children }: { children: ReactNo
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
                     <Link href="/assistant-dashboard" className="text-[10px] font-medium sm:text-[11px]">
-                      Dashboard
+                      {t("breadcrumbDashboard")}
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
@@ -76,13 +82,15 @@ export function AssistantSettingsPageContainer({ children }: { children: ReactNo
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
                     <Link href="/assistant-account" className="text-[10px] font-medium sm:text-[11px]">
-                      Account
+                      {t("breadcrumbAccount")}
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">Settings</BreadcrumbPage>
+                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">
+                    {t("settingsPage.breadcrumbSettings")}
+                  </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -91,10 +99,10 @@ export function AssistantSettingsPageContainer({ children }: { children: ReactNo
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
             <div className="min-w-0 space-y-0.5">
               <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px] lg:text-[26px]">
-                Settings
+                {t("settingsPage.title")}
               </h1>
               <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
-                Security, notifications, and display preferences for your workspace.
+                {t("settingsPage.subtitle")}
               </p>
             </div>
             <Button
@@ -105,17 +113,17 @@ export function AssistantSettingsPageContainer({ children }: { children: ReactNo
             >
               <Link href="/assistant-account">
                 <ArrowLeftIcon className="size-3.5" aria-hidden />
-                Back to account
+                {t("settingsPage.backToAccount")}
               </Link>
             </Button>
           </div>
 
           <nav
-            aria-label="Settings sections"
+            aria-label={t("settingsPage.sectionsAria")}
             className="mt-4 flex gap-2 overflow-x-auto pb-0.5"
             role="tablist"
           >
-            {SECTIONS.map(({ id, label, icon: Icon }) => {
+            {sections.map(({ id, label, icon: Icon }) => {
               const isActive = active === id
               return (
                 <button

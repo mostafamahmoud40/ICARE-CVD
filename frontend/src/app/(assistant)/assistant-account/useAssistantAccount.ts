@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslations } from "next-intl"
 import { showIcareSuccessToast } from "@/components/shared/icare-toast"
 import {
   fetchAssistantAccount,
@@ -14,6 +15,8 @@ const ACCOUNT_QUERY_KEY = ["assistant", "account"] as const
 
 export function useAssistantAccount() {
   const queryClient = useQueryClient()
+  const messages = useTranslations("assistant")
+  const t = (key: string) => messages(`pages.account.${key}`)
 
   const accountQuery = useQuery({
     queryKey: ACCOUNT_QUERY_KEY,
@@ -26,7 +29,7 @@ export function useAssistantAccount() {
     mutationFn: updateAssistantAccount,
     onSuccess: (data) => {
       queryClient.setQueryData<AssistantAccountApiResponse>(ACCOUNT_QUERY_KEY, data)
-      showIcareSuccessToast("Profile updated", "Your account details were saved.")
+      showIcareSuccessToast(t("profileSavedTitle"), t("profileSavedDesc"))
     },
   })
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useTranslations } from "next-intl"
 import { 
   PhoneIcon, 
   VideoIcon, 
@@ -96,6 +97,7 @@ export function ChatWindow({
   onToggleInfo,
   onInitiateCall,
 }: ChatWindowProps) {
+  const t = useTranslations("chat")
   const [inputText, setInputText] = useState("")
   const [previewImage, setPreviewImage] = useState<ImagePreviewState | null>(null)
   const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null)
@@ -177,9 +179,9 @@ export function ChatWindow({
         <div className="mb-4 flex size-24 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-[#E5EEEA]">
           <MessageCircleIcon className="size-10 text-[#1A5345]/40" />
         </div>
-        <h3 className="text-lg font-semibold text-[#1A1F1E]/70">Your Messages</h3>
-        <p className="max-w-[260px] text-center text-[13px] mt-2 text-muted-foreground">
-          Select a conversation from the sidebar to start chatting.
+        <h3 className="text-lg font-semibold text-[#1A1F1E]/70">{t("empty.title")}</h3>
+        <p className="mt-2 max-w-[260px] text-center text-[13px] text-muted-foreground">
+          {t("empty.subtitle")}
         </p>
       </div>
     )
@@ -262,22 +264,22 @@ export function ChatWindow({
               </AvatarFallback>
             </Avatar>
             {activeContact.online && (
-              <span className="absolute bottom-0.5 right-0 size-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />
+              <span className="absolute bottom-0.5 end-0 size-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />
             )}
           </div>
           <div className="flex flex-col gap-0.5">
             <h3 className="text-[17px] font-bold text-[#1A1F1E]">{activeContact.name}</h3>
             {activeContact.isTyping ? (
               <p className="flex items-center gap-1 text-[13px] font-medium text-muted-foreground">
-                is typing
-                <span className="flex items-center gap-0.5 ml-0.5">
+                {t("status.typing")}
+                <span className="flex items-center gap-0.5 ms-0.5">
                   <span className="size-1 rounded-full bg-muted-foreground/60 animate-bounce" />
                   <span className="size-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "150ms" }} />
                   <span className="size-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "300ms" }} />
                 </span>
               </p>
             ) : activeContact.online ? (
-              <p className="text-[13px] font-medium text-emerald-600">Online</p>
+              <p className="text-[13px] font-medium text-emerald-600">{t("status.online")}</p>
             ) : null}
           </div>
         </div>
@@ -293,7 +295,7 @@ export function ChatWindow({
             type="button"
             onClick={() => handleInitiateCall("voice")}
             className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-all duration-200 hover:bg-slate-100 hover:text-[#1A1F1E] cursor-pointer"
-            aria-label="Start voice call"
+            aria-label={t("actions.startVoiceCall")}
           >
             <PhoneIcon className="size-5" />
           </button>
@@ -301,7 +303,7 @@ export function ChatWindow({
             type="button"
             onClick={() => handleInitiateCall("video")}
             className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-all duration-200 hover:bg-slate-100 hover:text-[#1A1F1E] cursor-pointer"
-            aria-label="Start video call"
+            aria-label={t("actions.startVideoCall")}
           >
             <VideoIcon className="size-5" />
           </button>
@@ -335,7 +337,7 @@ export function ChatWindow({
           }
 
           const isSender = msg.isSender
-          const senderName = isSender ? (currentUser?.name ?? "You") : activeContact.name
+          const senderName = isSender ? (currentUser?.name ?? t("composer.you")) : activeContact.name
           const avatarUrl = isSender ? currentUserAvatar : activeContact.avatar
           const avatarInitials = nameInitials(senderName)
 
@@ -373,7 +375,7 @@ export function ChatWindow({
                       type="button"
                       onClick={() => void onDeleteMessage(msg.id)}
                       className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
-                      aria-label="Delete message"
+                      aria-label={t("actions.deleteMessage")}
                     >
                       <Trash2Icon className="size-3.5" />
                     </button>
@@ -398,7 +400,7 @@ export function ChatWindow({
                               })
                             }
                             className="group relative h-[140px] w-[150px] overflow-hidden rounded-xl border border-[#E8E6E0] bg-white shadow-sm transition-transform duration-300 hover:scale-[1.02] hover:shadow-md cursor-pointer"
-                            aria-label={`Open image ${attachment.fileName}`}
+                            aria-label={t("actions.openImage", { fileName: attachment.fileName })}
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
@@ -513,8 +515,8 @@ export function ChatWindow({
                 </p>
                 <p className="text-[11px] text-muted-foreground">
                   {pendingAttachment.attachmentType === "image"
-                    ? "Add a caption, then press send"
-                    : "Add a message (optional), then press send"}
+                    ? t("composer.addCaptionHint")
+                    : t("composer.addMessageHint")}
                 </p>
               </div>
               <button
@@ -522,7 +524,7 @@ export function ChatWindow({
                 onClick={clearPendingAttachment}
                 disabled={isUploadingAttachment}
                 className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer disabled:opacity-50"
-                aria-label="Remove attachment"
+                aria-label={t("actions.removeAttachment")}
               >
                 <XIcon className="size-4" />
               </button>
@@ -555,14 +557,14 @@ export function ChatWindow({
             placeholder={
               pendingAttachment
                 ? pendingAttachment.attachmentType === "image"
-                  ? "Add a caption..."
-                  : "Add a message..."
-                : "Write your message..."
+                  ? t("composer.addCaption")
+                  : t("composer.addMessage")
+                : t("composer.writeMessage")
             }
             className="flex-1 bg-transparent py-2.5 px-3 text-[15px] outline-none placeholder:text-muted-foreground/60 font-medium text-[#1A1F1E]"
           />
 
-          <div className="flex items-center gap-1.5 shrink-0 pr-1">
+          <div className="flex items-center gap-1.5 shrink-0 pe-1">
             <button
               type="button"
               className="flex size-9 items-center justify-center rounded-full text-[#6B7870] transition-colors hover:bg-[#1A5345]/10 hover:text-[#1A5345] cursor-pointer"
@@ -580,7 +582,7 @@ export function ChatWindow({
               disabled={isUploadingAttachment || (!inputText.trim() && !pendingAttachment)}
               className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1A5345] to-[#0F3D32] text-white shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <SendIcon className="size-[18px] ml-0.5" />
+              <SendIcon className="size-[18px] ms-0.5" />
             </button>
           </div>
         </form>
@@ -593,13 +595,13 @@ export function ChatWindow({
           onClick={() => setPreviewImage(null)}
           role="dialog"
           aria-modal="true"
-          aria-label="Image preview"
+          aria-label={t("actions.imagePreview")}
         >
           <button
             type="button"
             onClick={() => setPreviewImage(null)}
-            className="absolute top-4 right-4 flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 cursor-pointer"
-            aria-label="Close image preview"
+            className="absolute top-4 end-4 flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 cursor-pointer"
+            aria-label={t("actions.closeImagePreview")}
           >
             <XIcon className="size-5" />
           </button>
@@ -632,16 +634,17 @@ function MissedCallEvent({
   direction: "outgoing" | "incoming"
   time: string
 }) {
+  const t = useTranslations("chat")
   const Icon = kind === "video" ? VideoIcon : PhoneIcon
   const isOutgoing = direction === "outgoing"
   const label =
     kind === "video"
       ? isOutgoing
-        ? "You tried a video call"
-        : "Missed video call"
+        ? t("call.youTriedVideo")
+        : t("call.missedVideoShort")
       : isOutgoing
-        ? "You tried a call"
-        : "Missed call"
+        ? t("call.youTriedVoice")
+        : t("call.missedVoiceShort")
 
   return (
     <div className="flex justify-center py-2">

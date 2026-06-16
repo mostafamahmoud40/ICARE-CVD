@@ -1,6 +1,7 @@
 "use client"
 
 import { BriefcaseIcon, BanIcon, Trash2Icon, PlusIcon } from "lucide-react"
+import { useLocale } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -110,6 +111,26 @@ function TimePickerCompact({
 type ScheduleTableProps = {
   days: DayAvailability[]
   onDayChange: (day: DayAvailability) => void
+  labels?: Partial<{
+    title: string
+    subtitle: string
+    legendWorking: string
+    legendBreak: string
+    colDay: string
+    colStatus: string
+    colMaxVisits: string
+    colWorkingPeriods: string
+    colBlockedTimes: string
+    open: string
+    off: string
+    noPeriods: string
+    noBlocks: string
+    addPeriod: string
+    addBlock: string
+    removePeriod: string
+    removeBlock: string
+    to: string
+  }>
 }
 
 function updateBlock(
@@ -198,7 +219,43 @@ function DayTimeline({ periods, blocks }: { periods: TimeBlock[], blocks: TimeBl
   )
 }
 
-export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
+export function ScheduleTable({ days, onDayChange, labels }: ScheduleTableProps) {
+  const locale = useLocale()
+  const t = {
+    title: labels?.title ?? "Schedule details",
+    subtitle: labels?.subtitle ?? "Manage working periods and blocked times for each day",
+    legendWorking: labels?.legendWorking ?? "Working",
+    legendBreak: labels?.legendBreak ?? "Break",
+    colDay: labels?.colDay ?? "Day",
+    colStatus: labels?.colStatus ?? "Status",
+    colMaxVisits: labels?.colMaxVisits ?? "Max Visits",
+    colWorkingPeriods: labels?.colWorkingPeriods ?? "Working Periods",
+    colBlockedTimes: labels?.colBlockedTimes ?? "Blocked Times",
+    open: labels?.open ?? "Open",
+    off: labels?.off ?? "Off",
+    noPeriods: labels?.noPeriods ?? "No periods",
+    noBlocks: labels?.noBlocks ?? "No blocks",
+    addPeriod: labels?.addPeriod ?? "Add period",
+    addBlock: labels?.addBlock ?? "Add block",
+    removePeriod: labels?.removePeriod ?? "Remove period",
+    removeBlock: labels?.removeBlock ?? "Remove block",
+    to: labels?.to ?? "to",
+  }
+
+  const localizedWeekday = (day: DayAvailability) => {
+    const idxMap: Record<string, number> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    }
+    const idx = idxMap[day.weekday]
+    if (idx === undefined) return day.label
+    return new Intl.DateTimeFormat(locale, { weekday: "long" }).format(new Date(2024, 0, 7 + idx))
+  }
   const handleToggleDay = (day: DayAvailability) => {
     onDayChange({ ...day, enabled: !day.enabled })
   }
@@ -310,19 +367,19 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
       <div className="border-b border-[#E8E6E0]/50 bg-[#FAFAF8]/80 px-5 py-4 sm:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-0.5">
-            <h2 className="font-serif text-[16px] font-bold text-[#1A1F1E] sm:text-[17px]">Schedule details</h2>
+            <h2 className="font-serif text-[16px] font-bold text-[#1A1F1E] sm:text-[17px]">{t.title}</h2>
             <p className="text-[13px] font-medium text-muted-foreground">
-              Manage working periods and blocked times for each day
+              {t.subtitle}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <span className="inline-block size-2.5 rounded-sm bg-[#1A5345]" />
-              Working
+              {t.legendWorking}
             </span>
             <span className="flex items-center gap-1.5">
               <span className="inline-block size-2.5 rounded-sm border border-red-200 bg-red-50" />
-              Break
+              {t.legendBreak}
             </span>
           </div>
         </div>
@@ -332,11 +389,11 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/40 text-left text-[11px] text-muted-foreground font-medium uppercase tracking-wider">
-              <th className="px-4 sm:px-5 py-3 w-[140px]">Day</th>
-              <th className="px-4 sm:px-5 py-3 w-[140px]">Status</th>
-              <th className="px-4 sm:px-5 py-3 w-[140px]">Max Visits</th>
-              <th className="px-4 sm:px-5 py-3">Working Periods</th>
-              <th className="px-4 sm:px-5 py-3">Blocked Times</th>
+              <th className="px-4 sm:px-5 py-3 w-[140px]">{t.colDay}</th>
+              <th className="px-4 sm:px-5 py-3 w-[140px]">{t.colStatus}</th>
+              <th className="px-4 sm:px-5 py-3 w-[140px]">{t.colMaxVisits}</th>
+              <th className="px-4 sm:px-5 py-3">{t.colWorkingPeriods}</th>
+              <th className="px-4 sm:px-5 py-3">{t.colBlockedTimes}</th>
             </tr>
           </thead>
             {days.map((day) => (
@@ -355,7 +412,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                   )}
                 >
                 <td className="px-4 sm:px-5 py-3 sm:py-4 text-[12px] sm:text-[13px] font-medium text-[#1A1F1E]">
-                  {day.label}
+                  {localizedWeekday(day)}
                 </td>
                 <td className="px-4 sm:px-5 py-3 sm:py-4">
                   <div className="flex items-center gap-2">
@@ -372,7 +429,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                         day.enabled ? "text-[#1A5345]" : "text-muted-foreground"
                       )}
                     >
-                      {day.enabled ? "Open" : "Off"}
+                      {day.enabled ? t.open : t.off}
                     </Label>
                   </div>
                 </td>
@@ -392,7 +449,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                   {day.enabled ? (
                     <div className="space-y-2.5">
                       {day.periods.length === 0 && (
-                        <span className="text-[11px] sm:text-[12px] text-muted-foreground italic">No periods</span>
+                        <span className="text-[11px] sm:text-[12px] text-muted-foreground italic">{t.noPeriods}</span>
                       )}
                       {day.periods.map((period) => (
                         <div key={period.id} className="flex flex-wrap items-center gap-1.5">
@@ -402,7 +459,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                               value={period.startTime}
                               onChange={(v) => handlePeriodChange(day, period.id, "startTime", v)}
                             />
-                            <span className="text-[10px] text-muted-foreground font-medium">to</span>
+                            <span className="text-[10px] text-muted-foreground font-medium">{t.to}</span>
                             <TimePickerCompact
                               value={period.endTime}
                               onChange={(v) => handlePeriodChange(day, period.id, "endTime", v)}
@@ -414,7 +471,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                             size="icon"
                             className="h-7 w-7 text-muted-foreground hover:bg-red-50 hover:text-red-600 rounded-full transition-colors"
                             onClick={() => removePeriod(day, period.id)}
-                            title="Remove period"
+                            title={t.removePeriod}
                           >
                             <Trash2Icon className="size-3.5" />
                           </Button>
@@ -428,7 +485,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                         onClick={() => addPeriod(day)}
                       >
                         <PlusIcon className="size-3.5" />
-                        Add period
+                        {t.addPeriod}
                       </Button>
                     </div>
                   ) : (
@@ -439,7 +496,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                   {day.enabled ? (
                     <div className="space-y-2.5">
                       {day.unavailableBlocks.length === 0 ? (
-                        <span className="text-[11px] sm:text-[12px] text-muted-foreground italic">No blocks</span>
+                        <span className="text-[11px] sm:text-[12px] text-muted-foreground italic">{t.noBlocks}</span>
                       ) : (
                         day.unavailableBlocks.map((block) => (
                           <div key={block.id} className="flex flex-wrap items-center gap-1.5">
@@ -449,7 +506,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                                 value={block.startTime}
                                 onChange={(v) => handleBlockChange(day, block.id, "startTime", v)}
                               />
-                              <span className="text-[10px] text-muted-foreground font-medium">to</span>
+                              <span className="text-[10px] text-muted-foreground font-medium">{t.to}</span>
                               <TimePickerCompact
                                 value={block.endTime}
                                 onChange={(v) => handleBlockChange(day, block.id, "endTime", v)}
@@ -461,7 +518,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                               size="icon"
                               className="h-7 w-7 text-muted-foreground hover:bg-red-50 hover:text-red-600 rounded-full transition-colors"
                               onClick={() => removeBlockItem(day, block.id)}
-                              title="Remove block"
+                              title={t.removeBlock}
                             >
                               <Trash2Icon className="size-3.5" />
                             </Button>
@@ -476,7 +533,7 @@ export function ScheduleTable({ days, onDayChange }: ScheduleTableProps) {
                         onClick={() => addBlock(day)}
                       >
                         <PlusIcon className="size-3.5" />
-                        Add block
+                        {t.addBlock}
                       </Button>
                     </div>
                   ) : (

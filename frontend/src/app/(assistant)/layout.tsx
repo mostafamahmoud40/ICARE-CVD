@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Lora } from "next/font/google"
 import { usePathname, useSearchParams } from "next/navigation"
+import { useTranslations, useLocale } from "next-intl"
 import type { AuthUser } from "@/lib/auth-tokens"
 import {
   BellIcon,
@@ -113,65 +114,82 @@ function AssistantLayoutContent({
   const [isProceduresOpen, setIsProceduresOpen] = useState(() => pathname.startsWith("/assistant-procedures"))
   const viewParam = searchParams.get("view")
   const queueNavMode = queueNavModeFromPathname(pathname)
+  const t = useTranslations("assistant")
+  const tAccount = useTranslations("common.accountMenu")
+  const locale = useLocale()
+  const sidebarSide = locale === "ar" ? "right" : "left"
+
+  const queueSubNav = {
+    liveDesk: t("header.queueLiveDesk.title"),
+    expectedToday: t("header.queueSchedule.title"),
+    pastVisits: t("header.queueHistory.title"),
+    doctors: t("header.queueDoctors.title"),
+  } as const
+
+  const proceduresSubNav = {
+    operations: t("header.proceduresOperations.title"),
+    currentSchedule: t("header.proceduresCurrentSchedule.title"),
+    history: t("header.proceduresHistory.title"),
+  } as const
 
   const navItems = [
     {
       href: "/assistant-dashboard",
-      label: "Command Center",
+      label: t("nav.commandCenter"),
       icon: LayoutDashboardIcon,
       isActive: pathname === "/assistant-dashboard",
     },
     {
       href: "/assistant-inbox",
-      label: "Inbox",
+      label: t("nav.inbox"),
       icon: InboxIcon,
       isActive: pathname === "/assistant-inbox",
     },
     {
       href: "/assistant-chats",
-      label: "Chats",
+      label: t("nav.chats"),
       icon: MessageCircleIcon,
       isActive: pathname === "/assistant-chats",
     },
     {
       href: "/assistant-patients",
-      label: "Patients",
+      label: t("nav.patients"),
       icon: ClipboardListIcon,
       isActive: pathname === "/assistant-patients",
     },
     {
       href: "/assistant-appointments",
-      label: "Appointments",
+      label: t("nav.appointments"),
       icon: CalendarClockIcon,
       isActive: pathname === "/assistant-appointments",
     },
     {
       href: "/assistant-queue",
-      label: "Queue",
+      label: t("nav.queue"),
       icon: UsersIcon,
       isActive: pathname.startsWith("/assistant-queue"),
     },
     {
       href: "/assistant-doctors",
-      label: "Doctor Directory",
+      label: t("nav.doctorDirectory"),
       icon: StethoscopeIcon,
       isActive: pathname.startsWith("/assistant-doctors"),
     },
     {
       href: "/assistant-doctor-schedule",
-      label: "Doctor Schedule",
+      label: t("nav.doctorSchedule"),
       icon: CalendarDaysIcon,
       isActive: pathname.startsWith("/assistant-doctor-schedule"),
     },
     {
       href: "/assistant-procedures",
-      label: "Procedures",
+      label: t("nav.procedures"),
       icon: ClipboardPlusIcon,
       isActive: pathname.startsWith("/assistant-procedures"),
     },
     {
       href: "/assistant-medications",
-      label: "Medications",
+      label: t("nav.medications"),
       icon: PillIcon,
       isActive: pathname.startsWith("/assistant-medications"),
     },
@@ -180,7 +198,7 @@ function AssistantLayoutContent({
   const accountNavItems = [
     {
       href: "/assistant-account",
-      label: "Account",
+      label: t("nav.account"),
       icon: User2Icon,
       isActive:
         (pathname.startsWith("/assistant-account") ||
@@ -190,7 +208,7 @@ function AssistantLayoutContent({
     },
     {
       href: "/assistant-account/settings",
-      label: "Settings",
+      label: t("nav.settings"),
       icon: Settings2Icon,
       isActive:
         pathname.includes("/assistant-account/settings") ||
@@ -205,11 +223,14 @@ function AssistantLayoutContent({
   ] as const
 
   const hideInsetHeader =
-    pathname === "/assistant-account" || pathname.startsWith("/assistant-account/")
+    pathname === "/assistant-account" ||
+    pathname.startsWith("/assistant-account/")
+
+  const compactInsetHeader = pathname === "/assistant-chats"
 
   return (
     <>
-      <Sidebar side="left" collapsible="icon" variant="sidebar">
+      <Sidebar side={sidebarSide} collapsible="icon" variant="sidebar">
         <SidebarHeader className="group-data-[collapsible=icon]:p-1 pb-4 pt-4 px-4">
           <div
             className="flex items-center gap-3"
@@ -230,7 +251,7 @@ function AssistantLayoutContent({
             {isCollapsed ? null : (
               <div className="flex flex-col gap-0.5 leading-tight">
                 <div className="text-[17px] font-bold text-[#6B7870]">ICARE-CVD</div>
-                <div className="font-sans text-[13px] font-medium text-muted-foreground">Assistant Portal</div>
+                <div className="font-sans text-[13px] font-medium text-muted-foreground">{t("portalName")}</div>
               </div>
             )}
           </div>
@@ -263,15 +284,16 @@ function AssistantLayoutContent({
               {navItems.slice(1).map((item) => {
                 const Icon = item.icon
 
-                if (item.label === "Queue") {
+                if (item.href === "/assistant-queue") {
                   return (
-                    <SidebarMenuItem key={`${item.href}-${item.label}`}>
+                    <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
                         isActive={false}
                         render={
                           <button
                             type="button"
                             aria-label={item.label}
+                            aria-expanded={isQueueOpen}
                             onClick={() => !isCollapsed && setIsQueueOpen((prev) => !prev)}
                           >
                             <Icon className="size-4" aria-hidden="true" />
@@ -280,8 +302,8 @@ function AssistantLayoutContent({
                                 <span>{item.label}</span>
                                 <ChevronDownIcon
                                   className={cn(
-                                    "ml-auto size-4 transition-transform duration-200",
-                                    isQueueOpen && "rotate-180"
+                                    "ms-auto size-4 transition-transform duration-200",
+                                    isQueueOpen && "rotate-180",
                                   )}
                                 />
                               </>
@@ -297,7 +319,7 @@ function AssistantLayoutContent({
                               render={
                                 <Link href={QUEUE_ROUTES.operations}>
                                   <PlayCircleIcon className="size-3.5" />
-                                  Live Desk
+                                  {queueSubNav.liveDesk}
                                 </Link>
                               }
                             />
@@ -308,7 +330,7 @@ function AssistantLayoutContent({
                               render={
                                 <Link href={QUEUE_ROUTES.schedule}>
                                   <CalendarDaysIcon className="size-3.5" />
-                                  Expected Today
+                                  {queueSubNav.expectedToday}
                                 </Link>
                               }
                             />
@@ -319,7 +341,7 @@ function AssistantLayoutContent({
                               render={
                                 <Link href={QUEUE_ROUTES.history}>
                                   <HistoryIcon className="size-3.5" />
-                                  Past Visits
+                                  {queueSubNav.pastVisits}
                                 </Link>
                               }
                             />
@@ -330,7 +352,7 @@ function AssistantLayoutContent({
                               render={
                                 <Link href={QUEUE_ROUTES.doctors}>
                                   <StethoscopeIcon className="size-3.5" />
-                                  Doctors
+                                  {queueSubNav.doctors}
                                 </Link>
                               }
                             />
@@ -341,15 +363,16 @@ function AssistantLayoutContent({
                   )
                 }
 
-                if (item.label === "Procedures") {
+                if (item.href === "/assistant-procedures") {
                   return (
-                    <SidebarMenuItem key={`${item.href}-${item.label}`}>
+                    <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
                         isActive={false}
                         render={
                           <button
                             type="button"
                             aria-label={item.label}
+                            aria-expanded={isProceduresOpen}
                             onClick={() => !isCollapsed && setIsProceduresOpen((prev) => !prev)}
                           >
                             <Icon className="size-4" aria-hidden="true" />
@@ -358,8 +381,8 @@ function AssistantLayoutContent({
                                 <span>{item.label}</span>
                                 <ChevronDownIcon
                                   className={cn(
-                                    "ml-auto size-4 transition-transform duration-200",
-                                    isProceduresOpen && "rotate-180"
+                                    "ms-auto size-4 transition-transform duration-200",
+                                    isProceduresOpen && "rotate-180",
                                   )}
                                 />
                               </>
@@ -375,7 +398,7 @@ function AssistantLayoutContent({
                               render={
                                 <Link href="/assistant-procedures?view=operations">
                                   <StethoscopeIcon className="size-3.5" />
-                                  Doctor Operations
+                                  {proceduresSubNav.operations}
                                 </Link>
                               }
                             />
@@ -386,7 +409,7 @@ function AssistantLayoutContent({
                               render={
                                 <Link href="/assistant-procedures?view=current">
                                   <CalendarDaysIcon className="size-3.5" />
-                                  Current Schedule
+                                  {proceduresSubNav.currentSchedule}
                                 </Link>
                               }
                             />
@@ -397,7 +420,7 @@ function AssistantLayoutContent({
                               render={
                                 <Link href="/assistant-procedures?view=history">
                                   <HistoryIcon className="size-3.5" />
-                                  History Records
+                                  {proceduresSubNav.history}
                                 </Link>
                               }
                             />
@@ -418,8 +441,8 @@ function AssistantLayoutContent({
                           {isCollapsed ? null : (
                             <>
                               <span>{item.label}</span>
-                              {item.label === "Inbox" ? (
-                                <span className="ml-auto rounded-full bg-[#6D5DD3] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                              {item.href === "/assistant-inbox" ? (
+                                <span className="ms-auto rounded-full bg-[#6D5DD3] px-1.5 py-0.5 text-[10px] font-semibold text-white">
                                   3
                                 </span>
                               ) : null}
@@ -482,11 +505,11 @@ function AssistantLayoutContent({
                               sizes="44px"
                             />
                           </div>
-                          <span className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full bg-[#22C55E] border-2 border-white shadow-sm z-10" />
+                          <span className="absolute -bottom-0.5 -end-0.5 size-3.5 rounded-full bg-[#22C55E] border-2 border-white shadow-sm z-10" />
                         </div>
 
                         {isCollapsed ? null : (
-                          <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 text-left">
+                          <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 text-start">
                             <span className="truncate font-sans text-[15px] font-bold text-[#1A1F1E]">
                               {mounted ? displayName : "Assistant"}
                             </span>
@@ -499,7 +522,7 @@ function AssistantLayoutContent({
                           </div>
                         )}
                         {!isCollapsed && (
-                           <ChevronDownIcon className="ml-auto size-4 text-muted-foreground/30 group-hover:text-[#1A5345] group-hover:translate-y-0.5 transition-all" />
+                           <ChevronDownIcon className="ms-auto size-4 text-muted-foreground/30 group-hover:text-[#1A5345] group-hover:translate-y-0.5 transition-all" />
                         )}
                       </button>
                     }
@@ -543,7 +566,7 @@ function AssistantLayoutContent({
 
                   <DropdownMenuItem className="flex items-center gap-3 p-4 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
                     <SparklesIcon className="size-5" />
-                    <span>Upgrade to Pro</span>
+                    <span>{tAccount("upgradePro")}</span>
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator className="bg-[#E8E6E0]/60 m-0" />
@@ -552,19 +575,19 @@ function AssistantLayoutContent({
                     <DropdownMenuItem asChild className="flex items-center gap-3 px-4 py-3 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
                       <Link href="/assistant-account">
                         <User2Icon className="size-5" />
-                        <span>Account</span>
+                        <span>{tAccount("account")}</span>
                       </Link>
                     </DropdownMenuItem>
 
                     <DropdownMenuItem className="flex items-center gap-3 px-4 py-3 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
                       <CreditCardIcon className="size-5" />
-                      <span>Billing</span>
+                      <span>{tAccount("billing")}</span>
                     </DropdownMenuItem>
 
                     <DropdownMenuItem asChild className="flex items-center gap-3 px-4 py-3 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
                       <Link href="/assistant-account/notifications">
                         <BellIcon className="size-5" />
-                        <span>Notifications</span>
+                        <span>{tAccount("notifications")}</span>
                       </Link>
                     </DropdownMenuItem>
                   </div>
@@ -579,7 +602,7 @@ function AssistantLayoutContent({
                     }}
                   >
                     <LogOutIcon className="size-5" />
-                    <span>Log out</span>
+                    <span>{tAccount("logOut")}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -588,13 +611,17 @@ function AssistantLayoutContent({
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset className="bg-[#F9F8F5]">
+      <SidebarInset
+        className={`bg-[#F9F8F5]${compactInsetHeader ? " flex min-h-svh flex-col" : ""}`}
+      >
         {hideInsetHeader ? (
-          children
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         ) : (
           <>
-            <AssistantInsetHeader user={user} logout={logout} />
-            {children}
+            <AssistantInsetHeader user={user} logout={logout} compact={compactInsetHeader} />
+            <div className={compactInsetHeader ? "flex min-h-0 flex-1 flex-col" : undefined}>
+              {children}
+            </div>
           </>
         )}
       </SidebarInset>

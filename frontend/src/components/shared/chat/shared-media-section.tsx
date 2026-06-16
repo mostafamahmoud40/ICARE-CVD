@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { useTranslations } from "next-intl"
 import { ExternalLinkIcon, FileIcon } from "lucide-react"
 import { resolveChatAttachmentUrl } from "./chat-attachment-url"
 import { collectSharedMediaFromMessages } from "./chat-shared-media"
@@ -14,6 +15,7 @@ interface SharedMediaSectionProps {
 }
 
 export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
+  const t = useTranslations("chat")
   const [activeTab, setActiveTab] = useState<SharedMediaTab>("photos")
   const [previewImage, setPreviewImage] = useState<{ url: string; fileName: string } | null>(null)
 
@@ -21,25 +23,23 @@ export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
   const totalCount = media.photos.length + media.files.length + media.links.length
 
   const tabs: { key: SharedMediaTab; label: string; count: number }[] = [
-    { key: "photos", label: "Photos", count: media.photos.length },
-    { key: "files", label: "Files", count: media.files.length },
-    { key: "links", label: "Links", count: media.links.length },
+    { key: "photos", label: t("sharedMedia.photos"), count: media.photos.length },
+    { key: "files", label: t("sharedMedia.files"), count: media.files.length },
+    { key: "links", label: t("sharedMedia.links"), count: media.links.length },
   ]
 
   return (
     <>
       <div className="px-8 py-6">
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-[15px] font-bold text-[#1A1F1E]">Shared Media</span>
+          <span className="text-[15px] font-bold text-[#1A1F1E]">{t("sharedMedia.title")}</span>
           {totalCount > 0 ? (
             <span className="text-[13px] font-semibold text-[#1A5345]">({totalCount})</span>
           ) : null}
         </div>
 
         {totalCount === 0 ? (
-          <p className="text-[13px] text-muted-foreground">
-            Photos, files, and links from this conversation will appear here.
-          </p>
+          <p className="text-[13px] text-muted-foreground">{t("sharedMedia.emptyHint")}</p>
         ) : (
           <>
             <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -62,11 +62,12 @@ export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
 
             {activeTab === "photos" ? (
               media.photos.length === 0 ? (
-                <p className="text-[13px] text-muted-foreground">No photos shared yet.</p>
+                <p className="text-[13px] text-muted-foreground">{t("sharedMedia.noPhotos")}</p>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
                   {media.photos.map((item) => {
                     const imageUrl = resolveChatAttachmentUrl(item.url)
+                    const fileName = item.fileName ?? t("sharedMedia.photo")
                     return (
                       <button
                         key={item.id}
@@ -74,16 +75,16 @@ export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
                         onClick={() =>
                           setPreviewImage({
                             url: imageUrl,
-                            fileName: item.fileName ?? "Photo",
+                            fileName,
                           })
                         }
                         className="group aspect-square overflow-hidden rounded-[8px] border border-[#E8E6E0]/80 bg-[#F5F5F3] shadow-sm cursor-pointer"
-                        aria-label={`Open ${item.fileName ?? "photo"}`}
+                        aria-label={fileName}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={imageUrl}
-                          alt={item.fileName ?? "Shared photo"}
+                          alt={fileName}
                           className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       </button>
@@ -95,7 +96,7 @@ export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
 
             {activeTab === "files" ? (
               media.files.length === 0 ? (
-                <p className="text-[13px] text-muted-foreground">No files shared yet.</p>
+                <p className="text-[13px] text-muted-foreground">{t("sharedMedia.noFiles")}</p>
               ) : (
                 <div className="space-y-2">
                   {media.files.map((item) => (
@@ -111,10 +112,10 @@ export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[13px] font-semibold text-[#1A1F1E]">
-                          {item.fileName ?? "File"}
+                          {item.fileName ?? t("sharedMedia.file")}
                         </p>
                         <p className="text-[11px] text-muted-foreground">
-                          {item.sizeBytes ? formatFileSize(item.sizeBytes) : "Document"}
+                          {item.sizeBytes ? formatFileSize(item.sizeBytes) : t("sharedMedia.document")}
                           {item.time ? ` · ${item.time}` : ""}
                         </p>
                       </div>
@@ -127,7 +128,7 @@ export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
 
             {activeTab === "links" ? (
               media.links.length === 0 ? (
-                <p className="text-[13px] text-muted-foreground">No links shared yet.</p>
+                <p className="text-[13px] text-muted-foreground">{t("sharedMedia.noLinks")}</p>
               ) : (
                 <div className="space-y-2">
                   {media.links.map((item) => (
@@ -167,9 +168,9 @@ export function SharedMediaSection({ messages }: SharedMediaSectionProps) {
           <button
             type="button"
             onClick={() => setPreviewImage(null)}
-            className="absolute right-4 top-4 rounded-full bg-white/10 px-3 py-1.5 text-[13px] font-medium text-white cursor-pointer"
+            className="absolute end-4 top-4 rounded-full bg-white/10 px-3 py-1.5 text-[13px] font-medium text-white cursor-pointer"
           >
-            Close
+            {t("sharedMedia.close")}
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img

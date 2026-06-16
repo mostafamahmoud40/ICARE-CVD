@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import type { ReactNode } from "react"
+import { useMemo, type ReactNode } from "react"
+import { useLocale } from "next-intl"
 import {
   ArrowLeftIcon,
   Building2Icon,
@@ -19,30 +20,37 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { AssistantProfileAvatar } from "@/app/(assistant)/AssistantProfileAvatar"
+import { useAssistantPageTranslations } from "../../use-assistant-i18n"
 import { useAssistantDoctorClinicProfile } from "../useAssistantDoctors"
 import type { DoctorStatus } from "../assistantDoctors.types"
 
-const STATUS_CONFIG: Record<DoctorStatus, { label: string; className: string }> = {
-  available: { label: "Available", className: "bg-emerald-50 text-emerald-700" },
-  "in-consultation": { label: "In consult", className: "bg-amber-50 text-amber-700" },
-  away: { label: "Away", className: "bg-[#F3F4F6] text-[#6B7870]" },
+const STATUS_CLASS: Record<DoctorStatus, string> = {
+  available: "bg-emerald-50 text-emerald-700",
+  "in-consultation": "bg-amber-50 text-amber-700",
+  away: "bg-[#F3F4F6] text-[#6B7870]",
 }
 
-const VISIT_MODE_LABEL = {
-  clinic: "Clinic visits",
-  virtual: "Virtual visits",
-  both: "Clinic & virtual",
-} as const
-
-function formatSlotCount(count: number): string {
-  if (count === 1) return "1 slot available"
-  return `${count} slots available`
+const WEEKDAY_INDEX: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
 }
 
-function formatNextOccurrence(date: string): string {
+function localizedWeekdayLabel(weekday: string, locale: string, fallback: string) {
+  const idx = WEEKDAY_INDEX[weekday.toLowerCase()]
+  if (idx === undefined) return fallback
+  const date = new Date(2024, 0, 7 + idx)
+  return new Intl.DateTimeFormat(locale, { weekday: "long" }).format(date)
+}
+
+function formatNextOccurrence(date: string, locale: string): string {
   const parsed = new Date(`${date}T12:00:00`)
   if (Number.isNaN(parsed.getTime())) return date
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
   }).format(parsed)
@@ -50,8 +58,9 @@ function formatNextOccurrence(date: string): string {
 
 function formatPeriods(
   periods: Array<{ startTime: string; endTime: string }>,
+  noHoursLabel: string,
 ): string {
-  if (!periods.length) return "No hours set"
+  if (!periods.length) return noHoursLabel
   return periods.map((period) => `${period.startTime}–${period.endTime}`).join(", ")
 }
 
@@ -62,9 +71,36 @@ type AssistantDoctorClinicProfilePageProps = {
 export function AssistantDoctorClinicProfilePage({
   doctorId,
 }: AssistantDoctorClinicProfilePageProps) {
+  const locale = useLocale()
+  const { t } = useAssistantPageTranslations("doctors")
   const profileQuery = useAssistantDoctorClinicProfile(doctorId)
   const profile = profileQuery.data
-  const statusCfg = profile ? STATUS_CONFIG[profile.status] : null
+
+  const statusLabels = useMemo(
+    () =>
+      ({
+        available: t("available"),
+        "in-consultation": t("inConsult"),
+        away: t("away"),
+      }) satisfies Record<DoctorStatus, string>,
+    [t],
+  )
+
+  const visitModeLabels = useMemo(
+    () => ({
+      clinic: t("profile.visitClinic"),
+      virtual: t("profile.visitVirtual"),
+      both: t("profile.visitBoth"),
+    }),
+    [t],
+  )
+
+  const statusCfg = profile
+    ? { label: statusLabels[profile.status], className: STATUS_CLASS[profile.status] }
+    : null
+
+  const formatSlotCount = (count: number) =>
+    count === 1 ? t("profile.oneSlotAvailable") : t("profile.slotsAvailable", { count })
 
   if (profileQuery.isLoading) {
     return (
@@ -83,11 +119,11 @@ export function AssistantDoctorClinicProfilePage({
             className="inline-flex w-fit items-center gap-2 text-[13px] font-bold text-[#1A5345] hover:text-[#133F34]"
           >
             <ArrowLeftIcon className="size-4" />
-            Back to directory
+            {t("profile.backToDirectory")}
           </Link>
           <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white px-6 py-16 text-center">
-            <p className="text-[14px] font-medium text-[#1A1F1E]">Could not load clinic profile</p>
-            <p className="mt-1 text-[12px] text-[#6B7870]">The doctor may not exist or the server is unavailable.</p>
+            <p className="text-[14px] font-medium text-[#1A1F1E]">{t("profile.loadErrorTitle")}</p>
+            <p className="mt-1 text-[12px] text-[#6B7870]">{t("profile.loadErrorHint")}</p>
           </div>
         </div>
       </div>
@@ -102,7 +138,7 @@ export function AssistantDoctorClinicProfilePage({
           className="inline-flex w-fit items-center gap-2 text-[13px] font-bold text-[#1A5345] transition-colors hover:text-[#133F34]"
         >
           <ArrowLeftIcon className="size-4" />
-          Back to directory
+          {t("profile.backToDirectory")}
         </Link>
 
         <div className="rounded-2xl border border-[#E8E6E0]/70 bg-white p-5 shadow-sm sm:p-6">
@@ -155,67 +191,66 @@ export function AssistantDoctorClinicProfilePage({
               className="h-10 shrink-0 rounded-xl bg-[#1A5345] px-4 text-[13px] font-bold text-white hover:bg-[#133F34]"
             >
               <Link href={`/assistant-doctor-schedule?doctorId=${profile.id}`}>
-                Open schedule
+                {t("profile.openSchedule")}
               </Link>
             </Button>
           </div>
         </div>
 
         <p className="rounded-xl border border-[#E8E6E0]/70 bg-white px-4 py-3 text-[11px] leading-relaxed text-[#6B7870] shadow-sm">
-          Clinic operations view — personal contact details, account settings, and financial
-          information are not shown to assistants.
+          {t("profile.privacyNotice")}
         </p>
 
         <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
           <div className="space-y-6">
             <section className="rounded-2xl border border-[#E8E6E0]/70 bg-white p-5 shadow-sm sm:p-6">
               <h2 className="text-[11px] font-bold uppercase tracking-wide text-[#6B7870]">
-                Today at the clinic
+                {t("profile.todayAtClinic")}
               </h2>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-2">
                 <InfoTile
                   icon={<UsersIcon className="size-4 text-[#1A5345]" />}
-                  label="Waiting"
+                  label={t("waiting")}
                   value={String(profile.patientsWaiting)}
                 />
                 <InfoTile
                   icon={<StethoscopeIcon className="size-4 text-[#1A5345]" />}
-                  label="In consultation"
+                  label={t("profile.inConsultation")}
                   value={String(profile.patientsInConsultation)}
                 />
                 <InfoTile
                   icon={<ClockIcon className="size-4 text-[#1A5345]" />}
-                  label="Today's hours"
+                  label={t("profile.todayHours")}
                   value={
                     profile.todayShiftStart && profile.todayShiftEnd
                       ? `${profile.todayShiftStart} – ${profile.todayShiftEnd}`
-                      : "Not scheduled today"
+                      : t("profile.notScheduledToday")
                   }
                 />
                 <InfoTile
                   icon={<MapPinIcon className="size-4 text-[#1A5345]" />}
-                  label="Room / location"
-                  value={profile.room || profile.clinicLocation || "Not assigned"}
+                  label={t("profile.roomLocation")}
+                  value={profile.room || profile.clinicLocation || t("profile.notAssigned")}
                 />
               </div>
             </section>
 
             <section className="rounded-2xl border border-[#E8E6E0]/70 bg-white p-5 shadow-sm sm:p-6">
               <h2 className="text-[11px] font-bold uppercase tracking-wide text-[#6B7870]">
-                Clinic details
+                {t("profile.clinicDetails")}
               </h2>
               <div className="mt-4 space-y-2.5 rounded-xl border border-[#E8E6E0]/70 bg-[#F9F8F5]/40 p-4">
                 {profile.clinicName ? (
                   <DetailRow
                     icon={<Building2Icon className="size-4 shrink-0 text-[#1A5345]" />}
-                    label="Clinic"
+                    label={t("profile.clinic")}
                     value={profile.clinicName}
                   />
                 ) : null}
                 {profile.clinicLocation ? (
                   <DetailRow
                     icon={<MapPinIcon className="size-4 shrink-0 text-[#1A5345]" />}
-                    label="Clinic address"
+                    label={t("profile.clinicAddress")}
                     value={profile.clinicLocation}
                   />
                 ) : null}
@@ -227,21 +262,21 @@ export function AssistantDoctorClinicProfilePage({
                       <Building2Icon className="size-4 shrink-0 text-[#1A5345]" />
                     )
                   }
-                  label="Visit modes"
-                  value={VISIT_MODE_LABEL[profile.acceptedVisitModes]}
+                  label={t("profile.visitModes")}
+                  value={visitModeLabels[profile.acceptedVisitModes]}
                 />
                 {profile.languages.length > 0 ? (
                   <DetailRow
                     icon={<GlobeIcon className="size-4 shrink-0 text-[#1A5345]" />}
-                    label="Languages"
+                    label={t("profile.languages")}
                     value={profile.languages.join(", ")}
                   />
                 ) : null}
                 {profile.experienceYears > 0 ? (
                   <DetailRow
                     icon={<StethoscopeIcon className="size-4 shrink-0 text-[#1A5345]" />}
-                    label="Experience"
-                    value={`${profile.experienceYears} years`}
+                    label={t("profile.experience")}
+                    value={t("profile.experienceYears", { years: profile.experienceYears })}
                   />
                 ) : null}
               </div>
@@ -256,16 +291,17 @@ export function AssistantDoctorClinicProfilePage({
           <section className="rounded-2xl border border-[#E8E6E0]/70 bg-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-[11px] font-bold uppercase tracking-wide text-[#6B7870]">
-                Weekly schedule
+                {t("profile.weeklySchedule")}
               </h2>
               <span className="text-[11px] font-medium text-muted-foreground">
-                {profile.schedule.slotDurationMinutes} min slots
+                {t("profile.minSlots", { minutes: profile.schedule.slotDurationMinutes })}
               </span>
             </div>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {profile.schedule.days.map((day) => {
                 const slotTimes = day.availableSlotTimes ?? []
                 const slotCount = day.availableSlotCount ?? slotTimes.length
+                const dayLabel = localizedWeekdayLabel(day.weekday, locale, day.label)
 
                 return (
                   <div
@@ -279,9 +315,11 @@ export function AssistantDoctorClinicProfilePage({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-[13px] font-bold text-[#1A1F1E]">{day.label}</p>
+                        <p className="text-[13px] font-bold text-[#1A1F1E]">{dayLabel}</p>
                         <p className="mt-0.5 text-[12px] text-muted-foreground">
-                          {day.enabled ? formatPeriods(day.periods) : "Off"}
+                          {day.enabled
+                            ? formatPeriods(day.periods, t("profile.noHoursSet"))
+                            : t("profile.dayOff")}
                         </p>
                       </div>
                       {day.enabled ? (
@@ -301,7 +339,9 @@ export function AssistantDoctorClinicProfilePage({
                           {day.nextOccurrenceDate ? (
                             <span className="font-medium text-muted-foreground">
                               {" "}
-                              · next {formatNextOccurrence(day.nextOccurrenceDate)}
+                              {t("profile.nextOccurrence", {
+                                date: formatNextOccurrence(day.nextOccurrenceDate, locale),
+                              })}
                             </span>
                           ) : null}
                         </p>
@@ -318,7 +358,7 @@ export function AssistantDoctorClinicProfilePage({
                           </div>
                         ) : (
                           <p className="text-[11px] font-medium text-muted-foreground">
-                            No open slots on the next occurrence
+                            {t("profile.noOpenSlots")}
                           </p>
                         )}
                       </div>

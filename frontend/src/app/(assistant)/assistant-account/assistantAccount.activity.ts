@@ -63,33 +63,16 @@ export function countActivitiesByType(activities: ActivityEntry[]) {
   )
 }
 
-function startOfLocalDay(date: Date) {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
 
-export function formatActivityGroupLabel(iso: string, now = new Date()) {
-  const date = new Date(iso)
-  const today = startOfLocalDay(now)
-  const target = startOfLocalDay(date)
-  const diffDays = Math.round((today.getTime() - target.getTime()) / (24 * 60 * 60 * 1000))
-
-  if (diffDays === 0) return "Today"
-  if (diffDays === 1) return "Yesterday"
-  return new Intl.DateTimeFormat(undefined, {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-  }).format(date)
-}
-
-export function groupActivitiesByDate(activities: ActivityEntry[], now = new Date()) {
+export function groupActivitiesByDate(
+  activities: ActivityEntry[],
+  labelForTimestamp: (iso: string) => string,
+  now = new Date(),
+) {
   const groups = new Map<string, ActivityEntry[]>()
 
   for (const entry of activities) {
-    const label = formatActivityGroupLabel(entry.timestamp, now)
+    const label = labelForTimestamp(entry.timestamp)
     const bucket = groups.get(label)
     if (bucket) bucket.push(entry)
     else groups.set(label, [entry])
