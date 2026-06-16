@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslations } from "next-intl"
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
@@ -115,10 +116,11 @@ function formatDate(dateString: string | null): string {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const variants: Record<string, { className: string; label: string }> = {
-    "in-treatment": { className: "bg-[#1A5345] text-white", label: "In treatment" },
-    discharged: { className: "bg-[#6B7870] text-white", label: "Discharged" },
-    monitoring: { className: "bg-[#3B82F6] text-white", label: "Monitoring" },
+  const ts = useTranslations("assistant.shared")
+  const variants: Record<string, { className: string; labelKey: "statusInTreatment" | "statusDischarged" | "statusMonitoring" }> = {
+    "in-treatment": { className: "bg-[#1A5345] text-white", labelKey: "statusInTreatment" },
+    discharged: { className: "bg-[#6B7870] text-white", labelKey: "statusDischarged" },
+    monitoring: { className: "bg-[#3B82F6] text-white", labelKey: "statusMonitoring" },
   }
   const style = variants[status] || variants.monitoring
 
@@ -126,16 +128,17 @@ function StatusBadge({ status }: { status: string }) {
     <span
       className={cn("inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-[10px] font-bold", style.className)}
     >
-      {style.label}
+      {ts(style.labelKey)}
     </span>
   )
 }
 
 function RiskBadge({ level }: { level: string }) {
-  const variants: Record<string, { className: string; label: string }> = {
-    high: { className: "bg-rose-500 text-white", label: "High risk" },
-    moderate: { className: "bg-amber-500 text-white", label: "Moderate" },
-    stable: { className: "bg-emerald-500 text-white", label: "Stable" },
+  const ts = useTranslations("assistant.shared")
+  const variants: Record<string, { className: string; labelKey: "riskHigh" | "riskModerate" | "riskStable" }> = {
+    high: { className: "bg-rose-500 text-white", labelKey: "riskHigh" },
+    moderate: { className: "bg-amber-500 text-white", labelKey: "riskModerate" },
+    stable: { className: "bg-emerald-500 text-white", labelKey: "riskStable" },
   }
   const style = variants[level] || variants.stable
 
@@ -143,7 +146,7 @@ function RiskBadge({ level }: { level: string }) {
     <span
       className={cn("inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-[10px] font-bold", style.className)}
     >
-      {style.label}
+      {ts(style.labelKey)}
     </span>
   )
 }
@@ -172,6 +175,8 @@ function DepartmentBadge({ department }: { department: DepartmentConfig }) {
 }
 
 export function PatientsList({ patients, addPatientState, initialSearchQuery = "", initialSheetOpen = false }: PatientsListProps) {
+  const t = useTranslations("assistant.pages.patients")
+  const ts = useTranslations("assistant.shared")
   const [isSheetOpen, setIsSheetOpen] = useState(initialSheetOpen)
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
@@ -217,13 +222,13 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
                     <Link href="/assistant-dashboard" className="text-[10px] font-medium sm:text-[11px]">
-                      Dashboard
+                      {ts("breadcrumbDashboard")}
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">Patients</BreadcrumbPage>
+                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">{t("breadcrumb")}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -232,10 +237,10 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
             <div className="min-w-0 space-y-0.5">
               <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px] lg:text-[26px]">
-                Patient Directory
+                {t("title")}
               </h1>
               <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
-                Managing <span className="font-bold text-[#1A1F1E]">{patients.length.toLocaleString()}</span> cardiovascular records
+                {t("subtitle", { count: patients.length.toLocaleString() })}
               </p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
@@ -245,7 +250,7 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                 className="h-8 gap-2 rounded-lg border border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] shadow-sm transition-colors hover:bg-slate-50 hover:text-[#1A5345]"
               >
                 <DownloadIcon className="size-3.5 text-muted-foreground" />
-                Export
+                {ts("export")}
               </Button>
               <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
@@ -254,14 +259,14 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                     className="h-8 gap-2 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]"
                   >
                     <UserPlusIcon className="size-3.5" strokeWidth={2.5} />
-                    Add Patient
+                    {t("addPatient")}
                   </Button>
                 </SheetTrigger>
                 <SheetContent
                   side="right"
                   className="!w-full sm:!max-w-2xl md:!max-w-3xl lg:!max-w-4xl p-0 border-l border-[#E8E6E0]/60 bg-[#F9F8F5] shadow-2xl flex flex-col h-full"
                 >
-                  <SheetTitle className="sr-only">Register New Patient</SheetTitle>
+                  <SheetTitle className="sr-only">{t("registerNewPatient")}</SheetTitle>
                   <AddPatient {...addPatientState} onSuccess={handlePatientAdded} />
                 </SheetContent>
               </Sheet>
@@ -272,7 +277,7 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
           <div className="mt-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-[#E8E6E0] shadow-sm transition-shadow hover:shadow-md">
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-[11px] font-bold text-[#6B7870] uppercase tracking-tight">Total Patients</span>
+                <span className="text-[11px] font-bold text-[#6B7870] uppercase tracking-tight">{t("totalPatients")}</span>
                 <div className="flex items-end gap-2">
                   <span className="text-[20px] font-bold leading-none tracking-tight text-[#1A1F1E] tabular-nums">
                     {patients.length.toLocaleString()}
@@ -287,7 +292,7 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
 
             <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-[#E8E6E0] shadow-sm transition-shadow hover:shadow-md">
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-[11px] font-bold text-[#6B7870] uppercase tracking-tight">High Risk</span>
+                <span className="text-[11px] font-bold text-[#6B7870] uppercase tracking-tight">{t("highRisk")}</span>
                 <div className="flex items-end gap-2">
                   <span className="text-[20px] font-bold leading-none tracking-tight text-[#1A1F1E] tabular-nums">
                     {Math.floor(patients.length * 0.25) || 12}
@@ -302,13 +307,13 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
 
             <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-[#E8E6E0] shadow-sm transition-shadow hover:shadow-md">
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-[11px] font-bold text-[#6B7870] uppercase tracking-tight">New This Week</span>
+                <span className="text-[11px] font-bold text-[#6B7870] uppercase tracking-tight">{t("newThisWeek")}</span>
                 <div className="flex items-end gap-2">
                   <span className="text-[20px] font-bold leading-none tracking-tight text-[#1A1F1E] tabular-nums">
                     {Math.floor(patients.length * 0.1) || 4}
                   </span>
                   <span className="mb-0.5 rounded-lg bg-[#1A5345] px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
-                    Steady
+                    {t("steady")}
                   </span>
                 </div>
               </div>
@@ -326,7 +331,7 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
               />
               <Input
                 type="search"
-                placeholder="Search by name or ID..."
+                placeholder={ts("searchByNameOrId")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-8 w-full rounded-lg border border-[#E8E6E0] bg-white pl-9 pr-3 text-[12px] font-medium text-[#1A1F1E] shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:border-[#1A5345]/30 focus-visible:ring-0"
@@ -361,10 +366,10 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
 
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
                 <SelectTrigger className="h-8 w-full sm:w-[130px] rounded-lg border border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A1F1E] hover:bg-slate-50 shadow-sm transition-all focus:ring-0">
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder={t("statusFilter")} />
                 </SelectTrigger>
                 <SelectContent className="rounded-lg border border-[#cfd9d5] bg-white shadow-lg">
-                  <SelectItem value="all" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">All status</SelectItem>
+                  <SelectItem value="all" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">{t("allStatus")}</SelectItem>
                   <SelectItem value="in-treatment" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">In Treatment</SelectItem>
                   <SelectItem value="discharged" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">Discharged</SelectItem>
                   <SelectItem value="monitoring" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">Monitoring</SelectItem>
@@ -373,7 +378,7 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
 
               <Select value={riskFilter} onValueChange={(v) => setRiskFilter(v as RiskFilter)}>
                 <SelectTrigger className="h-8 w-full sm:w-[130px] rounded-lg border border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A1F1E] hover:bg-slate-50 shadow-sm transition-all focus:ring-0">
-                  <SelectValue placeholder="Risk level" />
+                  <SelectValue placeholder={t("riskFilter")} />
                 </SelectTrigger>
                 <SelectContent className="rounded-lg border border-[#cfd9d5] bg-white shadow-lg">
                   <SelectItem value="all" className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">All risk</SelectItem>
@@ -403,13 +408,13 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
               <table className="w-full text-left border-collapse bg-white">
               <thead className="sticky top-0 z-10">
                 <tr className="text-[15px] font-serif font-bold text-[#1A1F1E] bg-[#F4F3ED]/90 backdrop-blur-md shadow-[0_1px_0_0_#E8E6E0] transition-colors">
-                  <th className="py-4 pr-4 pl-4">Patient Name</th>
-                  <th className="py-4 px-4">Condition</th>
-                  <th className="py-4 px-4">Department</th>
-                  <th className="py-4 px-4">Age / Sex</th>
-                  <th className="py-4 px-4">Last Visit</th>
-                  <th className="py-4 px-4">Status</th>
-                  <th className="py-4 px-4">Risk Level</th>
+                  <th className="py-4 pe-4 ps-4">{ts("tablePatientName")}</th>
+                  <th className="py-4 px-4">{ts("tableCondition")}</th>
+                  <th className="py-4 px-4">{ts("department")}</th>
+                  <th className="py-4 px-4">{ts("tableAgeSex")}</th>
+                  <th className="py-4 px-4">{ts("tableLastVisit")}</th>
+                  <th className="py-4 px-4">{ts("tableStatus")}</th>
+                  <th className="py-4 px-4">{ts("tableRiskLevel")}</th>
                   <th className="py-4 pl-4 pr-4 text-right"></th>
                 </tr>
               </thead>
@@ -447,7 +452,7 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                         <div className="flex size-14 items-center justify-center rounded-full bg-slate-50 border border-[#E8E6E0]/60 mb-4 ring-4 ring-slate-50/50">
                           <SearchIcon className="size-5 text-muted-foreground/60" />
                         </div>
-                        <h3 className="text-[15px] font-bold text-[#1A1F1E]">No patients found</h3>
+                        <h3 className="text-[15px] font-bold text-[#1A1F1E]">{t("noPatients")}</h3>
                         <p className="text-[14px] font-medium text-muted-foreground mt-1">Try adjusting your search criteria.</p>
                       </div>
                     </td>
@@ -541,22 +546,22 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                                 <Link href={`/assistant-patients/${patient.id}`}>
                                   <DropdownMenuItem className="rounded-lg p-2.5 cursor-pointer font-medium text-[#6B7870] focus:bg-slate-50 focus:text-[#1A1F1E] flex items-center gap-2">
                                     <FileTextIcon className="size-4 text-[#1A5345]" />
-                                    View Full Record
+                                    {t("viewFullRecord")}
                                   </DropdownMenuItem>
                                 </Link>
                                 <DropdownMenuItem className="rounded-lg p-2.5 cursor-pointer font-medium text-[#6B7870] focus:bg-slate-50 focus:text-[#1A1F1E] flex items-center gap-2">
                                   <MessageSquareIcon className="size-4 text-[#E89042]" />
-                                  Send Message
+                                  {t("sendMessage")}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setScheduleVisitPatient(patient)} className="rounded-lg p-2.5 cursor-pointer font-medium text-[#6B7870] focus:bg-slate-50 focus:text-[#1A1F1E] flex items-center gap-2">
                                   <CalendarIcon className="size-4 text-[#E8345E]" />
-                                  Schedule Visit
+                                  {t("scheduleVisit")}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-[#E8E6E0]/60 my-1" />
                                 <AlertDialogTrigger asChild>
                                   <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="rounded-lg p-2.5 cursor-pointer font-semibold text-red-600 focus:text-red-700 focus:bg-red-50 flex items-center gap-2">
                                     <ArchiveIcon className="size-4" />
-                                    Archive Patient
+                                    {t("archivePatient")}
                                   </DropdownMenuItem>
                                 </AlertDialogTrigger>
                               </DropdownMenuContent>
@@ -564,7 +569,7 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
 
                             <AlertDialogContent className="rounded-2xl border-[#E8E6E0]/60 shadow-2xl p-6 sm:max-w-[425px]">
                               <AlertDialogHeader className="mb-2">
-                                <AlertDialogTitle className="text-xl font-bold text-[#1A1F1E]">Archive Patient</AlertDialogTitle>
+                                <AlertDialogTitle className="text-xl font-bold text-[#1A1F1E]">{t("archiveTitle")}</AlertDialogTitle>
                                 <AlertDialogDescription className="text-[14px] text-muted-foreground leading-relaxed mt-2">
                                   Are you sure you want to archive <span className="font-semibold text-[#1A1F1E]">{patient.fullName}</span>? This action requires doctor approval. A request will be sent to the assigned doctor.
                                 </AlertDialogDescription>
@@ -615,7 +620,7 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                     <div className="flex size-14 items-center justify-center rounded-full bg-slate-50 border border-[#E8E6E0]/60 mb-4 ring-4 ring-slate-50/50">
                       <SearchIcon className="size-5 text-muted-foreground/60" />
                     </div>
-                    <h3 className="text-[15px] font-bold text-[#1A1F1E]">No patients found</h3>
+                    <h3 className="text-[15px] font-bold text-[#1A1F1E]">{t("noPatients")}</h3>
                     <p className="text-[14px] font-medium text-muted-foreground mt-1">Try adjusting your search criteria.</p>
                   </div>
                 </div>
@@ -677,13 +682,13 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="gap-2.5 text-[13px] font-medium text-[#1A1F1E] cursor-pointer rounded-lg focus:bg-[#F9F8F5] py-2.5">
                                   <DownloadIcon className="size-3.5 text-[#6B7870]" />
-                                  Export Record
+                                  {ts("export")} Record
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-[#E8E6E0]/60 my-1.5" />
                                 <AlertDialogTrigger asChild>
                                   <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2.5 text-[13px] font-bold text-red-600 focus:text-red-700 cursor-pointer rounded-lg focus:bg-red-50 py-2.5">
                                     <ArchiveIcon className="size-3.5" />
-                                    Archive Patient
+                                    {t("archivePatient")}
                                   </DropdownMenuItem>
                                 </AlertDialogTrigger>
                               </DropdownMenuContent>
@@ -691,7 +696,7 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
 
                             <AlertDialogContent className="rounded-3xl border border-[#E8E6E0]/60 shadow-2xl bg-white p-6 sm:max-w-[440px]">
                               <AlertDialogHeader className="mb-2">
-                                <AlertDialogTitle className="text-[22px] font-bold text-[#1A1F1E] font-serif tracking-tight">Archive Patient</AlertDialogTitle>
+                                <AlertDialogTitle className="text-[22px] font-bold text-[#1A1F1E] font-serif tracking-tight">{t("archiveTitle")}</AlertDialogTitle>
                                 <AlertDialogDescription className="text-[14px] text-muted-foreground leading-relaxed mt-2">
                                   Are you sure you want to archive <span className="font-bold text-[#1A1F1E]">{patient.fullName}</span>? This action requires doctor approval. A request will be sent to the assigned doctor.
                                 </AlertDialogDescription>
@@ -831,7 +836,7 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
       >
         <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 shadow-2xl bg-white gap-0">
           <div className="bg-[#F9F8F5] border-b border-[#E8E6E0]/60 px-6 py-5 flex flex-col gap-1.5">
-            <DialogTitle className="text-xl font-bold text-[#1A1F1E] font-serif">Schedule Visit</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-[#1A1F1E] font-serif">{t("scheduleVisit")}</DialogTitle>
             <DialogDescription className="text-[14px] text-muted-foreground font-medium">
               Book a new appointment for <span className="font-bold text-[#1A1F1E]">{scheduleVisitPatient?.fullName}</span>.
             </DialogDescription>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { useTranslations } from "next-intl"
 import { DoctorCard } from "./DoctorCard"
 import { useAssistantDoctorsDirectory } from "./useAssistantDoctors"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { SearchIcon, XIcon, UsersIcon, ActivityIcon, ClockIcon, PhoneOffIcon, Loader2Icon } from "lucide-react"
 
 export function DoctorDirectoryContainer() {
+  const t = useTranslations("assistant.pages.doctors")
   const doctorsQuery = useAssistantDoctorsDirectory()
   const doctors = doctorsQuery.data ?? []
   const [search, setSearch] = useState("")
@@ -52,7 +54,7 @@ export function DoctorDirectoryContainer() {
             </div>
             <div>
               <div className="text-[18px] font-bold text-[#1A1F1E]">{stats.available}</div>
-              <div className="text-[11px] font-medium text-[#6B7870]">Available</div>
+              <div className="text-[11px] font-medium text-[#6B7870]">{t("available")}</div>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
@@ -61,7 +63,7 @@ export function DoctorDirectoryContainer() {
             </div>
             <div>
               <div className="text-[18px] font-bold text-[#1A1F1E]">{stats.inConsultation}</div>
-              <div className="text-[11px] font-medium text-[#6B7870]">In Consult</div>
+              <div className="text-[11px] font-medium text-[#6B7870]">{t("inConsult")}</div>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
@@ -70,7 +72,7 @@ export function DoctorDirectoryContainer() {
             </div>
             <div>
               <div className="text-[18px] font-bold text-[#1A1F1E]">{stats.away}</div>
-              <div className="text-[11px] font-medium text-[#6B7870]">Away</div>
+              <div className="text-[11px] font-medium text-[#6B7870]">{t("away")}</div>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
@@ -79,7 +81,7 @@ export function DoctorDirectoryContainer() {
             </div>
             <div>
               <div className="text-[18px] font-bold text-[#1A1F1E]">{stats.totalWaiting}</div>
-              <div className="text-[11px] font-medium text-[#6B7870]">Waiting</div>
+              <div className="text-[11px] font-medium text-[#6B7870]">{t("waiting")}</div>
             </div>
           </div>
         </div>
@@ -88,7 +90,7 @@ export function DoctorDirectoryContainer() {
           <div className="relative flex-1">
             <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9CA3AF]" />
             <Input
-              placeholder="Search doctors..."
+              placeholder={t("searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-10 border-[#E8E6E0] bg-white pl-9 shadow-sm"
@@ -104,10 +106,10 @@ export function DoctorDirectoryContainer() {
           </div>
           <Select value={deptFilter} onValueChange={setDeptFilter}>
             <SelectTrigger className="h-10 w-full border-[#E8E6E0] bg-white shadow-sm sm:w-[160px]">
-              <SelectValue placeholder="Department" />
+              <SelectValue placeholder={t("allDepts")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Depts</SelectItem>
+              <SelectItem value="all">{t("allDepts")}</SelectItem>
               {departments.map((dept) => (
                 <SelectItem key={dept} value={dept}>
                   {dept.replace(/\b\w/g, (char) => char.toUpperCase())}
@@ -117,20 +119,20 @@ export function DoctorDirectoryContainer() {
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="h-10 w-full border-[#E8E6E0] bg-white shadow-sm sm:w-[140px]">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={t("allStatus")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="available">Available</SelectItem>
-              <SelectItem value="in-consultation">In Consult</SelectItem>
-              <SelectItem value="away">Away</SelectItem>
+              <SelectItem value="all">{t("allStatus")}</SelectItem>
+              <SelectItem value="available">{t("available")}</SelectItem>
+              <SelectItem value="in-consultation">{t("inConsult")}</SelectItem>
+              <SelectItem value="away">{t("away")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {(search || deptFilter !== "all" || statusFilter !== "all") && (
           <div className="text-[12px] font-medium text-[#6B7870]">
-            Showing {filteredDoctors.length} of {doctors.length}
+            {t("showingCount", { shown: filteredDoctors.length, total: doctors.length })}
           </div>
         )}
 
@@ -140,8 +142,8 @@ export function DoctorDirectoryContainer() {
           </div>
         ) : doctorsQuery.isError ? (
           <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white px-6 py-16 text-center">
-            <p className="text-[14px] font-medium text-[#1A1F1E]">Could not load doctors</p>
-            <p className="mt-1 text-[12px] text-[#6B7870]">Check your connection and try again.</p>
+            <p className="text-[14px] font-medium text-[#1A1F1E]">{t("loadErrorTitle")}</p>
+            <p className="mt-1 text-[12px] text-[#6B7870]">{t("loadErrorHint")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -156,8 +158,8 @@ export function DoctorDirectoryContainer() {
             <div className="flex size-12 items-center justify-center rounded-full bg-[#F5F5F3]">
               <SearchIcon className="size-6 text-[#9CA3AF]" />
             </div>
-            <p className="mt-3 text-[14px] font-medium text-[#1A1F1E]">No doctors found</p>
-            <p className="mt-1 text-[12px] text-[#6B7870]">Adjust your search or filters to see more results.</p>
+            <p className="mt-3 text-[14px] font-medium text-[#1A1F1E]">{t("emptyTitle")}</p>
+            <p className="mt-1 text-[12px] text-[#6B7870]">{t("emptyHint")}</p>
           </div>
         ) : null}
       </div>

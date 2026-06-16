@@ -1,0 +1,496 @@
+{
+  "common": {
+    "language": {
+      "label": "اللغة",
+      "english": "الإنجليزية",
+      "arabic": "العربية"
+    },
+    "accountMenu": {
+      "upgradePro": "الترقية إلى Pro",
+      "account": "الحساب",
+      "billing": "الفوترة",
+      "notifications": "الإشعارات",
+      "logOut": "تسجيل الخروج"
+    },
+    "roles": {
+      "assistant": "مساعد",
+      "doctor": "طبيب"
+    },
+    "search": {
+      "placeholder": "ابحث عن المرضى والمواعيد...",
+      "dialogTitle": "بحث",
+      "dialogDescription": "ابحث في المرضى والمواعيد والصفحات",
+      "inputPlaceholder": "ابحث في المرضى والمواعيد والصفحات...",
+      "empty": "لا توجد نتائج.",
+      "open": "فتح البحث",
+      "pagesGroup": "الصفحات",
+      "quickNav": "تنقل سريع",
+      "browseAllPatients": "تصفح كل المرضى"
+    }
+  },
+  "assistant": {
+    "portalName": "بوابة المساعد",
+    "nav": {
+      "commandCenter": "مركز القيادة",
+      "inbox": "البريد الوارد",
+      "chats": "المحادثات",
+      "patients": "المرضى",
+      "appointments": "المواعيد",
+      "queue": "الطابور",
+      "doctorDirectory": "دليل الأطباء",
+      "doctorSchedule": "جدول الأطباء",
+      "procedures": "الإجراءات",
+      "medications": "الأدوية",
+      "account": "الحساب",
+      "settings": "الإعدادات"
+    },
+    "header": {
+      "default": {
+        "title": "بوابة المساعد",
+        "subtitle": "عمليات مكتب العيادة وتدفق المرضى"
+      },
+      "accountNotifications": {
+        "title": "الإشعارات",
+        "subtitle": "تنبيهات مكتب العيادة وعناصر الإجراء"
+      },
+      "accountSettings": {
+        "title": "الإعدادات",
+        "subtitle": "الأمان والإشعارات وتفضيلات مساحة العمل"
+      },
+      "accountActivity": {
+        "title": "سجل النشاط",
+        "subtitle": "السجل الكامل لإجراءات المساعد"
+      },
+      "account": {
+        "title": "الحساب",
+        "subtitle": "الملف الشخصي والجدول والنشاط"
+      },
+      "doctorSchedule": {
+        "title": "جدول الأطباء",
+        "subtitle": "الساعات الأسبوعية والجلسات اليومية وضوابط الإيقاف"
+      },
+      "doctorDirectory": {
+        "title": "دليل الأطباء",
+        "subtitle": "توفر الطاقم وأحمال الطابور"
+      },
+      "dashboard": {
+        "title": "مركز قيادة اليوم",
+        "subtitle": "طابور الاستقبال المباشر والمواعيد والفرز"
+      },
+      "inbox": {
+        "title": "البريد الوارد",
+        "subtitle": "المهام والرسائل التي تحتاج انتباهًا"
+      },
+      "chats": {
+        "title": "المحادثات",
+        "subtitle": "محادثات مع المرضى والطاقم"
+      },
+      "patients": {
+        "title": "المرضى",
+        "subtitle": "السجلات والزيارات وخطط الرعاية"
+      },
+      "appointments": {
+        "title": "المواعيد",
+        "subtitle": "إدارة الجدول والحجوزات"
+      },
+      "queueDoctors": {
+        "title": "الأطباء",
+        "subtitle": "تسجيل الحضور والاستراحات وأوقات بدء الطابور"
+      },
+      "queueHistory": {
+        "title": "الزيارات السابقة",
+        "subtitle": "المكتملة وعدم الحضور والملغاة"
+      },
+      "queueSchedule": {
+        "title": "المتوقع اليوم",
+        "subtitle": "الوصولات المجدولة غير الموجودة في العيادة بعد"
+      },
+      "queueLiveDesk": {
+        "title": "المكتب المباشر",
+        "subtitle": "الطابور النشط ومسار الاستشارة"
+      },
+      "queue": {
+        "title": "طابور المرضى",
+        "subtitle": "المكتب المباشر والمتوقع اليوم والسجل"
+      },
+      "procedures": {
+        "title": "الإجراءات",
+        "subtitle": "الطلبات والمتطلبات والمتابعة"
+      },
+      "medications": {
+        "title": "الأدوية",
+        "subtitle": "التذكيرات والعلامات والتصعيد"
+      }
+    },
+    "shared": {
+      "breadcrumbDashboard": "لوحة التحكم",
+      "export": "تصدير",
+      "list": "قائمة",
+      "calendar": "تقويم",
+      "grid": "شبكة",
+      "cancel": "إلغاء",
+      "close": "إغلاق",
+      "book": "حجز",
+      "details": "التفاصيل",
+      "success": "نجاح",
+      "error": "خطأ",
+      "goBack": "رجوع",
+      "resetAll": "إعادة تعيين الكل",
+      "filterView": "تصفية العرض",
+      "advancedFilters": "فلاتر متقدمة",
+      "searchByNameOrId": "ابحث بالاسم أو الرقم...",
+      "clearSearch": "مسح البحث",
+      "male": "ذكر",
+      "female": "أنثى",
+      "yrs": "سنة",
+      "patient": "مريض",
+      "doctor": "طبيب",
+      "department": "القسم",
+      "allDepartments": "كل الأقسام",
+      "allDoctors": "كل الأطباء",
+      "fromDate": "من تاريخ",
+      "toDate": "إلى تاريخ",
+      "tablePatientName": "اسم المريض",
+      "tableCondition": "الحالة",
+      "tableDoctor": "الطبيب",
+      "tableAgeSex": "العمر / الجنس",
+      "tableLastVisit": "آخر زيارة",
+      "tableStatus": "الحالة",
+      "tableRiskLevel": "مستوى الخطر",
+      "statusScheduled": "مجدول",
+      "statusConfirmed": "مؤكد",
+      "statusCompleted": "مكتمل",
+      "statusCancelled": "ملغى",
+      "statusInTreatment": "قيد العلاج",
+      "statusDischarged": "خرج من العلاج",
+      "statusMonitoring": "تحت المراقبة",
+      "riskHigh": "خطر مرتفع",
+      "riskModerate": "متوسط",
+      "riskModerateRisk": "خطر متوسط",
+      "riskStable": "مستقر",
+      "weekdaySun": "أحد",
+      "weekdayMon": "إثنين",
+      "weekdayTue": "ثلاثاء",
+      "weekdayWed": "أربعاء",
+      "weekdayThu": "خميس",
+      "weekdayFri": "جمعة",
+      "weekdaySat": "سبت"
+    },
+    "pages": {
+      "appointments": {
+        "breadcrumb": "المواعيد",
+        "title": "إدارة المواعيد",
+        "subtitle": "راقب وأدر كل حجوزات المرضى والجداول السريرية.",
+        "newAppointment": "موعد جديد",
+        "allBookings": "كل الحجوزات",
+        "noAppointments": "لا توجد مواعيد",
+        "generalCheckup": "فحص عام",
+        "unnamedPatient": "مريض بدون اسم",
+        "unnamedDoctor": "طبيب بدون اسم",
+        "virtualVisit": "زيارة افتراضية",
+        "clinicVisit": "زيارة عيادة",
+        "bookingTypeClinic": "زيارة عيادة (حضوري)",
+        "bookingTypeVirtual": "زيارة افتراضية (عن بُعد)",
+        "viewDetails": "عرض التفاصيل",
+        "editSchedule": "تعديل الجدول",
+        "confirmBooking": "تأكيد الحجز",
+        "markCompleted": "تعيين كمكتمل",
+        "cancelAppointment": "إلغاء الموعد",
+        "schedule": "الجدول",
+        "practitioner": "الممارس",
+        "clinicalContext": "السياق السريري",
+        "visitReason": "سبب الزيارة",
+        "accessMedicalChart": "فتح السجل الطبي",
+        "bookingType": "نوع الحجز",
+        "date": "التاريخ",
+        "time": "الوقت",
+        "searchPatients": "ابحث عن المرضى...",
+        "searchDoctors": "ابحث عن الأطباء...",
+        "selectBookingType": "اختر نوع الحجز",
+        "selectReason": "اختر سببًا...",
+        "chooseSlot": "اختر موعدًا",
+        "saveChanges": "حفظ التغييرات",
+        "updating": "جاري التحديث...",
+        "processing": "جاري المعالجة...",
+        "cancelDialogTitle": "إلغاء الموعد؟",
+        "cancelReason": "سبب الإلغاء",
+        "cancelReasonPlaceholder": "سبب سريري أو إداري…",
+        "yesCancel": "نعم، إلغاء",
+        "cancelFor": "إلغاء موعد",
+        "toastCancelled": "تم إلغاء الموعد بنجاح.",
+        "toastCancelFailed": "تعذر إلغاء الموعد.",
+        "toastCreated": "تم إنشاء موعد جديد.",
+        "toastCreateFailed": "تعذر إنشاء الموعد.",
+        "toastUpdated": "تم تحديث الموعد.",
+        "toastUpdateFailed": "تعذر تحديث الموعد.",
+        "defaultClinicalContext": "تقييم صحة القلب والأوعية العام ومراقبة العلامات الحيوية."
+      },
+      "patients": {
+        "breadcrumb": "المرضى",
+        "title": "دليل المرضى",
+        "subtitle": "إدارة {count} سجل قلب وأوعية دموية",
+        "addPatient": "إضافة مريض",
+        "registerNewPatient": "تسجيل مريض جديد",
+        "totalPatients": "إجمالي المرضى",
+        "highRisk": "خطر مرتفع",
+        "newThisWeek": "جدد هذا الأسبوع",
+        "steady": "مستقر",
+        "allStatus": "كل الحالات",
+        "allRisk": "كل مستويات الخطر",
+        "statusFilter": "الحالة",
+        "riskFilter": "مستوى الخطر",
+        "noPatients": "لا يوجد مرضى",
+        "noPatientsHint": "جرّب تعديل معايير البحث.",
+        "viewFullRecord": "عرض السجل الكامل",
+        "sendMessage": "إرسال رسالة",
+        "scheduleVisit": "جدولة زيارة",
+        "archivePatient": "أرشفة المريض",
+        "archiveTitle": "أرشفة المريض",
+        "sendRequest": "إرسال الطلب",
+        "lastVisit": "آخر زيارة",
+        "gender": "الجنس",
+        "viewRecord": "عرض السجل",
+        "editPatient": "تعديل المريض",
+        "changeStatus": "تغيير الحالة",
+        "exportRecord": "تصدير السجل",
+        "showingRange": "عرض {from} إلى {to} من {total}",
+        "availableSlots": "المواعيد المتاحة",
+        "selectDateFirst": "يرجى اختيار تاريخ أولاً",
+        "assignedDoctor": "الطبيب المعيّن",
+        "selectDoctor": "اختر الطبيب",
+        "visitType": "نوع الزيارة",
+        "routineFollowUp": "متابعة روتينية",
+        "initialConsultation": "استشارة أولية",
+        "diagnosticTest": "فحص تشخيصي",
+        "urgentCare": "رعاية عاجلة",
+        "notesOptional": "ملاحظات (اختياري)",
+        "visitScheduled": "تم جدولة الزيارة"
+      },
+      "queue": {
+        "title": "طابور المرضى",
+        "live": "مباشر",
+        "loading": "جاري تحميل الطابور…",
+        "loadError": "تعذر تحميل طابور المرضى.",
+        "searchPlaceholder": "ابحث عن مريض أو طبيب…",
+        "noPendingArrivals": "لا وصولات معلّقة.",
+        "noPatientsInCategory": "لا مرضى في هذه الفئة.",
+        "statTotalToday": "إجمالي اليوم",
+        "statInConsultation": "قيد الاستشارة",
+        "statWaiting": "في الانتظار",
+        "statArrived": "وصل",
+        "statScheduled": "مجدول",
+        "statCompleted": "مكتمل",
+        "statAvgWait": "متوسط الانتظار"
+      },
+      "doctors": {
+        "available": "متاح",
+        "inConsult": "في استشارة",
+        "away": "غائب",
+        "waiting": "في الانتظار",
+        "searchPlaceholder": "ابحث عن الأطباء...",
+        "allDepts": "كل الأقسام",
+        "allStatus": "كل الحالات",
+        "showingCount": "عرض {shown} من {total}",
+        "loadErrorTitle": "تعذر تحميل الأطباء",
+        "loadErrorHint": "تحقق من الاتصال وحاول مرة أخرى.",
+        "emptyTitle": "لا يوجد أطباء",
+        "emptyHint": "عدّل البحث أو الفلاتر لعرض المزيد."
+      }
+    }
+  },
+  "doctor": {
+    "portalName": "بوابة الطبيب",
+    "header": {
+      "default": {
+        "title": "بوابة الطبيب",
+        "subtitle": "نظرة عامة ورؤى المرضى"
+      },
+      "schedule": {
+        "title": "الجدول",
+        "subtitle": "التوفر الأسبوعي وساعات العيادة"
+      },
+      "consultation": {
+        "title": "الاستشارة",
+        "subtitle": "استشارة المريض النشطة"
+      },
+      "queue": {
+        "title": "الطابور",
+        "subtitle": "طابور مرضى اليوم"
+      },
+      "appointments": {
+        "title": "المواعيد",
+        "subtitle": "إدارة مواعيد المرضى"
+      },
+      "consultationReport": {
+        "title": "تقرير الاستشارة",
+        "subtitle": "تقرير الاستشارة الكامل"
+      },
+      "vitals": {
+        "title": "العلامات الحيوية والقراءات",
+        "subtitle": "تفاصيل سجل المريض"
+      },
+      "medications": {
+        "title": "الأدوية",
+        "subtitle": "تفاصيل سجل المريض"
+      },
+      "diagnosisDetails": {
+        "title": "تفاصيل التشخيص",
+        "subtitle": "سجل الحالة الكامل"
+      },
+      "diagnoses": {
+        "title": "التشخيصات والحالات",
+        "subtitle": "تفاصيل سجل المريض"
+      },
+      "labResults": {
+        "title": "نتائج المختبر",
+        "subtitle": "تفاصيل سجل المريض"
+      },
+      "documents": {
+        "title": "المستندات والملفات",
+        "subtitle": "تفاصيل سجل المريض"
+      },
+      "consultationHistory": {
+        "title": "سجل الاستشارات",
+        "subtitle": "تفاصيل سجل المريض"
+      },
+      "patientProfile": {
+        "title": "ملف المريض",
+        "subtitle": "ملف المريض والروابط السريعة"
+      },
+      "patients": {
+        "title": "المرضى",
+        "subtitle": "دليل المرضى والروابط السريعة"
+      },
+      "patientPrescriptions": {
+        "title": "وصفات المريض",
+        "subtitle": "الوصفات والالتزام لهذا المريض"
+      },
+      "prescriptions": {
+        "title": "الوصفات",
+        "subtitle": "إدارة وصفات المرضى"
+      },
+      "assistants": {
+        "title": "المساعدون",
+        "subtitle": "المساعدون السريريون المرتبطون"
+      },
+      "messages": {
+        "title": "الرسائل",
+        "subtitle": "محادثات مع المرضى والطاقم"
+      },
+      "accountNotifications": {
+        "title": "الإشعارات",
+        "subtitle": "تنبيهات وتحديثات لممارستك"
+      },
+      "account": {
+        "title": "الحساب",
+        "subtitle": "الملف الشخصي وإعدادات الممارسة"
+      },
+      "dashboard": {
+        "title": "لوحة الطبيب",
+        "subtitle": "نظرة عامة ورؤى المرضى"
+      }
+    }
+  },
+  "chat": {
+    "sidebar": {
+      "title": "المحادثات",
+      "subtitle": "ابدأ محادثة جديدة",
+      "newConversation": "محادثة جديدة",
+      "searchPlaceholder": "ابحث في الرسائل أو الأشخاص",
+      "tabChat": "محادثة",
+      "tabCall": "مكالمة",
+      "tabContacts": "جهات الاتصال",
+      "emptyTitle": "لا توجد محادثات بعد",
+      "emptyHint": "ابدأ محادثة جديدة بزر + للتواصل مع طبيب أو مريض.",
+      "loadingDirectory": "جاري تحميل الدليل...",
+      "directoryError": "تعذر التحميل. تحقق من الاتصال بالخادم.",
+      "noResults": "لا توجد نتائج لـ \"{query}\"",
+      "noUsers": "لا يوجد مستخدمون متاحون."
+    },
+    "newChat": {
+      "withPatient": "بدء محادثة مع مريض",
+      "withDoctor": "بدء محادثة مع طبيب",
+      "withDoctorOrPatient": "بدء محادثة مع طبيب أو مريض",
+      "searchPatients": "ابحث عن المرضى...",
+      "searchDoctors": "ابحث عن الأطباء...",
+      "searchDoctorsOrPatients": "ابحث عن الأطباء أو المرضى..."
+    },
+    "empty": {
+      "title": "رسائلك",
+      "subtitle": "اختر محادثة من القائمة لبدء الدردشة."
+    },
+    "preview": {
+      "photo": "صورة",
+      "document": "مستند",
+      "typing": "يكتب"
+    },
+    "status": {
+      "online": "متصل",
+      "typing": "يكتب"
+    },
+    "call": {
+      "missedVideo": "مكالمة فيديو فائتة",
+      "missedVoice": "مكالمة فائتة",
+      "outgoingVideo": "حاولت إجراء مكالمة فيديو",
+      "outgoingVoice": "حاولت إجراء مكالمة",
+      "incomingVideo": "مكالمة فيديو واردة...",
+      "incomingVoice": "مكالمة واردة...",
+      "calling": "جاري الاتصال...",
+      "youTriedVideo": "حاولت إجراء مكالمة فيديو",
+      "missedVideoShort": "مكالمة فيديو فائتة",
+      "youTriedVoice": "حاولت إجراء مكالمة",
+      "missedVoiceShort": "مكالمة فائتة"
+    },
+    "roles": {
+      "doctor": "طبيب",
+      "patient": "مريض",
+      "assistant": "مساعد سريري",
+      "contact": "جهة اتصال"
+    },
+    "composer": {
+      "writeMessage": "اكتب رسالتك...",
+      "addMessage": "أضف رسالة...",
+      "addCaption": "أضف تعليقًا...",
+      "addCaptionHint": "أضف تعليقًا ثم اضغط إرسال",
+      "addMessageHint": "أضف رسالة (اختياري) ثم اضغط إرسال",
+      "you": "أنت",
+      "justNow": "الآن"
+    },
+    "actions": {
+      "deleteMessage": "حذف الرسالة",
+      "removeAttachment": "إزالة المرفق",
+      "startVoiceCall": "بدء مكالمة صوتية",
+      "startVideoCall": "بدء مكالمة فيديو",
+      "emailContact": "مراسلة بالبريد",
+      "moreOptions": "المزيد من الخيارات",
+      "closeImagePreview": "إغلاق معاينة الصورة",
+      "imagePreview": "معاينة الصورة",
+      "openImage": "فتح الصورة {fileName}"
+    },
+    "contactPanel": {
+      "specialty": "التخصص",
+      "email": "البريد الإلكتروني",
+      "clinicAddress": "عنوان العيادة",
+      "notifications": "الإشعارات",
+      "addToFavourites": "إضافة إلى المفضلة",
+      "mute": "كتم",
+      "clearChat": "مسح المحادثة",
+      "reportContact": "الإبلاغ عن جهة الاتصال"
+    },
+    "sharedMedia": {
+      "title": "الوسائط المشتركة",
+      "emptyHint": "ستظهر هنا الصور والملفات والروابط من هذه المحادثة.",
+      "noPhotos": "لم تُشارك صور بعد.",
+      "noFiles": "لم تُشارك ملفات بعد.",
+      "noLinks": "لم تُشارك روابط بعد.",
+      "photos": "الصور",
+      "files": "الملفات",
+      "links": "الروابط",
+      "photo": "صورة",
+      "file": "ملف",
+      "document": "مستند",
+      "sharedPhoto": "صورة مشتركة",
+      "close": "إغلاق"
+    }
+  }
+}

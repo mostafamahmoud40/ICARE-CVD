@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useTranslations } from "next-intl"
 import { SearchIcon, PlusIcon, Loader2Icon, PhoneIcon, UsersIcon, ImageIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
@@ -24,6 +25,7 @@ import {
 } from "./chat-message-preview"
 import type { ChatContact } from "./chat.types"
 import { getAuthUser } from "@/lib/auth-tokens"
+import { translateChatPreviewText, translateChatRole } from "./chat-i18n"
 
 interface ChatSidebarProps {
   contacts: ChatContact[]
@@ -42,6 +44,7 @@ export function ChatSidebar({
 }: ChatSidebarProps) {
   const queryClient = useQueryClient()
   const currentUser = getAuthUser()
+  const t = useTranslations("chat")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState<FilterTab>("chat")
@@ -94,34 +97,34 @@ export function ChatSidebar({
 
   const newChatDialogTitle =
     currentUser?.role === "doctor"
-      ? "Start chat with patient"
+      ? t("newChat.withPatient")
       : currentUser?.role === "patient"
-        ? "Start chat with doctor"
-        : "Start chat with doctor or patient"
+        ? t("newChat.withDoctor")
+        : t("newChat.withDoctorOrPatient")
 
   const newChatSearchPlaceholder =
     currentUser?.role === "doctor"
-      ? "Search patients..."
+      ? t("newChat.searchPatients")
       : currentUser?.role === "patient"
-        ? "Search doctors..."
-        : "Search doctors or patients..."
+        ? t("newChat.searchDoctors")
+        : t("newChat.searchDoctorsOrPatients")
 
   return (
-    <div className="flex h-full w-full flex-col border-r border-[#E8E6E0]/70 bg-[#F9F8F5]/80 backdrop-blur-md shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10 lg:w-[330px] shrink-0">
+    <div className="z-10 flex h-full w-full shrink-0 flex-col border-e border-[#E8E6E0]/70 bg-[#F9F8F5]/80 shadow-[4px_0_24px_rgba(0,0,0,0.02)] backdrop-blur-md lg:w-[330px]">
       {/* Header */}
       <div className="px-5 pt-5 pb-3">
-        <div className="flex items-center justify-between mb-1">
+        <div className="mb-1 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-[#1A1F1E]">Chats</h2>
-            <p className="text-[11px] text-[#6B7870]">Start New Conversation</p>
+            <h2 className="text-lg font-bold text-[#1A1F1E]">{t("sidebar.title")}</h2>
+            <p className="text-[11px] text-[#6B7870]">{t("sidebar.subtitle")}</p>
           </div>
 
           <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setSearchQuery("") }}>
             <DialogTrigger asChild>
               <button
                 type="button"
-                className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-[#1A5345] to-[#0F3D32] text-white shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 cursor-pointer"
-                aria-label="New conversation"
+                className="flex size-9 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-[#1A5345] to-[#0F3D32] text-white shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95"
+                aria-label={t("sidebar.newConversation")}
               >
                 <PlusIcon className="size-4" />
               </button>
@@ -135,29 +138,29 @@ export function ChatSidebar({
               </DialogHeader>
 
               <div className="relative mt-2 mb-3">
-                <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <SearchIcon className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder={newChatSearchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-11 rounded-xl border-[#E8E6E0]/80 bg-[#F9F8F5]/80 text-[14px] shadow-2xs transition-all focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#1A5345]/20 focus-visible:border-[#1A5345]"
+                  className="h-11 rounded-xl border-[#E8E6E0]/80 bg-[#F9F8F5]/80 ps-9 text-[14px] shadow-2xs transition-all focus-visible:border-[#1A5345] focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#1A5345]/20"
                   autoFocus
                 />
               </div>
 
-              <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+              <div className="custom-scrollbar max-h-[300px] space-y-2 overflow-y-auto pe-1">
                 {directoryQuery.isLoading ? (
                   <div className="flex items-center justify-center py-10 text-muted-foreground">
-                    <Loader2Icon className="size-5 animate-spin mr-2 text-[#1A5345]" />
-                    <span className="text-[13px] font-medium">Loading Directory...</span>
+                    <Loader2Icon className="me-2 size-5 animate-spin text-[#1A5345]" />
+                    <span className="text-[13px] font-medium">{t("sidebar.loadingDirectory")}</span>
                   </div>
                 ) : directoryQuery.isError ? (
-                  <div className="py-8 text-center text-[13px] text-destructive font-medium">
-                    Failed to load. Check server connection.
+                  <div className="py-8 text-center text-[13px] font-medium text-destructive">
+                    {t("sidebar.directoryError")}
                   </div>
                 ) : filteredDirectory.length === 0 ? (
-                  <div className="py-8 text-center text-[13px] text-muted-foreground font-medium">
-                    {searchQuery ? `No results for "${searchQuery}"` : "No users available."}
+                  <div className="py-8 text-center text-[13px] font-medium text-muted-foreground">
+                    {searchQuery ? t("sidebar.noResults", { query: searchQuery }) : t("sidebar.noUsers")}
                   </div>
                 ) : (
                   filteredDirectory.map((u) => {
@@ -176,7 +179,7 @@ export function ChatSidebar({
                             role: u.role,
                           })
                         }
-                        className="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all duration-300 border border-[#E8E6E0]/40 bg-white hover:shadow-md disabled:opacity-60 cursor-pointer shadow-2xs"
+                        className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-[#E8E6E0]/40 bg-white p-3 text-start shadow-2xs transition-all duration-300 hover:shadow-md disabled:opacity-60"
                       >
                         <div className="relative shrink-0">
                           <Avatar className="size-10 border border-slate-100 shadow-2xs relative bg-white">
@@ -191,14 +194,10 @@ export function ChatSidebar({
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="truncate font-bold text-[14px] text-[#1A1F1E]">{u.name}</p>
-                          <p className="truncate text-[11px] text-muted-foreground mt-0.5">
+                          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
                             {u.role === "doctor" && u.specialty
                               ? u.specialty
-                              : u.role === "patient"
-                                ? "Patient"
-                                : u.role === "assistant"
-                                  ? "Clinical assistant"
-                                  : u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                              : translateChatRole(u.role, t)}
                           </p>
                         </div>
                         {isPending && <Loader2Icon className="size-4 animate-spin shrink-0 text-muted-foreground" />}
@@ -215,12 +214,12 @@ export function ChatSidebar({
       {/* Search */}
       <div className="px-5 pb-3">
         <div className="relative">
-          <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <SearchIcon className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search messages or users"
+            placeholder={t("sidebar.searchPlaceholder")}
             value={filterSearch}
             onChange={(e) => setFilterSearch(e.target.value)}
-            className="h-10 rounded-xl border-[#E5EEEA]/60 bg-[#F9F8F5]/80 pl-9 text-[13px] shadow-sm transition-all duration-300 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#1A5345]/20 focus-visible:border-[#1A5345]/40"
+            className="h-10 rounded-xl border-[#E5EEEA]/60 bg-[#F9F8F5]/80 ps-9 text-[13px] shadow-sm transition-all duration-300 focus-visible:border-[#1A5345]/40 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#1A5345]/20"
           />
         </div>
       </div>
@@ -229,31 +228,31 @@ export function ChatSidebar({
       <div className="flex items-center gap-2 px-5 pb-3">
         <FilterTabButton
           icon={null}
-          label="Chat"
+          label={t("sidebar.tabChat")}
           isActive={activeTab === "chat"}
           onClick={() => setActiveTab("chat")}
         />
         <FilterTabButton
           icon={<PhoneIcon className="size-3" />}
-          label="Call"
+          label={t("sidebar.tabCall")}
           isActive={activeTab === "call"}
           onClick={() => setActiveTab("call")}
         />
         <FilterTabButton
           icon={<UsersIcon className="size-3" />}
-          label="Contacts"
+          label={t("sidebar.tabContacts")}
           isActive={activeTab === "contacts"}
           onClick={() => setActiveTab("contacts")}
         />
       </div>
 
       {/* Contact Lists */}
-      <div className="flex-1 overflow-y-auto px-2 custom-scrollbar">
+      <div className="custom-scrollbar flex-1 overflow-y-auto px-2">
         {filteredContacts.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-            <p className="text-[14px] font-semibold text-[#1A1F1E]">No conversations yet</p>
+            <p className="text-[14px] font-semibold text-[#1A1F1E]">{t("sidebar.emptyTitle")}</p>
             <p className="mt-2 max-w-[220px] text-[12px] text-muted-foreground">
-              Start a new chat with the + button to message a doctor or patient.
+              {t("sidebar.emptyHint")}
             </p>
           </div>
         ) : (
@@ -309,7 +308,9 @@ function ContactRowItem({
   isActive: boolean
   onClick: () => void
 }) {
+  const t = useTranslations("chat")
   const isTyping = contact.isTyping === true
+  const previewText = translateChatPreviewText(contact.lastMessage, t)
   const isDocument = isDocumentLastMessagePreview(contact.lastMessage)
   const isPhoto = isPhotoLastMessagePreview(contact.lastMessage)
   const isMissedVideoCall = contact.lastMessage === MISSED_VIDEO_CALL_LABEL
@@ -320,13 +321,13 @@ function ContactRowItem({
   const isIncomingVoiceRing = contact.lastMessage === INCOMING_VOICE_RING_LABEL
   const isOutgoingRing = contact.lastMessage === OUTGOING_RING_LABEL
 
-  let statusContent: React.ReactNode = <span className="truncate">{contact.lastMessage}</span>
+  let statusContent: React.ReactNode = <span className="truncate">{previewText}</span>
 
   if (isTyping) {
     statusContent = (
       <span className="flex items-center gap-1 truncate text-[14px] text-muted-foreground">
-        is typing
-        <span className="flex items-center gap-0.5 ml-0.5 mt-1.5">
+        {t("preview.typing")}
+        <span className="ms-0.5 mt-1.5 flex items-center gap-0.5">
           <span className="size-1 rounded-full bg-muted-foreground/60 animate-bounce" />
           <span className="size-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "150ms" }} />
           <span className="size-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "300ms" }} />
@@ -337,7 +338,7 @@ function ContactRowItem({
     statusContent = (
       <span className="flex items-center gap-1.5 truncate text-[14px] text-muted-foreground">
         <ImageIcon className="size-4 shrink-0 text-muted-foreground" strokeWidth={2} />
-        {CHAT_LAST_MESSAGE_PHOTO}
+        {t("preview.photo")}
       </span>
     )
   } else if (isDocument) {
@@ -347,7 +348,7 @@ function ContactRowItem({
           <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
           <polyline points="14 2 14 8 20 8" />
         </svg>
-        {CHAT_LAST_MESSAGE_DOCUMENT}
+        {t("preview.document")}
       </span>
     )
   } else if (isMissedVideoCall) {
@@ -358,14 +359,14 @@ function ContactRowItem({
           <rect x="2" y="6" width="12" height="12" rx="2" />
           <line x1="2" y1="6" x2="14" y2="18" />
         </svg>
-        {MISSED_VIDEO_CALL_LABEL}
+        {translateChatPreviewText(MISSED_VIDEO_CALL_LABEL, t)}
       </span>
     )
   } else if (isMissedVoiceCall) {
     statusContent = (
       <span className="flex items-center gap-1.5 truncate text-[14px] text-[#E8345E]">
         <PhoneIcon className="size-4 shrink-0" strokeWidth={2} />
-        {MISSED_VOICE_CALL_LABEL}
+        {translateChatPreviewText(MISSED_VOICE_CALL_LABEL, t)}
       </span>
     )
   } else if (isOutgoingVideoCall) {
@@ -375,14 +376,14 @@ function ContactRowItem({
           <path d="m22 8-6 4 6 4V8Z" />
           <rect x="2" y="6" width="12" height="12" rx="2" />
         </svg>
-        {OUTGOING_VIDEO_CALL_LABEL}
+        {translateChatPreviewText(OUTGOING_VIDEO_CALL_LABEL, t)}
       </span>
     )
   } else if (isOutgoingVoiceCall) {
     statusContent = (
       <span className="flex items-center gap-1.5 truncate text-[14px] text-[#6B7870]">
         <PhoneIcon className="size-4 shrink-0" strokeWidth={2} />
-        {OUTGOING_VOICE_CALL_LABEL}
+        {translateChatPreviewText(OUTGOING_VOICE_CALL_LABEL, t)}
       </span>
     )
   } else if (isIncomingVideoRing || isIncomingVoiceRing) {
@@ -396,20 +397,20 @@ function ContactRowItem({
         ) : (
           <PhoneIcon className="size-4 shrink-0" strokeWidth={2} />
         )}
-        {contact.lastMessage}
+        {translateChatPreviewText(contact.lastMessage, t)}
       </span>
     )
   } else if (isOutgoingRing) {
     statusContent = (
       <span className="flex items-center gap-1.5 truncate text-[14px] text-[#6B7870] animate-pulse">
         <PhoneIcon className="size-4 shrink-0" strokeWidth={2} />
-        {OUTGOING_RING_LABEL}
+        {translateChatPreviewText(OUTGOING_RING_LABEL, t)}
       </span>
     )
   } else {
     statusContent = (
       <span className="truncate text-[14px] text-muted-foreground">
-        {contact.lastMessage}
+        {previewText}
       </span>
     )
   }
@@ -424,7 +425,7 @@ function ContactRowItem({
     <button
       type="button"
       onClick={onClick}
-      className={`group flex w-full items-center gap-3 rounded-[12px] p-3.5 text-left transition-colors duration-200 ease-out hover:bg-slate-100/80 cursor-pointer ${
+      className={`group flex w-full cursor-pointer items-center gap-3 rounded-[12px] p-3.5 text-start transition-colors duration-200 ease-out hover:bg-slate-100/80 ${
         isActive ? "bg-slate-100/80" : "bg-transparent"
       }`}
     >
@@ -436,7 +437,7 @@ function ContactRowItem({
           </AvatarFallback>
         </Avatar>
         {contact.online && (
-          <span className="absolute bottom-0 right-0 size-3 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />
+          <span className="absolute bottom-0 end-0 size-3 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />
         )}
       </div>
 

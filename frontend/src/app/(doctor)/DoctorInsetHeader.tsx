@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { useQuery } from "@tanstack/react-query"
 import type { AuthUser } from "@/lib/auth-tokens"
 import {
@@ -40,141 +41,119 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
-type RouteEntry = { match: (pathname: string) => boolean; title: string; subtitle: string; icon: LucideIcon }
+type RouteEntry = { match: (pathname: string) => boolean; routeId: string; icon: LucideIcon }
 
 const ROUTES: RouteEntry[] = [
   {
     match: (p) => p === "/doctor-schedule",
-    title: "Schedule",
-    subtitle: "Weekly availability & clinic hours",
+    routeId: "schedule",
     icon: CalendarClockIcon,
   },
   {
     match: (p) => p.startsWith("/doctor-queue") && p.includes("/consultation"),
-    title: "Consultation",
-    subtitle: "Active patient consultation",
+    routeId: "consultation",
     icon: HeartPulseIcon,
   },
   {
     match: (p) => p === "/doctor-queue",
-    title: "Queue",
-    subtitle: "Today's patient queue",
+    routeId: "queue",
     icon: UsersIcon,
   },
   {
     match: (p) => p === "/doctor-appointments",
-    title: "Appointments",
-    subtitle: "Manage your patient appointments",
+    routeId: "appointments",
     icon: CalendarDaysIcon,
   },
   {
     match: (p) => /^\/doctor-patients\/[^/]+\/consultations\/[^/]+$/.test(p),
-    title: "Consultation report",
-    subtitle: "Full consultation report",
+    routeId: "consultationReport",
     icon: HeartPulseIcon,
   },
   {
     match: (p) => /^\/doctor-patients\/[^/]+\/vitals$/.test(p),
-    title: "Vitals & readings",
-    subtitle: "Patient record details",
+    routeId: "vitals",
     icon: HeartPulseIcon,
   },
   {
     match: (p) => /^\/doctor-patients\/[^/]+\/medications$/.test(p),
-    title: "Medications",
-    subtitle: "Patient record details",
+    routeId: "medications",
     icon: PillIcon,
   },
   {
     match: (p) => /^\/doctor-patients\/[^/]+\/diagnoses\/[^/]+$/.test(p),
-    title: "Diagnosis details",
-    subtitle: "Full condition record",
+    routeId: "diagnosisDetails",
     icon: HeartPulseIcon,
   },
   {
     match: (p) => /^\/doctor-patients\/[^/]+\/diagnoses$/.test(p),
-    title: "Diagnoses & conditions",
-    subtitle: "Patient record details",
+    routeId: "diagnoses",
     icon: HeartPulseIcon,
   },
   {
     match: (p) => /^\/doctor-patients\/[^/]+\/lab-results$/.test(p),
-    title: "Lab results",
-    subtitle: "Patient record details",
+    routeId: "labResults",
     icon: HeartPulseIcon,
   },
   {
     match: (p) => /^\/doctor-patients\/[^/]+\/documents$/.test(p),
-    title: "Documents & files",
-    subtitle: "Patient record details",
+    routeId: "documents",
     icon: HeartPulseIcon,
   },
   {
     match: (p) => /^\/doctor-patients\/[^/]+\/consultations$/.test(p),
-    title: "Consultation history",
-    subtitle: "Patient record details",
+    routeId: "consultationHistory",
     icon: HeartPulseIcon,
   },
   {
     match: (p) => /^\/doctor-patients\/[^/]+$/.test(p),
-    title: "Patient profile",
-    subtitle: "Patient profile & quick links",
+    routeId: "patientProfile",
     icon: HeartPulseIcon,
   },
   {
     match: (p) => p === "/doctor-patients",
-    title: "Patients",
-    subtitle: "Patient directory & quick links",
+    routeId: "patients",
     icon: HeartPulseIcon,
   },
   {
     match: (p) => /^\/doctor-prescriptions\/[^/]+$/.test(p),
-    title: "Patient prescriptions",
-    subtitle: "Prescriptions and adherence for this patient",
+    routeId: "patientPrescriptions",
     icon: PillIcon,
   },
   {
     match: (p) => p.startsWith("/doctor-prescriptions"),
-    title: "Prescriptions",
-    subtitle: "Manage patient prescriptions",
+    routeId: "prescriptions",
     icon: PillIcon,
   },
   {
     match: (p) => p.startsWith("/doctor-assistants"),
-    title: "Assistants",
-    subtitle: "Linked clinical assistants",
+    routeId: "assistants",
     icon: User2Icon,
   },
   {
     match: (p) => p.startsWith("/doctor-chat"),
-    title: "Messages",
-    subtitle: "Conversations with patients and staff",
+    routeId: "messages",
     icon: MessageCircleIcon,
   },
   {
     match: (p) => p === "/doctor-account/notifications",
-    title: "Notifications",
-    subtitle: "Alerts and updates for your practice",
+    routeId: "accountNotifications",
     icon: BellIcon,
   },
   {
     match: (p) => p === "/doctor-account",
-    title: "Account",
-    subtitle: "Profile and practice settings",
+    routeId: "account",
     icon: User2Icon,
   },
   {
     match: (p) => p === "/doctor-dashboard",
-    title: "Doctor dashboard",
-    subtitle: "Overview & patient insights",
+    routeId: "dashboard",
     icon: LayoutDashboardIcon,
   },
 ]
 
 const DEFAULT_ENTRY: RouteEntry = {
   match: () => true,
-  title: "Doctor portal",
-  subtitle: "Overview & patient insights",
+  routeId: "default",
   icon: LayoutDashboardIcon,
 }
 
@@ -233,7 +212,10 @@ type DoctorInsetHeaderProps = {
 
 export function DoctorInsetHeader({ user, logout }: DoctorInsetHeaderProps) {
   const pathname = usePathname()
-  const { title, subtitle, icon: Icon } = resolveRoute(pathname)
+  const tHeader = useTranslations("doctor.header")
+  const tAccount = useTranslations("common.accountMenu")
+  const tRole = useTranslations("common.roles")
+  const { routeId, icon: Icon } = resolveRoute(pathname)
 
   const cachedProfile = useSyncExternalStore(
     subscribeDoctorHeaderProfile,
@@ -253,14 +235,16 @@ export function DoctorInsetHeader({ user, logout }: DoctorInsetHeaderProps) {
   const avatarUrl = profile?.avatarUrl ?? null
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-[#E8E6E0]/80 bg-white px-4 sm:gap-4 sm:px-6">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <Icon className="size-5 shrink-0 text-[#1A5345]" strokeWidth={2} aria-hidden />
+    <header className="sticky top-0 z-20 flex min-h-[4.5rem] shrink-0 items-center justify-between gap-3 border-b border-[#E8E6E0]/80 bg-white px-4 py-3 sm:gap-4 sm:px-6">
+      <div className="flex min-w-0 items-start gap-3">
+        <Icon className="mt-0.5 size-6 shrink-0 text-[#1A5345]" strokeWidth={2} aria-hidden />
         <div className="min-w-0">
-          <h1 className="truncate font-sans text-[13px] font-bold tracking-tight text-[#102F27] sm:text-[14px]">
-            {title}
+          <h1 className="truncate font-serif text-[18px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[20px]">
+            {tHeader(`${routeId}.title`)}
           </h1>
-          <p className="truncate font-sans text-[10px] text-[#6B7870] sm:text-[11px]">{subtitle}</p>
+          <p className="mt-0.5 truncate text-[12px] font-medium text-muted-foreground sm:text-[13px]">
+            {tHeader(`${routeId}.subtitle`)}
+          </p>
         </div>
       </div>
 
@@ -291,7 +275,7 @@ export function DoctorInsetHeader({ user, logout }: DoctorInsetHeaderProps) {
                   </span>
                   <ChevronDownIcon className="size-3.5 shrink-0 text-[#9CA3AF]" aria-hidden />
                 </div>
-                <span className="block truncate font-sans text-[12px] text-[#9CA3AF]">Doctor</span>
+                <span className="block truncate font-sans text-[12px] text-[#9CA3AF]">{tRole("doctor")}</span>
               </div>
             </button>
           </DropdownMenuTrigger>
@@ -316,7 +300,7 @@ export function DoctorInsetHeader({ user, logout }: DoctorInsetHeaderProps) {
               )}
             >
               <SparklesIcon className="size-4" />
-              Upgrade to Pro
+              {tAccount("upgradePro")}
             </DropdownMenuItem>
 
             <DropdownMenuSeparator className="m-0 bg-[#E8E6E0]/60" />
@@ -324,19 +308,19 @@ export function DoctorInsetHeader({ user, logout }: DoctorInsetHeaderProps) {
             <DropdownMenuItem asChild className="cursor-pointer rounded-none px-4 py-3 text-[14px] font-medium text-[#6B7870] focus:bg-[#F9F8F5] focus:text-[#1A1F1E]">
               <Link href="/doctor-account" className="flex items-center gap-3">
                 <User2Icon className="size-4" />
-                Account
+                {tAccount("account")}
               </Link>
             </DropdownMenuItem>
 
             <DropdownMenuItem className="cursor-pointer rounded-none px-4 py-3 text-[14px] font-medium text-[#6B7870] focus:bg-[#F9F8F5] focus:text-[#1A1F1E]">
               <CreditCardIcon className="size-4" />
-              Billing
+              {tAccount("billing")}
             </DropdownMenuItem>
 
             <DropdownMenuItem asChild className="cursor-pointer rounded-none px-4 py-3 text-[14px] font-medium text-[#6B7870] focus:bg-[#F9F8F5] focus:text-[#1A1F1E]">
               <Link href="/doctor-account/notifications" className="flex items-center gap-3">
                 <BellIcon className="size-4" />
-                Notifications
+                {tAccount("notifications")}
               </Link>
             </DropdownMenuItem>
 
@@ -350,7 +334,7 @@ export function DoctorInsetHeader({ user, logout }: DoctorInsetHeaderProps) {
               }}
             >
               <LogOutIcon className="size-4" />
-              Log out
+              {tAccount("logOut")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

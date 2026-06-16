@@ -35,7 +35,7 @@ export default function AssistantChatsPage() {
   )
 
   return (
-    <div className="flex h-[calc(100vh-4.5rem)] w-full overflow-hidden bg-[#F9F8F5]">
+    <div className="flex h-full min-h-0 w-full overflow-hidden bg-[#F9F8F5]">
       <ChatSidebar
         contacts={contacts}
         activeContactId={activeContactId}

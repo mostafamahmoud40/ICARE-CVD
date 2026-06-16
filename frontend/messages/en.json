@@ -1,0 +1,496 @@
+{
+  "common": {
+    "language": {
+      "label": "Language",
+      "english": "English",
+      "arabic": "Arabic"
+    },
+    "accountMenu": {
+      "upgradePro": "Upgrade to Pro",
+      "account": "Account",
+      "billing": "Billing",
+      "notifications": "Notifications",
+      "logOut": "Log out"
+    },
+    "roles": {
+      "assistant": "Assistant",
+      "doctor": "Doctor"
+    },
+    "search": {
+      "placeholder": "Search patients, appointments...",
+      "dialogTitle": "Search",
+      "dialogDescription": "Search patients, appointments, and pages",
+      "inputPlaceholder": "Search patients, appointments, pages...",
+      "empty": "No results found.",
+      "open": "Open search",
+      "pagesGroup": "Pages",
+      "quickNav": "Quick navigation",
+      "browseAllPatients": "Browse all patients"
+    }
+  },
+  "assistant": {
+    "portalName": "Assistant Portal",
+    "nav": {
+      "commandCenter": "Command Center",
+      "inbox": "Inbox",
+      "chats": "Chats",
+      "patients": "Patients",
+      "appointments": "Appointments",
+      "queue": "Queue",
+      "doctorDirectory": "Doctor Directory",
+      "doctorSchedule": "Doctor Schedule",
+      "procedures": "Procedures",
+      "medications": "Medications",
+      "account": "Account",
+      "settings": "Settings"
+    },
+    "header": {
+      "default": {
+        "title": "Assistant portal",
+        "subtitle": "Clinical desk operations and patient flow"
+      },
+      "accountNotifications": {
+        "title": "Notifications",
+        "subtitle": "Clinical desk alerts and action items"
+      },
+      "accountSettings": {
+        "title": "Settings",
+        "subtitle": "Security, notifications, and workspace preferences"
+      },
+      "accountActivity": {
+        "title": "Activity log",
+        "subtitle": "Full history of your assistant actions"
+      },
+      "account": {
+        "title": "Account",
+        "subtitle": "Profile, schedule, and activity"
+      },
+      "doctorSchedule": {
+        "title": "Doctor schedule",
+        "subtitle": "Weekly hours, daily sessions, and pause controls"
+      },
+      "doctorDirectory": {
+        "title": "Doctor directory",
+        "subtitle": "Staff availability and queue loads"
+      },
+      "dashboard": {
+        "title": "Today's Command Center",
+        "subtitle": "Live reception queue, appointments, and triage"
+      },
+      "inbox": {
+        "title": "Inbox",
+        "subtitle": "Tasks and messages needing attention"
+      },
+      "chats": {
+        "title": "Chats",
+        "subtitle": "Conversations with patients and staff"
+      },
+      "patients": {
+        "title": "Patients",
+        "subtitle": "Records, visits, and care plans"
+      },
+      "appointments": {
+        "title": "Appointments",
+        "subtitle": "Schedule and booking management"
+      },
+      "queueDoctors": {
+        "title": "Doctors",
+        "subtitle": "Check-in, breaks, and queue start times"
+      },
+      "queueHistory": {
+        "title": "Past visits",
+        "subtitle": "Completed, no-show, and cancelled visits"
+      },
+      "queueSchedule": {
+        "title": "Expected today",
+        "subtitle": "Scheduled arrivals not yet in clinic"
+      },
+      "queueLiveDesk": {
+        "title": "Live desk",
+        "subtitle": "Active queue and consultation pipeline"
+      },
+      "queue": {
+        "title": "Patient queue",
+        "subtitle": "Live desk, expected today, and history"
+      },
+      "procedures": {
+        "title": "Procedures",
+        "subtitle": "Orders, requirements, and follow-up"
+      },
+      "medications": {
+        "title": "Medications",
+        "subtitle": "Reminders, flags, and escalations"
+      }
+    },
+    "shared": {
+      "breadcrumbDashboard": "Dashboard",
+      "export": "Export",
+      "list": "List",
+      "calendar": "Calendar",
+      "grid": "Grid",
+      "cancel": "Cancel",
+      "close": "Close",
+      "book": "Book",
+      "details": "Details",
+      "success": "Success",
+      "error": "Error",
+      "goBack": "Go back",
+      "resetAll": "Reset all",
+      "filterView": "Filter view",
+      "advancedFilters": "Advanced filters",
+      "searchByNameOrId": "Search by name or ID...",
+      "clearSearch": "Clear search",
+      "male": "Male",
+      "female": "Female",
+      "yrs": "yrs",
+      "patient": "Patient",
+      "doctor": "Doctor",
+      "department": "Department",
+      "allDepartments": "All departments",
+      "allDoctors": "All doctors",
+      "fromDate": "From date",
+      "toDate": "To date",
+      "tablePatientName": "Patient Name",
+      "tableCondition": "Condition",
+      "tableDoctor": "Doctor",
+      "tableAgeSex": "Age / Sex",
+      "tableLastVisit": "Last Visit",
+      "tableStatus": "Status",
+      "tableRiskLevel": "Risk Level",
+      "statusScheduled": "Scheduled",
+      "statusConfirmed": "Confirmed",
+      "statusCompleted": "Completed",
+      "statusCancelled": "Cancelled",
+      "statusInTreatment": "In treatment",
+      "statusDischarged": "Discharged",
+      "statusMonitoring": "Monitoring",
+      "riskHigh": "High risk",
+      "riskModerate": "Moderate",
+      "riskModerateRisk": "Moderate risk",
+      "riskStable": "Stable",
+      "weekdaySun": "Sun",
+      "weekdayMon": "Mon",
+      "weekdayTue": "Tue",
+      "weekdayWed": "Wed",
+      "weekdayThu": "Thu",
+      "weekdayFri": "Fri",
+      "weekdaySat": "Sat"
+    },
+    "pages": {
+      "appointments": {
+        "breadcrumb": "Appointments",
+        "title": "Appointments management",
+        "subtitle": "Monitor and manage all patient clinical bookings and schedules.",
+        "newAppointment": "New appointment",
+        "allBookings": "All bookings",
+        "noAppointments": "No appointments found",
+        "generalCheckup": "General checkup",
+        "unnamedPatient": "Unnamed patient",
+        "unnamedDoctor": "Unnamed doctor",
+        "virtualVisit": "Virtual visit",
+        "clinicVisit": "Clinic visit",
+        "bookingTypeClinic": "Clinic visit (in-person)",
+        "bookingTypeVirtual": "Virtual visit (telehealth)",
+        "viewDetails": "View details",
+        "editSchedule": "Edit schedule",
+        "confirmBooking": "Confirm booking",
+        "markCompleted": "Mark as completed",
+        "cancelAppointment": "Cancel appointment",
+        "schedule": "Schedule",
+        "practitioner": "Practitioner",
+        "clinicalContext": "Clinical context",
+        "visitReason": "Visit Reason",
+        "accessMedicalChart": "Access Medical Chart",
+        "bookingType": "Booking type",
+        "date": "Date",
+        "time": "Time",
+        "searchPatients": "Search patients...",
+        "searchDoctors": "Search doctors...",
+        "selectBookingType": "Select booking type",
+        "selectReason": "Select a reason...",
+        "chooseSlot": "Choose slot",
+        "saveChanges": "Save changes",
+        "updating": "Updating...",
+        "processing": "Processing...",
+        "cancelDialogTitle": "Cancel appointment?",
+        "cancelReason": "Reason for cancellation",
+        "cancelReasonPlaceholder": "Clinical or administrative reason…",
+        "yesCancel": "Yes, cancel",
+        "cancelFor": "Cancel for",
+        "toastCancelled": "Appointment cancelled successfully.",
+        "toastCancelFailed": "Failed to cancel appointment.",
+        "toastCreated": "New appointment created.",
+        "toastCreateFailed": "Failed to create appointment.",
+        "toastUpdated": "Appointment updated.",
+        "toastUpdateFailed": "Failed to update appointment.",
+        "defaultClinicalContext": "General cardiovascular health assessment and vital signs monitoring."
+      },
+      "patients": {
+        "breadcrumb": "Patients",
+        "title": "Patient Directory",
+        "subtitle": "Managing {count} cardiovascular records",
+        "addPatient": "Add Patient",
+        "registerNewPatient": "Register New Patient",
+        "totalPatients": "Total Patients",
+        "highRisk": "High Risk",
+        "newThisWeek": "New This Week",
+        "steady": "Steady",
+        "allStatus": "All status",
+        "allRisk": "All risk",
+        "statusFilter": "Status",
+        "riskFilter": "Risk level",
+        "noPatients": "No patients found",
+        "noPatientsHint": "Try adjusting your search criteria.",
+        "viewFullRecord": "View Full Record",
+        "sendMessage": "Send Message",
+        "scheduleVisit": "Schedule Visit",
+        "archivePatient": "Archive Patient",
+        "archiveTitle": "Archive Patient",
+        "sendRequest": "Send Request",
+        "lastVisit": "Last visit",
+        "gender": "Gender",
+        "viewRecord": "View Record",
+        "editPatient": "Edit Patient",
+        "changeStatus": "Change Status",
+        "exportRecord": "Export Record",
+        "showingRange": "Showing {from} to {to} of {total}",
+        "availableSlots": "Available Slots",
+        "selectDateFirst": "Please select a date first",
+        "assignedDoctor": "Assigned Doctor",
+        "selectDoctor": "Select Doctor",
+        "visitType": "Type of Visit",
+        "routineFollowUp": "Routine Follow-up",
+        "initialConsultation": "Initial Consultation",
+        "diagnosticTest": "Diagnostic Test",
+        "urgentCare": "Urgent Care",
+        "notesOptional": "Notes (Optional)",
+        "visitScheduled": "Visit Scheduled"
+      },
+      "queue": {
+        "title": "Patient Queue",
+        "live": "Live",
+        "loading": "Loading queue…",
+        "loadError": "Failed to load patient queue.",
+        "searchPlaceholder": "Search patient, doctor…",
+        "noPendingArrivals": "No pending arrivals.",
+        "noPatientsInCategory": "No patients in this category.",
+        "statTotalToday": "total today",
+        "statInConsultation": "in consultation",
+        "statWaiting": "waiting",
+        "statArrived": "arrived",
+        "statScheduled": "scheduled",
+        "statCompleted": "completed",
+        "statAvgWait": "avg wait"
+      },
+      "doctors": {
+        "available": "Available",
+        "inConsult": "In Consult",
+        "away": "Away",
+        "waiting": "Waiting",
+        "searchPlaceholder": "Search doctors...",
+        "allDepts": "All Depts",
+        "allStatus": "All Status",
+        "showingCount": "Showing {shown} of {total}",
+        "loadErrorTitle": "Could not load doctors",
+        "loadErrorHint": "Check your connection and try again.",
+        "emptyTitle": "No doctors found",
+        "emptyHint": "Adjust your search or filters to see more results."
+      }
+    }
+  },
+  "doctor": {
+    "portalName": "Doctor Portal",
+    "header": {
+      "default": {
+        "title": "Doctor portal",
+        "subtitle": "Overview & patient insights"
+      },
+      "schedule": {
+        "title": "Schedule",
+        "subtitle": "Weekly availability & clinic hours"
+      },
+      "consultation": {
+        "title": "Consultation",
+        "subtitle": "Active patient consultation"
+      },
+      "queue": {
+        "title": "Queue",
+        "subtitle": "Today's patient queue"
+      },
+      "appointments": {
+        "title": "Appointments",
+        "subtitle": "Manage your patient appointments"
+      },
+      "consultationReport": {
+        "title": "Consultation report",
+        "subtitle": "Full consultation report"
+      },
+      "vitals": {
+        "title": "Vitals & readings",
+        "subtitle": "Patient record details"
+      },
+      "medications": {
+        "title": "Medications",
+        "subtitle": "Patient record details"
+      },
+      "diagnosisDetails": {
+        "title": "Diagnosis details",
+        "subtitle": "Full condition record"
+      },
+      "diagnoses": {
+        "title": "Diagnoses & conditions",
+        "subtitle": "Patient record details"
+      },
+      "labResults": {
+        "title": "Lab results",
+        "subtitle": "Patient record details"
+      },
+      "documents": {
+        "title": "Documents & files",
+        "subtitle": "Patient record details"
+      },
+      "consultationHistory": {
+        "title": "Consultation history",
+        "subtitle": "Patient record details"
+      },
+      "patientProfile": {
+        "title": "Patient profile",
+        "subtitle": "Patient profile & quick links"
+      },
+      "patients": {
+        "title": "Patients",
+        "subtitle": "Patient directory & quick links"
+      },
+      "patientPrescriptions": {
+        "title": "Patient prescriptions",
+        "subtitle": "Prescriptions and adherence for this patient"
+      },
+      "prescriptions": {
+        "title": "Prescriptions",
+        "subtitle": "Manage patient prescriptions"
+      },
+      "assistants": {
+        "title": "Assistants",
+        "subtitle": "Linked clinical assistants"
+      },
+      "messages": {
+        "title": "Messages",
+        "subtitle": "Conversations with patients and staff"
+      },
+      "accountNotifications": {
+        "title": "Notifications",
+        "subtitle": "Alerts and updates for your practice"
+      },
+      "account": {
+        "title": "Account",
+        "subtitle": "Profile and practice settings"
+      },
+      "dashboard": {
+        "title": "Doctor dashboard",
+        "subtitle": "Overview & patient insights"
+      }
+    }
+  },
+  "chat": {
+    "sidebar": {
+      "title": "Chats",
+      "subtitle": "Start new conversation",
+      "newConversation": "New conversation",
+      "searchPlaceholder": "Search messages or users",
+      "tabChat": "Chat",
+      "tabCall": "Call",
+      "tabContacts": "Contacts",
+      "emptyTitle": "No conversations yet",
+      "emptyHint": "Start a new chat with the + button to message a doctor or patient.",
+      "loadingDirectory": "Loading directory...",
+      "directoryError": "Failed to load. Check server connection.",
+      "noResults": "No results for \"{query}\"",
+      "noUsers": "No users available."
+    },
+    "newChat": {
+      "withPatient": "Start chat with patient",
+      "withDoctor": "Start chat with doctor",
+      "withDoctorOrPatient": "Start chat with doctor or patient",
+      "searchPatients": "Search patients...",
+      "searchDoctors": "Search doctors...",
+      "searchDoctorsOrPatients": "Search doctors or patients..."
+    },
+    "empty": {
+      "title": "Your messages",
+      "subtitle": "Select a conversation from the list to start chatting."
+    },
+    "preview": {
+      "photo": "Photo",
+      "document": "Document",
+      "typing": "Typing"
+    },
+    "status": {
+      "online": "Online",
+      "typing": "is typing"
+    },
+    "call": {
+      "missedVideo": "Missed video call",
+      "missedVoice": "Missed call",
+      "outgoingVideo": "You tried a video call",
+      "outgoingVoice": "You tried a call",
+      "incomingVideo": "Incoming video call...",
+      "incomingVoice": "Incoming call...",
+      "calling": "Calling...",
+      "youTriedVideo": "You tried a video call",
+      "missedVideoShort": "Missed video call",
+      "youTriedVoice": "You tried a call",
+      "missedVoiceShort": "Missed call"
+    },
+    "roles": {
+      "doctor": "Doctor",
+      "patient": "Patient",
+      "assistant": "Clinical assistant",
+      "contact": "Contact"
+    },
+    "composer": {
+      "writeMessage": "Write your message...",
+      "addMessage": "Add a message...",
+      "addCaption": "Add a caption...",
+      "addCaptionHint": "Add a caption, then press send",
+      "addMessageHint": "Add a message (optional), then press send",
+      "you": "You",
+      "justNow": "Just now"
+    },
+    "actions": {
+      "deleteMessage": "Delete message",
+      "removeAttachment": "Remove attachment",
+      "startVoiceCall": "Start voice call",
+      "startVideoCall": "Start video call",
+      "emailContact": "Email contact",
+      "moreOptions": "More options",
+      "closeImagePreview": "Close image preview",
+      "imagePreview": "Image preview",
+      "openImage": "Open image {fileName}"
+    },
+    "contactPanel": {
+      "specialty": "Specialty",
+      "email": "Email",
+      "clinicAddress": "Clinic address",
+      "notifications": "Notifications",
+      "addToFavourites": "Add to favourites",
+      "mute": "Mute",
+      "clearChat": "Clear chat",
+      "reportContact": "Report contact"
+    },
+    "sharedMedia": {
+      "title": "Shared media",
+      "emptyHint": "Photos, files, and links from this conversation will appear here.",
+      "noPhotos": "No photos shared yet.",
+      "noFiles": "No files shared yet.",
+      "noLinks": "No links shared yet.",
+      "photos": "Photos",
+      "files": "Files",
+      "links": "Links",
+      "photo": "Photo",
+      "file": "File",
+      "document": "Document",
+      "sharedPhoto": "Shared photo",
+      "close": "Close"
+    }
+  }
+}

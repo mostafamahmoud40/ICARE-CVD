@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Lora } from "next/font/google"
 import { usePathname, useSearchParams } from "next/navigation"
+import { useTranslations, useLocale } from "next-intl"
 import type { AuthUser } from "@/lib/auth-tokens"
 import {
   BellIcon,
@@ -113,65 +114,69 @@ function AssistantLayoutContent({
   const [isProceduresOpen, setIsProceduresOpen] = useState(() => pathname.startsWith("/assistant-procedures"))
   const viewParam = searchParams.get("view")
   const queueNavMode = queueNavModeFromPathname(pathname)
+  const t = useTranslations("assistant")
+  const tAccount = useTranslations("common.accountMenu")
+  const locale = useLocale()
+  const sidebarSide = locale === "ar" ? "right" : "left"
 
   const navItems = [
     {
       href: "/assistant-dashboard",
-      label: "Command Center",
+      label: t("nav.commandCenter"),
       icon: LayoutDashboardIcon,
       isActive: pathname === "/assistant-dashboard",
     },
     {
       href: "/assistant-inbox",
-      label: "Inbox",
+      label: t("nav.inbox"),
       icon: InboxIcon,
       isActive: pathname === "/assistant-inbox",
     },
     {
       href: "/assistant-chats",
-      label: "Chats",
+      label: t("nav.chats"),
       icon: MessageCircleIcon,
       isActive: pathname === "/assistant-chats",
     },
     {
       href: "/assistant-patients",
-      label: "Patients",
+      label: t("nav.patients"),
       icon: ClipboardListIcon,
       isActive: pathname === "/assistant-patients",
     },
     {
       href: "/assistant-appointments",
-      label: "Appointments",
+      label: t("nav.appointments"),
       icon: CalendarClockIcon,
       isActive: pathname === "/assistant-appointments",
     },
     {
       href: "/assistant-queue",
-      label: "Queue",
+      label: t("nav.queue"),
       icon: UsersIcon,
       isActive: pathname.startsWith("/assistant-queue"),
     },
     {
       href: "/assistant-doctors",
-      label: "Doctor Directory",
+      label: t("nav.doctorDirectory"),
       icon: StethoscopeIcon,
       isActive: pathname.startsWith("/assistant-doctors"),
     },
     {
       href: "/assistant-doctor-schedule",
-      label: "Doctor Schedule",
+      label: t("nav.doctorSchedule"),
       icon: CalendarDaysIcon,
       isActive: pathname.startsWith("/assistant-doctor-schedule"),
     },
     {
       href: "/assistant-procedures",
-      label: "Procedures",
+      label: t("nav.procedures"),
       icon: ClipboardPlusIcon,
       isActive: pathname.startsWith("/assistant-procedures"),
     },
     {
       href: "/assistant-medications",
-      label: "Medications",
+      label: t("nav.medications"),
       icon: PillIcon,
       isActive: pathname.startsWith("/assistant-medications"),
     },
@@ -180,7 +185,7 @@ function AssistantLayoutContent({
   const accountNavItems = [
     {
       href: "/assistant-account",
-      label: "Account",
+      label: t("nav.account"),
       icon: User2Icon,
       isActive:
         (pathname.startsWith("/assistant-account") ||
@@ -190,7 +195,7 @@ function AssistantLayoutContent({
     },
     {
       href: "/assistant-account/settings",
-      label: "Settings",
+      label: t("nav.settings"),
       icon: Settings2Icon,
       isActive:
         pathname.includes("/assistant-account/settings") ||
@@ -205,11 +210,14 @@ function AssistantLayoutContent({
   ] as const
 
   const hideInsetHeader =
-    pathname === "/assistant-account" || pathname.startsWith("/assistant-account/")
+    pathname === "/assistant-account" ||
+    pathname.startsWith("/assistant-account/")
+
+  const compactInsetHeader = pathname === "/assistant-chats"
 
   return (
     <>
-      <Sidebar side="left" collapsible="icon" variant="sidebar">
+      <Sidebar side={sidebarSide} collapsible="icon" variant="sidebar">
         <SidebarHeader className="group-data-[collapsible=icon]:p-1 pb-4 pt-4 px-4">
           <div
             className="flex items-center gap-3"
@@ -230,7 +238,7 @@ function AssistantLayoutContent({
             {isCollapsed ? null : (
               <div className="flex flex-col gap-0.5 leading-tight">
                 <div className="text-[17px] font-bold text-[#6B7870]">ICARE-CVD</div>
-                <div className="font-sans text-[13px] font-medium text-muted-foreground">Assistant Portal</div>
+                <div className="font-sans text-[13px] font-medium text-muted-foreground">{t("portalName")}</div>
               </div>
             )}
           </div>
@@ -543,7 +551,7 @@ function AssistantLayoutContent({
 
                   <DropdownMenuItem className="flex items-center gap-3 p-4 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
                     <SparklesIcon className="size-5" />
-                    <span>Upgrade to Pro</span>
+                    <span>{tAccount("upgradePro")}</span>
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator className="bg-[#E8E6E0]/60 m-0" />
@@ -552,19 +560,19 @@ function AssistantLayoutContent({
                     <DropdownMenuItem asChild className="flex items-center gap-3 px-4 py-3 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
                       <Link href="/assistant-account">
                         <User2Icon className="size-5" />
-                        <span>Account</span>
+                        <span>{tAccount("account")}</span>
                       </Link>
                     </DropdownMenuItem>
 
                     <DropdownMenuItem className="flex items-center gap-3 px-4 py-3 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
                       <CreditCardIcon className="size-5" />
-                      <span>Billing</span>
+                      <span>{tAccount("billing")}</span>
                     </DropdownMenuItem>
 
                     <DropdownMenuItem asChild className="flex items-center gap-3 px-4 py-3 text-[15px] font-medium text-[#6B7870] cursor-pointer focus:bg-slate-50 focus:text-[#1A1F1E] rounded-none">
                       <Link href="/assistant-account/notifications">
                         <BellIcon className="size-5" />
-                        <span>Notifications</span>
+                        <span>{tAccount("notifications")}</span>
                       </Link>
                     </DropdownMenuItem>
                   </div>
@@ -579,7 +587,7 @@ function AssistantLayoutContent({
                     }}
                   >
                     <LogOutIcon className="size-5" />
-                    <span>Log out</span>
+                    <span>{tAccount("logOut")}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -588,13 +596,17 @@ function AssistantLayoutContent({
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset className="bg-[#F9F8F5]">
+      <SidebarInset
+        className={`bg-[#F9F8F5]${compactInsetHeader ? " flex min-h-svh flex-col" : ""}`}
+      >
         {hideInsetHeader ? (
-          children
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         ) : (
           <>
-            <AssistantInsetHeader user={user} logout={logout} />
-            {children}
+            <AssistantInsetHeader user={user} logout={logout} compact={compactInsetHeader} />
+            <div className={compactInsetHeader ? "flex min-h-0 flex-1 flex-col" : undefined}>
+              {children}
+            </div>
           </>
         )}
       </SidebarInset>

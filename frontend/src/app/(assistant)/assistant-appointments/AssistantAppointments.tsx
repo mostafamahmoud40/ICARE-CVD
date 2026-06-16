@@ -3,6 +3,7 @@
 import Link from "next/link"
 import * as React from "react"
 import { useEffect, useMemo, useState } from "react"
+import { useLocale, useTranslations } from "next-intl"
 import {
   ActivityIcon,
   CalendarPlus2Icon,
@@ -144,13 +145,6 @@ type AssistantAppointmentsProps = {
   defaultCreateDialogOpen?: boolean
 }
 
-const statusLabel: Record<AssistantAppointmentStatus, string> = {
-  scheduled: "Scheduled",
-  confirmed: "Confirmed",
-  completed: "Completed",
-  cancelled: "Cancelled",
-}
-
 const appointmentStatusBadgeClass: Record<AssistantAppointmentStatus, string> = {
   scheduled: "border-0 bg-amber-500 text-white hover:bg-amber-500",
   confirmed: "border-0 bg-blue-500 text-white hover:bg-blue-500",
@@ -170,14 +164,6 @@ const VISIT_REASON_OPTIONS: readonly string[] = [
   "Anticoagulation clinic",
   "Risk assessment / prevention",
   "Pre-operative evaluation",
-]
-
-const BOOKING_TYPE_OPTIONS: readonly {
-  value: AssistantAppointmentVisitType
-  label: string
-}[] = [
-  { value: "clinic", label: "Clinic visit (in-person)" },
-  { value: "virtual", label: "Virtual visit (telehealth)" },
 ]
 
 function formatLocalDateInput(iso: string): string {
@@ -211,8 +197,8 @@ function formatLocalTimeRangeAmPm(
   return `${fmt.format(start)} to ${fmt.format(end)}`
 }
 
-function formatAppointmentDate(value: string): string {
-  return new Intl.DateTimeFormat("en-US", {
+function formatAppointmentDate(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -251,6 +237,52 @@ export function AssistantAppointments({
   patients,
   defaultCreateDialogOpen = false,
 }: AssistantAppointmentsProps) {
+  const t = useTranslations("assistant.pages.appointments")
+  const ts = useTranslations("assistant.shared")
+  const locale = useLocale()
+
+  const statusLabel = useMemo(
+    (): Record<AssistantAppointmentStatus, string> => ({
+      scheduled: ts("statusScheduled"),
+      confirmed: ts("statusConfirmed"),
+      completed: ts("statusCompleted"),
+      cancelled: ts("statusCancelled"),
+    }),
+    [ts],
+  )
+
+  const BOOKING_TYPE_OPTIONS = useMemo(
+    (): readonly { value: AssistantAppointmentVisitType; label: string }[] => [
+      { value: "clinic", label: t("bookingTypeClinic") },
+      { value: "virtual", label: t("bookingTypeVirtual") },
+    ],
+    [t],
+  )
+
+  const filterTabs = useMemo(
+    () => [
+      { id: "all" as const, label: t("allBookings") },
+      { id: "scheduled" as const, label: ts("statusScheduled") },
+      { id: "confirmed" as const, label: ts("statusConfirmed") },
+      { id: "completed" as const, label: ts("statusCompleted") },
+      { id: "cancelled" as const, label: ts("statusCancelled") },
+    ],
+    [t, ts],
+  )
+
+  const weekdayLabels = useMemo(
+    () => [
+      ts("weekdaySun"),
+      ts("weekdayMon"),
+      ts("weekdayTue"),
+      ts("weekdayWed"),
+      ts("weekdayThu"),
+      ts("weekdayFri"),
+      ts("weekdaySat"),
+    ],
+    [ts],
+  )
+
   const [selectedAppointment, setSelectedAppointment] = useState<AssistantAppointment | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(defaultCreateDialogOpen)
   const [cancellingAppointment, setCancellingAppointment] = useState<AssistantAppointment | null>(null)
@@ -288,22 +320,22 @@ export function AssistantAppointments({
     () =>
       patients.map((p) => ({
         id: String(p.id),
-        name: pickerDisplayName(p.name, "Unnamed patient"),
+        name: pickerDisplayName(p.name, t("unnamedPatient")),
         subtitle: p.phone != null ? String(p.phone) : null,
         avatarUrl: p.avatarUrl,
       })),
-    [patients],
+    [patients, t],
   )
 
   const doctorPickerItems = useMemo(
     () =>
       doctors.map((d) => ({
         id: String(d.id),
-        name: pickerDisplayName(d.name, "Unnamed doctor"),
+        name: pickerDisplayName(d.name, t("unnamedDoctor")),
         subtitle: d.specialty != null ? String(d.specialty) : null,
         avatarUrl: d.avatarUrl,
       })),
-    [doctors],
+    [doctors, t],
   )
 
   const handleCancelConfirm = async () => {
@@ -314,11 +346,11 @@ export function AssistantAppointments({
         status: "cancelled",
         cancellationReason: cancellationReason.trim(),
       })
-      showIcareToast({ title: "Success", description: "Appointment cancelled successfully.", variant: "success" })
+      showIcareToast({ title: ts("success"), description: t("toastCancelled"), variant: "success" })
       setCancellingAppointment(null)
       setCancellationReason("")
     } catch (err) {
-      showIcareToast({ title: "Error", description: "Failed to cancel appointment.", variant: "destructive" })
+      showIcareToast({ title: ts("error"), description: t("toastCancelFailed"), variant: "destructive" })
     }
   }
 
@@ -336,11 +368,11 @@ export function AssistantAppointments({
         visitType: bookingDraft.visitType,
         reason: bookingDraft.reason,
       })
-      showIcareToast({ title: "Success", description: "New appointment created.", variant: "success" })
+      showIcareToast({ title: ts("success"), description: t("toastCreated"), variant: "success" })
       setBookingDraft({ patientId: "", doctorId: "", visitType: "clinic", date: "", timeSlot: "", reason: "" })
       setIsCreateDialogOpen(false)
     } catch (err) {
-      showIcareToast({ title: "Error", description: "Failed to create appointment.", variant: "destructive" })
+      showIcareToast({ title: ts("error"), description: t("toastCreateFailed"), variant: "destructive" })
     }
   }
 
@@ -373,11 +405,11 @@ export function AssistantAppointments({
           reason: editDraft.reason,
         }
       })
-      showIcareToast({ title: "Success", description: "Appointment updated.", variant: "success" })
+      showIcareToast({ title: ts("success"), description: t("toastUpdated"), variant: "success" })
       setIsEditDialogOpen(false)
       setSelectedAppointment(null)
     } catch (err) {
-      showIcareToast({ title: "Error", description: "Failed to update appointment.", variant: "destructive" })
+      showIcareToast({ title: ts("error"), description: t("toastUpdateFailed"), variant: "destructive" })
     }
   }
 
@@ -402,13 +434,13 @@ export function AssistantAppointments({
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
                     <Link href="/assistant-dashboard" className="text-[10px] font-medium sm:text-[11px]">
-                      Dashboard
+                      {ts("breadcrumbDashboard")}
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">Appointments</BreadcrumbPage>
+                  <BreadcrumbPage className="text-[10px] font-medium sm:text-[11px]">{t("breadcrumb")}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -417,10 +449,10 @@ export function AssistantAppointments({
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
             <div className="min-w-0 space-y-0.5">
               <h1 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[24px] lg:text-[26px]">
-                Appointments management
+                {t("title")}
               </h1>
               <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
-                Monitor and manage all patient clinical bookings and schedules.
+                {t("subtitle")}
               </p>
             </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -436,7 +468,7 @@ export function AssistantAppointments({
                   )}
                 >
                    <ListIcon className="size-3.5" />
-                   List
+                   {ts("list")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -448,7 +480,7 @@ export function AssistantAppointments({
                   )}
                 >
                    <LayoutGridIcon className="size-3.5" />
-                   Calendar
+                   {ts("calendar")}
                 </Button>
              </div>
 
@@ -458,7 +490,7 @@ export function AssistantAppointments({
                 className="h-8 gap-2 rounded-lg border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] shadow-sm transition-colors hover:bg-slate-50 hover:text-[#1A5345]"
              >
                 <DownloadIcon className="size-3.5 text-muted-foreground" />
-                Export
+                {ts("export")}
              </Button>
              <Button
                 size="sm"
@@ -466,7 +498,7 @@ export function AssistantAppointments({
                 className="h-8 gap-2 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]"
              >
                 <PlusIcon className="size-3.5" strokeWidth={2.5} />
-                New appointment
+                {t("newAppointment")}
              </Button>
           </div>
         </div>
@@ -474,18 +506,12 @@ export function AssistantAppointments({
         {/* Filters and Stats Summary */}
         <div className="mt-3 flex flex-col gap-2 pt-1 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:gap-2 sm:pb-0">
-              {[
-                { id: "all", label: "All bookings" },
-                { id: "scheduled", label: "Scheduled" },
-                { id: "confirmed", label: "Confirmed" },
-                { id: "completed", label: "Completed" },
-                { id: "cancelled", label: "Cancelled" },
-              ].map((tab) => (
+              {filterTabs.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setStatusFilter(tab.id as any)}
+                  onClick={() => setStatusFilter(tab.id)}
                   className={cn(
-                    "h-8 whitespace-nowrap rounded-lg px-3 text-[12px] font-bold transition-all",
+                    "inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-[12px] font-bold transition-all",
                     statusFilter === tab.id 
                       ? "bg-[#1A5345] text-white shadow-sm" 
                       : "text-muted-foreground hover:bg-white hover:text-[#1A1F1E] hover:shadow-sm"
@@ -493,7 +519,7 @@ export function AssistantAppointments({
                 >
                   {tab.label}
                   <span className={cn(
-                    "ml-1.5 rounded-lg px-1.5 py-0.5 text-[10px] font-bold shadow-sm transition-colors",
+                    "rounded-lg px-1.5 py-0.5 text-[10px] font-bold shadow-sm transition-colors",
                     statusFilter === tab.id ? "bg-white/10 text-white" : "bg-black/5 text-[#1A5345]"
                   )}>
                     {tab.id === 'all' ? counts.total : counts[tab.id as keyof AppointmentStats]}
@@ -524,7 +550,7 @@ export function AssistantAppointments({
                    />
                    <Input
                      type="search"
-                     placeholder="Search by name or ID..."
+                     placeholder={ts("searchByNameOrId")}
                      value={searchTerm}
                      onChange={(e) => setSearchTerm(e.target.value)}
                      className="h-8 w-full rounded-lg border border-[#E8E6E0] bg-white pl-9 pr-3 text-[12px] font-medium text-[#1A1F1E] shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:border-[#1A5345]/30 focus-visible:ring-0"
@@ -536,7 +562,7 @@ export function AssistantAppointments({
                    <Button 
                      variant="ghost" 
                      size="icon" 
-                     title="Filter view"
+                     title={ts("filterView")}
                      className={cn(
                        "size-8 shrink-0 border-0 bg-transparent text-[#6B7870] hover:bg-transparent hover:text-[#1A5345] shadow-none transition-colors",
                        hasActiveAdvancedFilters && "text-[#1A5345]"
@@ -550,7 +576,7 @@ export function AssistantAppointments({
                       <div className="flex items-center justify-between">
                          <div className="flex items-center gap-2">
                            <FilterIcon className="size-4 text-[#1A5345]" />
-                           <h4 className="font-serif text-[16px] font-bold text-[#1A1F1E]">Advanced filters</h4>
+                           <h4 className="font-serif text-[16px] font-bold text-[#1A1F1E]">{ts("advancedFilters")}</h4>
                          </div>
                          <Button 
                            variant="ghost" 
@@ -558,38 +584,38 @@ export function AssistantAppointments({
                            className="h-7 rounded-md px-2 text-[11px] font-bold text-[#6B7870] transition-colors hover:bg-transparent hover:text-[#1A5345]"
                            onClick={resetAdvancedFilters}
                          >
-                            Reset all
+                            {ts("resetAll")}
                          </Button>
                       </div>
                    </div>
                    <div className="p-5 space-y-5 bg-white sm:p-6 sm:space-y-6">
                       <div className="space-y-2">
-                        <Label className="text-[12px] font-bold text-[#102F27]">Department</Label>
+                        <Label className="text-[12px] font-bold text-[#102F27]">{ts("department")}</Label>
                         <Select 
                           value={advancedFilters.department || FILTER_SELECT_ALL} 
                           onValueChange={(v) => setAdvancedFilters(f => ({ ...f, department: v === FILTER_SELECT_ALL ? "" : v }))}
                         >
                           <SelectTrigger className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
-                            <SelectValue placeholder="All departments" />
+                            <SelectValue placeholder={ts("allDepartments")} />
                           </SelectTrigger>
                           <SelectContent className="rounded-lg border-[#cfd9d5] bg-white shadow-lg">
-                             <SelectItem value={FILTER_SELECT_ALL} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">All departments</SelectItem>
+                             <SelectItem value={FILTER_SELECT_ALL} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">{ts("allDepartments")}</SelectItem>
                              {departmentOptions.map(d => <SelectItem key={d} value={d} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">{d}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
 
                       <div className="space-y-2">
-                        <Label className="text-[12px] font-bold text-[#102F27]">Doctor</Label>
+                        <Label className="text-[12px] font-bold text-[#102F27]">{ts("doctor")}</Label>
                         <Select 
                           value={advancedFilters.doctorName || FILTER_SELECT_ALL} 
                           onValueChange={(v) => setAdvancedFilters(f => ({ ...f, doctorName: v === FILTER_SELECT_ALL ? "" : v }))}
                         >
                           <SelectTrigger className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
-                            <SelectValue placeholder="All doctors" />
+                            <SelectValue placeholder={ts("allDoctors")} />
                           </SelectTrigger>
                           <SelectContent className="rounded-lg border-[#cfd9d5] bg-white shadow-lg">
-                             <SelectItem value={FILTER_SELECT_ALL} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">All doctors</SelectItem>
+                             <SelectItem value={FILTER_SELECT_ALL} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">{ts("allDoctors")}</SelectItem>
                              {doctorFilterOptions.map(d => <SelectItem key={d} value={d} className="cursor-pointer text-[#152a24] hover:bg-[#d9e5e1] hover:text-[#1a5345] h-10">{d}</SelectItem>)}
                           </SelectContent>
                         </Select>
@@ -597,7 +623,7 @@ export function AssistantAppointments({
 
                       <div className="grid grid-cols-2 gap-4 pt-1">
                          <div className="space-y-2">
-                            <Label className="text-[12px] font-bold text-[#102F27]">From date</Label>
+                            <Label className="text-[12px] font-bold text-[#102F27]">{ts("fromDate")}</Label>
                             <Input 
                               type="date" 
                               value={advancedFilters.dateFrom} 
@@ -606,7 +632,7 @@ export function AssistantAppointments({
                             />
                          </div>
                          <div className="space-y-2">
-                            <Label className="text-[12px] font-bold text-[#102F27]">To date</Label>
+                            <Label className="text-[12px] font-bold text-[#102F27]">{ts("toDate")}</Label>
                             <Input 
                               type="date" 
                               value={advancedFilters.dateTo} 
@@ -629,17 +655,17 @@ export function AssistantAppointments({
         {viewMode === "table" ? (
           <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1040px] border-collapse bg-white text-left">
+              <table className="w-full min-w-[1040px] border-collapse bg-white text-start">
                 <thead className="sticky top-0 z-10 bg-[#F4F3ED]/90 shadow-[0_1px_0_0_#E8E6E0] backdrop-blur-md">
                   <tr className="font-serif text-[15px] font-bold text-[#1A1F1E] transition-colors">
-                    <th className="py-4 pr-4 pl-4">Patient Name</th>
-                    <th className="py-4 px-4">Condition</th>
-                    <th className="py-4 px-4">Doctor</th>
-                    <th className="py-4 px-4">Age / Sex</th>
-                    <th className="py-4 px-4">Last Visit</th>
-                    <th className="py-4 px-4">Status</th>
-                    <th className="py-4 px-4">Risk Level</th>
-                    <th className="py-4 pl-4 pr-4 text-right"></th>
+                    <th className="py-4 pe-4 ps-4">{ts("tablePatientName")}</th>
+                    <th className="py-4 px-4">{ts("tableCondition")}</th>
+                    <th className="py-4 px-4">{ts("tableDoctor")}</th>
+                    <th className="py-4 px-4">{ts("tableAgeSex")}</th>
+                    <th className="py-4 px-4">{ts("tableLastVisit")}</th>
+                    <th className="py-4 px-4">{ts("tableStatus")}</th>
+                    <th className="py-4 px-4">{ts("tableRiskLevel")}</th>
+                    <th className="py-4 ps-4 pe-4 text-end"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E8E6E0]/40">
@@ -658,7 +684,7 @@ export function AssistantAppointments({
                       <td colSpan={8} className="px-4 py-20 text-center">
                          <div className="flex flex-col items-center justify-center opacity-40">
                             <CalendarClockIcon className="size-12 mb-4" strokeWidth={1.5} />
-                            <p className="text-[16px] font-bold">No appointments found</p>
+                            <p className="text-[16px] font-bold">{t("noAppointments")}</p>
                          </div>
                       </td>
                     </tr>
@@ -685,7 +711,7 @@ export function AssistantAppointments({
                           </div>
                         </td>
                         <td className="py-4 px-4 align-middle">
-                           <p className="text-[14px] font-medium text-[#1A1F1E]/80">{appointment.reason || "General checkup"}</p>
+                           <p className="text-[14px] font-medium text-[#1A1F1E]/80">{appointment.reason || t("generalCheckup")}</p>
                         </td>
                         <td className="py-4 px-4 align-middle">
                            <div className="flex items-center gap-2.5">
@@ -706,7 +732,7 @@ export function AssistantAppointments({
                              return (
                                <div className="flex items-center gap-1.5 text-[13px]">
                                   <span className="font-bold tabular-nums text-[#1A1F1E]">{age}</span>
-                                  <span className="text-muted-foreground">yrs</span>
+                                  <span className="text-muted-foreground">{ts("yrs")}</span>
                                   <span className="mx-0.5 text-[#E8E6E0]">•</span>
                                   <div className="flex items-center gap-1.5">
                                      <span className={isMale ? "text-blue-500" : "text-pink-500"}>
@@ -716,7 +742,7 @@ export function AssistantAppointments({
                                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="10" r="5"/><path d="M12 15v7"/><path d="M9 19h6"/></svg>
                                        )}
                                      </span>
-                                     <span className="text-[13px] font-medium text-[#1A1F1E]/70">{isMale ? "Male" : "Female"}</span>
+                                     <span className="text-[13px] font-medium text-[#1A1F1E]/70">{isMale ? ts("male") : ts("female")}</span>
                                   </div>
                                </div>
                              );
@@ -724,7 +750,7 @@ export function AssistantAppointments({
                         </td>
                         <td className="py-4 px-4 align-middle">
                            <span className="text-[14px] font-bold text-[#1A1F1E]">
-                             {formatAppointmentDate(appointment.scheduledAt)}
+                             {formatAppointmentDate(appointment.scheduledAt, locale)}
                            </span>
                         </td>
                         <td className="py-4 px-4 align-middle">
@@ -742,7 +768,7 @@ export function AssistantAppointments({
                                ? "border-0 bg-amber-500 text-white hover:bg-amber-500" 
                                : "border-0 bg-rose-500 text-white hover:bg-rose-500"
                            )}>
-                              {appointment.visitType === "virtual" ? "Moderate risk" : "High risk"}
+                              {appointment.visitType === "virtual" ? ts("riskModerateRisk") : ts("riskHigh")}
                            </Badge>
                         </td>
                         <td className="py-4 pl-4 pr-4 text-right align-middle">
@@ -758,14 +784,14 @@ export function AssistantAppointments({
                                     onSelect={() => setSelectedAppointment(appointment)}
                                  >
                                     <UserCircle2Icon className="mr-3 size-[18px] opacity-70" />
-                                    View details
+                                    {t("viewDetails")}
                                  </DropdownMenuItem>
                                  <DropdownMenuItem 
                                     className="flex cursor-pointer items-center rounded-xl px-3 py-2.5 text-[13px] font-bold text-[#1A1F1E] transition-colors focus:bg-[#F9F8F5] focus:text-[#1A5345]"
                                     onSelect={() => openEditDialog(appointment)}
                                  >
                                     <PencilLineIcon className="mr-3 size-[18px] opacity-70" />
-                                    Edit schedule
+                                    {t("editSchedule")}
                                  </DropdownMenuItem>
                                  <DropdownMenuSeparator className="mx-1 my-1.5 bg-[#E8E6E0]/60" />
                                  <DropdownMenuItem 
@@ -773,14 +799,14 @@ export function AssistantAppointments({
                                     onSelect={() => updateStatus({ appointmentId: appointment.id, status: "confirmed" })} disabled={appointment.status === 'confirmed' || isUpdatingStatus}
                                  >
                                     <CheckCircle2Icon className="mr-3 size-[18px]" />
-                                    Confirm booking
+                                    {t("confirmBooking")}
                                  </DropdownMenuItem>
                                  <DropdownMenuItem 
                                     className="flex cursor-pointer items-center rounded-xl px-3 py-2.5 text-[13px] font-bold text-emerald-700 transition-colors focus:bg-emerald-50 focus:text-emerald-800 data-[disabled]:opacity-50"
                                     onSelect={() => updateStatus({ appointmentId: appointment.id, status: "completed" })} disabled={appointment.status === 'completed' || isUpdatingStatus}
                                  >
                                     <CalendarCheck2Icon className="mr-3 size-[18px]" />
-                                    Mark as completed
+                                    {t("markCompleted")}
                                  </DropdownMenuItem>
                                  <DropdownMenuSeparator className="mx-1 my-1.5 bg-[#E8E6E0]/60" />
                                  <DropdownMenuItem 
@@ -788,7 +814,7 @@ export function AssistantAppointments({
                                     onSelect={() => setCancellingAppointment(appointment)} disabled={appointment.status === 'cancelled' || isUpdatingStatus}
                                  >
                                     <XIcon className="mr-3 size-[18px]" />
-                                    Cancel appointment
+                                    {t("cancelAppointment")}
                                  </DropdownMenuItem>
                               </DropdownMenuContent>
                            </DropdownMenu>
@@ -805,7 +831,7 @@ export function AssistantAppointments({
           <div className="h-full flex flex-col rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)] overflow-hidden animate-in zoom-in-95 duration-500">
              {/* Days of week header */}
              <div className="grid grid-cols-7 border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/50">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+                {weekdayLabels.map(day => (
                    <div key={day} className="px-4 py-3 text-center text-[12px] font-bold text-muted-foreground uppercase tracking-widest border-r last:border-0 border-[#E8E6E0]/40">
                       {day}
                    </div>
@@ -890,7 +916,7 @@ export function AssistantAppointments({
                                            </div>
                                            <div className="mt-4 flex gap-2">
                                               <Button variant="outline" size="sm" className="flex-1 h-8 text-[11px] rounded-lg" onClick={() => setSelectedAppointment(app)}>
-                                                 Details
+                                                 {ts("details")}
                                               </Button>
                                               <div
                                                  className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-input bg-background text-muted-foreground shadow-xs pointer-events-none select-none"
@@ -927,7 +953,7 @@ export function AssistantAppointments({
                                    className="opacity-0 group-hover:opacity-100 transition-opacity mt-auto flex items-center gap-1.5 text-[11px] font-bold text-[#1A5345] hover:underline"
                                  >
                                     <PlusIcon className="size-3" />
-                                    Book
+                                    {ts("book")}
                                  </button>
                                )}
                             </div>
@@ -946,7 +972,7 @@ export function AssistantAppointments({
                                      <button
                                        type="button"
                                        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-[#F3F4F6] hover:text-[#1A1F1E]"
-                                       aria-label="Close"
+                                       aria-label={ts("close")}
                                      >
                                         <XIcon className="size-4" />
                                      </button>
@@ -972,8 +998,8 @@ export function AssistantAppointments({
                                               className="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-[#1A1F1E] text-white ring-2 ring-white"
                                               title={
                                                  app.visitType === "virtual"
-                                                    ? "Virtual visit"
-                                                    : "Clinic visit"
+                                                    ? t("virtualVisit")
+                                                    : t("clinicVisit")
                                               }
                                            >
                                               {app.visitType === "virtual" ? (
@@ -986,7 +1012,7 @@ export function AssistantAppointments({
                                         <div className="min-w-0 flex-1">
                                            <div className="flex items-start justify-between gap-2">
                                               <p className="min-w-0 truncate text-[12px] font-semibold text-[#1A1F1E] sm:text-[13px]">
-                                                 {app.patientName?.trim() || "Patient"}
+                                                 {app.patientName?.trim() || ts("patient")}
                                               </p>
                                               <p className="shrink-0 text-right text-xs font-medium text-[#1A1F1E] sm:text-[13px] leading-snug">
                                                  {formatLocalTimeRangeAmPm(app.scheduledAt)}
@@ -1054,10 +1080,10 @@ export function AssistantAppointments({
                      <div className="relative space-y-0.5 border-l-2 border-[#1A5345]/10 pl-4">
                         <div className="absolute -left-[5px] top-0 size-2 rounded-full bg-[#1A5345]" />
                         <p className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">
-                           Schedule
+                           {t("schedule")}
                         </p>
                         <p className="text-[14px] font-bold text-[#1A1F1E]">
-                           {formatAppointmentDate(selectedAppointment.scheduledAt)}
+                           {formatAppointmentDate(selectedAppointment.scheduledAt, locale)}
                         </p>
                         <p className="text-[12px] font-bold text-[#1A5345]">
                            {formatLocalTimeRangeAmPm(selectedAppointment.scheduledAt)}
@@ -1066,7 +1092,7 @@ export function AssistantAppointments({
 
                      <div className="space-y-0.5">
                         <p className="text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">
-                           Practitioner
+                           {t("practitioner")}
                         </p>
                         <div className="flex items-center gap-2 pt-1">
                            <UserIcon className="size-4 text-[#1A5345] shrink-0" />
@@ -1086,18 +1112,18 @@ export function AssistantAppointments({
                   <div className="space-y-2.5">
                      <div className="flex items-center gap-2">
                         <span className="shrink-0 text-[11px] font-bold uppercase tracking-tight text-[#6B7870]">
-                           Clinical context
+                           {t("clinicalContext")}
                         </span>
                         <div className="h-px flex-1 bg-[#E8E6E0]/60" />
                      </div>
                      <div className="rounded-xl border border-[#E8E6E0] bg-[#F9F8F5]/50 p-4">
                         <div className="flex items-center gap-2 mb-1.5">
                            <ActivityIcon className="size-3.5 text-[#1A5345]" />
-                           <p className="text-[11px] font-bold text-[#1A5345]/70">Visit Reason</p>
+                           <p className="text-[11px] font-bold text-[#1A5345]/70">{t("visitReason")}</p>
                         </div>
                         <p className="text-[13px] font-medium leading-relaxed text-[#1A1F1E]">
                            {selectedAppointment.reason ||
-                              "General cardiovascular health assessment and vital signs monitoring."}
+                              t("defaultClinicalContext")}
                         </p>
                      </div>
                   </div>
@@ -1109,14 +1135,14 @@ export function AssistantAppointments({
                         className="h-8 flex-1 rounded-lg font-bold text-[#6B7870] transition-colors hover:bg-slate-50 hover:text-[#1A1F1E]"
                         onClick={() => setSelectedAppointment(null)}
                      >
-                        Close
+                        {ts("close")}
                      </Button>
                      <Button
                         asChild
                         className="h-8 flex-[2] rounded-lg bg-[#1A5345] px-5 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]"
                      >
                         <Link href={`/assistant-patients/${selectedAppointment.patientId}`}>
-                           Access Medical Chart
+                           {t("accessMedicalChart")}
                         </Link>
                      </Button>
                   </div>
@@ -1149,25 +1175,25 @@ export function AssistantAppointments({
                 <div className="space-y-2">
                   <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
                     <UserIcon className="size-3.5 text-muted-foreground" />
-                    Patient
+                    {ts("patient")}
                   </Label>
                   <AppointmentPersonPicker 
                     items={patientPickerItems}
                     value={editDraft.patientId}
                     onValueChange={(val) => setEditDraft(prev => ({ ...prev, patientId: val }))}
-                    placeholder="Search patients..."
+                    placeholder={t("searchPatients")}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
                     <User2Icon className="size-3.5 text-muted-foreground" />
-                    Doctor
+                    {ts("doctor")}
                   </Label>
                   <AppointmentPersonPicker 
                     items={doctorPickerItems}
                     value={editDraft.doctorId}
                     onValueChange={(val) => setEditDraft(prev => ({ ...prev, doctorId: val, timeSlot: "" }))}
-                    placeholder="Search doctors..."
+                    placeholder={t("searchDoctors")}
                   />
                 </div>
               </div>
@@ -1176,7 +1202,7 @@ export function AssistantAppointments({
                 <div className="min-w-0 space-y-2">
                   <Label className="flex items-center gap-2 text-[13px] font-bold text-[#1A1F1E]">
                     <Building2Icon className="size-3.5 text-muted-foreground" />
-                    Booking type
+                    {t("bookingType")}
                   </Label>
                   <Select
                     value={editDraft.visitType}
@@ -1188,7 +1214,7 @@ export function AssistantAppointments({
                     }
                   >
                     <SelectTrigger className="h-10 w-full min-w-0 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/30">
-                      <SelectValue placeholder="Select booking type" />
+                      <SelectValue placeholder={t("selectBookingType")} />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
                       {BOOKING_TYPE_OPTIONS.map((opt) => (
@@ -1209,7 +1235,7 @@ export function AssistantAppointments({
                     onValueChange={(val) => setEditDraft((prev) => ({ ...prev, reason: val }))}
                   >
                     <SelectTrigger className="h-10 w-full min-w-0 rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/30">
-                      <SelectValue placeholder="Select a reason..." />
+                      <SelectValue placeholder={t("selectReason")} />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
                       {VISIT_REASON_OPTIONS.map((opt) => (
@@ -1226,7 +1252,7 @@ export function AssistantAppointments({
                 <div className="space-y-2">
                   <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
                     <CalendarIcon className="size-3.5 text-muted-foreground" />
-                    Date
+                    {t("date")}
                   </Label>
                   <Input 
                     type="date" 
@@ -1238,11 +1264,11 @@ export function AssistantAppointments({
                 <div className="space-y-2">
                   <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
                     <ClockIcon className="size-3.5 text-muted-foreground" />
-                    Time
+                    {t("time")}
                   </Label>
                   <Select value={editDraft.timeSlot} onValueChange={(value) => setEditDraft(prev => ({ ...prev, timeSlot: value }))} disabled={!editDraft.date || !editDraft.doctorId}>
                     <SelectTrigger className="h-10 rounded-xl">
-                      <SelectValue placeholder="Choose slot" />
+                      <SelectValue placeholder={t("chooseSlot")} />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
                       {editAvailableSlotsQuery.data?.map(slot => <SelectItem key={slot.value} value={slot.value}>{slot.label}</SelectItem>)}
@@ -1252,9 +1278,9 @@ export function AssistantAppointments({
               </div>
 
               <div className="flex items-center gap-3 pt-2">
-                 <Button type="button" variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-10 flex-1 rounded-xl font-bold sm:rounded-2xl">Cancel</Button>
+                 <Button type="button" variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-10 flex-1 rounded-xl font-bold sm:rounded-2xl">{ts("cancel")}</Button>
                  <Button type="submit" className="h-10 flex-1 rounded-xl bg-amber-600 font-bold text-white hover:bg-amber-700 sm:rounded-2xl" disabled={isUpdatingAppointment}>
-                   {isUpdatingAppointment ? "Updating..." : "Save changes"}
+                   {isUpdatingAppointment ? t("updating") : t("saveChanges")}
                  </Button>
               </div>
             </form>
@@ -1269,7 +1295,7 @@ export function AssistantAppointments({
               <CalendarPlus2Icon className="size-6 text-[#1A5345] shrink-0" />
               <div className="min-w-0 flex-1 space-y-0.5">
                 <DialogTitle className="font-serif text-[18px] font-bold tracking-tight text-[#1A1F1E] sm:text-[20px]">
-                  New appointment
+                  {t("newAppointment")}
                 </DialogTitle>
                 <DialogDescription className="text-[12px] font-medium text-muted-foreground sm:text-[13px]">
                   Create a clinical booking for an existing patient.
@@ -1282,25 +1308,25 @@ export function AssistantAppointments({
                 <div className="space-y-2">
                   <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
                     <UserIcon className="size-3.5 text-muted-foreground" />
-                    Patient
+                    {ts("patient")}
                   </Label>
                   <AppointmentPersonPicker 
                     items={patientPickerItems}
                     value={bookingDraft.patientId}
                     onValueChange={(val) => setBookingDraft(prev => ({ ...prev, patientId: val }))}
-                    placeholder="Search patients..."
+                    placeholder={t("searchPatients")}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
                     <User2Icon className="size-3.5 text-muted-foreground" />
-                    Doctor
+                    {ts("doctor")}
                   </Label>
                   <AppointmentPersonPicker 
                     items={doctorPickerItems}
                     value={bookingDraft.doctorId}
                     onValueChange={(val) => setBookingDraft(prev => ({ ...prev, doctorId: val, timeSlot: "" }))}
-                    placeholder="Search doctors..."
+                    placeholder={t("searchDoctors")}
                   />
                 </div>
               </div>
@@ -1309,7 +1335,7 @@ export function AssistantAppointments({
                 <div className="min-w-0 space-y-2">
                   <Label className="flex items-center gap-2 text-[13px] font-bold text-[#1A1F1E]">
                     <Building2Icon className="size-3.5 text-muted-foreground" />
-                    Booking type
+                    {t("bookingType")}
                   </Label>
                   <Select
                     value={bookingDraft.visitType}
@@ -1321,7 +1347,7 @@ export function AssistantAppointments({
                     }
                   >
                     <SelectTrigger className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
-                      <SelectValue placeholder="Select booking type" />
+                      <SelectValue placeholder={t("selectBookingType")} />
                     </SelectTrigger>
                     <SelectContent className="rounded-lg border-[#cfd9d5] bg-white shadow-lg">
                       {BOOKING_TYPE_OPTIONS.map((opt) => (
@@ -1342,7 +1368,7 @@ export function AssistantAppointments({
                     onValueChange={(val) => setBookingDraft((prev) => ({ ...prev, reason: val }))}
                   >
                     <SelectTrigger className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
-                      <SelectValue placeholder="Select a reason..." />
+                      <SelectValue placeholder={t("selectReason")} />
                     </SelectTrigger>
                     <SelectContent className="rounded-lg border-[#cfd9d5] bg-white shadow-lg">
                       {VISIT_REASON_OPTIONS.map((opt) => (
@@ -1359,7 +1385,7 @@ export function AssistantAppointments({
                 <div className="space-y-2">
                   <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
                     <CalendarIcon className="size-3.5 text-muted-foreground" />
-                    Date
+                    {t("date")}
                   </Label>
                   <Input 
                     type="date" 
@@ -1371,11 +1397,11 @@ export function AssistantAppointments({
                 <div className="space-y-2">
                   <Label className="text-[13px] font-bold text-[#1A1F1E] flex items-center gap-2">
                     <ClockIcon className="size-3.5 text-muted-foreground" />
-                    Time
+                    {t("time")}
                   </Label>
                   <Select value={bookingDraft.timeSlot} onValueChange={(value) => setBookingDraft(prev => ({ ...prev, timeSlot: value }))} disabled={!bookingDraft.date || !bookingDraft.doctorId}>
                     <SelectTrigger className="h-10 w-full rounded-lg border-[#cfd9d5] bg-white text-[#152a24] hover:border-[#d9e5e1] hover:text-[#1a5345] focus:border-[#d9e5e1] focus:ring-0">
-                      <SelectValue placeholder="Choose slot" />
+                      <SelectValue placeholder={t("chooseSlot")} />
                     </SelectTrigger>
                     <SelectContent className="rounded-lg border-[#cfd9d5] bg-white shadow-lg">
                       {availableSlotsQuery.data?.map(slot => (
@@ -1395,14 +1421,14 @@ export function AssistantAppointments({
                    onClick={() => setIsCreateDialogOpen(false)} 
                    className="h-8 flex-1 rounded-lg font-bold text-[#6B7870] transition-colors hover:bg-slate-50"
                  >
-                   Cancel
+                   {ts("cancel")}
                  </Button>
                  <Button 
                    type="submit" 
                    className="h-8 flex-1 rounded-lg bg-[#1A5345] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]" 
                    disabled={isCreating || !bookingDraft.patientId || !bookingDraft.doctorId || !bookingDraft.date || !bookingDraft.timeSlot || !bookingDraft.reason}
                  >
-                   {isCreating ? "Processing..." : "Confirm booking"}
+                   {isCreating ? t("processing") : t("confirmBooking")}
                  </Button>
               </div>
             </form>
@@ -1419,21 +1445,21 @@ export function AssistantAppointments({
             </div>
             <div className="mt-3 space-y-1 sm:mt-3.5">
               <DialogTitle className="text-[17px] font-bold leading-snug text-[#1A1F1E] sm:text-lg">
-                Cancel appointment?
+                {t("cancelDialogTitle")}
               </DialogTitle>
               <DialogDescription className="text-[12px] font-medium leading-snug text-muted-foreground sm:text-[13px]">
-                Cancel for{" "}
+                {t("cancelFor")}{" "}
                 <span className="font-bold text-[#1A1F1E]">{cancellingAppointment?.patientName}</span>? This cannot be
                 undone.
               </DialogDescription>
             </div>
           </div>
           <div className="mt-4 space-y-1.5 sm:mt-5">
-            <Label className="text-[12px] font-bold text-[#1A1F1E] sm:text-[13px]">Reason for cancellation</Label>
+            <Label className="text-[12px] font-bold text-[#1A1F1E] sm:text-[13px]">{t("cancelReason")}</Label>
             <Textarea
               value={cancellationReason}
               onChange={(e) => setCancellationReason(e.target.value)}
-              placeholder="Clinical or administrative reason…"
+              placeholder={t("cancelReasonPlaceholder")}
               className="min-h-[72px] resize-none rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/50 text-[13px] transition-all focus:bg-white sm:min-h-[80px]"
             />
           </div>
@@ -1443,7 +1469,7 @@ export function AssistantAppointments({
               onClick={() => setCancellingAppointment(null)}
               className="h-9 flex-1 rounded-xl text-[12px] font-bold text-muted-foreground sm:h-10 sm:text-[13px]"
             >
-              Go back
+              {ts("goBack")}
             </Button>
             <Button
               variant="destructive"
@@ -1451,7 +1477,7 @@ export function AssistantAppointments({
               disabled={isUpdatingStatus || !cancellationReason.trim()}
               className="h-9 flex-1 rounded-xl text-[12px] font-bold shadow-md shadow-red-500/10 transition-all hover:-translate-y-0.5 active:translate-y-0 sm:h-10 sm:text-[13px]"
             >
-              Yes, cancel
+              {t("yesCancel")}
             </Button>
           </div>
         </DialogContent>
