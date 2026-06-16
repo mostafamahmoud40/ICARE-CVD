@@ -163,7 +163,7 @@ export function AssistantDashboard({ data, isLoading, isError, error }: Assistan
 
   if (combinedLoading) {
     return (
-      <main className="flex h-[calc(100vh-4rem)] w-full min-w-0 flex-1 flex-col bg-[#F9F8F5] px-6 py-6 sm:px-8">
+      <main className="flex h-[calc(100vh-4.5rem)] w-full min-w-0 flex-1 flex-col bg-[#F9F8F5] px-6 py-6 sm:px-8">
         <div className="w-full min-w-0 space-y-6">
           <div className="w-full rounded-2xl border border-[#E8E6E0]/60 bg-white p-6 shadow-sm">
             <Skeleton className="mb-3 h-3 w-40" />

@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { DoctorCard, AddPractitionerCard } from "./DoctorCard"
+import { DoctorCard } from "./DoctorCard"
 import { useAssistantDoctorsDirectory } from "./useAssistantDoctors"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -36,7 +36,6 @@ export function DoctorDirectoryContainer() {
   }, [doctors, search, deptFilter, statusFilter])
 
   const stats = {
-    total: doctors.length,
     available: doctors.filter((d) => d.status === "available").length,
     inConsultation: doctors.filter((d) => d.status === "in-consultation").length,
     away: doctors.filter((d) => d.status === "away").length,
@@ -46,13 +45,6 @@ export function DoctorDirectoryContainer() {
   return (
     <div className="flex min-h-full flex-col bg-[#F9F8F5] p-4 sm:p-6 lg:p-8 custom-scrollbar">
       <div className="w-full space-y-6 lg:space-y-8">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-[#1A1F1E]">Doctor Directory</h1>
-          <p className="mt-1 text-[13px] text-[#6B7870]">
-            {stats.total} doctors · {stats.available} available · {stats.totalWaiting} patients waiting
-          </p>
-        </div>
-
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
             <div className="flex items-center justify-center text-emerald-600">
@@ -153,10 +145,9 @@ export function DoctorDirectoryContainer() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredDoctors.map((doc) => (
-              <DoctorCard key={doc.id} doctor={doc} />
-            ))}
-            <AddPractitionerCard />
+              {filteredDoctors.map((doc) => (
+                <DoctorCard key={doc.id} doctor={doc} />
+              ))}
           </div>
         )}
 

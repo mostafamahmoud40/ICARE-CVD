@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { useChat } from "@/components/shared/chat/use-chat"
+import { useChatDeepLink } from "@/components/shared/chat/use-chat-deep-link"
 import { ChatSidebar } from "@/components/shared/chat/chat-sidebar"
 import { ChatWindow } from "@/components/shared/chat/chat-window"
 import { ContactInfoPanel } from "@/components/shared/chat/contact-info-panel"
@@ -24,6 +25,8 @@ export default function AssistantChatsPage() {
     deleteMessage,
   } = useChat()
 
+  useChatDeepLink(startNewChat)
+
   const [showInfoPanel, setShowInfoPanel] = useState(true)
 
   const activeContact = useMemo(
@@ -32,7 +35,7 @@ export default function AssistantChatsPage() {
   )
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-[#F9F8F5]">
+    <div className="flex h-[calc(100vh-4.5rem)] w-full overflow-hidden bg-[#F9F8F5]">
       <ChatSidebar
         contacts={contacts}
         activeContactId={activeContactId}
