@@ -22,8 +22,11 @@ import {
   XIcon,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { ProcedureOrderRow } from "./ProcedureOrderRow"
-import { ProcedureDetailPanel } from "./ProcedureDetailPanel"
+import { AssistantProceduresOperations } from "./AssistantProceduresOperations"
+import { AssistantProceduresHistory } from "./AssistantProceduresHistory"
+import type { ProcedureConsentSavePayload } from "./ProcedureConsentDialog"
+import type { ScheduledOperation } from "./assistantProceduresHistory.mock"
+import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type {
@@ -61,30 +64,6 @@ function pravatarAvatarUrl(id: string): string {
   return `https://i.pravatar.cc/150?u=${encodeURIComponent(id)}`
 }
 
-/* ---------- Mock Schedule Data ---------- */
-
-type ScheduledOperation = {
-  id: string
-  time?: string
-  startTime: string
-  endTime: string
-  endTimeActual?: string
-  endTimeExpected?: string
-  patientName: string
-  patientId: string
-  age: number
-  gender: "M" | "F"
-  procedureName: string
-  riskScore: string
-  location: string
-  riskTags: string[]
-  duration: string
-  status: "completed" | "pending" | "in-progress"
-  priority: "normal" | "urgent" | "emergency"
-  teamStatus: string
-  notes?: string
-}
-
 /* ---------- Types ---------- */
 
 export type ViewMode = "current" | "operations" | "history"
@@ -118,7 +97,9 @@ type AssistantProceduresProps = {
   ) => void
   onDeleteRequirement: (orderId: string, requirementId: string) => void
   onNotifyPatient: (orderId: string) => Promise<void>
+  onSaveConsent: (orderId: string, payload: ProcedureConsentSavePayload) => Promise<void>
   isNotifying: boolean
+  isSavingConsent: boolean
   isTogglingRequirement: boolean
   isUploadingAttachment: boolean
   isLoading: boolean
@@ -126,24 +107,7 @@ type AssistantProceduresProps = {
   viewMode: ViewMode
 }
 
-/* ---------- Empty Detail Placeholder ---------- */
-
-function DetailPlaceholder() {
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 py-8 text-center">
-      <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-[#F5F5F3] sm:size-14">
-        <ClipboardPlusIcon className="size-6 text-[#9CA3AF] sm:size-7" />
-      </div>
-      <p className="text-[11px] text-muted-foreground sm:text-[12px]">Select a procedure order</p>
-      <p className="mt-1 text-[9px] text-muted-foreground sm:text-[10px]">
-        Click any card to view its requirements checklist.
-      </p>
-    </div>
-  )
-}
-
-
-/* ---------- Schedule View Component ---------- */
+/* ---------- Mock Schedule Data ---------- */
 
 const SCHEDULED_OPERATIONS: ScheduledOperation[] = [
   {
@@ -675,313 +639,6 @@ function ScheduleTimelineView({ scheduledOperations }: { scheduledOperations: Sc
   )
 }
 
-/* ---------- History View ---------- */
-
-function HistoryView() {
-  const [dateFilter, setDateFilter] = useState<"7days" | "30days" | "3months" | "all">("30days")
-  const [searchTerm, setSearchTerm] = useState("")
-
-  // Mock completed operations history
-  const historyOperations: ScheduledOperation[] = [
-    {
-      id: "hist-1",
-      startTime: "07:30",
-      endTime: "09:45",
-      endTimeActual: "09:45",
-      patientName: "Khaled Mostafa",
-      patientId: "CARD-00471",
-      age: 63,
-      gender: "M",
-      procedureName: "CABG — Triple Vessel",
-      riskScore: "EuroSCORE II: 4.2%",
-      location: "Cardiac OR-1",
-      riskTags: ["Shah Scale: Mid"],
-      duration: "2h 15m",
-      status: "completed",
-      priority: "urgent",
-      teamStatus: "Started Early",
-      notes: "Successful outcome",
-    },
-    {
-      id: "hist-2",
-      startTime: "10:00",
-      endTime: "11:30",
-      endTimeActual: "11:30",
-      patientName: "Sarah Ahmed Najar",
-      patientId: "CARD-00389",
-      age: 58,
-      gender: "F",
-      procedureName: "TAVI — Aortic Valve Replacement",
-      riskScore: "EuroSCORE II: 3.1%",
-      location: "Hybrid Lab",
-      riskTags: ["Shah Scale: Low"],
-      duration: "1h 30m",
-      status: "completed",
-      priority: "normal",
-      teamStatus: "On Schedule",
-      notes: "No complications",
-    },
-    {
-      id: "hist-3",
-      startTime: "14:00",
-      endTime: "16:30",
-      endTimeActual: "16:15",
-      patientName: "Ahmed Hassan Ibrahim",
-      patientId: "CARD-00234",
-      age: 71,
-      gender: "M",
-      procedureName: "PCI — Left Main Stenting",
-      riskScore: "EuroSCORE II: 5.5%",
-      location: "Cath Lab",
-      riskTags: ["Shah Scale: High"],
-      duration: "2h 15m",
-      status: "completed",
-      priority: "emergency",
-      teamStatus: "Completed Early",
-    },
-    {
-      id: "hist-4",
-      startTime: "09:00",
-      endTime: "12:00",
-      endTimeActual: "12:30",
-      patientName: "Nadia Mahmoud",
-      patientId: "CARD-00156",
-      age: 55,
-      gender: "F",
-      procedureName: "MVR — Mitral Valve Repair",
-      riskScore: "EuroSCORE II: 6.2%",
-      location: "Cardiac OR-2",
-      riskTags: ["Shah Scale: Mid"],
-      duration: "3h 30m",
-      status: "completed",
-      priority: "urgent",
-      teamStatus: "Ran Late",
-      notes: "Complex anatomy",
-    },
-    {
-      id: "hist-5",
-      startTime: "08:00",
-      endTime: "10:00",
-      endTimeActual: "09:45",
-      patientName: "Youssef Kamal",
-      patientId: "CARD-00567",
-      age: 48,
-      gender: "M",
-      procedureName: "Pacemaker Implantation",
-      riskScore: "EuroSCORE II: 1.8%",
-      location: "Cardiac OR-1",
-      riskTags: ["Shah Scale: Low"],
-      duration: "1h 45m",
-      status: "completed",
-      priority: "normal",
-      teamStatus: "On Schedule",
-    },
-    {
-      id: "hist-6",
-      startTime: "11:00",
-      endTime: "14:00",
-      endTimeActual: "13:30",
-      patientName: "Laila Farouk",
-      patientId: "CARD-00678",
-      age: 62,
-      gender: "F",
-      procedureName: "AVR — Aortic Valve Replacement",
-      riskScore: "EuroSCORE II: 7.1%",
-      location: "Cardiac OR-2",
-      riskTags: ["Shah Scale: High"],
-      duration: "2h 30m",
-      status: "completed",
-      priority: "urgent",
-      teamStatus: "Completed Early",
-    },
-  ]
-
-  // Filter by search term
-  const filteredOperations = historyOperations.filter(
-    (op) =>
-      op.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      op.procedureName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      op.patientId.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  // Stats
-  const totalCompleted = historyOperations.length
-  const totalDuration = historyOperations.reduce((acc, op) => {
-    const hours = parseInt(op.duration.split("h")[0]) || 0
-    return acc + hours
-  }, 0)
-  const emergencyCount = historyOperations.filter((op) => op.priority === "emergency").length
-  const avgRiskScore = "4.3%"
-
-  const statusConfig = {
-    completed: {
-      color: "text-[#1A5345]",
-      bg: "bg-[#E8F0EE]",
-      label: "Completed",
-    },
-  }
-
-  const priorityConfig = {
-    normal: { color: "text-[#1A5345]", bg: "bg-[#E8F0EE]", label: "Normal" },
-    urgent: { color: "text-[#B8860B]", bg: "bg-[#FFF8E7]", label: "Urgent" },
-    emergency: { color: "text-[#9B2C2C]", bg: "bg-[#FED7D7]", label: "Emergency" },
-  }
-
-  const filterOptions = [
-    { key: "7days" as const, label: "Last 7 Days" },
-    { key: "30days" as const, label: "Last 30 Days" },
-    { key: "3months" as const, label: "Last 3 Months" },
-    { key: "all" as const, label: "All Time" },
-  ]
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#F9F8F5]">
-      {/* Header with filter and search */}
-      <div className="shrink-0 border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/95 px-6 pt-5 pb-4 backdrop-blur-md">
-        <div className="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
-            <h2 className="font-serif text-[22px] font-bold text-[#102F27]">Procedure History</h2>
-            <p className="text-[13px] font-medium text-muted-foreground">{filteredOperations.length} records available</p>
-          </div>
-          
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-            {/* Search */}
-            <div className="relative group min-w-[280px]">
-              <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#1A5345] transition-colors" />
-              <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search patient, procedure, or ID..."
-                className="h-10 w-full rounded-2xl border-[#E8E6E0] bg-white pl-10 text-[13px] shadow-sm focus-visible:ring-1 focus-visible:ring-[#1A5345]/20"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Date filter & Stats */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-           {/* Date filter tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto rounded-2xl border border-[#E8E6E0] bg-white p-1 shadow-sm">
-            {filterOptions.map((opt) => (
-              <button
-                key={opt.key}
-                onClick={() => setDateFilter(opt.key)}
-                className={cn(
-                  "whitespace-nowrap rounded-xl px-4 py-2 text-[12px] font-bold transition-all",
-                  dateFilter === opt.key
-                    ? "bg-[#E8F0EE] text-[#1A5345] shadow-sm"
-                    : "text-muted-foreground hover:bg-[#F9F8F5] hover:text-[#1A1F1E]",
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Summary Stats Cards */}
-          <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center">
-            {[
-              { label: "Completed", value: totalCompleted, color: "text-[#1A5345]", bg: "bg-white" },
-              { label: "Total Hours", value: `${totalDuration}h`, color: "text-[#B8860B]", bg: "bg-white" },
-              { label: "Emergency", value: emergencyCount, color: "text-[#9B2C2C]", bg: "bg-white" },
-              { label: "Avg Risk", value: avgRiskScore, color: "text-[#4F6D64]", bg: "bg-white" },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="flex min-w-[100px] flex-col items-center justify-center rounded-2xl border border-[#E8E6E0]/80 bg-white px-4 py-2.5 shadow-sm transition-all hover:shadow-md"
-              >
-                <span className={cn("text-[18px] font-bold leading-none", s.color)}>{s.value}</span>
-                <span className="mt-1 text-[10px] font-bold text-muted-foreground/70 uppercase tracking-tight">{s.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* History Table */}
-      <div className="flex-1 overflow-auto p-6">
-        <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1040px] border-collapse bg-white text-left">
-            <thead className="sticky top-0 z-10 bg-[#F4F3ED]/90 shadow-[0_1px_0_0_#E8E6E0] backdrop-blur-md">
-              <tr className="font-serif text-[15px] font-bold text-[#1A1F1E] transition-colors">
-                <th className="py-4 pr-4 pl-4">Patient</th>
-                <th className="py-4 px-4">Procedure</th>
-                <th className="py-4 px-4">Location / Risk</th>
-                <th className="py-4 px-4">Duration</th>
-                <th className="py-4 pl-4 pr-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E8E6E0]/40">
-              {filteredOperations.map((op) => (
-                <tr key={op.id} className="group border-t border-[#E8E6E0]/40 transition-colors hover:bg-[#F9F8F5]/50">
-                  <td className="py-4 pr-4 pl-4 align-middle">
-                    <div className="flex items-start gap-3">
-                      <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
-                        <img
-                          src={pravatarAvatarUrl(op.patientId)}
-                          alt=""
-                          className="size-full object-cover"
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate font-serif text-[15px] font-bold leading-snug text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">
-                          {op.patientName}
-                        </p>
-                        <p className="mt-0.5 text-[12px] font-medium tabular-nums tracking-wide text-muted-foreground">
-                          #{op.patientId}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 align-middle">
-                    <p className="text-[14px] font-medium text-[#1A1F1E]/80">{op.procedureName}</p>
-                    <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">
-                      {op.startTime} – {op.endTimeActual}
-                    </p>
-                  </td>
-                  <td className="py-4 px-4 align-middle">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1.5 text-[13px] font-medium text-[#1A1F1E]/80">
-                        <MapPinIcon className="size-3.5 text-muted-foreground" />
-                        <span>{op.location}</span>
-                      </div>
-                      <Badge variant="outline" className="w-fit rounded-lg border-[#1A5345]/10 bg-[#E8F0EE]/30 px-2 py-0 text-[10px] font-bold text-[#1A5345]">
-                        {op.riskScore}
-                      </Badge>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 align-middle">
-                    <div className="flex items-center gap-2 text-[14px] font-bold text-[#1A1F1E]">
-                      <ClockIcon className="size-4 text-[#1A5345]" />
-                      <span>{op.duration}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 pl-4 pr-4 text-right align-middle">
-                    <Button variant="ghost" size="sm" className="rounded-xl font-bold text-[#1A5345] hover:bg-[#E8F0EE]">
-                      View Report
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredOperations.length === 0 && (
-            <div className="py-20 text-center">
-              <div className="flex flex-col items-center justify-center opacity-30">
-                <HistoryIcon className="size-12 mb-3" strokeWidth={1.5} />
-                <p className="text-[16px] font-bold">No history records found</p>
-              </div>
-            </div>
-          )}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ---------- Main Component ---------- */
 
 export function AssistantProcedures({
   orders,
@@ -999,31 +656,27 @@ export function AssistantProcedures({
   onEditRequirement,
   onDeleteRequirement,
   onNotifyPatient,
+  onSaveConsent,
   isNotifying,
+  isSavingConsent,
   isTogglingRequirement,
   isUploadingAttachment,
   isLoading,
   isError,
   viewMode,
 }: AssistantProceduresProps) {
+  const { t } = useAssistantPageTranslations("procedures")
 
   if (isLoading) {
     return (
       <main className="flex h-full flex-1 items-center justify-center bg-[#F9F8F5]">
         <div className="flex flex-col items-center gap-3">
           <div className="size-8 animate-spin rounded-full border-2 border-[#1A5345] border-t-transparent" />
-          <p className="text-[11px] text-muted-foreground sm:text-[12px]">Loading procedures...</p>
+          <p className="text-[11px] text-muted-foreground sm:text-[12px]">{t("loading")}</p>
         </div>
       </main>
     )
   }
-
-  const FILTER_TABS = [
-    { key: "all" as const, shortLabel: "All", count: stats.total },
-    { key: "pending" as const, shortLabel: "Pending", count: stats.pending },
-    { key: "in-progress" as const, shortLabel: "Active", count: stats.inProgress },
-    { key: "completed" as const, shortLabel: "Done", count: stats.completed },
-  ] as const
 
   return (
     <main className="flex h-full flex-1 flex-col overflow-hidden bg-[#F9F8F5]">
@@ -1032,130 +685,39 @@ export function AssistantProcedures({
       {isError && (
         <div className="mx-3 mt-3 flex shrink-0 items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[11px] text-red-600 sm:mx-4 sm:mt-4 sm:text-[12px]">
           <AlertTriangleIcon className="size-4 shrink-0 text-red-400" />
-          Could not reach the procedures service. Data will appear once the backend is available.
+          {t("errorBanner")}
         </div>
       )}
 
       {viewMode === "operations" ? (
-        /* Doctor Operations View - procedure requests from doctors */
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-          {/* Left: fixed-width order list */}
-          <div
-            className={cn(
-              "flex flex-col border-r border-[#E8E6E0]/60 bg-[#FAFAF8]",
-              "w-full md:w-[320px] md:shrink-0",
-              selectedOrder && "hidden md:flex",
-            )}
-          >
-            {/* Search + filter header */}
-            <div className="shrink-0 space-y-4 border-b border-[#E8E6E0]/60 bg-white p-4">
-               <div className="flex items-center justify-between">
-                  <h2 className="font-serif text-[18px] font-bold text-[#1A1F1E]">Procedure Orders</h2>
-               </div>
-              <div className="relative">
-                <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9CA3AF]" />
-                <Input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search orders..."
-                  className="h-10 border-[#E8E6E0] bg-[#F9F8F5]/50 pl-9 text-[13px] placeholder:text-[#9CA3AF] rounded-xl focus-visible:ring-[#1A5345]/20"
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7870]"
-                    aria-label="Clear search"
-                  >
-                    <XIcon className="size-4" />
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-1.5 bg-[#F4F3ED] p-1.5 rounded-2xl">
-                {FILTER_TABS.map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setFilter(tab.key)}
-                    className={cn(
-                      "flex-1 rounded-xl py-2 text-[11px] font-bold transition-all duration-300",
-                      filter === tab.key
-                        ? "bg-white text-[#1A5345] shadow-md shadow-[#1A5345]/5"
-                        : "text-[#6B7870] hover:text-[#1A5345] hover:bg-white/50",
-                    )}
-                  >
-                    {tab.shortLabel}
-                    <span className={cn("ml-2 text-[10px] opacity-60", filter === tab.key ? "text-[#1A5345]" : "text-muted-foreground")}>
-                      {tab.count}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Scrollable row list */}
-            <div className="min-h-0 flex-1 overflow-y-auto p-3">
-              {orders.length > 0 ? (
-                <div className="space-y-2">
-                  {orders.map((order) => (
-                    <ProcedureOrderRow
-                      key={order.id}
-                      order={order}
-                      isSelected={selectedOrder?.id === order.id}
-                      onSelect={() => selectOrder(order.id)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
-                  <ClipboardPlusIcon className="mb-4 size-12 text-[#9CA3AF]" strokeWidth={1.5} />
-                  <p className="text-[14px] font-bold text-[#102F27]">No procedure orders</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">Try adjusting your filters</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right: detail panel */}
-          <div
-            className={cn(
-              "flex flex-col overflow-hidden bg-white",
-              selectedOrder ? "flex flex-1" : "hidden md:flex md:flex-1",
-            )}
-          >
-            {selectedOrder ? (
-              <ProcedureDetailPanel
-                order={selectedOrder}
-                onBack={clearSelection}
-                onToggleRequirement={(requirementId, isDone) =>
-                  onToggleRequirement(selectedOrder.id, requirementId, isDone)
-                }
-                onUploadAttachment={(requirementId, file) =>
-                  onUploadAttachment(selectedOrder.id, requirementId, file)
-                }
-                onAddRequirement={(title, description, allowsAttachment, dueAt) =>
-                  onAddRequirement(selectedOrder.id, title, description, allowsAttachment, dueAt)
-                }
-                onEditRequirement={(requirementId, title, description, allowsAttachment, dueAt) =>
-                  onEditRequirement(selectedOrder.id, requirementId, title, description, allowsAttachment, dueAt)
-                }
-                onDeleteRequirement={(requirementId) =>
-                  onDeleteRequirement(selectedOrder.id, requirementId)
-                }
-                onNotifyPatient={() => onNotifyPatient(selectedOrder.id)}
-                isNotifying={isNotifying}
-                isTogglingRequirement={isTogglingRequirement}
-                isUploadingAttachment={isUploadingAttachment}
-              />
-            ) : (
-              <DetailPlaceholder />
-            )}
-          </div>
-        </div>
+        <AssistantProceduresOperations
+          orders={orders}
+          stats={stats}
+          filter={filter}
+          setFilter={setFilter}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          selectedOrder={selectedOrder}
+          selectOrder={selectOrder}
+          clearSelection={clearSelection}
+          onToggleRequirement={onToggleRequirement}
+          onUploadAttachment={onUploadAttachment}
+          onAddRequirement={onAddRequirement}
+          onEditRequirement={onEditRequirement}
+          onDeleteRequirement={onDeleteRequirement}
+          onNotifyPatient={onNotifyPatient}
+          onSaveConsent={onSaveConsent}
+          isNotifying={isNotifying}
+          isSavingConsent={isSavingConsent}
+          isTogglingRequirement={isTogglingRequirement}
+          isUploadingAttachment={isUploadingAttachment}
+        />
       ) : viewMode === "current" ? (
         /* Current Schedule View */
         <ScheduleView />
       ) : (
         /* History Records View */
-        <HistoryView />
+        <AssistantProceduresHistory />
       )}
     </main>
   )

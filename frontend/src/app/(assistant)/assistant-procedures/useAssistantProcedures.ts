@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
-import type { ProcedureOrder, ProcedureRequirement, ProcedureStats, ProcedureFilter } from "./assistantProcedures.types"
+import type { ProcedureConsent, ProcedureOrder, ProcedureRequirement, ProcedureStats, ProcedureFilter } from "./assistantProcedures.types"
 import { mockProcedureOrders, mockProcedureStats } from "./assistantProcedures.mock"
+import type { ProcedureConsentSavePayload } from "./ProcedureConsentDialog"
 
 /* ---------- API helpers ---------- */
 
@@ -95,6 +96,23 @@ async function deleteRequirement(payload: { orderId: string; requirementId: stri
 
 async function notifyPatient(payload: { orderId: string }) {
   await apiClient.post(`/assistant/procedures/${payload.orderId}/notify-patient`)
+}
+
+async function saveProcedureConsent(payload: {
+  orderId: string
+  consent: ProcedureConsent
+  file: File
+}) {
+  const form = new FormData()
+  form.append("file", payload.file)
+  form.append("consent", JSON.stringify(payload.consent))
+  try {
+    await apiClient.post(`/assistant/procedures/${payload.orderId}/consent`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+  } catch {
+    /* Local-first until assistant procedures API exists */
+  }
 }
 
 /* ---------- Query keys ---------- */
@@ -267,6 +285,45 @@ export function useAssistantProcedures() {
     mutationFn: notifyPatient,
   })
 
+  const consentMutation = useMutation({
+    mutationFn: saveProcedureConsent,
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: ordersKey })
+      const blobUrl = URL.createObjectURL(payload.file)
+      const completedAt = payload.consent.signedAt
+      patchLocalOrders((orders) =>
+        orders.map((o) =>
+          o.id === payload.orderId
+            ? {
+                ...o,
+                consent: {
+                  ...payload.consent,
+                  attachmentUrl: blobUrl,
+                  attachmentName: payload.file.name,
+                },
+                requirements: o.requirements.map((r) =>
+                  r.id === payload.consent.requirementId
+                    ? {
+                        ...r,
+                        isDone: true,
+                        completedAt,
+                        attachmentUrl: blobUrl,
+                        attachmentName: payload.file.name,
+                      }
+                    : r,
+                ),
+              }
+            : o,
+        ),
+      )
+      return { blobUrl }
+    },
+    onError: (_err, _variables, ctx) => {
+      if (ctx?.blobUrl) URL.revokeObjectURL(ctx.blobUrl)
+      void invalidateAll()
+    },
+  })
+
   const orders = ordersQuery.data ?? []
 
   const filteredOrders = useMemo(() => {
@@ -325,7 +382,15 @@ export function useAssistantProcedures() {
     onDeleteRequirement: (orderId: string, requirementId: string) =>
       deleteMutation.mutate({ orderId, requirementId }),
     onNotifyPatient: (orderId: string) => notifyMutation.mutateAsync({ orderId }),
+    onSaveConsent: async (orderId: string, payload: ProcedureConsentSavePayload) => {
+      await consentMutation.mutateAsync({
+        orderId,
+        consent: payload.consent,
+        file: payload.file,
+      })
+    },
     isNotifying: notifyMutation.isPending,
+    isSavingConsent: consentMutation.isPending,
     isTogglingRequirement: toggleMutation.isPending,
     isUploadingAttachment: uploadMutation.isPending,
     isLoading: ordersQuery.isLoading || statsQuery.isLoading,

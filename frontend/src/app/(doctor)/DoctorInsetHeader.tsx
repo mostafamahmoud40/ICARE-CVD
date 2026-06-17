@@ -18,6 +18,7 @@ import {
   LogOutIcon,
   MessageCircleIcon,
   PillIcon,
+  ScissorsIcon,
   SparklesIcon,
   User2Icon,
   UsersIcon,
@@ -123,6 +124,16 @@ const ROUTES: RouteEntry[] = [
     match: (p) => p.startsWith("/doctor-prescriptions"),
     routeId: "prescriptions",
     icon: PillIcon,
+  },
+  {
+    match: (p) => /^\/doctor-procedures\/[^/]+$/.test(p),
+    routeId: "procedureReport",
+    icon: ScissorsIcon,
+  },
+  {
+    match: (p) => p.startsWith("/doctor-procedures"),
+    routeId: "procedures",
+    icon: ScissorsIcon,
   },
   {
     match: (p) => p.startsWith("/doctor-assistants"),

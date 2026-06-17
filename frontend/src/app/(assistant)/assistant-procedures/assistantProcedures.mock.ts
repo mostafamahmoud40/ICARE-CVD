@@ -1,5 +1,9 @@
 import type { ProcedureOrder, ProcedureStats } from "./assistantProcedures.types"
 
+/** Minimal PNG placeholder for mock signed consents without a real capture. */
+const MOCK_SIGNATURE_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
 export const mockProcedureOrders: ProcedureOrder[] = [
   {
     id: "proc-001",
@@ -15,6 +19,17 @@ export const mockProcedureOrders: ProcedureOrder[] = [
     priority: "urgent",
     notes: "Patient is on blood thinners. Ensure all pre-procedure labs are collected at least 24h before.",
     createdAt: "2026-05-04T08:00:00Z",
+    consent: {
+      requirementId: "req-001-2",
+      signerType: "patient",
+      signerName: "Sara Ahmed",
+      guardianRelationship: null,
+      collectionMethod: "signature",
+      signatureDataUrl: MOCK_SIGNATURE_DATA_URL,
+      attachmentUrl: "/uploads/consent-sara-ahmed.pdf",
+      attachmentName: "consent-sara-ahmed.pdf",
+      signedAt: "2026-05-04T11:00:00Z",
+    },
     requirements: [
       {
         id: "req-001-1",
@@ -28,6 +43,7 @@ export const mockProcedureOrders: ProcedureOrder[] = [
       },
       {
         id: "req-001-2",
+        kind: "consent",
         title: "Signed consent form",
         description: "Patient must sign the procedure consent form",
         allowsAttachment: true,
@@ -82,7 +98,19 @@ export const mockProcedureOrders: ProcedureOrder[] = [
     priority: "normal",
     notes: null,
     createdAt: "2026-05-04T09:15:00Z",
+    consent: null,
     requirements: [
+      {
+        id: "req-002-0",
+        kind: "consent",
+        title: "Signed consent form",
+        description: "Patient or legal guardian must sign the procedure consent form",
+        allowsAttachment: true,
+        isDone: false,
+        completedAt: null,
+        attachmentUrl: null,
+        attachmentName: null,
+      },
       {
         id: "req-002-1",
         title: "NPO for 4 hours prior",
@@ -129,6 +157,17 @@ export const mockProcedureOrders: ProcedureOrder[] = [
     priority: "emergency",
     notes: "High-risk patient. Anaesthesia team on standby.",
     createdAt: "2026-05-03T14:00:00Z",
+    consent: {
+      requirementId: "req-003-3",
+      signerType: "patient",
+      signerName: "Nadia Kamal",
+      guardianRelationship: null,
+      collectionMethod: "upload",
+      signatureDataUrl: null,
+      attachmentUrl: "/uploads/consent-nadia-pm.pdf",
+      attachmentName: "consent-nadia-pm.pdf",
+      signedAt: "2026-05-04T08:00:00Z",
+    },
     requirements: [
       {
         id: "req-003-1",
@@ -152,8 +191,9 @@ export const mockProcedureOrders: ProcedureOrder[] = [
       },
       {
         id: "req-003-3",
+        kind: "consent",
         title: "Informed consent signed",
-        description: null,
+        description: "Patient must sign the procedure consent form",
         allowsAttachment: true,
         isDone: true,
         completedAt: "2026-05-04T08:00:00Z",
@@ -186,7 +226,19 @@ export const mockProcedureOrders: ProcedureOrder[] = [
     priority: "urgent",
     notes: "Patient is allergic to iodine-based contrast — use iso-osmolar alternative.",
     createdAt: "2026-05-04T11:00:00Z",
+    consent: null,
     requirements: [
+      {
+        id: "req-004-0",
+        kind: "consent",
+        title: "Signed consent form",
+        description: "Patient or legal guardian must sign the procedure consent form",
+        allowsAttachment: true,
+        isDone: false,
+        completedAt: null,
+        attachmentUrl: null,
+        attachmentName: null,
+      },
       {
         id: "req-004-1",
         title: "Allergy alert documented",

@@ -19,10 +19,15 @@ import { StatusBadge } from "./StatusBadge"
 import { RequirementItem } from "./RequirementItem"
 import { RequirementForm } from "./RequirementForm"
 import { NotifyPatientDialog } from "./NotifyPatientDialog"
+import { Button } from "@/components/ui/button"
+import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import type { RequirementAttachmentInsight } from "@/lib/procedures/requirementAttachmentAnalysis"
 import type { PhysicianDirectiveSuggestion } from "@/lib/procedures/physicianDirectiveSuggestions"
 import { PRIORITY_CONFIG } from "./assistantProcedures.config"
 import type { ProcedureOrder } from "./assistantProcedures.types"
+import { ProcedureConsentCard } from "./ProcedureConsentCard"
+import type { ProcedureConsentSavePayload } from "./ProcedureConsentDialog"
+import { nonConsentRequirements, findConsentRequirement } from "./procedureConsent.shared"
 import { useAnalyzeRequirementAttachment } from "./useAnalyzeRequirementAttachment"
 import { useSuggestPhysicianDirectives } from "./useSuggestPhysicianDirectives"
 
@@ -46,7 +51,9 @@ type ProcedureDetailPanelProps = {
   ) => void
   onDeleteRequirement: (requirementId: string) => void
   onNotifyPatient: () => Promise<void>
+  onSaveConsent: (payload: ProcedureConsentSavePayload) => Promise<void>
   isNotifying: boolean
+  isSavingConsent: boolean
   isTogglingRequirement: boolean
   isUploadingAttachment: boolean
 }
@@ -60,10 +67,13 @@ export function ProcedureDetailPanel({
   onEditRequirement,
   onDeleteRequirement,
   onNotifyPatient,
+  onSaveConsent,
   isNotifying,
+  isSavingConsent,
   isTogglingRequirement,
   isUploadingAttachment,
 }: ProcedureDetailPanelProps) {
+  const { t } = useAssistantPageTranslations("procedures")
   const analyzeMutation = useAnalyzeRequirementAttachment()
   const suggestDirectivesMutation = useSuggestPhysicianDirectives()
   const [analyzingRequirementId, setAnalyzingRequirementId] = useState<string | null>(null)
@@ -84,8 +94,13 @@ export function ProcedureDetailPanel({
   const [showAddForm, setShowAddForm] = useState(false)
   const [notifyOpen, setNotifyOpen] = useState(false)
 
-  const doneCount = order.requirements.filter((r) => r.isDone).length
-  const totalCount = order.requirements.length
+  const checklistRequirements = nonConsentRequirements(order)
+  const consentRequirement = findConsentRequirement(order)
+  const consentDone = consentRequirement ? consentRequirement.isDone : true
+
+  const doneCount =
+    checklistRequirements.filter((r) => r.isDone).length + (consentDone ? (consentRequirement ? 1 : 0) : 0)
+  const totalCount = checklistRequirements.length + (consentRequirement ? 1 : 0)
   const allDone = totalCount > 0 && doneCount === totalCount
 
   const dicebearAvatarUrl = (name: string, id: string) => {
@@ -147,37 +162,41 @@ export function ProcedureDetailPanel({
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[#F9F8F5]">
-      {/* Sticky Header */}
-      <div className="flex shrink-0 items-center gap-3 border-b border-[#E8E6E0]/60 bg-white/80 px-4 py-5 backdrop-blur-md sm:px-6">
-        <button
-          onClick={onBack}
-          className="flex size-9 items-center justify-center rounded-xl border border-[#E8E6E0]/60 bg-white text-muted-foreground shadow-sm transition-all hover:bg-[#F9F8F5] hover:text-[#1A5345] md:hidden active:scale-95"
-          aria-label="Go back"
-        >
-          <ArrowLeftIcon className="size-4" />
-        </button>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="font-serif text-[20px] font-bold text-[#1A1F1E] sm:text-[22px]">
-              Order Details
-            </h3>
-            <span className="hidden rounded-full bg-[#E8F0EE] px-2 py-0.5 text-[10px] font-bold text-[#1A5345] sm:inline-block">
-              Active Request
-            </span>
+      <div className="z-10 flex shrink-0 flex-wrap items-center justify-between gap-4 border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-5 sm:px-8 sm:py-6">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex size-9 items-center justify-center rounded-lg border border-[#E8E6E0] bg-white text-muted-foreground shadow-sm transition-colors hover:bg-slate-50 hover:text-[#1A5345] md:hidden"
+            aria-label={t("detail.back")}
+          >
+            <ArrowLeftIcon className="size-4" />
+          </button>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h2 className="truncate font-serif text-[20px] font-bold tracking-tight text-[#1A1F1E]">
+                {order.patientName}
+              </h2>
+              <StatusBadge status={order.status} />
+            </div>
+            <p className="mt-0.5 truncate text-[13px] font-medium text-muted-foreground">
+              {order.procedureName}
+              {order.scheduledAt
+                ? ` · ${new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(order.scheduledAt))}`
+                : ""}
+            </p>
           </div>
-          <p className="truncate text-[11px] font-bold text-muted-foreground/60 uppercase tracking-[0.1em] mt-0.5">
-            Ref: {order.id.slice(0, 12).toUpperCase()}
-          </p>
         </div>
-        
-        <button
+
+        <Button
           type="button"
+          size="sm"
+          className="h-8 rounded-lg border-0 bg-[#1A5345] px-5 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]"
           onClick={() => setNotifyOpen(true)}
-          className="group flex items-center gap-2 rounded-xl bg-[#1A5345] px-4 py-2.5 text-[12px] font-bold text-white shadow-lg shadow-[#1A5345]/20 transition-all hover:bg-[#133F34] hover:-translate-y-0.5 active:scale-95"
         >
-          <BellIcon className="size-4 transition-transform group-hover:rotate-12" />
-          <span className="hidden sm:inline">Notify Patient</span>
-        </button>
+          <BellIcon className="mr-2 size-4" />
+          {t("detail.notifyPatient")}
+        </Button>
 
         <NotifyPatientDialog
           open={notifyOpen}
@@ -271,6 +290,12 @@ export function ProcedureDetailPanel({
             </div>
           )}
         </div>
+
+        <ProcedureConsentCard
+          order={order}
+          onSaveConsent={onSaveConsent}
+          isSavingConsent={isSavingConsent}
+        />
 
         {/* ── Summary & Notes ── */}
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-6">
@@ -442,7 +467,7 @@ export function ProcedureDetailPanel({
                 )}
 
                 <div className="space-y-4">
-                  {order.requirements.map((req) => (
+                  {checklistRequirements.map((req) => (
                     <RequirementItem
                       key={req.id}
                       requirement={req}
@@ -473,7 +498,7 @@ export function ProcedureDetailPanel({
                     />
                   ))}
 
-                  {order.requirements.length === 0 && (
+                  {checklistRequirements.length === 0 && (
                     <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-[#E8E6E0] bg-[#F9F8F5]/30 px-6 py-12 sm:py-16">
                       <div className="mb-4 flex size-16 items-center justify-center rounded-2xl border border-[#E8E6E0] bg-white shadow-sm">
                          <ClipboardListIcon className="size-8 text-muted-foreground/30" strokeWidth={1} />

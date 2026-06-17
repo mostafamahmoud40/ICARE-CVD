@@ -18,6 +18,7 @@ import {
   LogOutIcon,
   MessageCircleIcon,
   PillIcon,
+  ScissorsIcon,
   SparklesIcon,
   User2Icon,
   UsersIcon,
@@ -136,6 +137,12 @@ function DoctorLayoutContent({
       label: "Prescriptions",
       icon: PillIcon,
       isActive: pathname.startsWith("/doctor-prescriptions"),
+    },
+    {
+      href: "/doctor-procedures",
+      label: "Procedures",
+      icon: ScissorsIcon,
+      isActive: pathname.startsWith("/doctor-procedures"),
     },
     {
       href: "/doctor-chat",

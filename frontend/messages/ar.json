@@ -389,6 +389,255 @@
           "bufferBetween": "الفاصل بين المواعيد (بالدقائق)"
         }
       },
+      "procedures": {
+        "breadcrumb": "طلبات الإجراءات",
+        "title": "طلبات الإجراءات",
+        "subtitle": "تتبع قوائم ما قبل الإجراء والمتطلبات وإشعارات المرضى.",
+        "openOrders": "طلبات مفتوحة",
+        "searchPlaceholder": "ابحث عن مريض أو إجراء…",
+        "filterAll": "الكل",
+        "filterPending": "قيد الانتظار",
+        "filterActive": "نشط",
+        "filterDone": "منتهٍ",
+        "tableProcedure": "الإجراء",
+        "tablePriority": "الأولوية",
+        "tableScheduled": "الموعد",
+        "tableChecklist": "القائمة",
+        "emptyTitle": "لا توجد طلبات مطابقة",
+        "emptyHint": "جرّب تغيير البحث أو الفلاتر.",
+        "loading": "جاري تحميل الإجراءات…",
+        "errorBanner": "تعذّر الاتصال بخدمة الإجراءات. ستظهر البيانات عند توفر الخادم.",
+        "detail": {
+          "back": "رجوع",
+          "notifyPatient": "إشعار المريض"
+        },
+        "notifyDialog": {
+          "title": "إرسال تذكير بالإجراء",
+          "description": "إلى {name}",
+          "messageLabel": "الرسالة",
+          "messagePlaceholder": "اكتب التذكير، أو اضغط على أيقونة الذكاء الاصطناعي للتحسين…",
+          "aiEnhance": "تحسين بالذكاء الاصطناعي",
+          "deliveryHint": "يُرسل عبر رسالة SMS آمنة وإشعار داخل التطبيق. عدّل الرسالة قبل الإرسال.",
+          "cancel": "إلغاء",
+          "send": "إرسال التذكير",
+          "sending": "جاري الإرسال…",
+          "sentTitle": "تم إرسال التذكير",
+          "sentBody": "أُرسل ملخص القائمة إلى {name} عبر SMS وإشعار داخل التطبيق.",
+          "done": "تم"
+        },
+        "consent": {
+          "cardTitle": "الموافقة المستنيرة",
+          "cardHint": "مطلوبة قبل الإجراء. يجب على المريض أو ولي الأمر المراجعة والتوقيع على نموذج الموافقة.",
+          "cardHintBoth": "مطلوبة قبل الإجراء. يمكن جمع توقيع رقمي على الشاشة أو رفع نسخة ممسوحة/مصوّرة من النموذج الموقّع (PDF أو صورة).",
+          "cardHintWorkflow": "حمّل نموذج الموافقة ليوقّعه المريض أو ولي الأمر، ثم ارفع النسخة الموقّعة هنا. التوقيع على الشاشة متاح أيضًا في العيادة.",
+          "workflow": {
+            "download": "تحميل النموذج",
+            "sign": "توقيع المريض / ولي الأمر",
+            "upload": "رفع النسخة الموقّعة"
+          },
+          "pendingHintWorkflow": "حمّل النموذج أولًا، اجعل المريض أو ولي الأمر يوقّعه، ثم ارفع المستند الموقّع.",
+          "downloadForm": "تحميل نموذج الموافقة",
+          "printForm": "طباعة النموذج",
+          "orSignOnScreen": "أو التوقيع على الشاشة",
+          "formDocumentTitle": "الموافقة المستنيرة على الإجراء",
+          "notScheduled": "يُحدَّد لاحقًا",
+          "formLabels": {
+            "patient": "المريض",
+            "procedure": "الإجراء",
+            "physician": "الطبيب المعالج",
+            "patientSignature": "توقيع المريض",
+            "guardianSignature": "توقيع ولي الأمر (إن وُجد)",
+            "guardianRelationship": "صلة القرابة بالمريض",
+            "date": "التاريخ",
+            "footer": "ICARE-CVD · احتفظ بالأصل الموقّع في السجل الطبي."
+          },
+          "statusSigned": "موقّعة",
+          "statusPending": "معلّقة",
+          "pendingHint": "لم تُجمع الموافقة بعد. افتح النموذج لالتقاط التوقيع قبل الإجراء.",
+          "pendingHintBoth": "اختر التوقيع الرقمي أو ارفع مستندًا موقّعًا لإكمال هذا المتطلب.",
+          "collectSignature": "جمع التوقيع",
+          "updateSignature": "تحديث التوقيع",
+          "uploadSignedForm": "رفع نموذج موقّع",
+          "replaceUpload": "استبدال المستند",
+          "viewOrUpdate": "عرض / تحديث",
+          "viewDocument": "عرض مستند الموافقة",
+          "uploadDialogTitle": "رفع موافقة موقّعة",
+          "uploadDialogDescription": "إرفاق نسخة ممسوحة أو مصوّرة من نموذج الموافقة لـ {name}",
+          "uploadFile": "المستند الموقّع",
+          "chooseFile": "اختر ملفًا للرفع",
+          "uploadFormats": "PDF أو PNG أو JPG · ملف واحد",
+          "removeFile": "إزالة الملف",
+          "uploadSave": "حفظ الموافقة المرفوعة",
+          "methods": {
+            "signature": "توقيع رقمي",
+            "upload": "مستند مرفوع"
+          },
+          "signedAt": "تم التوقيع في {date}",
+          "dialogTitle": "نموذج موافقة الإجراء",
+          "dialogDescription": "جمع الموافقة المستنيرة لـ {name}",
+          "formPreview": "نص الموافقة",
+          "formBody": "أنا {patientName}، أقر بأن الدكتور {doctorName} شرح لي طبيعة وفوائد ومخاطر وبدائل إجراء {procedureName}. أوافق طوعًا على هذا الإجراء وأفوّض فريق الرعاية بتقديم العلاج اللازم.",
+          "signerType": "من يوقّع؟",
+          "signerTypes": {
+            "patient": "المريض",
+            "guardian": "ولي الأمر"
+          },
+          "patientName": "الاسم الكامل للمريض",
+          "guardianName": "الاسم الكامل لولي الأمر",
+          "guardianRelationship": "صلة القرابة بالمريض",
+          "guardianRelationshipPlaceholder": "مثال: الأب، الأم، الزوج/الزوجة",
+          "signature": "التوقيع",
+          "clearSignature": "مسح التوقيع",
+          "cancel": "إلغاء",
+          "save": "حفظ الموافقة",
+          "saving": "جاري الحفظ…",
+          "noRequirement": "لا يوجد بند موافقة مرتبط بهذا الطلب.",
+          "errors": {
+            "incomplete": "أكمل كل الحقول وقدّم التوقيع.",
+            "guardianRelationship": "أدخل صلة القرابة بين ولي الأمر والمريض.",
+            "uploadRequired": "اختر ملفًا للرفع.",
+            "uploadFailed": "تعذّر حفظ الموافقة المرفوعة. حاول مرة أخرى."
+          }
+        },
+        "history": {
+          "breadcrumb": "سجل الإجراءات",
+          "title": "سجل الإجراءات",
+          "subtitle": "الإجراءات المكتملة والمؤرشفة في غرفة العمليات.",
+          "completedRecords": "سجلات مكتملة",
+          "filter7Days": "آخر 7 أيام",
+          "filter30Days": "آخر 30 يومًا",
+          "filter3Months": "آخر 3 أشهر",
+          "filterAll": "كل الفترات",
+          "searchPlaceholder": "ابحث عن مريض أو إجراء أو رقم…",
+          "tableLocation": "الموقع",
+          "tableDuration": "المدة",
+          "viewReport": "عرض التقرير",
+          "emptyTitle": "لا توجد سجلات",
+          "emptyHint": "جرّب تغيير البحث أو الفترة الزمنية."
+        },
+        "report": {
+          "breadcrumb": "تقرير الإجراء",
+          "title": "تقرير الإجراء",
+          "subtitle": "ملخص سريري للطلب {id}",
+          "subtitleProcedure": "{procedure} · {id}",
+          "checklistProgress": "تقدم القائمة",
+          "checklistCompleted": "{done}/{total} مكتمل",
+          "operatingSuite": "جناح العمليات",
+          "sections": {
+            "clinicalOverview": "نظرة سريرية عامة",
+            "intraoperativeRecord": "سجل العملية",
+            "postOperativeMonitoring": "متابعة ما بعد العملية",
+            "recoveryDischarge": "خطة التعافي والخروج",
+            "ai": "الذكاء الاصطناعي"
+          },
+          "notAvailable": "غير متاح",
+          "procedureOverview": "نظرة عامة على الإجراء",
+          "noClinicalNotes": "لا توجد ملاحظات سريرية مرفقة لهذا الإجراء.",
+          "riskScore": "درجة الخطورة",
+          "checklistTitle": "تفاصيل قائمة التحقق",
+          "historyNoChecklist": "هذا السجل التاريخي لغرفة العمليات لا يحتوي تفاصيل قائمة ما قبل الإجراء.",
+          "done": "تم",
+          "pending": "معلّق",
+          "notFoundTitle": "التقرير غير موجود",
+          "notFoundHint": "تقرير هذا الإجراء غير موجود أو لم يعد متاحًا.",
+          "backToHistory": "العودة إلى السجل",
+          "procedureDate": "تاريخ العملية",
+          "duration": "مدة العملية",
+          "dateDurationSeparator": "·",
+          "preOpDiagnosis": "التشخيص قبل العملية",
+          "noPreOpDiagnosis": "لا يوجد تشخيص قبل العملية موثّق.",
+          "operativeFindings": "النتائج أثناء العملية",
+          "operativeFindingsHint": "ما الذي وجده الجرّاح أثناء العملية.",
+          "noOperativeFindings": "لا توجد نتائج أثناء العملية موثّقة.",
+          "procedureDetails": "تفاصيل الإجراء",
+          "procedureDetailsHint": "وصف مختصر لما تم أثناء العملية.",
+          "noProcedureDetails": "لا توجد تفاصيل للإجراء موثّقة.",
+          "intraoperativeComplications": "المضاعفات أثناء العملية",
+          "intraoperativeComplicationsHint": "هل حدثت أي مضاعفات أثناء العملية؟",
+          "complications": {
+            "none": "لا توجد مضاعفات",
+            "excessiveBleeding": "نزيف شديد",
+            "arrhythmia": "اضطراب ضربات القلب",
+            "cardiacArrest": "توقف القلب"
+          },
+          "immediatePostOpStatus": "الحالة بعد العملية مباشرة",
+          "postOpStatus": {
+            "consciousnessLevel": "مستوى الوعي",
+            "bloodPressure": "ضغط الدم",
+            "heartRate": "معدل ضربات القلب",
+            "oxygenSaturation": "نسبة تشبع الأكسجين",
+            "ventilatorStatus": "حالة جهاز التنفس الصناعي"
+          },
+          "icuMonitoring": "متابعة العناية المركزة",
+          "icuMonitoringFields": {
+            "admissionDate": "تاريخ دخول العناية المركزة",
+            "stayDuration": "مدة الإقامة بالعناية المركزة"
+          },
+          "notAdmittedIcu": "لم يُدخل العناية المركزة",
+          "postOpMedications": "الأدوية بعد العملية",
+          "medicationCategories": {
+            "antibiotics": "المضادات الحيوية",
+            "anticoagulants": "مميعات الدم",
+            "painManagement": "مسكنات الألم",
+            "cardiacMedications": "أدوية القلب"
+          },
+          "postOpComplications": "المضاعفات بعد العملية",
+          "postOpComplicationLabel": "المضاعفة",
+          "complicationStatusLabel": "الحالة",
+          "postOpComplicationTypes": {
+            "infection": "عدوى",
+            "bleeding": "نزيف",
+            "stroke": "سكتة دماغية",
+            "arrhythmias": "اضطرابات ضربات القلب",
+            "heartFailure": "فشل القلب"
+          },
+          "present": "موجود",
+          "absent": "غير موجود",
+          "recoveryAssessment": "تقييم التعافي",
+          "recoveryStatusLabel": "حالة التعافي",
+          "recoveryStatus": {
+            "excellent": "ممتاز",
+            "good": "جيد",
+            "fair": "مقبول",
+            "poor": "ضعيف"
+          },
+          "aiRecoveryPrediction": "توقع التعافي بالذكاء الاصطناعي",
+          "aiPrediction": {
+            "recoveryRiskScore": "درجة مخاطر التعافي",
+            "expectedRecoveryTime": "الوقت المتوقع للتعافي",
+            "readmissionRisk": "خطر إعادة الدخول للمستشفى",
+            "infectionRisk": "خطر الإصابة بعدوى",
+            "recommendedMonitoringLevel": "مستوى المتابعة الموصى به",
+            "recoveryProbability": "احتمالية التعافي"
+          },
+          "dischargeSummary": "ملخص الخروج من المستشفى",
+          "discharge": {
+            "dischargeDate": "تاريخ الخروج",
+            "finalCondition": "الحالة النهائية",
+            "dischargeInstructions": "تعليمات الخروج"
+          },
+          "followUpPlan": "خطة المتابعة",
+          "followUp": {
+            "followUpDate": "موعد المتابعة",
+            "requiredTests": "الفحوصات المطلوبة",
+            "currentMedications": "الأدوية المستمرة"
+          },
+          "surgicalTeam": "طاقم العملية",
+          "teamRole": "الدور",
+          "teamMember": "الاسم",
+          "preOpActions": "الإجراءات التي تمت قبل العملية",
+          "noPreOpActions": "لا توجد إجراءات قبل العملية مسجّلة لهذه الحالة.",
+          "completedAt": "اكتمل في {date}",
+          "teamRoles": {
+            "leadSurgeon": "الجرّاح الرئيسي",
+            "assistantSurgeon": "الجرّاح المساعد",
+            "anesthesiologist": "طبيب التخدير",
+            "scrubNurse": "ممرضة التعقيم",
+            "circulatingNurse": "الممرضة الدوّارة",
+            "perfusionist": "فني جهاز القلب الرئوي"
+          }
+        }
+      },
       "account": {
         "breadcrumbDashboard": "لوحة التحكم",
         "breadcrumbAccount": "الحساب",
@@ -675,6 +924,14 @@
       "prescriptions": {
         "title": "الوصفات",
         "subtitle": "إدارة وصفات المرضى"
+      },
+      "procedures": {
+        "title": "العمليات",
+        "subtitle": "العمليات المكتملة والتقارير السريرية"
+      },
+      "procedureReport": {
+        "title": "تقرير العملية",
+        "subtitle": "ملخص سريري كامل لعملية مكتملة"
       },
       "assistants": {
         "title": "المساعدون",

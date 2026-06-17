@@ -110,7 +110,7 @@ export function ChatSidebar({
         : t("newChat.searchDoctorsOrPatients")
 
   return (
-    <div className="z-10 flex h-full w-full shrink-0 flex-col border-e border-[#E8E6E0]/70 bg-[#F9F8F5]/80 shadow-[4px_0_24px_rgba(0,0,0,0.02)] backdrop-blur-md lg:w-[330px]">
+    <div className="z-10 flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-e border-[#E8E6E0]/70 bg-[#F9F8F5]/80 shadow-[4px_0_24px_rgba(0,0,0,0.02)] backdrop-blur-md lg:w-[330px]">
       {/* Header */}
       <div className="px-5 pt-5 pb-3">
         <div className="mb-1 flex items-center justify-between">
@@ -247,7 +247,7 @@ export function ChatSidebar({
       </div>
 
       {/* Contact Lists */}
-      <div className="custom-scrollbar flex-1 overflow-y-auto px-2">
+      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-2">
         {filteredContacts.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
             <p className="text-[14px] font-semibold text-[#1A1F1E]">{t("sidebar.emptyTitle")}</p>

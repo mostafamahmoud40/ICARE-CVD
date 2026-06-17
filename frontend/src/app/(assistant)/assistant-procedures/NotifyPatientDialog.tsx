@@ -2,26 +2,24 @@
 
 import { useEffect, useMemo, useState } from "react"
 import {
-  BellIcon,
   CheckCircle2Icon,
-  MessageSquareTextIcon,
-  SendIcon,
+  InfoIcon,
+  Loader2Icon,
+  MessageCircleIcon,
   SparklesIcon,
-  XIcon,
 } from "lucide-react"
 
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { ProcedureOrder } from "./assistantProcedures.types"
+import { useAssistantPageTranslations } from "../use-assistant-i18n"
 
 type NotifyPatientDialogProps = {
   open: boolean
@@ -38,6 +36,7 @@ export function NotifyPatientDialog({
   onConfirm,
   isSending,
 }: NotifyPatientDialogProps) {
+  const { t } = useAssistantPageTranslations("procedures")
   const [sent, setSent] = useState(false)
   const [messageDraft, setMessageDraft] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
@@ -149,135 +148,105 @@ export function NotifyPatientDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent
-        showCloseButton={false}
-        className={cn(
-          "max-w-[calc(100%-2rem)] gap-0 overflow-hidden rounded-[32px] border-0 bg-white p-0 shadow-2xl sm:max-w-lg",
-        )}
-      >
-        <button
-          type="button"
-          onClick={() => handleClose(false)}
-          disabled={isSending}
-          className="absolute right-3 top-3 z-10 flex size-8 items-center justify-center rounded-lg border border-[#E8E6E0]/60 bg-white/90 text-muted-foreground shadow-sm transition-colors hover:bg-[#F9F8F5] hover:text-[#102F27] disabled:pointer-events-none disabled:opacity-40 sm:right-4 sm:top-4"
-          aria-label="Close"
-        >
-          <XIcon className="size-3.5" />
-        </button>
-
-        {/* Header Section */}
-        <div className="relative border-b border-[#E8E6E0]/50 bg-[#F9F8F5]/60 px-4 pb-3 pt-4 pr-12 text-left sm:px-5 sm:pb-3.5 sm:pt-4 sm:pr-14">
-          <DialogHeader className="gap-0 space-y-0">
-            <div className="flex items-center gap-3 sm:gap-3.5">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1A5345] text-white shadow-sm shadow-[#1A5345]/15">
-                <BellIcon className="size-[18px]" aria-hidden />
-              </div>
-              <div className="min-w-0 flex-1 space-y-0.5">
-                <DialogTitle className="font-serif text-[15px] font-semibold leading-tight tracking-tight text-[#1A1F1E] sm:text-[16px]">
-                  Clinical dispatch
-                </DialogTitle>
-                <DialogDescription className="text-[11px] font-normal leading-snug text-muted-foreground sm:text-[12px]">
-                  Notification summary
-                </DialogDescription>
-              </div>
+      <DialogContent className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[460px]">
+        <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-3.5 sm:px-6 sm:py-4">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <MessageCircleIcon className="size-6 shrink-0 text-[#1A5345]" aria-hidden />
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <DialogTitle className="text-left font-serif text-[17px] font-bold leading-tight text-[#1A1F1E]">
+                {t("notifyDialog.title")}
+              </DialogTitle>
+              <DialogDescription className="text-left text-[12px] font-medium leading-snug text-muted-foreground sm:text-[13px]">
+                {t("notifyDialog.description", { name: order.patientName })}
+                {order.patientPhone ? <> · {order.patientPhone}</> : null}
+              </DialogDescription>
             </div>
-          </DialogHeader>
+          </div>
         </div>
 
         {sent ? (
-          <div className="flex flex-col items-center gap-6 px-8 py-14 text-center">
-            <div className="relative">
-              <div className="absolute inset-0 animate-ping rounded-full bg-emerald-100/50" />
-              <div className="relative flex size-20 items-center justify-center rounded-full bg-emerald-50 ring-8 ring-emerald-50/50">
-                <CheckCircle2Icon className="size-10 text-emerald-600" aria-hidden />
-              </div>
+          <div className="flex flex-col items-center gap-4 px-6 py-10 text-center sm:px-8 sm:py-12">
+            <div className="flex size-14 items-center justify-center rounded-full bg-emerald-50">
+              <CheckCircle2Icon className="size-8 text-emerald-600" aria-hidden />
             </div>
-            <div className="space-y-2">
-              <p className="font-serif text-[22px] font-bold text-[#102F27]">Message dispatched</p>
-              <p className="max-w-xs text-[14px] leading-relaxed text-muted-foreground font-medium">
-                The checklist summary has been sent to <span className="text-[#1A5345] font-bold">{order.patientName}</span> via SMS and in-app alert.
+            <div className="space-y-1.5">
+              <p className="font-serif text-[18px] font-bold text-[#1A1F1E]">
+                {t("notifyDialog.sentTitle")}
+              </p>
+              <p className="max-w-xs text-[13px] font-medium leading-relaxed text-muted-foreground">
+                {t("notifyDialog.sentBody", { name: order.patientName })}
               </p>
             </div>
             <Button
               type="button"
               onClick={() => handleClose(false)}
-              className="mt-2 h-12 w-full max-w-[200px] rounded-2xl bg-[#1A5345] px-8 text-[14px] font-bold text-white shadow-xl shadow-[#1A5345]/10 transition-all hover:bg-[#133F34] active:scale-95"
+              className="mt-1 h-8 rounded-lg border-0 bg-[#1A5345] px-5 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34]"
             >
-              Done
+              {t("notifyDialog.done")}
             </Button>
           </div>
         ) : (
           <>
-            <div className="space-y-6 px-6 py-6 sm:px-8 sm:py-8">
-              {/* Message Composer */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="notify-message" className="text-[12px] font-semibold text-[#102F27]/80">
-                    Message content
+            <div className="flex flex-col gap-4 p-5 sm:p-6">
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="notify-message" className="text-[12px] font-bold text-[#1A1F1E]">
+                    {t("notifyDialog.messageLabel")}
                   </Label>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 shrink-0 border-0 bg-transparent text-muted-foreground shadow-none transition-colors hover:bg-transparent hover:text-violet-600 sm:size-9"
                     onClick={handleGenerateAiMessage}
                     disabled={isSending || isGenerating}
-                    className="flex items-center gap-1.5 rounded-xl border border-violet-100 bg-violet-50/50 px-3 py-1.5 text-[11px] font-bold text-violet-700 transition-all hover:bg-violet-100 hover:text-violet-800 active:scale-95 disabled:opacity-40"
+                    aria-label={t("notifyDialog.aiEnhance")}
+                    title={t("notifyDialog.aiEnhance")}
                   >
-                    <SparklesIcon className="size-3.5" aria-hidden />
-                    {isGenerating ? "Refining..." : "AI Enhancement"}
-                  </button>
+                    <SparklesIcon className="size-5" aria-hidden />
+                    <span className="sr-only">{t("notifyDialog.aiEnhance")}</span>
+                  </Button>
                 </div>
                 <Textarea
                   id="notify-message"
                   value={messageDraft}
                   onChange={(e) => setMessageDraft(e.target.value)}
-                  placeholder="Draft your clinical update here..."
-                  className="min-h-[160px] resize-none rounded-[24px] border-[#E8E6E0] bg-[#F9F8F5]/30 p-5 text-[14px] font-medium leading-relaxed text-[#1A1F1E] placeholder:text-muted-foreground/40 focus-visible:ring-[#1A5345]/10 sm:min-h-[180px]"
+                  rows={6}
+                  className="min-h-[120px] resize-none rounded-xl border-[#E8E6E0] bg-[#F9F8F5]/50 text-[13px] leading-relaxed shadow-sm focus-visible:bg-white focus-visible:ring-[#1A5345] sm:min-h-[140px]"
+                  placeholder={t("notifyDialog.messagePlaceholder")}
                 />
               </div>
 
-              {/* Delivery Info */}
-              <div className="flex items-start gap-2.5 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 px-3 py-2 sm:gap-3 sm:px-3.5 sm:py-2.5">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white text-[#1A5345] shadow-sm ring-1 ring-[#E8E6E0]/50">
-                  <MessageSquareTextIcon className="size-3.5" aria-hidden />
-                </div>
-                <div className="min-w-0 space-y-0.5 pt-0.5">
-                  <p className="text-[11px] font-semibold leading-none text-[#102F27] sm:text-[12px]">
-                    Multi-channel delivery
-                  </p>
-                  <p className="text-[10px] font-medium leading-snug text-muted-foreground sm:text-[11px]">
-                    Sent by{" "}
-                    <span className="font-semibold text-[#1A5345]">secure SMS</span>
-                    {" "}and{" "}
-                    <span className="font-semibold text-[#1A5345]">in-app notification</span>.
-                  </p>
-                </div>
+              <div className="flex items-start gap-2 rounded-xl border border-dashed border-[#E8E6E0] bg-[#F9F8F5]/50 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground sm:text-[12px]">
+                <InfoIcon className="mt-0.5 size-3.5 shrink-0 text-[#1A5345]/70 sm:size-4" aria-hidden />
+                <p>{t("notifyDialog.deliveryHint")}</p>
               </div>
             </div>
 
-            {/* Footer Actions */}
-            <div className="flex items-center justify-end gap-2 border-t border-[#E8E6E0]/60 bg-[#F9F8F5]/50 px-4 py-3 sm:gap-2.5 sm:px-5 sm:py-3">
+            <div className="flex justify-end gap-2.5 border-t border-[#E8E6E0]/60 bg-[#F9F8F5]/50 px-5 py-3 sm:px-6">
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
+                className="h-8 rounded-lg border border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] shadow-sm transition-colors hover:bg-slate-50 hover:text-[#1A5345]"
                 onClick={() => handleClose(false)}
                 disabled={isSending}
-                className="h-9 rounded-lg border-[#E8E6E0] bg-white px-3 text-[12px] font-semibold text-muted-foreground hover:bg-[#FAFAF9] hover:text-[#102F27]"
               >
-                Discard
+                {t("notifyDialog.cancel")}
               </Button>
               <Button
                 type="button"
-                size="sm"
-                onClick={handleConfirm}
+                className="h-8 rounded-lg border-0 bg-[#1A5345] px-5 text-[12px] font-bold text-white shadow-sm transition-all hover:bg-[#133F34] disabled:opacity-50 disabled:shadow-none"
+                onClick={() => void handleConfirm()}
                 disabled={isSending || !messageDraft.trim()}
-                className="h-9 gap-1.5 rounded-lg bg-[#1A5345] px-4 text-[12px] font-semibold text-white shadow-sm shadow-[#1A5345]/15 hover:bg-[#133F34] disabled:opacity-40"
               >
                 {isSending ? (
-                  <span className="size-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <>
+                    <Loader2Icon className="mr-2 size-3.5 animate-spin" aria-hidden />
+                    {t("notifyDialog.sending")}
+                  </>
                 ) : (
-                  <SendIcon className="size-3.5 shrink-0" aria-hidden />
+                  t("notifyDialog.send")
                 )}
-                Dispatch
               </Button>
             </div>
           </>

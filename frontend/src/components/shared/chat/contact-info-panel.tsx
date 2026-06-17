@@ -62,7 +62,7 @@ export function ContactInfoPanel({
     : [{ label: t("contactPanel.email"), value: contact.email?.trim() || "—" }]
 
   return (
-    <div className="custom-scrollbar z-10 hidden h-full w-[340px] shrink-0 animate-in flex-col overflow-y-auto border-s border-[#E8E6E0]/60 bg-white shadow-[-4px_0_24px_rgba(0,0,0,0.02)] duration-300 slide-in-from-right xl:flex">
+    <div className="custom-scrollbar z-10 hidden h-full min-h-0 w-[340px] shrink-0 animate-in flex-col overflow-y-auto border-s border-[#E8E6E0]/60 bg-white shadow-[-4px_0_24px_rgba(0,0,0,0.02)] duration-300 slide-in-from-right xl:flex">
       {/* Profile Header */}
       <div className="flex flex-col items-center px-6 pt-10 pb-6">
         <div className="relative">

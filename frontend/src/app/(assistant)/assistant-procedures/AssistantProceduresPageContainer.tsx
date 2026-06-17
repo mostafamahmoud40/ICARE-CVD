@@ -26,7 +26,9 @@ export function AssistantProceduresPageContainer() {
     onEditRequirement,
     onDeleteRequirement,
     onNotifyPatient,
+    onSaveConsent,
     isNotifying,
+    isSavingConsent,
     isTogglingRequirement,
     isUploadingAttachment,
     isLoading,
@@ -50,7 +52,9 @@ export function AssistantProceduresPageContainer() {
       onEditRequirement={onEditRequirement}
       onDeleteRequirement={onDeleteRequirement}
       onNotifyPatient={onNotifyPatient}
+      onSaveConsent={onSaveConsent}
       isNotifying={isNotifying}
+      isSavingConsent={isSavingConsent}
       isTogglingRequirement={isTogglingRequirement}
       isUploadingAttachment={isUploadingAttachment}
       isLoading={isLoading}
