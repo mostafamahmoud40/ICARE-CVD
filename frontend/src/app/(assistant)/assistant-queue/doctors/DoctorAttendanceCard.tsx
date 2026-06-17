@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import {
   ClockIcon,
@@ -13,7 +14,12 @@ import { cn } from "@/lib/utils"
 import { formatShortTime } from "../assistantQueue.liveBoard"
 import { useElapsedTime } from "../shared/useElapsedTime"
 import type { DoctorStatus } from "./doctors.types"
-import { formatBreakDuration, getDoctorQueueState, isoToTimeValue } from "./doctors.helpers"
+import {
+  formatBreakDuration,
+  getDoctorQueueState,
+  isoToTimeValue,
+  parseTimeValueToDate,
+} from "./doctors.helpers"
 import { DoctorStateChip } from "./DoctorStateChip"
 
 export function DoctorAttendanceCard({
@@ -31,9 +37,14 @@ export function DoctorAttendanceCard({
   const state = getDoctorQueueState(doc)
   const isCheckedIn = state !== "idle"
   const elapsed = useElapsedTime((state === "active" || state === "paused") ? doc.queueStartAt : null)
+  const [timeDraft, setTimeDraft] = useState(() => isoToTimeValue(doc.queueStartAt))
+
+  useEffect(() => {
+    setTimeDraft(isoToTimeValue(doc.queueStartAt))
+  }, [doc.id, doc.queueStartAt])
 
   return (
-    <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md hover:border-[#1A5345]/30">
+    <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex flex-col h-full">
         {/* Header: Avatar, Info & Badge */}
         <div className="flex items-start justify-between gap-4 mb-4">
@@ -138,13 +149,27 @@ export function DoctorAttendanceCard({
                 inputMode="numeric"
                 placeholder="00:00"
                 maxLength={5}
-                value={isoToTimeValue(doc.queueStartAt)}
+                value={timeDraft}
                 onChange={(e) => {
                   let val = e.target.value.replace(/[^0-9]/g, "")
                   if (val.length >= 2) {
                     val = val.slice(0, 2) + ":" + val.slice(2, 4)
                   }
-                  onSetTime(doc.id, val)
+                  setTimeDraft(val)
+                  if (parseTimeValueToDate(val)) {
+                    onSetTime(doc.id, val)
+                  }
+                }}
+                onBlur={() => {
+                  if (!timeDraft) {
+                    onSetTime(doc.id, "")
+                    return
+                  }
+                  if (parseTimeValueToDate(timeDraft)) {
+                    onSetTime(doc.id, timeDraft)
+                    return
+                  }
+                  setTimeDraft(isoToTimeValue(doc.queueStartAt))
                 }}
                 disabled={state === "paused"}
                 className={cn(

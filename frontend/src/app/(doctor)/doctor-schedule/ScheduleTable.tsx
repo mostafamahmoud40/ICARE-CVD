@@ -1,6 +1,7 @@
 "use client"
 
-import { BriefcaseIcon, BanIcon, Trash2Icon, PlusIcon } from "lucide-react"
+import * as React from "react"
+import { BriefcaseIcon, BanIcon, CopyIcon, Trash2Icon, PlusIcon } from "lucide-react"
 import { useLocale } from "next-intl"
 
 import { Button } from "@/components/ui/button"
@@ -16,7 +17,8 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
-import type { DayAvailability, TimeBlock } from "./doctorSchedule.types"
+import { CopyDayScheduleDialog } from "./CopyDayScheduleDialog"
+import type { DayAvailability, TimeBlock, WeekdayId } from "./doctorSchedule.types"
 import { createTimeBlock } from "./doctorSchedule.utils"
 
 function timeToMinutes(time: string): number {
@@ -111,6 +113,7 @@ function TimePickerCompact({
 type ScheduleTableProps = {
   days: DayAvailability[]
   onDayChange: (day: DayAvailability) => void
+  onCopyDaySchedule?: (sourceWeekday: WeekdayId, targetWeekdays: WeekdayId[]) => void
   labels?: Partial<{
     title: string
     subtitle: string
@@ -130,6 +133,16 @@ type ScheduleTableProps = {
     removePeriod: string
     removeBlock: string
     to: string
+    copyDay: string
+    copyDayTitle: string
+    copyDayDescription: string
+    copyDaySelectAll: string
+    copyDayClearAll: string
+    copyDayConfirm: string
+    copyDayCancel: string
+    copyDayNoTargets: string
+    copyDaySuccessTitle: string
+    copyDaySuccessDescription: string
   }>
 }
 
@@ -219,8 +232,9 @@ function DayTimeline({ periods, blocks }: { periods: TimeBlock[], blocks: TimeBl
   )
 }
 
-export function ScheduleTable({ days, onDayChange, labels }: ScheduleTableProps) {
+export function ScheduleTable({ days, onDayChange, onCopyDaySchedule, labels }: ScheduleTableProps) {
   const locale = useLocale()
+  const [copySource, setCopySource] = React.useState<DayAvailability | null>(null)
   const t = {
     title: labels?.title ?? "Schedule details",
     subtitle: labels?.subtitle ?? "Manage working periods and blocked times for each day",
@@ -240,6 +254,19 @@ export function ScheduleTable({ days, onDayChange, labels }: ScheduleTableProps)
     removePeriod: labels?.removePeriod ?? "Remove period",
     removeBlock: labels?.removeBlock ?? "Remove block",
     to: labels?.to ?? "to",
+    copyDay: labels?.copyDay ?? "Copy to other days",
+    copyDayTitle: labels?.copyDayTitle ?? "Copy day schedule",
+    copyDayDescription:
+      labels?.copyDayDescription ??
+      "Copy {day}'s working periods, breaks, and settings to other days.",
+    copyDaySelectAll: labels?.copyDaySelectAll ?? "Select all",
+    copyDayClearAll: labels?.copyDayClearAll ?? "Clear all",
+    copyDayConfirm: labels?.copyDayConfirm ?? "Copy schedule",
+    copyDayCancel: labels?.copyDayCancel ?? "Cancel",
+    copyDayNoTargets: labels?.copyDayNoTargets ?? "Select at least one day.",
+    copyDaySuccessTitle: labels?.copyDaySuccessTitle ?? "Schedule copied",
+    copyDaySuccessDescription:
+      labels?.copyDaySuccessDescription ?? "Selected days now match this day's schedule.",
   }
 
   const localizedWeekday = (day: DayAvailability) => {
@@ -412,7 +439,21 @@ export function ScheduleTable({ days, onDayChange, labels }: ScheduleTableProps)
                   )}
                 >
                 <td className="px-4 sm:px-5 py-3 sm:py-4 text-[12px] sm:text-[13px] font-medium text-[#1A1F1E]">
-                  {localizedWeekday(day)}
+                  <div className="flex items-center gap-1.5">
+                    <span>{localizedWeekday(day)}</span>
+                    {onCopyDaySchedule ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-[#1A5345]"
+                        title={t.copyDay}
+                        onClick={() => setCopySource(day)}
+                      >
+                        <CopyIcon className="size-3.5" aria-hidden />
+                      </Button>
+                    ) : null}
+                  </div>
                 </td>
                 <td className="px-4 sm:px-5 py-3 sm:py-4">
                   <div className="flex items-center gap-2">
@@ -545,6 +586,29 @@ export function ScheduleTable({ days, onDayChange, labels }: ScheduleTableProps)
             ))}
         </table>
       </div>
+
+      {copySource && onCopyDaySchedule ? (
+        <CopyDayScheduleDialog
+          open={Boolean(copySource)}
+          onOpenChange={(open) => {
+            if (!open) setCopySource(null)
+          }}
+          sourceDay={copySource}
+          allDays={days}
+          onCopy={(targetWeekdays) => onCopyDaySchedule(copySource.weekday, targetWeekdays)}
+          labels={{
+            title: t.copyDayTitle,
+            description: t.copyDayDescription,
+            selectAll: t.copyDaySelectAll,
+            clearAll: t.copyDayClearAll,
+            copy: t.copyDayConfirm,
+            cancel: t.copyDayCancel,
+            noTargetsSelected: t.copyDayNoTargets,
+            successTitle: t.copyDaySuccessTitle,
+            successDescription: t.copyDaySuccessDescription,
+          }}
+        />
+      ) : null}
     </section>
   )
 }

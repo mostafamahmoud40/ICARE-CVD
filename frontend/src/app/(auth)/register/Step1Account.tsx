@@ -48,14 +48,15 @@ export function Step1Account({
       await navigator.clipboard.writeText(generatedPassword);
     }
   }
+
   return (
-    <div className="space-y-5">
+    <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5 space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="register-full-name" className="text-sm font-medium text-foreground">
+        <Label htmlFor="register-full-name" className="text-left text-[13px] font-semibold text-[#102F27]">
           Full Name <span className="text-red-500">*</span>
         </Label>
         <div className="relative">
-          <UserRound className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <UserRound className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#1A5345]/60" />
           <Input
             id="register-full-name"
             name="fullName"
@@ -67,7 +68,7 @@ export function Step1Account({
             aria-invalid={Boolean(errors.fullName)}
             aria-describedby={errors.fullName ? "register-full-name-error" : undefined}
             disabled={isPending}
-            className="h-12 rounded-xl border-input bg-background pl-9 text-foreground placeholder:text-muted-foreground"
+            className="h-11 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] pl-10 text-[14px] text-[#152a24] placeholder:text-muted-foreground/60 hover:border-[#d9e5e1] focus-visible:border-[#d9e5e1] focus-visible:ring-1 focus-visible:ring-[#1A5345]/30 focus-visible:ring-offset-0"
           />
         </div>
         {errors.fullName ? (
@@ -78,11 +79,11 @@ export function Step1Account({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="register-email" className="text-sm font-medium text-foreground">
+        <Label htmlFor="register-email" className="text-left text-[13px] font-semibold text-[#102F27]">
           Email Address <span className="text-red-500">*</span>
         </Label>
         <div className="relative">
-          <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Mail className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#1A5345]/60" />
           <Input
             id="register-email"
             name="email"
@@ -95,7 +96,7 @@ export function Step1Account({
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? "register-email-error" : undefined}
             disabled={isPending}
-            className="h-12 rounded-xl border-input bg-background pl-9 text-foreground placeholder:text-muted-foreground"
+            className="h-11 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] pl-10 text-[14px] text-[#152a24] placeholder:text-muted-foreground/60 hover:border-[#d9e5e1] focus-visible:border-[#d9e5e1] focus-visible:ring-1 focus-visible:ring-[#1A5345]/30 focus-visible:ring-offset-0"
           />
           <datalist id="register-email-suggestions">
             <option value="patient1@test.com" />
@@ -109,11 +110,11 @@ export function Step1Account({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="register-phone-number" className="text-sm font-medium text-foreground">
+        <Label htmlFor="register-phone-number" className="text-left text-[13px] font-semibold text-[#102F27]">
           Phone Number <span className="text-red-500">*</span>
         </Label>
         <div className="relative">
-          <Phone className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Phone className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#1A5345]/60" />
           <Input
             id="register-phone-number"
             name="phoneNumber"
@@ -126,7 +127,7 @@ export function Step1Account({
             aria-invalid={Boolean(errors.phoneNumber)}
             aria-describedby={errors.phoneNumber ? "register-phone-number-error" : undefined}
             disabled={isPending}
-            className="h-12 rounded-xl border-input bg-background pl-9 text-foreground placeholder:text-muted-foreground"
+            className="h-11 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] pl-10 text-[14px] text-[#152a24] placeholder:text-muted-foreground/60 hover:border-[#d9e5e1] focus-visible:border-[#d9e5e1] focus-visible:ring-1 focus-visible:ring-[#1A5345]/30 focus-visible:ring-offset-0"
           />
           <datalist id="register-phone-suggestions">
             <option value="+20 123 456 7890" />
@@ -141,16 +142,16 @@ export function Step1Account({
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="register-password" className="text-sm font-medium text-foreground">
+          <Label htmlFor="register-password" className="text-left text-[13px] font-semibold text-[#102F27]">
             Password <span className="text-red-500">*</span>
             {generatedPassword && (
-              <span className="ml-2 flex items-center gap-1 text-sm text-muted-foreground">
+              <span className="ml-2 flex items-center gap-1 text-[12px] font-medium text-[#6B7870]">
                 ({generatedPassword})
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon-xs"
-                  className="h-4 w-4 p-0 hover:bg-muted"
+                  className="h-4 w-4 p-0 hover:bg-muted text-[#1A5345]"
                   onClick={copyPassword}
                   disabled={isPending}
                   title="Copy password"
@@ -164,7 +165,7 @@ export function Step1Account({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-7 text-xs"
+            className="h-7 text-[11px] font-bold text-[#1A5345] hover:bg-[#1A5345]/10 border border-[#1A5345]/30 bg-transparent rounded-lg px-2"
             onClick={generatePassword}
             disabled={isPending}
           >
@@ -173,7 +174,7 @@ export function Step1Account({
           </Button>
         </div>
         <div className="relative">
-          <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Lock className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#1A5345]/60" />
           <Input
             id="register-password"
             name="password"
@@ -185,13 +186,13 @@ export function Step1Account({
             aria-invalid={Boolean(errors.password)}
             aria-describedby={errors.password ? "register-password-error" : undefined}
             disabled={isPending}
-            className="h-12 rounded-xl border-input bg-background pl-9 pr-10 text-foreground placeholder:text-muted-foreground"
+            className="h-11 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] pl-10 pr-10 text-[14px] text-[#152a24] placeholder:text-muted-foreground/60 hover:border-[#d9e5e1] focus-visible:border-[#d9e5e1] focus-visible:ring-1 focus-visible:ring-[#1A5345]/30 focus-visible:ring-offset-0"
           />
           <Button
             type="button"
             variant="ghost"
             size="icon-xs"
-            className="absolute right-1 top-1/2 -translate-y-1/2"
+            className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground/80 hover:bg-transparent hover:text-[#1A5345]"
             aria-label={showPassword ? "Hide password" : "Show password"}
             onClick={onTogglePassword}
             disabled={isPending}
@@ -204,16 +205,16 @@ export function Step1Account({
             {errors.password}
           </p>
         ) : (
-          <p className="text-sm text-muted-foreground">Must be at least 8 characters</p>
+          <p className="text-[12px] font-medium text-[#6B7870]">Must be at least 8 characters</p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="register-confirm-password" className="text-sm font-medium text-foreground">
+        <Label htmlFor="register-confirm-password" className="text-left text-[13px] font-semibold text-[#102F27]">
           Confirm Password <span className="text-red-500">*</span>
         </Label>
         <div className="relative">
-          <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Lock className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#1A5345]/60" />
           <Input
             id="register-confirm-password"
             name="confirmPassword"
@@ -227,13 +228,13 @@ export function Step1Account({
               errors.confirmPassword ? "register-confirm-password-error" : undefined
             }
             disabled={isPending}
-            className="h-12 rounded-xl border-input bg-background pl-9 pr-10 text-foreground placeholder:text-muted-foreground"
+            className="h-11 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] pl-10 pr-10 text-[14px] text-[#152a24] placeholder:text-muted-foreground/60 hover:border-[#d9e5e1] focus-visible:border-[#d9e5e1] focus-visible:ring-1 focus-visible:ring-[#1A5345]/30 focus-visible:ring-offset-0"
           />
           <Button
             type="button"
             variant="ghost"
             size="icon-xs"
-            className="absolute right-1 top-1/2 -translate-y-1/2"
+            className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground/80 hover:bg-transparent hover:text-[#1A5345]"
             aria-label={showConfirmPassword ? "Hide password" : "Show password"}
             onClick={onToggleConfirmPassword}
             disabled={isPending}
