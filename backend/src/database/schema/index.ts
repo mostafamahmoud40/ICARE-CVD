@@ -31,3 +31,4 @@ export * from './consultationReferral.schema';
 export * from './doctorPatient.schema';
 export * from './doctorAssistant.schema';
 export * from './patientQueue.schema';
+export * from './notification.schema';

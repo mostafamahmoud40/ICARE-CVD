@@ -63,6 +63,10 @@ services:
       MINIO_FORCE_PATH_STYLE: "true"
       MINIO_PUBLIC_BASE_URL: ${MINIO_PUBLIC_BASE_URL:-http://localhost:9000/icare-chat}
       MINIO_PRESIGN_TTL_SECONDS: ${MINIO_PRESIGN_TTL_SECONDS:-3600}
+      # Web Push (browser notifications when tab is closed)
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:support@icare-cvd.local}
     dns:
       - 8.8.8.8
       - 8.8.4.4

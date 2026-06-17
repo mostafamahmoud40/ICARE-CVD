@@ -20,6 +20,7 @@ import { DocumentsModule } from './modules/documents/documents.module';
 import { LabModule } from './modules/lab/lab.module';
 import { ConsultationModule } from './modules/consultation/consultation.module';
 import { PatientQueueModule } from './modules/patient/queue/patient-queue.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { PatientQueueModule } from './modules/patient/queue/patient-queue.module
     LabModule,
     ConsultationModule,
     PatientQueueModule,
+    NotificationsModule,
   ],
   controllers: [],
   providers: [],
