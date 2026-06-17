@@ -126,12 +126,32 @@ const ROUTES: RouteEntry[] = [
     icon: PillIcon,
   },
   {
-    match: (p) => /^\/doctor-procedures\/[^/]+$/.test(p),
+    match: (p) => /^\/doctor-procedures\/[^/]+\/report$/.test(p),
     routeId: "procedureReport",
     icon: ScissorsIcon,
   },
   {
-    match: (p) => p.startsWith("/doctor-procedures"),
+    match: (p) => /^\/doctor-procedures\/[^/]+$/.test(p),
+    routeId: "procedureDetail",
+    icon: ScissorsIcon,
+  },
+  {
+    match: (p) => p === "/doctor-procedures/calendar",
+    routeId: "proceduresCalendar",
+    icon: CalendarDaysIcon,
+  },
+  {
+    match: (p) => p === "/doctor-procedures/pending",
+    routeId: "proceduresPending",
+    icon: ScissorsIcon,
+  },
+  {
+    match: (p) => p === "/doctor-procedures/completed",
+    routeId: "proceduresCompleted",
+    icon: ScissorsIcon,
+  },
+  {
+    match: (p) => p === "/doctor-procedures",
     routeId: "procedures",
     icon: ScissorsIcon,
   },

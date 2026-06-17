@@ -927,7 +927,23 @@
       },
       "procedures": {
         "title": "Procedures",
-        "subtitle": "Completed operations and clinical reports"
+        "subtitle": "Operations registry, calendar, and clearance"
+      },
+      "proceduresCalendar": {
+        "title": "Procedure calendar",
+        "subtitle": "Weekly schedule of scheduled operations"
+      },
+      "proceduresPending": {
+        "title": "Pending review",
+        "subtitle": "Sign off readiness and physician directives"
+      },
+      "proceduresCompleted": {
+        "title": "Completed procedures",
+        "subtitle": "Verified operations and post-op reports"
+      },
+      "procedureDetail": {
+        "title": "Procedure review",
+        "subtitle": "Pre-op checklist and clearance sign-off"
       },
       "procedureReport": {
         "title": "Procedure report",

@@ -5,15 +5,18 @@ import Link from "next/link"
 import Image from "next/image"
 import { Lora } from "next/font/google"
 import { usePathname } from "next/navigation"
-import { useCallback } from "react"
+import { useCallback, useState } from "react"
 import type { AuthUser } from "@/lib/auth-tokens"
 import {
+  AlertTriangleIcon,
   BellIcon,
   CalendarClockIcon,
   CalendarDaysIcon,
   ChevronDownIcon,
+  ClipboardListIcon,
   CreditCardIcon,
   HeartPulseIcon,
+  HistoryIcon,
   LayoutDashboardIcon,
   LogOutIcon,
   MessageCircleIcon,
@@ -37,6 +40,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
@@ -51,6 +57,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { DoctorInsetHeader } from "./DoctorInsetHeader"
 import { clearDoctorHeaderProfileCache } from "./doctorHeaderProfile.cache"
+import { cn } from "@/lib/utils"
 
 const doctorSerif = Lora({
   subsets: ["latin"],
@@ -94,6 +101,23 @@ function DoctorLayoutContent({
 }) {
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
+  const [isProceduresOpen, setIsProceduresOpen] = useState(() =>
+    pathname.startsWith("/doctor-procedures"),
+  )
+
+  const proceduresSubNav = {
+    all: "All procedures",
+    calendar: "Calendar",
+    pending: "Pending review",
+    completed: "Completed",
+  } as const
+
+  const proceduresListActive =
+    pathname === "/doctor-procedures" ||
+    (pathname.startsWith("/doctor-procedures/") &&
+      pathname !== "/doctor-procedures/calendar" &&
+      pathname !== "/doctor-procedures/pending" &&
+      pathname !== "/doctor-procedures/completed")
 
   const navItems = [
     {
@@ -137,12 +161,6 @@ function DoctorLayoutContent({
       label: "Prescriptions",
       icon: PillIcon,
       isActive: pathname.startsWith("/doctor-prescriptions"),
-    },
-    {
-      href: "/doctor-procedures",
-      label: "Procedures",
-      icon: ScissorsIcon,
-      isActive: pathname.startsWith("/doctor-procedures"),
     },
     {
       href: "/doctor-chat",
@@ -225,6 +243,81 @@ function DoctorLayoutContent({
                   </SidebarMenuItem>
                 )
               })}
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={false}
+                  render={
+                    <button
+                      type="button"
+                      aria-label="Procedures"
+                      aria-expanded={isProceduresOpen}
+                      onClick={() => !isCollapsed && setIsProceduresOpen((prev) => !prev)}
+                    >
+                      <ScissorsIcon className="size-4" aria-hidden />
+                      {isCollapsed ? null : (
+                        <>
+                          <span>Procedures</span>
+                          <ChevronDownIcon
+                            className={cn(
+                              "ms-auto size-4 transition-transform duration-200",
+                              isProceduresOpen && "rotate-180",
+                            )}
+                          />
+                        </>
+                      )}
+                    </button>
+                  }
+                />
+                {isProceduresOpen && !isCollapsed ? (
+                  <SidebarMenuSub>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton
+                        isActive={proceduresListActive}
+                        render={
+                          <Link href="/doctor-procedures">
+                            <ClipboardListIcon className="size-3.5" />
+                            {proceduresSubNav.all}
+                          </Link>
+                        }
+                      />
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton
+                        isActive={pathname === "/doctor-procedures/calendar"}
+                        render={
+                          <Link href="/doctor-procedures/calendar">
+                            <CalendarDaysIcon className="size-3.5" />
+                            {proceduresSubNav.calendar}
+                          </Link>
+                        }
+                      />
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton
+                        isActive={pathname === "/doctor-procedures/pending"}
+                        render={
+                          <Link href="/doctor-procedures/pending">
+                            <AlertTriangleIcon className="size-3.5" />
+                            {proceduresSubNav.pending}
+                          </Link>
+                        }
+                      />
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton
+                        isActive={pathname === "/doctor-procedures/completed"}
+                        render={
+                          <Link href="/doctor-procedures/completed">
+                            <HistoryIcon className="size-3.5" />
+                            {proceduresSubNav.completed}
+                          </Link>
+                        }
+                      />
+                    </SidebarMenuSubItem>
+                  </SidebarMenuSub>
+                ) : null}
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroup>
         </SidebarContent>

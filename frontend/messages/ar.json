@@ -927,7 +927,23 @@
       },
       "procedures": {
         "title": "العمليات",
-        "subtitle": "العمليات المكتملة والتقارير السريرية"
+        "subtitle": "سجل العمليات والتقويم والموافقة"
+      },
+      "proceduresCalendar": {
+        "title": "تقويم العمليات",
+        "subtitle": "جدول العمليات الأسبوعي"
+      },
+      "proceduresPending": {
+        "title": "بانتظار المراجعة",
+        "subtitle": "الموافقة على الجاهزية وتوجيهات الطبيب"
+      },
+      "proceduresCompleted": {
+        "title": "العمليات المكتملة",
+        "subtitle": "العمليات المعتمدة وتقارير ما بعد الجراحة"
+      },
+      "procedureDetail": {
+        "title": "مراجعة العملية",
+        "subtitle": "قائمة ما قبل العملية والموافقة"
       },
       "procedureReport": {
         "title": "تقرير العملية",
