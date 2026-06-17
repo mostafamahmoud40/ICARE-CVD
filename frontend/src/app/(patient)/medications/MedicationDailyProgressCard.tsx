@@ -258,11 +258,7 @@ export function MedicationDailyProgressCard({
           role="alert"
           className="relative flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-2xl border border-[#CC5533]/20 bg-white px-4 py-3 shadow-sm sm:rounded-3xl sm:px-5 sm:py-3.5 md:px-6"
         >
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[#CC5533]"
-            aria-hidden
-          />
-          <div className="flex min-w-0 items-center gap-3 pl-2">
+          <div className="flex min-w-0 items-center gap-3">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#CC5533]/10 text-[#CC5533] ring-1 ring-[#CC5533]/15">
               <AlertCircleIcon className="size-4" strokeWidth={2.25} />
             </span>

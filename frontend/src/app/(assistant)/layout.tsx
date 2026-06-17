@@ -612,14 +612,14 @@ function AssistantLayoutContent({
       </Sidebar>
 
       <SidebarInset
-        className={`bg-[#F9F8F5]${compactInsetHeader ? " flex min-h-svh flex-col" : ""}`}
+        className={`bg-[#F9F8F5]${compactInsetHeader ? " flex h-svh max-h-svh flex-col overflow-hidden" : ""}`}
       >
         {hideInsetHeader ? (
           <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         ) : (
           <>
             <AssistantInsetHeader user={user} logout={logout} compact={compactInsetHeader} />
-            <div className={compactInsetHeader ? "flex min-h-0 flex-1 flex-col" : undefined}>
+            <div className={compactInsetHeader ? "flex min-h-0 flex-1 flex-col overflow-hidden" : undefined}>
               {children}
             </div>
           </>

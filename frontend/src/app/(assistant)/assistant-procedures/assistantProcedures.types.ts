@@ -4,10 +4,29 @@ export type ProcedurePriority = "normal" | "urgent" | "emergency"
 
 export type ProcedureFilter = "all" | ProcedureOrderStatus
 
+export type ProcedureRequirementKind = "standard" | "consent"
+
+export type ConsentSignerType = "patient" | "guardian"
+
+export type ConsentCollectionMethod = "signature" | "upload"
+
+export type ProcedureConsent = {
+  requirementId: string
+  signerType: ConsentSignerType
+  signerName: string
+  guardianRelationship: string | null
+  collectionMethod: ConsentCollectionMethod
+  signatureDataUrl: string | null
+  attachmentUrl: string | null
+  attachmentName: string | null
+  signedAt: string
+}
+
 export type ProcedureRequirement = {
   id: string
   title: string
   description: string | null
+  kind?: ProcedureRequirementKind
   allowsAttachment: boolean
   dueAt?: string | null
   isDone: boolean
@@ -30,6 +49,7 @@ export type ProcedureOrder = {
   priority: ProcedurePriority
   notes: string | null
   requirements: ProcedureRequirement[]
+  consent: ProcedureConsent | null
   createdAt: string
 }
 

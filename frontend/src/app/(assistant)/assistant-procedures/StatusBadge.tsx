@@ -1,5 +1,6 @@
 "use client"
 
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { STATUS_CONFIG } from "./assistantProcedures.config"
 import type { ProcedureOrderStatus } from "./assistantProcedures.types"
@@ -8,17 +9,23 @@ type StatusBadgeProps = {
   status: ProcedureOrderStatus
 }
 
+/** Solid chips — same pattern as medications `RiskBadge`. */
+const STATUS_BADGE_CLASS: Record<ProcedureOrderStatus, string> = {
+  pending: "border-0 bg-amber-500 text-white hover:bg-amber-500",
+  "in-progress": "border-0 bg-[#1A5345] text-white hover:bg-[#1A5345]",
+  completed: "border-0 bg-emerald-500 text-white hover:bg-emerald-500",
+}
+
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const cfg = STATUS_CONFIG[status]
   return (
-    <span
+    <Badge
+      variant="default"
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wide uppercase sm:text-[11px] shadow-sm",
-        cfg.style,
+        "rounded-lg px-2 py-0.5 text-[10px] font-bold leading-none shadow-none",
+        STATUS_BADGE_CLASS[status],
       )}
     >
-      <span className={cn("inline-block size-1.5 rounded-full ring-2 ring-white/50", cfg.dot)} />
-      {cfg.label}
-    </span>
+      {STATUS_CONFIG[status].label}
+    </Badge>
   )
 }

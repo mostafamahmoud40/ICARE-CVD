@@ -175,7 +175,7 @@ export function ChatWindow({
 
   if (!activeContact) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center bg-[#FAFAF8] text-muted-foreground border border-[#E8E6E0]/60 rounded-2xl">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center bg-[#FAFAF8] text-muted-foreground border border-[#E8E6E0]/60 rounded-2xl">
         <div className="mb-4 flex size-24 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-[#E5EEEA]">
           <MessageCircleIcon className="size-10 text-[#1A5345]/40" />
         </div>
@@ -249,12 +249,12 @@ export function ChatWindow({
   const currentUser = getAuthUser()
 
   return (
-    <div className="flex flex-1 flex-col bg-[#F9F8F5] relative overflow-hidden border border-[#E8E6E0]/60 rounded-2xl shadow-sm">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#F9F8F5] relative border border-[#E8E6E0]/60 rounded-2xl shadow-sm">
       {/* Subtle Background Pattern */}
       <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#1A5345 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
       {/* Header */}
-      <div className="relative z-10 flex items-center justify-between border-b border-[#E8E6E0]/60 bg-white px-8 py-4">
+      <div className="relative z-10 flex shrink-0 items-center justify-between border-b border-[#E8E6E0]/60 bg-white px-8 py-4">
         <div className="flex items-center gap-4">
           <div className="relative shrink-0">
             <Avatar className="size-14 border border-slate-100 shadow-2xs relative bg-white">
@@ -322,7 +322,7 @@ export function ChatWindow({
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="relative z-0 flex-1 overflow-y-auto px-6 pt-4 pb-32 custom-scrollbar space-y-4">
+      <div ref={scrollRef} className="relative z-0 min-h-0 flex-1 overflow-y-auto px-6 py-4 custom-scrollbar space-y-4">
         {activeMessages.map((msg) => {
           const callMeta = callMetaFromLabel(msg.text)
           if (callMeta) {
@@ -493,8 +493,8 @@ export function ChatWindow({
       </div>
 
       {/* Input */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 px-6 pb-6 pt-16 bg-gradient-to-t from-[#F9F8F5] via-[#F9F8F5]/95 to-transparent pointer-events-none">
-        <div className="pointer-events-auto mx-auto max-w-4xl flex flex-col gap-2">
+      <div className="relative z-10 shrink-0 bg-[#F9F8F5] px-6 py-4">
+        <div className="mx-auto flex max-w-4xl flex-col gap-2">
           {pendingAttachment ? (
             <div className="flex items-center gap-3 rounded-2xl border border-[#E5EEEA]/80 bg-white px-3 py-2.5 shadow-sm">
               {pendingAttachment.previewUrl ? (

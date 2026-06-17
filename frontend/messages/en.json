@@ -389,6 +389,255 @@
           "bufferBetween": "Buffer between slots (minutes)"
         }
       },
+      "procedures": {
+        "breadcrumb": "Procedure orders",
+        "title": "Procedure orders",
+        "subtitle": "Track pre-procedure checklists, requirements, and patient notifications.",
+        "openOrders": "Open orders",
+        "searchPlaceholder": "Search patient or procedure…",
+        "filterAll": "All",
+        "filterPending": "Pending",
+        "filterActive": "Active",
+        "filterDone": "Done",
+        "tableProcedure": "Procedure",
+        "tablePriority": "Priority",
+        "tableScheduled": "Scheduled",
+        "tableChecklist": "Checklist",
+        "emptyTitle": "No orders match",
+        "emptyHint": "Try changing search or filters.",
+        "loading": "Loading procedures…",
+        "errorBanner": "Could not reach the procedures service. Data will appear once the backend is available.",
+        "detail": {
+          "back": "Go back",
+          "notifyPatient": "Notify patient"
+        },
+        "notifyDialog": {
+          "title": "Send procedure reminder",
+          "description": "To {name}",
+          "messageLabel": "Message",
+          "messagePlaceholder": "Write your reminder, or tap the sparkles to refine with AI…",
+          "aiEnhance": "Refine with AI",
+          "deliveryHint": "Delivered by secure SMS and in-app notification. Edit the message before sending.",
+          "cancel": "Cancel",
+          "send": "Send reminder",
+          "sending": "Sending…",
+          "sentTitle": "Reminder sent",
+          "sentBody": "The checklist summary was sent to {name} via SMS and in-app alert.",
+          "done": "Done"
+        },
+        "consent": {
+          "cardTitle": "Informed consent",
+          "cardHint": "Required before the procedure. The patient or a legal guardian must review and sign the consent form.",
+          "cardHintBoth": "Required before the procedure. Collect a digital signature on screen or upload a scanned signed consent form (PDF or image).",
+          "cardHintWorkflow": "Download the consent form for the patient or legal guardian to sign, then upload the signed copy here. On-screen signature is also available in clinic.",
+          "workflow": {
+            "download": "Download form",
+            "sign": "Patient / guardian signs",
+            "upload": "Upload signed copy"
+          },
+          "pendingHintWorkflow": "Download the form first, have the patient or guardian sign it, then upload the signed document.",
+          "downloadForm": "Download consent form",
+          "printForm": "Print form",
+          "orSignOnScreen": "Or sign on screen",
+          "formDocumentTitle": "Informed Consent for Procedure",
+          "notScheduled": "To be scheduled",
+          "formLabels": {
+            "patient": "Patient",
+            "procedure": "Procedure",
+            "physician": "Attending physician",
+            "patientSignature": "Patient signature",
+            "guardianSignature": "Legal guardian signature (if applicable)",
+            "guardianRelationship": "Relationship to patient",
+            "date": "Date",
+            "footer": "ICARE-CVD · Retain the signed original in the medical record."
+          },
+          "statusSigned": "Signed",
+          "statusPending": "Pending",
+          "pendingHint": "Consent has not been collected yet. Open the form to capture a signature before the procedure.",
+          "pendingHintBoth": "Choose digital signature or upload a signed document to complete this requirement.",
+          "collectSignature": "Collect signature",
+          "updateSignature": "Update signature",
+          "uploadSignedForm": "Upload signed form",
+          "replaceUpload": "Replace document",
+          "viewOrUpdate": "View / update",
+          "viewDocument": "View consent document",
+          "uploadDialogTitle": "Upload signed consent",
+          "uploadDialogDescription": "Attach a scanned or photographed consent form for {name}",
+          "uploadFile": "Signed document",
+          "chooseFile": "Choose file to upload",
+          "uploadFormats": "PDF, PNG, or JPG · max one file",
+          "removeFile": "Remove file",
+          "uploadSave": "Save uploaded consent",
+          "methods": {
+            "signature": "Digital signature",
+            "upload": "Uploaded document"
+          },
+          "signedAt": "Signed on {date}",
+          "dialogTitle": "Procedure consent form",
+          "dialogDescription": "Capture informed consent for {name}",
+          "formPreview": "Consent statement",
+          "formBody": "I, {patientName}, acknowledge that Dr. {doctorName} has explained the nature, benefits, risks, and alternatives of {procedureName}. I voluntarily consent to this procedure and authorize the care team to provide necessary treatment.",
+          "signerType": "Who is signing?",
+          "signerTypes": {
+            "patient": "Patient",
+            "guardian": "Legal guardian"
+          },
+          "patientName": "Patient full name",
+          "guardianName": "Guardian full name",
+          "guardianRelationship": "Relationship to patient",
+          "guardianRelationshipPlaceholder": "e.g. Father, Mother, Spouse",
+          "signature": "Signature",
+          "clearSignature": "Clear signature",
+          "cancel": "Cancel",
+          "save": "Save consent",
+          "saving": "Saving…",
+          "noRequirement": "No consent requirement is linked to this order.",
+          "errors": {
+            "incomplete": "Complete all fields and provide a signature.",
+            "guardianRelationship": "Enter the guardian's relationship to the patient.",
+            "uploadRequired": "Select a file to upload.",
+            "uploadFailed": "Could not save the uploaded consent. Try again."
+          }
+        },
+        "history": {
+          "breadcrumb": "Procedure history",
+          "title": "Procedure history",
+          "subtitle": "Completed and archived OR procedures.",
+          "completedRecords": "Completed records",
+          "filter7Days": "Last 7 days",
+          "filter30Days": "Last 30 days",
+          "filter3Months": "Last 3 months",
+          "filterAll": "All time",
+          "searchPlaceholder": "Search patient, procedure, or ID…",
+          "tableLocation": "Location",
+          "tableDuration": "Duration",
+          "viewReport": "View report",
+          "emptyTitle": "No history records",
+          "emptyHint": "Try changing search or date range."
+        },
+        "report": {
+          "breadcrumb": "Procedure report",
+          "title": "Procedure report",
+          "subtitle": "Clinical summary for order {id}",
+          "subtitleProcedure": "{procedure} · {id}",
+          "checklistProgress": "Checklist progress",
+          "checklistCompleted": "{done}/{total} completed",
+          "operatingSuite": "Operating suite",
+          "sections": {
+            "clinicalOverview": "Clinical overview",
+            "intraoperativeRecord": "Intraoperative record",
+            "postOperativeMonitoring": "Post-operative monitoring",
+            "recoveryDischarge": "Recovery & discharge plan",
+            "ai": "AI"
+          },
+          "notAvailable": "N/A",
+          "procedureOverview": "Procedure overview",
+          "noClinicalNotes": "No clinical notes attached for this procedure.",
+          "riskScore": "Risk score",
+          "checklistTitle": "Checklist details",
+          "historyNoChecklist": "This historical OR record has no pre-procedure checklist details.",
+          "done": "Done",
+          "pending": "Pending",
+          "notFoundTitle": "Report not found",
+          "notFoundHint": "This procedure report does not exist or is no longer available.",
+          "backToHistory": "Back to history",
+          "procedureDate": "Procedure date",
+          "duration": "Duration",
+          "dateDurationSeparator": "·",
+          "preOpDiagnosis": "Pre-operative diagnosis",
+          "noPreOpDiagnosis": "No pre-operative diagnosis documented.",
+          "operativeFindings": "Operative findings",
+          "operativeFindingsHint": "What the surgeon found during the procedure.",
+          "noOperativeFindings": "No operative findings documented.",
+          "procedureDetails": "Procedure details",
+          "procedureDetailsHint": "Brief description of what was performed during the procedure.",
+          "noProcedureDetails": "No procedure details documented.",
+          "intraoperativeComplications": "Intraoperative complications",
+          "intraoperativeComplicationsHint": "Were there any complications during surgery?",
+          "complications": {
+            "none": "No complications",
+            "excessiveBleeding": "Excessive bleeding",
+            "arrhythmia": "Arrhythmia",
+            "cardiacArrest": "Cardiac arrest"
+          },
+          "immediatePostOpStatus": "Immediate post-operative status",
+          "postOpStatus": {
+            "consciousnessLevel": "Consciousness level",
+            "bloodPressure": "Blood pressure",
+            "heartRate": "Heart rate",
+            "oxygenSaturation": "Oxygen saturation",
+            "ventilatorStatus": "Ventilator status"
+          },
+          "icuMonitoring": "ICU monitoring",
+          "icuMonitoringFields": {
+            "admissionDate": "ICU admission date",
+            "stayDuration": "ICU stay duration"
+          },
+          "notAdmittedIcu": "Not admitted to ICU",
+          "postOpMedications": "Post-operative medications",
+          "medicationCategories": {
+            "antibiotics": "Antibiotics",
+            "anticoagulants": "Anticoagulants",
+            "painManagement": "Pain management",
+            "cardiacMedications": "Cardiac medications"
+          },
+          "postOpComplications": "Post-operative complications",
+          "postOpComplicationLabel": "Complication",
+          "complicationStatusLabel": "Status",
+          "postOpComplicationTypes": {
+            "infection": "Infection",
+            "bleeding": "Bleeding",
+            "stroke": "Stroke",
+            "arrhythmias": "Arrhythmias",
+            "heartFailure": "Heart failure"
+          },
+          "present": "Present",
+          "absent": "Absent",
+          "recoveryAssessment": "Recovery assessment",
+          "recoveryStatusLabel": "Recovery status",
+          "recoveryStatus": {
+            "excellent": "Excellent",
+            "good": "Good",
+            "fair": "Fair",
+            "poor": "Poor"
+          },
+          "aiRecoveryPrediction": "AI recovery prediction",
+          "aiPrediction": {
+            "recoveryRiskScore": "Recovery risk score",
+            "expectedRecoveryTime": "Expected recovery time",
+            "readmissionRisk": "Readmission risk",
+            "infectionRisk": "Infection risk",
+            "recommendedMonitoringLevel": "Recommended monitoring level",
+            "recoveryProbability": "Recovery probability"
+          },
+          "dischargeSummary": "Discharge summary",
+          "discharge": {
+            "dischargeDate": "Discharge date",
+            "finalCondition": "Final condition",
+            "dischargeInstructions": "Discharge instructions"
+          },
+          "followUpPlan": "Follow-up plan",
+          "followUp": {
+            "followUpDate": "Follow-up date",
+            "requiredTests": "Required tests",
+            "currentMedications": "Current medications"
+          },
+          "surgicalTeam": "Surgical team",
+          "teamRole": "Role",
+          "teamMember": "Name",
+          "preOpActions": "Pre-procedure actions completed",
+          "noPreOpActions": "No pre-procedure actions recorded for this case.",
+          "completedAt": "Completed {date}",
+          "teamRoles": {
+            "leadSurgeon": "Lead surgeon",
+            "assistantSurgeon": "Assistant surgeon",
+            "anesthesiologist": "Anesthesiologist",
+            "scrubNurse": "Scrub nurse",
+            "circulatingNurse": "Circulating nurse",
+            "perfusionist": "Perfusionist"
+          }
+        }
+      },
       "account": {
         "breadcrumbDashboard": "Dashboard",
         "breadcrumbAccount": "Account",
@@ -675,6 +924,30 @@
       "prescriptions": {
         "title": "Prescriptions",
         "subtitle": "Manage patient prescriptions"
+      },
+      "procedures": {
+        "title": "Procedures",
+        "subtitle": "Operations registry, calendar, and clearance"
+      },
+      "proceduresCalendar": {
+        "title": "Procedure calendar",
+        "subtitle": "Weekly schedule of scheduled operations"
+      },
+      "proceduresPending": {
+        "title": "Pending review",
+        "subtitle": "Sign off readiness and physician directives"
+      },
+      "proceduresCompleted": {
+        "title": "Completed procedures",
+        "subtitle": "Verified operations and post-op reports"
+      },
+      "procedureDetail": {
+        "title": "Procedure review",
+        "subtitle": "Pre-op checklist and clearance sign-off"
+      },
+      "procedureReport": {
+        "title": "Procedure report",
+        "subtitle": "Full clinical summary for a completed operation"
       },
       "assistants": {
         "title": "Assistants",

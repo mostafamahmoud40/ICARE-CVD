@@ -7,6 +7,7 @@ type AssistantPage =
   | "doctors"
   | "account"
   | "doctorSchedule"
+  | "procedures"
 
 /** Use nested keys under `assistant` (same pattern as sidebar `t("nav.*")`). */
 export function useAssistantPageTranslations(page: AssistantPage) {

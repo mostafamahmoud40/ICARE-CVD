@@ -18,6 +18,7 @@ import {
   LogOutIcon,
   MessageCircleIcon,
   PillIcon,
+  ScissorsIcon,
   SparklesIcon,
   User2Icon,
   UsersIcon,
@@ -123,6 +124,36 @@ const ROUTES: RouteEntry[] = [
     match: (p) => p.startsWith("/doctor-prescriptions"),
     routeId: "prescriptions",
     icon: PillIcon,
+  },
+  {
+    match: (p) => /^\/doctor-procedures\/[^/]+\/report$/.test(p),
+    routeId: "procedureReport",
+    icon: ScissorsIcon,
+  },
+  {
+    match: (p) => /^\/doctor-procedures\/[^/]+$/.test(p),
+    routeId: "procedureDetail",
+    icon: ScissorsIcon,
+  },
+  {
+    match: (p) => p === "/doctor-procedures/calendar",
+    routeId: "proceduresCalendar",
+    icon: CalendarDaysIcon,
+  },
+  {
+    match: (p) => p === "/doctor-procedures/pending",
+    routeId: "proceduresPending",
+    icon: ScissorsIcon,
+  },
+  {
+    match: (p) => p === "/doctor-procedures/completed",
+    routeId: "proceduresCompleted",
+    icon: ScissorsIcon,
+  },
+  {
+    match: (p) => p === "/doctor-procedures",
+    routeId: "procedures",
+    icon: ScissorsIcon,
   },
   {
     match: (p) => p.startsWith("/doctor-assistants"),
