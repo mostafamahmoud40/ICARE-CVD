@@ -37,6 +37,41 @@ export type CurrentVitalsSnapshot = {
   }
 }
 
+export type VitalsKpiBadges = {
+  bloodPressure: string | null
+  heartRate: string | null
+  spo2: string | null
+  weight: string | null
+}
+
+export type VitalsSummary = {
+  title: string
+  body: string
+}
+
+export type VitalsPageData = {
+  history: VitalHistoryRecord[]
+  current: CurrentVitalsSnapshot
+  alert: string | null
+  summary: VitalsSummary | null
+  aiAnalysis: Array<{
+    id: string
+    title: string
+    description: string
+    action?: { label: string }
+  }>
+  kpiBadges: VitalsKpiBadges
+}
+
+export type CreateVitalReadingInput = {
+  systolicBp?: number
+  diastolicBp?: number
+  heartRate?: number
+  oxygenSaturation?: number
+  temperature?: number
+  weight?: number
+}
+
 export const emptyCurrentVitals: CurrentVitalsSnapshot = {
   bloodPressure: {
     systolic: null,
