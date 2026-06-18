@@ -1,13 +1,15 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { AppointmentService } from '../../appointment/appointment.service';
+import {
+  clinicSlotToIso,
+  formatClinicDateTime,
+  todayClinicDateStr,
+} from '../../../common/clinic-time.util';
 import { ChromaService, CHROMA_COLLECTION_CLINIC, CHROMA_COLLECTION_APPOINTMENTS } from './chroma.service';
+import { EmbeddingService } from '../embedding/embedding.service';
 
 /**
- * Indexes clinic data (doctors, schedules, blocked dates, slots) into ChromaDB
- * so the AI agent can retrieve context via semantic similarity search.
- *
- * Runs at startup and every 30 minutes to keep the index fresh.
- * Individual patient appointments are indexed on-demand via indexPatientAppointments().
+ * Indexes clinic data into ChromaDB when an embedding provider is enabled (BGE-M3 or Cohere).
  */
 @Injectable()
 export class ClinicIndexerService implements OnModuleInit {
@@ -16,11 +18,13 @@ export class ClinicIndexerService implements OnModuleInit {
   constructor(
     private readonly chromaService: ChromaService,
     private readonly appointmentService: AppointmentService,
+    private readonly embeddingService: EmbeddingService,
   ) {}
 
   // ─── Startup + periodic full re-index ────────────────────────────────────
 
   async onModuleInit() {
+    if (!this.embeddingService.isEnabled()) return;
     // Initial index after a short delay (let ChromaDB finish connecting)
     setTimeout(() => void this.indexAllClinicData(), 5_000);
 
@@ -29,10 +33,13 @@ export class ClinicIndexerService implements OnModuleInit {
   }
 
   async indexAllClinicData() {
+    if (!this.embeddingService.isEnabled()) return;
     if (!this.chromaService.isReady) return;
     try {
       await this.indexDoctorsAndSchedules();
-      this.logger.log('Clinic context indexed into ChromaDB');
+      this.logger.log(
+        `Clinic context indexed into ChromaDB (${this.embeddingService.getProvider()}, ${this.embeddingService.getDimension()}d)`,
+      );
     } catch (err) {
       this.logger.warn(`Clinic index failed: ${String(err)}`);
     }
@@ -41,7 +48,7 @@ export class ClinicIndexerService implements OnModuleInit {
   // ─── Doctors + schedules ──────────────────────────────────────────────────
 
   async indexDoctorsAndSchedules(): Promise<void> {
-    const today = this.todayStr();
+    const today = todayClinicDateStr();
     let doctors: Awaited<ReturnType<AppointmentService['listDoctors']>> = [];
     try {
       doctors = await this.appointmentService.listDoctors();
@@ -115,7 +122,7 @@ export class ClinicIndexerService implements OnModuleInit {
 
           const slotLines = freeSlots.map(
             (s) =>
-              `  ${s.time} → scheduledAt: ${this.slotToIso(day.fullDate, s.time)}`,
+              `  ${s.time} Cairo → scheduledAt: ${clinicSlotToIso(day.fullDate, s.time)}`,
           );
 
           const schedText = [
@@ -154,6 +161,7 @@ export class ClinicIndexerService implements OnModuleInit {
   // ─── Patient appointments ──────────────────────────────────────────────────
 
   async indexPatientAppointments(userId: number): Promise<void> {
+    if (!this.embeddingService.isEnabled()) return;
     if (!this.chromaService.isReady) return;
     try {
       const appts = await this.appointmentService.listPatientAppointments(userId);
@@ -172,10 +180,10 @@ export class ClinicIndexerService implements OnModuleInit {
 
       const text = [
         `Patient (userId: ${userId}) upcoming appointments:`,
-        'Use confirmationCode in cancel/reschedule tools.',
+        'Use confirmationCode in cancel/reschedule tools. Times shown in Cairo local time.',
         ...upcoming.map(
           (a) =>
-            `  ${a.confirmationCode} | ${a.scheduledAt} | ${a.clinician} | ${a.visitType} | ${a.status}`,
+            `  ${a.confirmationCode} | ${formatClinicDateTime(a.scheduledAt)} Cairo | scheduledAt: ${a.scheduledAt} | ${a.clinician} | ${a.visitType} | ${a.status}`,
         ),
       ].join('\n');
 
@@ -193,27 +201,5 @@ export class ClinicIndexerService implements OnModuleInit {
     } catch {
       // non-critical
     }
-  }
-
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-
-  private todayStr(): string {
-    return new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Africa/Cairo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date());
-  }
-
-  private slotToIso(dateStr: string, time12h: string): string {
-    const match = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(time12h.trim());
-    if (!match) return `${dateStr}T00:00:00+03:00`;
-    let hours = parseInt(match[1]!, 10);
-    const minutes = parseInt(match[2]!, 10);
-    const period = match[3]!.toUpperCase();
-    if (period === 'PM' && hours !== 12) hours += 12;
-    if (period === 'AM' && hours === 12) hours = 0;
-    return `${dateStr}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00+03:00`;
   }
 }

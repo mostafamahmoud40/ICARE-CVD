@@ -2,6 +2,20 @@ export type AiChatRole = "user" | "assistant"
 
 export type AiChatActionIcon = "download" | "calendar" | "message" | "activity" | "alert"
 
+export type AgentActionRecord = {
+  tool: string
+  label: string
+  status: "success" | "error"
+  detail?: string
+}
+
+export type PipelineStageRecord = {
+  stage: number
+  key: string
+  label: string
+  summary: string
+}
+
 export type AiChatAction = {
   id: string
   label: string
@@ -18,6 +32,10 @@ export type AiChatMessage = {
   greeting?: string
   /** Action links below a divider — only when clinically / contextually useful */
   actions?: AiChatAction[]
+  /** Tool steps the agent executed (book, cancel, reschedule, …) */
+  agentActions?: AgentActionRecord[]
+  /** Multi-stage pipeline trace from backend */
+  pipelineTrace?: PipelineStageRecord[]
 }
 
 export type AiAssistantReply = {

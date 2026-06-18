@@ -30,6 +30,20 @@ export class PatientAiChatDto {
   history!: ChatHistoryItemDto[];
 }
 
+export type PatientAgentAction = {
+  tool: string;
+  label: string;
+  status: 'success' | 'error';
+  detail?: string;
+};
+
+export type PatientAgentPipelineStage = {
+  stage: number;
+  key: string;
+  label: string;
+  summary: string;
+};
+
 export type PatientAiChatResponse = {
   reply: string;
   booking?: {
@@ -40,4 +54,8 @@ export type PatientAiChatResponse = {
   };
   /** True when cancel/reschedule/visit-type tools modified appointments. */
   appointmentsUpdated?: boolean;
+  /** Steps the agent executed (tool calls) — show in UI as an action trail. */
+  agentActions?: PatientAgentAction[];
+  /** Multi-stage pipeline trace (understanding → retrieval → generation). */
+  pipelineTrace?: PatientAgentPipelineStage[];
 };
