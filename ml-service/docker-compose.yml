@@ -1,9 +1,10 @@
 # ICARE-CVD ML Services — single `docker compose up` brings up all services:
 #   ml-main     :8000  CT segmentation + Chest X-ray   (GPU)
-#   ml-ecg      :5050  ECG arrhythmia + clinical report (CPU)
+#   ml-ecg      :5050  ECG arrhythmia + clinical report (GPU)
 #   ml-echo     :8080  Echocardiogram EF analyzer       (GPU)
 #   ml-medical  :5000  Lab report OCR + LLM analyzer    (CPU, cloud-only)
-#   ml-ecg-rag  :8502  ECG feature extraction + RAG LLM (CPU, cloud-only)
+#   ml-ecg-rag  :8502  ECG feature extraction + RAG LLM (GPU embeddings + cloud LLM)
+#   ml-mri      :8090  Cardiac Cine-MRI diagnosis       (GPU)
 #
 # Secrets live in `.env` (next to this file). Copy `.env.example` first.
 # Model weights are bind-mounted from the host so they can be swapped without
@@ -28,6 +29,7 @@ services:
       dockerfile: Dockerfile.main
     image: icare-ml-main:latest
     container_name: icare-ml-main
+    gpus: all
     ports:
       - "8000:8000"
     deploy:
@@ -41,6 +43,7 @@ services:
       - .env
     environment:
       - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
       - MODEL_PATH=/service/app/CT/coronary_segmentation_model.pth
     volumes:
       # Bind-mount CT folder — swap the .pth without rebuilding
@@ -55,19 +58,21 @@ services:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       start_period: 90s
 
-  # ─── ECG arrhythmia classifier (Flask :5050, CPU) ──────────────────────────
+  # ─── ECG arrhythmia classifier (Flask :5050, GPU) ──────────────────────────
   ml-ecg:
     build:
       context: .
       dockerfile: Dockerfile.ecg
     image: icare-ml-ecg:latest
     container_name: icare-ml-ecg
+    gpus: all
     ports:
       - "5050:5050"
     env_file:
       - .env
     environment:
       - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
     volumes:
       # Bind-mount the ECG checkpoint at the path expected by app.py
       - ./app/ecg/ecgtransform_mit_best.pt:/service/ecgtransform_mit_best.pt:ro
@@ -85,6 +90,7 @@ services:
       dockerfile: Dockerfile.echo
     image: icare-ml-echo:latest
     container_name: icare-ml-echo
+    gpus: all
     ports:
       - "8080:8080"
     deploy:
@@ -98,6 +104,7 @@ services:
       - .env
     environment:
       - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
     volumes:
       # Bind-mount both echo model files at the paths expected by config.py
       - ./app/echo-dynamic/deeplabv3_resnet50_random.pt:/service/deeplabv3_resnet50_random.pt:ro
@@ -116,6 +123,7 @@ services:
       dockerfile: Dockerfile.mri
     image: icare-ml-mri:latest
     container_name: icare-ml-mri
+    gpus: all
     ports:
       - "8090:8090"
     deploy:
@@ -129,6 +137,7 @@ services:
       - .env
     environment:
       - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
     volumes:
       - ./app/cardiac-mri/models/fct.model:/service/models/fct.model:ro
       - ./app/cardiac-mri/models/vautoencoder.model:/service/models/vautoencoder.model:ro
@@ -159,13 +168,14 @@ services:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
       start_period: 15s
 
-  # ─── ECG diagnosis with LLM + RAG (FastAPI :8502, CPU) ─────────────────────
+  # ─── ECG diagnosis with LLM + RAG (FastAPI :8502, GPU embeddings + cloud LLM) ─
   ml-ecg-rag:
     build:
       context: .
       dockerfile: Dockerfile.ecg
     image: icare-ml-ecg:latest
     container_name: icare-ml-ecg-rag
+    gpus: all
     command: ["sh", "-c", "cd /service/ecg_rag && uvicorn api:app --host 0.0.0.0 --port 8502 --workers 1"]
     ports:
       - "8502:8502"
@@ -173,6 +183,7 @@ services:
       - .env
     environment:
       - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
       - HF_HOME=/root/.cache/huggingface
     volumes:
       - huggingface-cache:/root/.cache/huggingface
