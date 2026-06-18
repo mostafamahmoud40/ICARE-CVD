@@ -45,11 +45,12 @@ services:
       - PYTHONUNBUFFERED=1
       - NVIDIA_VISIBLE_DEVICES=all
       - MODEL_PATH=/service/app/CT/coronary_segmentation_model.pth
+      - XRAY_MODEL_PATH=/service/app/xray/yolo12s.pt
     volumes:
       # Bind-mount CT folder — swap the .pth without rebuilding
       - ./app/CT:/service/app/CT:ro
-      # Named volume for X-ray weights (downloaded once on first request)
-      - xray-model-cache:/root/.torchxrayvision
+      # YOLO12s chest X-ray weights
+      - ./app/xray/yolo12s.pt:/service/app/xray/yolo12s.pt:ro
       # Shared torch cache for any lazy model downloads/checkpoints
       - torch-cache:/root/.cache/torch
     restart: unless-stopped
@@ -195,6 +196,5 @@ services:
       start_period: 45s
 
 volumes:
-  xray-model-cache:
   torch-cache:
   huggingface-cache:
