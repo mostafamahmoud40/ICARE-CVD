@@ -5,6 +5,7 @@ export const STATUS_CONFIG: Record<QueueStatus, { label: string; style: string; 
   arrived: { label: "Arrived", style: "bg-blue-600 text-white", dot: "bg-white" },
   waiting: { label: "Waiting", style: "bg-amber-600 text-white", dot: "bg-white" },
   "in-consultation": { label: "In consultation", style: "bg-[#1A5345] text-white", dot: "bg-white animate-pulse" },
+  "report-pending": { label: "Report pending", style: "bg-violet-600 text-white", dot: "bg-white" },
   completed: { label: "Completed", style: "bg-emerald-600 text-white", dot: "bg-white" },
   "no-show": { label: "No show", style: "bg-red-600 text-white", dot: "bg-white" },
   cancelled: { label: "Cancelled", style: "bg-gray-500 text-white", dot: "bg-white" },

@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, count, eq, gte, ne, lte, or, sql } from 'drizzle-orm';
+import { and, count, eq, gte, inArray, lte, ne, or, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../../../database/drizzle.provider';
 import type { Database } from '../../../database/drizzle.provider';
 import {
@@ -69,6 +69,7 @@ export class DoctorQueueService {
       arrived: await statusCounts('arrived'),
       inWaiting: await statusCounts('waiting'),
       inConsultation: await statusCounts('in-consultation'),
+      reportPending: await statusCounts('report-pending'),
       completed: await statusCounts('completed'),
       noShow: await statusCounts('no-show'),
       avgWaitMin: avgWait,
@@ -208,12 +209,42 @@ export class DoctorQueueService {
 
     if (!existing.length) throw new NotFoundException('Queue entry not found');
 
+    const now = new Date();
+    const { todayStart, todayEnd } = this.todayBounds();
+
+    if (status === 'in-consultation') {
+      const others = await this.db
+        .select({ id: patientQueue.id })
+        .from(patientQueue)
+        .innerJoin(appointment, eq(patientQueue.appointmentId, appointment.id))
+        .where(
+          and(
+            eq(appointment.doctorId, doctorId),
+            gte(appointment.scheduledAt, todayStart),
+            lte(appointment.scheduledAt, todayEnd),
+            eq(patientQueue.status, 'in-consultation'),
+            ne(patientQueue.id, queueId),
+          ),
+        );
+
+      if (others.length > 0) {
+        await this.db
+          .update(patientQueue)
+          .set({ status: 'report-pending', updatedAt: now })
+          .where(
+            inArray(
+              patientQueue.id,
+              others.map((row) => row.id),
+            ),
+          );
+      }
+    }
+
     const updates: Record<string, unknown> = {
       status,
-      updatedAt: new Date(),
+      updatedAt: now,
     };
 
-    const now = new Date();
     if (status === 'arrived') updates.arrivedAt = now;
     if (status === 'waiting') updates.waitingSince = now;
     if (status === 'in-consultation') updates.startedAt = now;
@@ -345,6 +376,7 @@ export class DoctorQueueService {
           eq(patientQueue.status, 'arrived'),
           eq(patientQueue.status, 'waiting'),
           eq(patientQueue.status, 'in-consultation'),
+          eq(patientQueue.status, 'report-pending'),
         )!,
       );
     } else if (filter === 'scheduled') {

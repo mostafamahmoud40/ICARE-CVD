@@ -8,6 +8,6 @@ type PageProps = {
 }
 
 export default function NewConsultationPage({ params }: PageProps) {
-  use(params)
-  return <ConsultationPage />
+  const { queueEntryId } = use(params)
+  return <ConsultationPage queueEntryId={queueEntryId} />
 }

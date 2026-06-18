@@ -3,6 +3,7 @@ export type QueueStatus =
   | "arrived"
   | "waiting"
   | "in-consultation"
+  | "report-pending"
   | "completed"
   | "no-show"
   | "cancelled"
@@ -41,6 +42,7 @@ export type QueueStats = {
   arrived: number
   inWaiting: number
   inConsultation: number
+  reportPending: number
   completed: number
   noShow: number
   avgWaitMin: number

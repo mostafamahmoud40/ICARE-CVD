@@ -48,7 +48,7 @@ const workloadChartData = [
 ]
 
 const workloadChartConfig = {
-  scheduled: { label: "Scheduled", color: "#E5C9AA" },
+  scheduled: { label: "Scheduled", color: "#7BA393" },
   completed: { label: "Completed", color: "#1A5345" },
 } satisfies ChartConfig
 
@@ -564,13 +564,13 @@ function DoctorDashboardContent({ data }: { data: DoctorDashboardData }) {
                     <RechartsPrimitive.Bar
                       dataKey="scheduled"
                       stackId="appointments"
-                      fill="var(--color-scheduled)"
+                      fill="#7BA393"
                       radius={[0, 0, 4, 4]}
                     />
                     <RechartsPrimitive.Bar
                       dataKey="completed"
                       stackId="appointments"
-                      fill="var(--color-completed)"
+                      fill="#1A5345"
                       radius={[4, 4, 0, 0]}
                     />
                   </RechartsPrimitive.BarChart>
@@ -578,7 +578,7 @@ function DoctorDashboardContent({ data }: { data: DoctorDashboardData }) {
 
                 <div className="mt-4 flex items-center gap-4 px-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="size-2 rounded-full bg-[#E5C9AA]" />
+                    <span className="size-2 rounded-full bg-[#7BA393]" />
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                       Scheduled
                     </span>

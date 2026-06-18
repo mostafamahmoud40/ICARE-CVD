@@ -90,9 +90,9 @@ function InfoRow({ icon: Icon, label, value, valueClassName }: {
   if (!value) return null
   return (
     <div className="flex items-center gap-2 py-1">
-      <Icon className="size-3 shrink-0 text-muted-foreground sm:size-3.5" />
-      <span className="text-[10px] text-muted-foreground sm:text-[11px]">{label}:</span>
-      <span className={cn("text-[11px] font-medium text-[#102F27] sm:text-[12px]", valueClassName)}>{value}</span>
+      <Icon className="size-3.5 shrink-0 text-muted-foreground sm:size-4" />
+      <span className="text-[11px] text-muted-foreground sm:text-[12px]">{label}:</span>
+      <span className={cn("text-[12px] font-medium text-[#102F27] sm:text-[13px]", valueClassName)}>{value}</span>
     </div>
   )
 }
@@ -107,8 +107,8 @@ function Section({ title, icon: Icon, children, action }: {
     <div className="rounded-xl border border-[#E5EEEA] bg-white p-3 transition-all duration-300 hover:shadow-md sm:p-4 group">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Icon className="size-4 text-[#CC5533] sm:size-4.5" />
-          <h3 className="text-[12px] font-bold text-[#102F27] transition-colors duration-300 group-hover:text-[#CC5533] sm:text-[13px]">{title}</h3>
+          <Icon className="size-4 text-[#CC5533] sm:size-5" />
+          <h3 className="text-[13px] font-bold text-[#102F27] transition-colors duration-300 group-hover:text-[#CC5533] sm:text-[14px]">{title}</h3>
         </div>
         {action}
       </div>
@@ -122,12 +122,12 @@ function TagList({ items, variant, onRemove }: {
   variant: "red" | "blue"
   onRemove?: (idx: number) => void
 }) {
-  if (items.length === 0) return <p className="text-[10px] text-muted-foreground">None reported</p>
+  if (items.length === 0) return <p className="text-[11px] text-muted-foreground sm:text-[12px]">None reported</p>
   const s = variant === "red" ? "bg-red-500 text-white shadow-sm" : "bg-[#1A5345] text-white shadow-sm"
   return (
     <div className="flex flex-wrap gap-1">
       {items.map((item, idx) => (
-        <span key={item} className={cn("group/tag flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-medium sm:text-[10px]", s)}>
+        <span key={item} className={cn("group/tag flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium sm:text-[11px]", s)}>
           {item}
           {onRemove && (
             <button type="button" onClick={() => onRemove(idx)} className="ml-1 hidden rounded-full hover:bg-white/20 group-hover/tag:block">
@@ -289,28 +289,28 @@ export function PatientProfile({ record }: PatientProfileProps) {
               </div>
 
               {/* Demographics */}
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground sm:gap-2.5 sm:text-[12px]">
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground sm:gap-2.5 sm:text-[13px]">
                 <span className="font-medium text-[#102F27]">{age} yrs</span>
                 <span className="text-[#D1D5DB]">·</span>
                 <span className="capitalize">{p.gender}</span>
                 <span className="text-[#D1D5DB]">·</span>
-                <span className="rounded-full bg-[#E8F0EE] px-2 py-0.5 font-medium text-[#1A5345]">{p.bloodType}</span>
+                <span className="rounded-full bg-[#E8F0EE] px-2 py-0.5 text-[12px] font-medium text-[#1A5345] sm:text-[13px]">{p.bloodType}</span>
                 {p.condition && (
                   <>
                     <span className="text-[#D1D5DB]">·</span>
-                    <span className="text-[11px] sm:text-[12px]">{p.condition}</span>
+                    <span className="font-medium text-[#102F27]">{p.condition}</span>
                   </>
                 )}
               </div>
 
               {/* Stats */}
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="flex items-center gap-1.5 rounded-full bg-[#EEF5F3] px-3 py-1 text-[10px] font-medium text-[#2C6A5B] sm:text-[11px]">
+                <span className="flex items-center gap-1.5 rounded-full bg-[#EEF5F3] px-3 py-1 text-[11px] font-medium text-[#2C6A5B] sm:text-[12px]">
                   <PillIcon className="size-3" />{activeMeds} active medications
                 </span>
-                <span className="rounded-full bg-[#F5F5F3] px-3 py-1 text-[10px] text-[#6B7870] sm:text-[11px]">{p.totalVisits} total visits</span>
+                <span className="rounded-full bg-[#F5F5F3] px-3 py-1 text-[11px] text-[#6B7870] sm:text-[12px]">{p.totalVisits} total visits</span>
                 {p.poorComplianceCount > 0 && (
-                  <span className="flex items-center gap-1.5 rounded-full bg-amber-500 px-3 py-1 text-[10px] font-bold text-white shadow-sm sm:text-[11px]">
+                  <span className="flex items-center gap-1.5 rounded-full bg-amber-500 px-3 py-1 text-[11px] font-bold text-white shadow-sm sm:text-[12px]">
                     <AlertTriangleIcon className="size-3" />{p.poorComplianceCount} compliance alerts
                   </span>
                 )}
@@ -371,14 +371,14 @@ export function PatientProfile({ record }: PatientProfileProps) {
           </Section>
           <Section title="Upcoming" icon={CalendarClockIcon}
             action={
-                  <Button size="sm" variant="ghost" className="h-6 gap-1 px-1 text-[9px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[10px]" onClick={() => setAppointmentDialog(true)}>
-                <CalendarPlusIcon className="size-3" />Book
+                  <Button size="sm" variant="ghost" className="h-7 gap-1 px-1.5 text-[11px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[12px]" onClick={() => setAppointmentDialog(true)}>
+                <CalendarPlusIcon className="size-3.5" />Book
               </Button>
             }>
             {p.upcomingAppointmentDate ? (
               <InfoRow icon={CalendarClockIcon} label="Next appointment" value={fmt(p.upcomingAppointmentDate)} valueClassName="text-[#1A5345]" />
             ) : (
-              <p className="text-[10px] text-muted-foreground">No upcoming appointments</p>
+              <p className="text-[11px] text-muted-foreground sm:text-[12px]">No upcoming appointments</p>
             )}
             <InfoRow icon={CalendarClockIcon} label="Last visit" value={fmt(p.lastVisitDate)} />
           </Section>
@@ -390,23 +390,23 @@ export function PatientProfile({ record }: PatientProfileProps) {
           <div className="rounded-xl border border-[#E5EEEA] bg-white p-4 transition-all duration-300 hover:shadow-md sm:p-5 group">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <MessageSquareIcon className="size-4 text-[#CC5533] sm:size-4.5" />
-                <h3 className="text-[12px] font-bold text-[#102F27] transition-colors duration-300 group-hover:text-[#CC5533] sm:text-[13px]">Clinical Notes</h3>
-                <span className="rounded-md bg-[#CC5533]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#CC5533]">{clinicalNotes.length}</span>
+                <MessageSquareIcon className="size-4 text-[#CC5533] sm:size-5" />
+                <h3 className="text-[13px] font-bold text-[#102F27] transition-colors duration-300 group-hover:text-[#CC5533] sm:text-[14px]">Clinical Notes</h3>
+                <span className="rounded-md bg-[#CC5533]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#CC5533] sm:text-[11px]">{clinicalNotes.length}</span>
               </div>
-              <Button size="sm" variant="ghost" className="h-6 gap-1 px-1 text-[9px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[10px]" onClick={() => setNoteDialog(true)}>
-                <PlusIcon className="size-3" />Add Note
+              <Button size="sm" variant="ghost" className="h-7 gap-1 px-1.5 text-[11px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[12px]" onClick={() => setNoteDialog(true)}>
+                <PlusIcon className="size-3.5" />Add Note
               </Button>
             </div>
             {clinicalNotes.length === 0 ? (
-              <p className="text-[10px] text-muted-foreground">No clinical notes yet</p>
+              <p className="text-[11px] text-muted-foreground sm:text-[12px]">No clinical notes yet</p>
             ) : (
               <div className="max-h-80 overflow-y-auto space-y-2">
                 {clinicalNotes.map((note) => (
                   <div key={note.id} className="group flex items-start gap-2 rounded-lg border border-[#E5EEEA] bg-[#FBFDFC] p-2 sm:p-2.5">
                     <div className="min-w-0 flex-1">
                       <p className="text-[12px] leading-relaxed text-[#102F27] sm:text-[13px]">{note.text}</p>
-                      <p className="mt-1 text-[9px] text-muted-foreground">{fmt(note.date)} &middot; {note.author}</p>
+                      <p className="mt-1 text-[10px] text-muted-foreground sm:text-[11px]">{fmt(note.date)} &middot; {note.author}</p>
                     </div>
                     <Button size="sm" variant="ghost" className="hidden h-6 w-6 shrink-0 p-0 group-hover:flex" onClick={() => removeNote(note.id)}>
                       <TrashIcon className="size-3 text-muted-foreground hover:text-red-500" />
@@ -421,15 +421,15 @@ export function PatientProfile({ record }: PatientProfileProps) {
           <div className="rounded-xl border border-[#E5EEEA] bg-white p-4 transition-all duration-300 hover:shadow-md sm:p-5 group">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <TargetIcon className="size-4 text-[#CC5533] sm:size-4.5" />
-                <h3 className="text-[12px] font-bold text-[#102F27] transition-colors duration-300 group-hover:text-[#CC5533] sm:text-[13px]">Care Plan & Goals</h3>
+                <TargetIcon className="size-4 text-[#CC5533] sm:size-5" />
+                <h3 className="text-[13px] font-bold text-[#102F27] transition-colors duration-300 group-hover:text-[#CC5533] sm:text-[14px]">Care Plan & Goals</h3>
               </div>
-              <Button size="sm" variant="ghost" className="h-6 gap-1 px-1 text-[9px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[10px]" onClick={() => setGoalDialog(true)}>
-                <PlusIcon className="size-3" />Add Goal
+              <Button size="sm" variant="ghost" className="h-7 gap-1 px-1.5 text-[11px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[12px]" onClick={() => setGoalDialog(true)}>
+                <PlusIcon className="size-3.5" />Add Goal
               </Button>
             </div>
             {careGoals.length === 0 ? (
-              <p className="text-[10px] text-muted-foreground">No care goals set</p>
+              <p className="text-[11px] text-muted-foreground sm:text-[12px]">No care goals set</p>
             ) : (
               <div className="max-h-80 overflow-y-auto space-y-2">
                 {careGoals.map((goal) => {
@@ -443,12 +443,12 @@ export function PatientProfile({ record }: PatientProfileProps) {
                       <TargetIcon className="size-4 shrink-0 text-[#CC5533] sm:size-5" />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-[11px] font-semibold text-[#102F27] sm:text-[12px]">{goal.metric}</span>
-                          <span className={cn("rounded-md px-1.5 py-0.5 text-[9px] uppercase tracking-wider", statusStyles[goal.status])}>
+                          <span className="text-[12px] font-semibold text-[#102F27] sm:text-[13px]">{goal.metric}</span>
+                          <span className={cn("rounded-md px-1.5 py-0.5 text-[10px] uppercase tracking-wider sm:text-[11px]", statusStyles[goal.status])}>
                             {goal.status.replace("-", " ")}
                           </span>
                         </div>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] sm:text-[12px]">
                           <span className="text-muted-foreground">Target: <span className="font-medium text-[#102F27]">{goal.target}</span></span>
                           {goal.current && (
                             <>

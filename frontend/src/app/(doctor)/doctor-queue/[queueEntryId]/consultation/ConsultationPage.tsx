@@ -4,7 +4,6 @@ import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { useConsultationPanelWidths } from "./usePanelResize"
 import type {
-  ConsultationData,
   ConsultationMedicalHistory,
   ConsultationVitalReading,
   DiagnosisEntry,
@@ -17,7 +16,6 @@ import type {
   Allergy,
   ExistingCondition,
 } from "./consultation.types"
-import { mockConsultationData } from "./consultation.mock"
 import { PatientSidebar } from "./PatientSidebar"
 import { VitalsSection } from "./VitalsSection"
 import { MedicalHistorySection } from "./MedicalHistorySection"
@@ -41,6 +39,7 @@ import { AIAssistantPanel } from "./AIAssistantPanel"
 import { ConsultationFloatingPatientQueryBar } from "./ConsultationFloatingPatientQueryBar"
 import { ConsultationVoiceDictationErrorProvider } from "./ConsultationVoiceDictationErrorContext"
 import { useLocalStorageState } from "./useLocalStorageState"
+import { useConsultationDraft } from "./useConsultationDraft"
 import { PatientBriefingAgent, BriefingAgentChip } from "./PatientBriefingAgent"
 import { Button } from "@/components/ui/button"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -50,8 +49,8 @@ import {
   StethoscopeIcon,
 } from "lucide-react"
 
-export function ConsultationPage() {
-  const [data, setData] = useState<ConsultationData>(mockConsultationData)
+export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
+  const { data, setData, saveDraftNow } = useConsultationDraft(queueEntryId)
   const [ctFile, setCtFile] = useState<File | null>(null)
   const [xrayFile, setXrayFile] = useState<File | null>(null)
   const [echoFile, setEchoFile] = useState<File | null>(null)
@@ -408,6 +407,7 @@ export function ConsultationPage() {
                 variant="ghost"
                 size="sm"
                 className="gap-1.5 border border-[#E5EEEA] bg-white text-[14px] hover:bg-[#E8F0EE] hover:text-[#1A5345]"
+                onClick={saveDraftNow}
               >
                 <SaveIcon className="size-3.5" />
                 Save Draft
