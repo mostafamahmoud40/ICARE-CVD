@@ -7,16 +7,27 @@ import {
   markAllNotificationsRead as markAllNotificationsReadApi,
   markNotificationRead as markNotificationReadApi,
 } from "@/lib/notifications/notifications.api"
+import {
+  isLivePatientNotificationId,
+  isPatientNotificationLiveKind,
+} from "./patientNotifications.config"
 import { getPatientNotificationsMock } from "./patientNotifications.mock"
+import { mergePatientNotifications } from "./patientNotifications.merge"
 import type { PatientNotification, PatientNotificationKind } from "./patientNotifications.types"
 
-let notifications: PatientNotification[] = getPatientNotificationsMock()
+const MOCK_SEED = getPatientNotificationsMock()
+let notifications: PatientNotification[] = mergePatientNotifications(MOCK_SEED, [])
 let hydratedFromApi = false
 
 const listeners = new Set<() => void>()
 
 function emit() {
   for (const listener of listeners) listener()
+}
+
+function setNotifications(next: PatientNotification[]) {
+  notifications = mergePatientNotifications(MOCK_SEED, next.filter((item) => isPatientNotificationLiveKind(item.kind)))
+  emit()
 }
 
 export function subscribePatientNotifications(listener: () => void) {
@@ -28,16 +39,24 @@ export function getPatientNotificationsSnapshot() {
   return notifications
 }
 
-const patientNotificationsServerSnapshot = getPatientNotificationsMock()
+const patientNotificationsServerSnapshot = mergePatientNotifications(MOCK_SEED, [])
 
 export function getPatientNotificationsServerSnapshot() {
   return patientNotificationsServerSnapshot
 }
 
 export function prependPatientRealtimeNotification(item: PatientNotification) {
+  if (!item.id) return
+  if (!isPatientNotificationLiveKind(item.kind)) return
   if (notifications.some((n) => n.id === item.id)) return
-  notifications = [item, ...notifications]
-  emit()
+
+  const liveItems = [
+    item,
+    ...notifications.filter(
+      (n) => isPatientNotificationLiveKind(n.kind) && n.id !== item.id,
+    ),
+  ]
+  setNotifications(liveItems)
 }
 
 export function markAllPatientNotificationsRead() {
@@ -56,7 +75,10 @@ export function markPatientNotificationRead(id: string) {
     notification.id === id ? { ...notification, read: true } : notification,
   )
   emit()
-  void markNotificationReadApi(id).catch(() => undefined)
+
+  if (isLivePatientNotificationId(id)) {
+    void markNotificationReadApi(id).catch(() => undefined)
+  }
 }
 
 export function resolvePatientNotificationAction(notificationId: string, actionId: string) {
@@ -116,12 +138,18 @@ function mapApiNotification(row: {
 
 async function hydrateFromApi() {
   if (hydratedFromApi) return
+  await refreshPatientNotificationsFromApi()
+}
+
+export async function refreshPatientNotificationsFromApi() {
   try {
     const rows = await fetchNotifications()
-    notifications = rows.map(mapApiNotification)
-    emit()
+    const liveItems = rows
+      .map(mapApiNotification)
+      .filter((item) => isPatientNotificationLiveKind(item.kind))
+    setNotifications(liveItems)
   } catch {
-    /* keep mock seed when API unavailable */
+    /* keep current list when API unavailable */
   } finally {
     hydratedFromApi = true
   }

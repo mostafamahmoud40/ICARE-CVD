@@ -1,5 +1,6 @@
 import type { PatientNotification } from "./patientNotifications.types"
 
+/** Demo notifications for kinds not yet wired to the live API. */
 export function getPatientNotificationsMock(): PatientNotification[] {
   return [
     {

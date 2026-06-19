@@ -87,6 +87,10 @@ function mapApiNotification(row: {
 
 async function hydrateFromApi() {
   if (hydratedFromApi) return
+  await refreshDoctorNotificationsFromApi()
+}
+
+export async function refreshDoctorNotificationsFromApi() {
   try {
     const rows = await fetchNotifications()
     if (rows.length > 0) {

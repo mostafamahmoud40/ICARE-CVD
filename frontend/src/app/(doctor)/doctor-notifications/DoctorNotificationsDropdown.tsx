@@ -12,7 +12,7 @@ import {
 import { cn } from "@/lib/utils"
 
 import { DoctorNotificationListItem, handleDoctorNotificationAction } from "./DoctorNotificationListItem"
-import { useDoctorNotifications } from "./useDoctorNotifications"
+import { useDoctorNotifications, refreshDoctorNotificationsFromApi } from "./useDoctorNotifications"
 
 const PREVIEW_LIMIT = 5
 
@@ -23,8 +23,15 @@ export function DoctorNotificationsDropdown() {
 
   const closeMenu = () => setOpen(false)
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (nextOpen) {
+      void refreshDoctorNotificationsFromApi()
+    }
+  }
+
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu open={open} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"

@@ -16,7 +16,7 @@ import {
   PatientNotificationListItem,
   handlePatientNotificationAction,
 } from "./PatientNotificationListItem"
-import { usePatientNotifications } from "./usePatientNotifications"
+import { usePatientNotifications, refreshPatientNotificationsFromApi } from "./usePatientNotifications"
 
 const PREVIEW_LIMIT = 5
 
@@ -29,8 +29,15 @@ export function PatientNotificationsDropdown() {
 
   const closeMenu = () => setOpen(false)
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (nextOpen) {
+      void refreshPatientNotificationsFromApi()
+    }
+  }
+
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu open={open} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"

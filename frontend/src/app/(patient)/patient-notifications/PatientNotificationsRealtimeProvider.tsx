@@ -1,7 +1,8 @@
 "use client"
 
 import type { ApiNotification } from "@/lib/notifications/notifications.api"
-import { prependPatientRealtimeNotification } from "@/app/(patient)/patient-notifications/usePatientNotifications"
+import { isPatientNotificationLiveKind } from "@/app/(patient)/patient-notifications/patientNotifications.config"
+import { prependPatientRealtimeNotification, refreshPatientNotificationsFromApi } from "@/app/(patient)/patient-notifications/usePatientNotifications"
 import type { PatientNotificationKind } from "@/app/(patient)/patient-notifications/patientNotifications.types"
 import { NotificationsRealtimeProvider } from "@/components/shared/notifications/NotificationsRealtimeProvider"
 
@@ -26,9 +27,12 @@ function mapPatientKind(kind: string): PatientNotificationKind {
 }
 
 function handlePatientNotification(notification: ApiNotification) {
+  const kind = mapPatientKind(notification.kind)
+  if (!isPatientNotificationLiveKind(kind)) return
+
   prependPatientRealtimeNotification({
     id: notification.id,
-    kind: mapPatientKind(notification.kind),
+    kind,
     title: notification.title,
     body: notification.body,
     href: notification.href,
@@ -43,7 +47,10 @@ export function PatientNotificationsRealtimeProvider({
   children: React.ReactNode
 }) {
   return (
-    <NotificationsRealtimeProvider onNotification={handlePatientNotification}>
+    <NotificationsRealtimeProvider
+      onNotification={handlePatientNotification}
+      onRefresh={refreshPatientNotificationsFromApi}
+    >
       {children}
     </NotificationsRealtimeProvider>
   )

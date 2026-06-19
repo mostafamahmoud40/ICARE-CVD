@@ -15,7 +15,7 @@ import {
   AssistantNotificationListItem,
   handleAssistantNotificationAction,
 } from "./AssistantNotificationListItem"
-import { useAssistantNotifications } from "./useAssistantNotifications"
+import { useAssistantNotifications, refreshAssistantNotificationsFromApi } from "./useAssistantNotifications"
 
 const PREVIEW_LIMIT = 5
 
@@ -26,8 +26,15 @@ export function AssistantNotificationsDropdown() {
 
   const closeMenu = () => setOpen(false)
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (nextOpen) {
+      void refreshAssistantNotificationsFromApi()
+    }
+  }
+
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu open={open} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
