@@ -13,6 +13,7 @@ import {
   ChevronDownIcon,
   CreditCardIcon,
   FileTextIcon,
+  FlaskConicalIcon,
   HeartPulseIcon,
   LayoutDashboardIcon,
   ListOrderedIcon,
@@ -117,6 +118,12 @@ function PatientLayoutContent({
       label: "Consultations",
       icon: FileTextIcon,
       isActive: pathname === "/consultations",
+    },
+    {
+      href: "/lab-orders",
+      label: "Lab orders",
+      icon: FlaskConicalIcon,
+      isActive: pathname === "/lab-orders",
     },
     {
       href: "/vitals",

@@ -6,10 +6,10 @@ import type { LabMaterialFile } from "./consultation.types"
 import type { LabAnalysisBundle, LabResultRow, LabResultStatus } from "./labMaterials.types"
 import { LabMaterialsAiChatDialog } from "./LabMaterialsAiChatDialog"
 import { useLabMaterialsWorkspace } from "./useLabMaterialsWorkspace"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   AlertCircleIcon,
-  ChevronRightIcon,
   FileIcon,
   FlaskConicalIcon,
   Loader2Icon,
@@ -73,11 +73,9 @@ function FilePreviewDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] w-[calc(100%-2rem)] max-w-4xl flex-col overflow-hidden p-0">
-        <DialogHeader className="shrink-0 border-b border-[#E5EEEA] px-4 py-3">
-          <DialogTitle className="flex items-center gap-2 text-[13px] font-semibold text-[#102F27]">
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#EEF5F3]">
-              <FileIcon className="size-4 text-[#1A5345]" />
-            </div>
+        <DialogHeader className="shrink-0 border-b border-[#E8E6E0] px-4 py-3">
+          <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold text-[#102F27]">
+            <FileIcon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
             <span className="truncate">{file.name}</span>
           </DialogTitle>
         </DialogHeader>
@@ -90,12 +88,10 @@ function FilePreviewDialog({
             />
           ) : (
             <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-[#E5EEEA] bg-white p-8 text-center">
-              <div className="flex size-14 items-center justify-center rounded-full bg-[#EEF5F3]">
-                <FileIcon className="size-7 text-[#1A5345]" />
-              </div>
+              <FileIcon className="size-10 text-[#1A5345]" aria-hidden />
               <div>
-                <p className="text-[12px] font-medium text-[#102F27]">{file.name}</p>
-                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                <p className="text-[14px] font-medium text-[#102F27]">{file.name}</p>
+                <p className="mt-0.5 text-[12px] text-muted-foreground">
                   {formatBytes(file.size)}
                   {file.type ? ` · ${file.type}` : ""}
                 </p>
@@ -105,7 +101,7 @@ function FilePreviewDialog({
                   href={objectUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-[#1A5345] px-4 py-2 text-[11px] font-medium text-white hover:bg-[#0F3D32]"
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-[#1A5345] px-4 py-2 text-[11px] font-bold text-white hover:bg-[#133F34]"
                 >
                   Open file
                 </a>
@@ -126,18 +122,18 @@ function isAllowedLabFile(file: File): boolean {
   return t === "application/pdf" || t === "image/png" || t === "image/jpeg"
 }
 
-function statusClass(status: LabResultStatus): string {
+function statusBadgeClass(status: LabResultStatus): string {
   switch (status) {
     case "Normal":
-      return "bg-emerald-50 text-emerald-800"
+      return "border-0 bg-emerald-500 text-white hover:bg-emerald-500"
     case "High":
-      return "bg-amber-50 text-amber-800"
+      return "border-0 bg-amber-500 text-white hover:bg-amber-500"
     case "Low":
-      return "bg-sky-50 text-sky-800"
+      return "border-0 bg-sky-500 text-white hover:bg-sky-500"
     case "Critical":
-      return "bg-red-50 text-red-700"
+      return "border-0 bg-rose-500 text-white hover:bg-rose-500"
     default:
-      return "bg-muted text-muted-foreground"
+      return "border-0 bg-[#6B7870] text-white hover:bg-[#6B7870]"
   }
 }
 
@@ -146,17 +142,17 @@ function statusClass(status: LabResultStatus): string {
 function LabMaterialsCollapsedStrip({ onPickFiles }: { onPickFiles: () => void }) {
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-[11px] text-muted-foreground">
-        The analysis workspace stays compact until you attach files or run AI review.
+      <p className="text-[13px] text-muted-foreground">
+        Attach lab reports to open the analysis workspace.
       </p>
       <Button
         type="button"
         size="sm"
         variant="outline"
         onClick={onPickFiles}
-        className="w-full shrink-0 gap-1.5 border-[#E5EEEA] text-[12px] hover:bg-[#E8F0EE] sm:w-auto"
+        className="h-8 w-full shrink-0 gap-1.5 rounded-lg border-[#E8E6E0] text-[12px] font-medium hover:bg-[#F9F8F5] sm:w-auto"
       >
-        <UploadCloudIcon className="size-3.5" />
+        <UploadCloudIcon className="size-3.5 text-[#1A5345]" aria-hidden />
         Add lab files
       </Button>
     </div>
@@ -165,42 +161,38 @@ function LabMaterialsCollapsedStrip({ onPickFiles }: { onPickFiles: () => void }
 
 function LabMetaGrid({ bundle }: { bundle: LabAnalysisBundle }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
-      <div className="rounded-lg border border-[#E5EEEA] bg-[#FAFAF8] p-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Facility
-        </p>
-        <dl className="mt-2 space-y-1 text-[11px]">
-          <div className="flex justify-between gap-2">
+    <div className="grid gap-3 sm:grid-cols-2">
+      <div className="rounded-xl border border-[#E8E6E0]/60 bg-[#FAFAF8] p-4">
+        <p className="text-[12px] font-bold text-[#102F27]">Facility</p>
+        <dl className="mt-3 space-y-2 text-[13px]">
+          <div className="flex justify-between gap-3">
             <dt className="text-muted-foreground">Hospital</dt>
-            <dd className="text-right font-medium text-[#102F27]">{bundle.facility.hospitalName}</dd>
+            <dd className="text-right font-semibold text-[#1A1F1E]">{bundle.facility.hospitalName}</dd>
           </div>
-          <div className="flex justify-between gap-2">
+          <div className="flex justify-between gap-3">
             <dt className="text-muted-foreground">Lab</dt>
-            <dd className="text-right font-medium text-[#102F27]">{bundle.facility.labName}</dd>
+            <dd className="text-right font-semibold text-[#1A1F1E]">{bundle.facility.labName}</dd>
           </div>
-          <div className="flex justify-between gap-2">
+          <div className="flex justify-between gap-3">
             <dt className="text-muted-foreground">Ordering</dt>
-            <dd className="text-right font-medium text-[#102F27]">{bundle.facility.doctorName}</dd>
+            <dd className="text-right font-semibold text-[#1A1F1E]">{bundle.facility.doctorName}</dd>
           </div>
         </dl>
       </div>
-      <div className="rounded-lg border border-[#E5EEEA] bg-[#FAFAF8] p-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Patient (document)
-        </p>
-        <dl className="mt-2 space-y-1 text-[11px]">
-          <div className="flex justify-between gap-2">
+      <div className="rounded-xl border border-[#E8E6E0]/60 bg-[#FAFAF8] p-4">
+        <p className="text-[12px] font-bold text-[#102F27]">Patient (document)</p>
+        <dl className="mt-3 space-y-2 text-[13px]">
+          <div className="flex justify-between gap-3">
             <dt className="text-muted-foreground">ID</dt>
-            <dd className="font-mono text-[10px] font-medium text-[#102F27]">{bundle.patient.id}</dd>
+            <dd className="font-mono text-[12px] font-semibold text-[#1A1F1E]">{bundle.patient.id}</dd>
           </div>
-          <div className="flex justify-between gap-2">
+          <div className="flex justify-between gap-3">
             <dt className="text-muted-foreground">Collected</dt>
-            <dd className="font-medium text-[#102F27]">{bundle.patient.dateCollected}</dd>
+            <dd className="font-semibold text-[#1A1F1E]">{bundle.patient.dateCollected}</dd>
           </div>
-          <div className="flex justify-between gap-2">
+          <div className="flex justify-between gap-3">
             <dt className="text-muted-foreground">Reported</dt>
-            <dd className="font-medium text-[#102F27]">{bundle.patient.dateReported}</dd>
+            <dd className="font-semibold text-[#1A1F1E]">{bundle.patient.dateReported}</dd>
           </div>
         </dl>
       </div>
@@ -211,37 +203,38 @@ function LabMetaGrid({ bundle }: { bundle: LabAnalysisBundle }) {
 function LabResultsTable({ rows }: { rows: LabResultRow[] }) {
   return (
     <div className="overflow-hidden rounded-xl border border-[#E5EEEA]">
-      <div className="border-b border-[#E8E6E0] bg-[#FAFAF8] px-3 py-2">
-        <h4 className="text-[12px] font-semibold text-[#102F27]">Structured results</h4>
-        <p className="text-[10px] text-muted-foreground">Mock extraction — verify against source documents.</p>
+      <div className="border-b border-[#E8E6E0] bg-[#FAFAF8] px-4 py-3">
+        <h4 className="font-serif text-[15px] font-bold text-[#1A1F1E]">Structured results</h4>
+        <p className="mt-0.5 text-[12px] text-muted-foreground">Verify extracted values against source documents.</p>
       </div>
-      <div className="scrollbar-hide max-h-[280px] overflow-x-auto overflow-y-auto sm:max-h-none">
-        <table className="w-full min-w-[520px] text-left text-[11px]">
+      <div className="scrollbar-hide max-h-[360px] overflow-x-auto overflow-y-auto sm:max-h-none">
+        <table className="w-full min-w-[560px] text-left text-[13px]">
           <thead>
             <tr className="border-b border-[#E8E6E0] bg-white">
-              <th className="px-3 py-2 font-semibold text-[#102F27]">Test</th>
-              <th className="px-3 py-2 font-semibold text-[#102F27]">Value</th>
-              <th className="px-3 py-2 font-semibold text-[#102F27]">Ref.</th>
-              <th className="px-3 py-2 font-semibold text-[#102F27]">Status</th>
+              <th className="px-4 py-3 text-[13px] font-bold text-[#102F27]">Test</th>
+              <th className="px-4 py-3 text-[13px] font-bold text-[#102F27]">Value</th>
+              <th className="px-4 py-3 text-[13px] font-bold text-[#102F27]">Ref.</th>
+              <th className="px-4 py-3 text-[13px] font-bold text-[#102F27]">Status</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.testName} className="border-b border-[#F0EFEA] last:border-0">
-                <td className="px-3 py-2 font-medium text-[#102F27]">{row.testName}</td>
-                <td className="px-3 py-2 tabular-nums text-[#1A1F1E]">
+              <tr key={row.testName} className="border-b border-[#F0EFEA] last:border-0 hover:bg-[#F9F8F5]/60">
+                <td className="px-4 py-3 text-[14px] font-semibold text-[#1A1F1E]">{row.testName}</td>
+                <td className="px-4 py-3 text-[14px] font-medium tabular-nums text-[#1A1F1E]">
                   {row.value} {row.unit}
                 </td>
-                <td className="px-3 py-2 text-muted-foreground">{row.referenceRange}</td>
-                <td className="px-3 py-2">
-                  <span
+                <td className="px-4 py-3 text-[13px] text-muted-foreground">{row.referenceRange}</td>
+                <td className="px-4 py-3">
+                  <Badge
+                    variant="default"
                     className={cn(
-                      "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium",
-                      statusClass(row.status),
+                      "rounded-lg px-2.5 py-1 text-[11px] font-bold shadow-none",
+                      statusBadgeClass(row.status),
                     )}
                   >
                     {row.status}
-                  </span>
+                  </Badge>
                 </td>
               </tr>
             ))}
@@ -254,14 +247,12 @@ function LabResultsTable({ rows }: { rows: LabResultRow[] }) {
 
 function LabSummaryReport({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border-2 border-violet-100 bg-violet-50/50 p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <div className="flex size-7 items-center justify-center rounded-lg bg-violet-100">
-          <SparklesIcon className="size-3.5 text-violet-700" />
-        </div>
-        <h4 className="text-[12px] font-semibold text-violet-900">Summary report</h4>
+    <div className="rounded-xl border border-[#E5EEEA] bg-white p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <SparklesIcon className="size-5 text-[#1A5345]" aria-hidden />
+        <h4 className="font-serif text-[15px] font-bold text-[#1A1F1E]">Summary report</h4>
       </div>
-      <p className="text-[11px] leading-relaxed text-violet-950/90">{text}</p>
+      <p className="text-[13px] leading-relaxed text-[#374151]">{text}</p>
     </div>
   )
 }
@@ -292,28 +283,22 @@ function LabUploadDropZone({
         onFiles(e.dataTransfer.files)
       }}
       className={cn(
-        "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-6 transition-all duration-300 sm:py-8",
+        "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-8 transition-colors",
         isDragging
-          ? "border-[#1A5345]/50 bg-[#F0F7F4] scale-[1.01]"
+          ? "border-[#1A5345]/50 bg-[#F0F7F4]"
           : "border-[#E5EEEA] bg-[#FAFAF8] hover:border-[#1A5345]/30 hover:bg-[#F6FBF9]",
       )}
     >
-      <div
-        className={cn(
-          "flex size-10 items-center justify-center rounded-full transition-colors",
-          isDragging ? "bg-[#1A5345]/10" : "bg-[#E8F0EE]",
-        )}
-      >
-        <UploadCloudIcon
-          className={cn("size-5", isDragging ? "text-[#1A5345]" : "text-[#2C6A5B]")}
-        />
-      </div>
+      <UploadCloudIcon
+        className={cn("size-8", isDragging ? "text-[#1A5345]" : "text-[#1A5345]/80")}
+        aria-hidden
+      />
       <div className="px-2 text-center">
-        <p className="text-[12px] font-medium text-[#102F27]">
+        <p className="text-[14px] font-medium text-[#102F27]">
           Drop files here or{" "}
           <span className="text-[#1A5345] underline underline-offset-2">browse</span>
         </p>
-        <p className="mt-0.5 text-[10px] text-muted-foreground">
+        <p className="mt-1 text-[12px] text-muted-foreground">
           {ACCEPT_LABEL} · multiple files allowed
         </p>
       </div>
@@ -365,54 +350,64 @@ export function LabMaterialsSection({
   return (
     <div
       className={cn(
-        "rounded-xl border-2 border-[#E5EEEA] bg-white transition-[padding] duration-300 ease-out",
-        workspace.workspaceOpen ? "p-5" : "p-4",
+        "rounded-2xl border border-[#E8E6E0]/60 bg-white shadow-sm transition-[padding] duration-300 ease-out",
+        workspace.workspaceOpen ? "p-5" : "p-5",
         className,
       )}
     >
-      <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
-            <FlaskConicalIcon className="size-4 text-[#1A5345]" />
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <FlaskConicalIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
+            <h3 className="font-serif text-[16px] font-bold text-[#1A1F1E]">Lab reports & documents</h3>
           </div>
-          <div className="min-w-0">
-            <h3 className="text-[14px] font-semibold text-[#102F27]">Lab reports & documents</h3>
-            {!workspace.workspaceOpen ? (
-              <p className="text-[10px] text-muted-foreground">
-                Attach materials to expand the analysis workspace.
-              </p>
-            ) : (
-              <p className="hidden text-[10px] text-muted-foreground sm:block">
-                Upload, run AI structuring, then review the table and summary below.
-              </p>
-            )}
-          </div>
+          <p className="mt-1 pl-7 text-[13px] text-muted-foreground">
+            {workspace.workspaceOpen
+              ? "Upload reports, run AI structuring, then review results below."
+              : "Attach lab materials to expand the analysis workspace."}
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-[#EEF5F3] px-2.5 py-0.5 text-[10px] font-medium text-[#1A5345]">
+          <Badge
+            variant="default"
+            className="rounded-lg border-0 bg-[#EEF5F3] px-2.5 py-1 text-[11px] font-bold text-[#1A5345] shadow-none hover:bg-[#EEF5F3]"
+          >
             {items.length === 0 ? "No files" : `${items.length} file${items.length === 1 ? "" : "s"}`}
-          </span>
+          </Badge>
+          {workspace.workspaceOpen && workspace.analysisPhase === "analyzing" ? (
+            <Badge
+              variant="default"
+              className="gap-1 rounded-lg border-0 bg-amber-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-none hover:bg-amber-500"
+            >
+              <Loader2Icon className="size-3 animate-spin" aria-hidden />
+              Analyzing
+            </Badge>
+          ) : null}
+          {workspace.workspaceOpen && workspace.analysisPhase === "complete" ? (
+            <Badge
+              variant="default"
+              className="rounded-lg border-0 bg-emerald-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-none hover:bg-emerald-500"
+            >
+              Structured
+            </Badge>
+          ) : null}
+          {workspace.workspaceOpen && workspace.analysisPhase === "error" ? (
+            <Badge
+              variant="default"
+              className="gap-1 rounded-lg border-0 bg-rose-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-none hover:bg-rose-500"
+            >
+              <AlertCircleIcon className="size-3" aria-hidden />
+              Failed
+            </Badge>
+          ) : null}
           {workspace.workspaceOpen ? (
-            <>
-              {workspace.analysisPhase === "analyzing" ? (
-                <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800">
-                  <Loader2Icon className="size-3 animate-spin" />
-                  Analyzing…
-                </span>
-              ) : null}
-              {workspace.analysisPhase === "complete" ? (
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-800">
-                  Structured
-                </span>
-              ) : null}
-              {workspace.analysisPhase === "error" ? (
-                <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700">
-                  <AlertCircleIcon className="size-3" />
-                  Failed
-                </span>
-              ) : null}
-            </>
+            <Badge
+              variant="default"
+              className="rounded-lg border-0 bg-[#1A5345] px-2.5 py-1 text-[11px] font-bold text-white shadow-none hover:bg-[#1A5345]"
+            >
+              AI · OCR + LLM
+            </Badge>
           ) : null}
         </div>
       </div>
@@ -454,31 +449,29 @@ export function LabMaterialsSection({
                   <li
                     key={item.id}
                     onClick={() => setPreviewItem(item)}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#E5EEEA] bg-white p-3 transition-colors hover:bg-[#F9F8F5]"
+                    className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm transition-colors hover:bg-[#F9F8F5]"
                   >
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#EEF5F3]">
-                      <FileIcon className="size-4 text-[#1A5345]" />
-                    </div>
+                    <FileIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[12px] font-semibold text-[#102F27]">{item.file.name}</p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="truncate text-[14px] font-semibold text-[#1A1F1E]">{item.file.name}</p>
+                      <p className="text-[12px] text-muted-foreground">
                         {formatBytes(item.file.size)}
                         {item.file.type ? ` · ${item.file.type}` : ""}
                       </p>
                     </div>
                     <Button
                       type="button"
-                      size="sm"
+                      size="icon"
                       variant="ghost"
                       disabled={workspace.analysisPhase === "analyzing"}
-                      className="h-8 w-8 shrink-0 p-0 text-[#6B7870] hover:bg-red-50 hover:text-red-500"
+                      className="size-8 shrink-0 border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-rose-600"
                       onClick={(e) => {
                         e.stopPropagation()
                         onRemove(item.id)
                       }}
                       aria-label={`Remove ${item.file.name}`}
                     >
-                      <Trash2Icon className="size-3.5" />
+                      <Trash2Icon className="size-4" />
                     </Button>
                   </li>
                 ))}
@@ -491,10 +484,10 @@ export function LabMaterialsSection({
               disabled={items.length === 0 || workspace.analysisPhase === "analyzing"}
               onClick={() => void workspace.runAiAnalysis()}
               className={cn(
-                "w-full gap-1.5 text-[12px]",
+                "h-10 w-full gap-1.5 rounded-lg text-[13px] font-bold shadow-sm",
                 workspace.analysisPhase === "error"
-                  ? "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                  : "bg-[#1A5345] hover:bg-[#0F3D32]",
+                  ? "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                  : "border-0 bg-[#1A5345] text-white hover:bg-[#133F34]",
               )}
             >
               {workspace.analysisPhase === "analyzing" ? (
@@ -516,24 +509,21 @@ export function LabMaterialsSection({
             </Button>
 
             {workspace.analysisPhase === "error" && workspace.analysisError ? (
-              <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-[10px] text-red-700">
-                <AlertCircleIcon className="mt-0.5 size-3.5 shrink-0" />
-                <div className="min-w-0">
-                  <p className="font-semibold">Analysis failed</p>
-                  <p className="mt-0.5 break-words">{workspace.analysisError}</p>
-                  <p className="mt-1 text-red-500">
-                    Make sure the Medical Analyzer service is running and reachable by the Next.js server.
+              <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50/80 p-4">
+                <AlertCircleIcon className="mt-0.5 size-4 shrink-0 text-rose-600" aria-hidden />
+                <div className="min-w-0 text-[13px] text-rose-700">
+                  <p className="font-semibold text-rose-800">Analysis failed</p>
+                  <p className="mt-1 break-words">{workspace.analysisError}</p>
+                  <p className="mt-2 text-[12px] text-rose-600/90">
+                    Ensure the Medical Analyzer service is running and reachable.
                   </p>
                 </div>
               </div>
             ) : null}
 
             {workspace.analysisPhase === "complete" && workspace.analysis ? (
-              <div className="space-y-4 border-t border-[#E8E6E0] pt-4">
-                <div className="flex items-center gap-1 text-[11px] font-medium text-[#102F27]">
-                  <ChevronRightIcon className="size-3.5 text-[#1A5345]" />
-                  Extraction output
-                </div>
+              <div className="space-y-4 border-t border-[#E8E6E0]/60 pt-4">
+                <p className="font-serif text-[15px] font-bold text-[#1A1F1E]">Extraction output</p>
                 <LabMetaGrid bundle={workspace.analysis} />
                 <LabResultsTable rows={workspace.analysis.results} />
                 <LabSummaryReport text={workspace.analysis.summary} />
@@ -542,18 +532,17 @@ export function LabMaterialsSection({
                   size="sm"
                   variant="outline"
                   onClick={() => workspace.setChatOpen(true)}
-                  className="w-full gap-1 border-violet-200 bg-violet-50/80 px-3 text-[11px] text-violet-900 hover:bg-violet-100"
+                  className="h-10 w-full gap-1.5 rounded-lg border-[#E8E6E0] text-[13px] font-medium hover:bg-[#F9F8F5]"
                   aria-label="Open lab AI chat"
                 >
-                  <MessageSquareTextIcon className="size-3.5 shrink-0" />
-                  <span>Ask AI</span>
+                  <MessageSquareTextIcon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
+                  Ask AI about these results
                 </Button>
               </div>
             ) : null}
 
-            <p className="text-center text-[10px] text-muted-foreground">
-              Powered by Mistral OCR + Groq Qwen. Files are sent to the Medical Analyzer service
-              and are not stored permanently.
+            <p className="text-center text-[12px] leading-relaxed text-muted-foreground">
+              Powered by Mistral OCR + Groq. Files are processed by the Medical Analyzer and not stored permanently.
             </p>
           </div>
         </div>
