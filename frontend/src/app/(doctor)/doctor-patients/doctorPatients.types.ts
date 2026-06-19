@@ -182,6 +182,23 @@ export type VisitRecord = {
   durationMin: number
 }
 
+export type PatientClinicalNote = {
+  id: string
+  date: string
+  text: string
+  author: string
+}
+
+export type PatientCareGoal = {
+  id: string
+  metric: string
+  target: string
+  current?: string
+  status: "on-track" | "off-track" | "achieved"
+  createdAt: string
+  updatedAt: string
+}
+
 export type ConsultationVitals = {
   systolicBP: number
   diastolicBP: number
@@ -238,4 +255,6 @@ export type PatientFullRecord = {
   labResults: LabResult[]
   documents: UploadedDocument[]
   visits: VisitRecord[]
+  profileClinicalNotes: PatientClinicalNote[]
+  careGoals: PatientCareGoal[]
 }

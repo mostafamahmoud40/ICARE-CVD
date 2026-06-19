@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
@@ -57,7 +57,7 @@ import {
 
 export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
   const router = useRouter()
-  const { data, setData, saveDraftNow, hydrated } = useConsultationDraft(queueEntryId)
+  const { data, setData, saveDraftNow, hydrated, isLoading, isError } = useConsultationDraft(queueEntryId)
   const consultationVitals = useConsultationVitals(queueEntryId)
   const [ctFile, setCtFile] = useState<File | null>(null)
   const [xrayFile, setXrayFile] = useState<File | null>(null)
@@ -80,19 +80,29 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
   } = useConsultationPanelWidths()
 
   useEffect(() => {
-    if (!hydrated) return
+    if (!hydrated || !data) return
     if (hasConsultationDraft(queueEntryId) || isBriefingAcknowledged(queueEntryId)) return
     router.replace(`/doctor-queue/${queueEntryId}/briefing`)
-  }, [hydrated, queueEntryId, router])
+  }, [hydrated, data, queueEntryId, router])
 
   useEffect(() => {
-    if (!hydrated) return
+    if (!hydrated || !data) return
     syncConsultationTestOrders({
       patientId: data.patientId,
       doctorName: "Your care team",
       orders: data.testOrders,
     })
-  }, [hydrated, data.patientId, data.testOrders])
+  }, [hydrated, data?.patientId, data?.testOrders])
+
+  if (isLoading || !data) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center bg-[#F9F8F5]">
+        <p className="text-[13px] font-medium text-muted-foreground">
+          {isError ? "Unable to load patient record" : "Loading consultation…"}
+        </p>
+      </div>
+    )
+  }
 
   const updateMedicalHistory = (next: ConsultationMedicalHistory) => {
     setData((prev) => ({ ...prev, medicalHistory: next }))

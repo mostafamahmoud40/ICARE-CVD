@@ -372,6 +372,8 @@ export const mockPatientFullRecord: PatientFullRecord = {
     { id: "v-7", date: "2025-05-12", type: "follow-up", doctorName: "Dr. Mahmoud", chiefComplaint: "Routine follow-up", diagnosisSummary: "All conditions stable", notes: "Weight stable. Continue current medications.", durationMin: 15 },
     { id: "v-8", date: "2025-02-03", type: "follow-up", doctorName: "Dr. El-Sayed", chiefComplaint: "Blood sugar monitoring", diagnosisSummary: "T2DM — HbA1c 7.8%", notes: "Increased Metformin to 500mg BID. Diet counseling.", durationMin: 20 },
   ],
+  profileClinicalNotes: [],
+  careGoals: [],
 }
 
 export const mockConsultationReports: Record<string, ConsultationReport> = {

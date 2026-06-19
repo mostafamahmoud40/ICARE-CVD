@@ -1,33 +1,10 @@
-"use client"
-
-import { use } from "react"
-import { ConsultationsPage } from "./ConsultationsPage"
-import { mockDoctorPatientsData, mockPatientFullRecord } from "../../doctorPatients.mock"
+import { ConsultationsRecordRoute } from "./ConsultationsRecordRoute"
 
 type PageProps = {
   params: Promise<{ patientId: string }>
 }
 
-export default function ConsultationsRoutePage({ params }: PageProps) {
-  const { patientId } = use(params)
-  const patient = mockDoctorPatientsData.patients.find((p) => p.id === patientId)
-
-  if (!patient) {
-    return (
-      <main className="flex flex-1 items-center justify-center bg-[#F9F8F5]">
-        <div className="text-center">
-          <p className="text-[14px] font-semibold text-[#102F27]">Patient not found</p>
-          <p className="mt-1 text-[12px] text-muted-foreground">ID: {patientId}</p>
-        </div>
-      </main>
-    )
-  }
-
-  return (
-    <ConsultationsPage
-      patientId={patientId}
-      patientName={patient.fullName}
-      visits={mockPatientFullRecord.visits}
-    />
-  )
+export default async function ConsultationsRoutePage({ params }: PageProps) {
+  const { patientId } = await params
+  return <ConsultationsRecordRoute patientId={patientId} />
 }

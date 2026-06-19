@@ -1,8 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useDoctorAvailableSlots } from "@/app/(doctor)/doctor-appointments/useDoctorAppointments"
-import type { PatientFullRecord, FamilyHistoryEntry, PatientAllergyEntry } from "../doctorPatients.types"
+import type { PatientFullRecord, FamilyHistoryEntry, PatientAllergyEntry, PatientCareGoal, PatientClinicalNote } from "../doctorPatients.types"
+import { formatMaritalStatus, formatSmokingStatus, patientDisplayId } from "../doctorPatients.utils"
+import { useUpdateDoctorPatientProfile } from "../useUpdateDoctorPatientProfile"
+import { usePatientProfileExtras } from "../usePatientProfileExtras"
+import {
+  PATIENT_AVATAR_OPTIONS,
+  PATIENT_BLOOD_TYPES,
+  PATIENT_GENDERS,
+  PATIENT_MARITAL_STATUSES,
+  PATIENT_SMOKING_STATUSES,
+} from "../patientProfile.constants"
+import { showIcareErrorToast } from "@/components/shared/icare-toast"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import {
@@ -34,6 +45,7 @@ import {
   CalendarIcon,
   CalendarPlusIcon,
   ChevronRightIcon,
+  Loader2Icon,
   MessageSquareIcon,
   XIcon,
 } from "lucide-react"
@@ -260,19 +272,60 @@ function RecordCard({ icon: Icon, iconColor, title, subtitle, href }: {
   )
 }
 
-type CareGoal = {
-  id: string
-  metric: string
-  target: string
-  current?: string
-  status: "on-track" | "off-track" | "achieved"
+type DisplayClinicalNote = PatientClinicalNote & { canDelete: boolean }
+
+function buildClinicalNotesFromVisits(record: PatientFullRecord): PatientClinicalNote[] {
+  return record.visits
+    .flatMap((visit) => {
+      const items: PatientClinicalNote[] = []
+      if (visit.notes?.trim()) {
+        items.push({
+          id: `${visit.id}-notes`,
+          date: visit.date,
+          text: visit.notes.trim(),
+          author: visit.doctorName,
+        })
+      }
+      if (visit.chiefComplaint?.trim()) {
+        items.push({
+          id: `${visit.id}-complaint`,
+          date: visit.date,
+          text: visit.chiefComplaint.trim(),
+          author: visit.doctorName,
+        })
+      }
+      return items
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 }
 
-type ClinicalNote = {
-  id: string
-  date: string
-  text: string
-  author: string
+function buildAllClinicalNotes(record: PatientFullRecord): DisplayClinicalNote[] {
+  const profileNotes = record.profileClinicalNotes.map((note) => ({
+    ...note,
+    canDelete: true,
+  }))
+  const visitNotes = buildClinicalNotesFromVisits(record).map((note) => ({
+    ...note,
+    canDelete: false,
+  }))
+  return [...profileNotes, ...visitNotes].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  )
+}
+
+const CARE_GOAL_STATUS_OPTIONS: Array<{ value: PatientCareGoal["status"]; label: string }> = [
+  { value: "on-track", label: "On track" },
+  { value: "off-track", label: "Off track" },
+  { value: "achieved", label: "Achieved" },
+]
+
+function emptyCareGoalForm() {
+  return {
+    metric: "",
+    target: "",
+    current: "",
+    status: "on-track" as PatientCareGoal["status"],
+  }
 }
 
 type PatientProfileProps = {
@@ -281,17 +334,58 @@ type PatientProfileProps = {
 
 export function PatientProfile({ record }: PatientProfileProps) {
   const p = record.patient
+  const { updateProfile, isUpdating } = useUpdateDoctorPatientProfile(p.id)
+  const profileExtras = usePatientProfileExtras(p.id)
   const risk = riskConfig[p.riskLevel]
   const age = calcAge(p.dateOfBirth)
   const activeMeds = record.medications.filter((m) => m.status === "active").length
   const basePath = `/doctor-patients/${p.id}`
+  const bloodTypeDisplay = p.bloodType && p.bloodType !== "—" ? p.bloodType : "—"
 
   const [contact, setContact] = useState({ phone: p.phone, email: p.email, address: p.address })
+  const [personal, setPersonal] = useState({
+    maritalStatus: p.maritalStatus,
+    occupation: p.occupation,
+    nationalId: p.nationalId,
+  })
+  const [demographics, setDemographics] = useState({
+    profileImageUrl: p.profileImageUrl ?? "",
+    gender: p.gender,
+    bloodType: bloodTypeDisplay === "—" ? "" : bloodTypeDisplay,
+  })
   const [lifestyle, setLifestyle] = useState({ smokingStatus: p.smokingStatus, bmi: p.bmi })
   const [allergies, setAllergies] = useState<PatientAllergyEntry[]>(p.allergies)
   const [familyHistory, setFamilyHistory] = useState<FamilyHistoryEntry[]>(p.familyHistory)
 
-  const [editDialog, setEditDialog] = useState<"contact" | "personal" | "lifestyle" | "allergies" | "family" | null>(null)
+  useEffect(() => {
+    const nextBloodType = p.bloodType && p.bloodType !== "—" ? p.bloodType : ""
+    setContact({ phone: p.phone, email: p.email, address: p.address })
+    setPersonal({
+      maritalStatus: p.maritalStatus,
+      occupation: p.occupation,
+      nationalId: p.nationalId,
+    })
+    setDemographics({
+      profileImageUrl: p.profileImageUrl ?? "",
+      gender: p.gender,
+      bloodType: nextBloodType,
+    })
+    setLifestyle({ smokingStatus: p.smokingStatus, bmi: p.bmi })
+    setAllergies(p.allergies)
+    setFamilyHistory(p.familyHistory)
+  }, [p])
+
+  const clinicalNotes = useMemo(() => buildAllClinicalNotes(record), [record])
+  const careGoals = record.careGoals
+
+  const [clinicalNoteDialog, setClinicalNoteDialog] = useState(false)
+  const [careGoalDialog, setCareGoalDialog] = useState(false)
+  const [newClinicalNote, setNewClinicalNote] = useState("")
+  const [newCareGoal, setNewCareGoal] = useState(emptyCareGoalForm())
+
+  const [editDialog, setEditDialog] = useState<
+    "contact" | "personal" | "lifestyle" | "demographics" | "allergies" | "family" | null
+  >(null)
   const [newAllergy, setNewAllergy] = useState<AllergyForm>(emptyAllergyForm())
   const [newFamily, setNewFamily] = useState<FamilyHistoryForm>(emptyFamilyHistoryForm())
 
@@ -306,20 +400,6 @@ export function PatientProfile({ record }: PatientProfileProps) {
     setAppointmentDialog(true)
   }
 
-  const [clinicalNotes, setClinicalNotes] = useState<ClinicalNote[]>([
-    { id: "n-1", date: "2026-04-15", text: "Patient reports increased stress levels. Monitor BP closely.", author: "Dr. Mahmoud" },
-    { id: "n-2", date: "2026-03-20", text: "Discussed Ramadan fasting plan. Adjusted medication schedule.", author: "Dr. Mahmoud" },
-  ])
-  const [noteDialog, setNoteDialog] = useState(false)
-  const [noteText, setNoteText] = useState("")
-
-  const [careGoals, setCareGoals] = useState<CareGoal[]>([
-    { id: "g-1", metric: "Blood Pressure", target: "< 130/80 mmHg", current: "148/92 mmHg", status: "off-track" },
-    { id: "g-2", metric: "HbA1c", target: "< 7.0%", current: "7.2%", status: "off-track" },
-    { id: "g-3", metric: "LDL Cholesterol", target: "< 100 mg/dL", current: "160 mg/dL", status: "off-track" },
-    { id: "g-4", metric: "Weight", target: "< 80 kg", current: "87 kg", status: "off-track" },
-    { id: "g-5", metric: "Exercise", target: "30 min/day, 5x/week", status: "on-track" },
-  ])
   function addAllergyEntry() {
     if (!newAllergy.allergen.trim()) return
     setAllergies((prev) => [
@@ -358,36 +438,116 @@ export function PatientProfile({ record }: PatientProfileProps) {
     setEditDialog("family")
   }
 
-  const [goalDialog, setGoalDialog] = useState(false)
-  const [goalForm, setGoalForm] = useState({ metric: "", target: "", current: "" })
-
-  function addNote() {
-    if (!noteText.trim()) return
-    setClinicalNotes((prev) => [
-      { id: `n-${Date.now()}`, date: new Date().toISOString().slice(0, 10), text: noteText, author: "Dr. Mahmoud" },
-      ...prev,
-    ])
-    setNoteText("")
-    setNoteDialog(false)
+  async function saveClinicalNote() {
+    const body = newClinicalNote.trim()
+    if (!body) return
+    try {
+      await profileExtras.createClinicalNote({ body })
+      setNewClinicalNote("")
+      setClinicalNoteDialog(false)
+    } catch {
+      /* toast handled in hook */
+    }
   }
 
-  function removeNote(id: string) {
-    setClinicalNotes((prev) => prev.filter((n) => n.id !== id))
+  async function removeClinicalNote(noteId: string) {
+    try {
+      await profileExtras.deleteClinicalNote(noteId)
+    } catch {
+      /* toast handled in hook */
+    }
   }
 
-  function addGoal() {
-    if (!goalForm.metric || !goalForm.target) return
-    setCareGoals((prev) => [
-      ...prev,
-      { id: `g-${Date.now()}`, metric: goalForm.metric, target: goalForm.target, current: goalForm.current || undefined, status: "on-track" as const },
-    ])
-    setGoalForm({ metric: "", target: "", current: "" })
-    setGoalDialog(false)
+  async function saveCareGoal() {
+    if (!newCareGoal.metric.trim() || !newCareGoal.target.trim()) return
+    try {
+      await profileExtras.createCareGoal({
+        metric: newCareGoal.metric.trim(),
+        target: newCareGoal.target.trim(),
+        current: newCareGoal.current.trim() || undefined,
+        status: newCareGoal.status,
+      })
+      setNewCareGoal(emptyCareGoalForm())
+      setCareGoalDialog(false)
+    } catch {
+      /* toast handled in hook */
+    }
   }
 
-  function removeGoal(id: string) {
-    setCareGoals((prev) => prev.filter((g) => g.id !== id))
+  async function removeCareGoal(goalId: string) {
+    try {
+      await profileExtras.deleteCareGoal(goalId)
+    } catch {
+      /* toast handled in hook */
+    }
   }
+
+  async function saveContact() {
+    try {
+      await updateProfile({
+        phone: contact.phone.trim(),
+        email: contact.email.trim(),
+        address: contact.address.trim(),
+      })
+      setEditDialog(null)
+    } catch {
+      showIcareErrorToast("Could not save", "Contact details could not be updated.")
+    }
+  }
+
+  async function savePersonal() {
+    try {
+      await updateProfile({
+        maritalStatus: personal.maritalStatus
+          ? (personal.maritalStatus as "single" | "married" | "divorced" | "widowed")
+          : null,
+        occupation: personal.occupation.trim(),
+        nationalId: personal.nationalId.trim(),
+      })
+      setEditDialog(null)
+    } catch {
+      showIcareErrorToast("Could not save", "Personal details could not be updated.")
+    }
+  }
+
+  async function saveDemographics() {
+    try {
+      await updateProfile({
+        avatarUrl: demographics.profileImageUrl,
+        gender: demographics.gender,
+        bloodType: demographics.bloodType
+          ? (demographics.bloodType as "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-")
+          : null,
+      })
+      setEditDialog(null)
+    } catch {
+      showIcareErrorToast("Could not save", "Profile photo and demographics could not be updated.")
+    }
+  }
+
+  async function saveLifestyle() {
+    try {
+      await updateProfile({
+        smokingStatus: lifestyle.smokingStatus
+          ? (lifestyle.smokingStatus as
+              | "never"
+              | "former-5"
+              | "former-10"
+              | "former-15"
+              | "former-20"
+              | "current-5"
+              | "current-10"
+              | "current-15"
+              | "current-20")
+          : null,
+      })
+      setEditDialog(null)
+    } catch {
+      showIcareErrorToast("Could not save", "Lifestyle details could not be updated.")
+    }
+  }
+
+  const smokingDisplay = formatSmokingStatus(lifestyle.smokingStatus)
 
   return (
     <main className="flex-1 overflow-y-auto bg-[#F9F8F5] p-3 sm:p-4 lg:p-5 animate-in fade-in duration-700">
@@ -411,12 +571,28 @@ export function PatientProfile({ record }: PatientProfileProps) {
         <div className="rounded-xl border border-[#E5EEEA] bg-white p-4 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
             {/* Avatar */}
-            <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-4 ring-white shadow-sm sm:size-24 lg:size-28">
-              <img 
-                src={p.profileImageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.fullName}`} 
-                alt={p.fullName} 
-                className="size-full object-cover" 
-              />
+            <div className="relative shrink-0">
+              <div className="flex size-20 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-4 ring-white shadow-sm sm:size-24 lg:size-28">
+                {demographics.profileImageUrl ? (
+                  <img
+                    src={demographics.profileImageUrl}
+                    alt={p.fullName}
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <UserRoundIcon className="size-10 text-slate-400 sm:size-12" aria-hidden />
+                )}
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="absolute bottom-0 right-0 size-8 rounded-full border border-[#E8E6E0] bg-white p-0 shadow-sm hover:bg-slate-50"
+                onClick={() => setEditDialog("demographics")}
+                aria-label="Edit profile photo and demographics"
+              >
+                <PencilIcon className="size-3.5 text-[#1A5345]" />
+              </Button>
             </div>
 
             {/* Patient Info */}
@@ -429,7 +605,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
                   {risk.label}
                 </span>
                 <span className="rounded-full bg-[#F5F5F3] px-2.5 py-0.5 font-mono text-[9px] font-semibold text-[#1A5345] sm:text-[10px]">
-                  ID: {p.id}
+                  ID: {patientDisplayId(p)}
                 </span>
               </div>
 
@@ -439,7 +615,9 @@ export function PatientProfile({ record }: PatientProfileProps) {
                 <span className="text-[#D1D5DB]">·</span>
                 <span className="capitalize">{p.gender}</span>
                 <span className="text-[#D1D5DB]">·</span>
-                <span className="rounded-full bg-[#E8F0EE] px-2 py-0.5 text-[12px] font-medium text-[#1A5345] sm:text-[13px]">{p.bloodType}</span>
+                <span className="rounded-full bg-[#E8F0EE] px-2 py-0.5 text-[12px] font-medium text-[#1A5345] sm:text-[13px]">
+                  {bloodTypeDisplay}
+                </span>
                 {p.condition && (
                   <>
                     <span className="text-[#D1D5DB]">·</span>
@@ -490,11 +668,12 @@ export function PatientProfile({ record }: PatientProfileProps) {
             <InfoRow icon={MailIcon} label="Email" value={contact.email} />
             <InfoRow icon={MapPinIcon} label="Address" value={contact.address} />
           </Section>
-          <Section title="Personal" icon={UserRoundIcon}>
+          <Section title="Personal" icon={UserRoundIcon}
+            action={<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditDialog("personal")}><PencilIcon className="size-3 text-muted-foreground" /></Button>}>
             <InfoRow icon={CalendarDaysIcon} label="DOB" value={fmt(p.dateOfBirth)} />
-            <InfoRow icon={HeartIcon} label="Status" value={p.maritalStatus} />
-            <InfoRow icon={BriefcaseIcon} label="Occupation" value={p.occupation} />
-            <InfoRow icon={CreditCardIcon} label="National ID" value={p.nationalId} />
+            <InfoRow icon={HeartIcon} label="Status" value={formatMaritalStatus(personal.maritalStatus)} />
+            <InfoRow icon={BriefcaseIcon} label="Occupation" value={personal.occupation} />
+            <InfoRow icon={CreditCardIcon} label="National ID" value={personal.nationalId} />
           </Section>
           <Section title="Lifestyle" icon={HeartPulseIcon}
             action={<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditDialog("lifestyle")}><PencilIcon className="size-3 text-muted-foreground" /></Button>}>
@@ -502,8 +681,8 @@ export function PatientProfile({ record }: PatientProfileProps) {
               <InfoRow icon={ScaleIcon} label="BMI" value={`${lifestyle.bmi} (${lifestyle.bmi >= 30 ? "Obese" : lifestyle.bmi >= 25 ? "Overweight" : "Normal"})`}
                 valueClassName={lifestyle.bmi >= 30 ? "text-red-600" : lifestyle.bmi >= 25 ? "text-amber-600" : "text-emerald-600"} />
             )}
-            <InfoRow icon={CigaretteIcon} label="Smoking" value={lifestyle.smokingStatus}
-              valueClassName={lifestyle.smokingStatus.startsWith("Current") ? "text-red-600" : lifestyle.smokingStatus.startsWith("Former") ? "text-amber-600" : "text-emerald-600"} />
+            <InfoRow icon={CigaretteIcon} label="Smoking" value={smokingDisplay}
+              valueClassName={lifestyle.smokingStatus?.startsWith("current") ? "text-red-600" : lifestyle.smokingStatus?.startsWith("former") ? "text-amber-600" : lifestyle.smokingStatus ? "text-emerald-600" : undefined} />
             <InfoRow icon={CalendarClockIcon} label="Patient since" value={fmt(p.patientSince)} />
           </Section>
           <Section title="Allergies" icon={ShieldAlertIcon}
@@ -539,23 +718,38 @@ export function PatientProfile({ record }: PatientProfileProps) {
                 <h3 className="text-[13px] font-bold text-[#102F27] transition-colors duration-300 group-hover:text-[#CC5533] sm:text-[14px]">Clinical Notes</h3>
                 <span className="rounded-md bg-[#CC5533]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#CC5533] sm:text-[11px]">{clinicalNotes.length}</span>
               </div>
-              <Button size="sm" variant="ghost" className="h-7 gap-1 px-1.5 text-[11px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[12px]" onClick={() => setNoteDialog(true)}>
-                <PlusIcon className="size-3.5" />Add Note
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 gap-1 px-1.5 text-[11px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[12px]"
+                onClick={() => setClinicalNoteDialog(true)}
+              >
+                <PlusIcon className="size-3.5" />
+                Add
               </Button>
             </div>
             {clinicalNotes.length === 0 ? (
               <p className="text-[11px] text-muted-foreground sm:text-[12px]">No clinical notes yet</p>
             ) : (
-              <div className="max-h-80 overflow-y-auto space-y-2">
+              <div className="max-h-80 space-y-2 overflow-y-auto">
                 {clinicalNotes.map((note) => (
-                  <div key={note.id} className="group flex items-start gap-2 rounded-lg border border-[#E5EEEA] bg-[#FBFDFC] p-2 sm:p-2.5">
+                  <div key={note.id} className="flex items-start gap-2 rounded-lg border border-[#E5EEEA] bg-[#FBFDFC] p-2 sm:p-2.5">
                     <div className="min-w-0 flex-1">
                       <p className="text-[12px] leading-relaxed text-[#102F27] sm:text-[13px]">{note.text}</p>
                       <p className="mt-1 text-[10px] text-muted-foreground sm:text-[11px]">{fmt(note.date)} &middot; {note.author}</p>
                     </div>
-                    <Button size="sm" variant="ghost" className="hidden h-6 w-6 shrink-0 p-0 group-hover:flex" onClick={() => removeNote(note.id)}>
-                      <TrashIcon className="size-3 text-muted-foreground hover:text-red-500" />
-                    </Button>
+                    {note.canDelete ? (
+                      <button
+                        type="button"
+                        onClick={() => void removeClinicalNote(note.id)}
+                        disabled={profileExtras.isDeletingNote}
+                        className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                        aria-label="Delete clinical note"
+                      >
+                        <XIcon className="size-3.5" />
+                      </button>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -569,8 +763,15 @@ export function PatientProfile({ record }: PatientProfileProps) {
                 <TargetIcon className="size-4 text-[#CC5533] sm:size-5" />
                 <h3 className="text-[13px] font-bold text-[#102F27] transition-colors duration-300 group-hover:text-[#CC5533] sm:text-[14px]">Care Plan & Goals</h3>
               </div>
-              <Button size="sm" variant="ghost" className="h-7 gap-1 px-1.5 text-[11px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[12px]" onClick={() => setGoalDialog(true)}>
-                <PlusIcon className="size-3.5" />Add Goal
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 gap-1 px-1.5 text-[11px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[12px]"
+                onClick={() => setCareGoalDialog(true)}
+              >
+                <PlusIcon className="size-3.5" />
+                Add
               </Button>
             </div>
             {careGoals.length === 0 ? (
@@ -584,7 +785,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
                     "achieved": "bg-[#1A5345]/10 text-[#1A5345] font-bold",
                   }
                   return (
-                    <div key={goal.id} className="group flex items-center gap-3 rounded-lg border border-[#E5EEEA] bg-white p-2 transition-all duration-300 hover:shadow-md sm:p-2.5">
+                    <div key={goal.id} className="flex items-center gap-3 rounded-lg border border-[#E5EEEA] bg-white p-2 transition-all duration-300 hover:shadow-md sm:p-2.5">
                       <TargetIcon className="size-4 shrink-0 text-[#CC5533] sm:size-5" />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5">
@@ -603,9 +804,15 @@ export function PatientProfile({ record }: PatientProfileProps) {
                           )}
                         </div>
                       </div>
-                      <Button size="sm" variant="ghost" className="hidden h-6 w-6 shrink-0 p-0 group-hover:flex" onClick={() => removeGoal(goal.id)}>
-                        <TrashIcon className="size-3 text-muted-foreground hover:text-red-500" />
-                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => void removeCareGoal(goal.id)}
+                        disabled={profileExtras.isDeletingGoal}
+                        className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                        aria-label={`Remove ${goal.metric} goal`}
+                      >
+                        <XIcon className="size-3.5" />
+                      </button>
                     </div>
                   )
                 })}
@@ -730,10 +937,236 @@ export function PatientProfile({ record }: PatientProfileProps) {
                 <Button
                   type="button"
                   size="sm"
-                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34]"
+                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34] disabled:opacity-50"
+                  onClick={saveContact}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? <Loader2Icon className="size-4 animate-spin" /> : "Save"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Demographics Dialog */}
+        <Dialog open={editDialog === "demographics"} onOpenChange={(open) => { if (!open) setEditDialog(null) }}>
+          <DialogContent
+            aria-describedby={undefined}
+            className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[480px]"
+          >
+            <div className="flex flex-col gap-4 bg-white p-5 sm:p-6">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <UserRoundIcon className="size-5 shrink-0 text-[#1A5345] sm:size-6" aria-hidden />
+                <DialogTitle className="text-left font-serif text-[17px] font-bold leading-tight text-[#1A1F1E]">
+                  Edit profile photo & demographics
+                </DialogTitle>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label className="text-[12px] font-bold text-[#1A1F1E]">Profile photo</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDemographics((d) => ({ ...d, profileImageUrl: "" }))}
+                      className={cn(
+                        "flex size-14 items-center justify-center rounded-full border-2 bg-slate-50 transition-colors",
+                        !demographics.profileImageUrl
+                          ? "border-[#1A5345] ring-2 ring-[#1A5345]/20"
+                          : "border-[#E8E6E0] hover:border-[#1A5345]/40",
+                      )}
+                      aria-label="No photo"
+                    >
+                      <UserRoundIcon className="size-6 text-slate-400" />
+                    </button>
+                    {PATIENT_AVATAR_OPTIONS.map((avatar) => (
+                      <button
+                        key={avatar}
+                        type="button"
+                        onClick={() => setDemographics((d) => ({ ...d, profileImageUrl: avatar }))}
+                        className={cn(
+                          "size-14 overflow-hidden rounded-full border-2 transition-colors",
+                          demographics.profileImageUrl === avatar
+                            ? "border-[#1A5345] ring-2 ring-[#1A5345]/20"
+                            : "border-[#E8E6E0] hover:border-[#1A5345]/40",
+                        )}
+                      >
+                        <img src={avatar} alt="" className="size-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="demographics-gender" className="text-[12px] font-bold text-[#1A1F1E]">
+                    Gender
+                  </Label>
+                  <Select
+                    value={demographics.gender}
+                    onValueChange={(value) =>
+                      setDemographics((d) => ({
+                        ...d,
+                        gender: value as typeof d.gender,
+                      }))
+                    }
+                  >
+                    <SelectTrigger
+                      id="demographics-gender"
+                      className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus:ring-[#1A5345]/20"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-[#E8E6E0]">
+                      {PATIENT_GENDERS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="demographics-blood-type" className="text-[12px] font-bold text-[#1A1F1E]">
+                    Blood type
+                  </Label>
+                  <Select
+                    value={demographics.bloodType || "unset"}
+                    onValueChange={(value) =>
+                      setDemographics((d) => ({
+                        ...d,
+                        bloodType: value === "unset" ? "" : value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger
+                      id="demographics-blood-type"
+                      className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus:ring-[#1A5345]/20"
+                    >
+                      <SelectValue placeholder="Not set" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-[#E8E6E0]">
+                      <SelectItem value="unset">Not set</SelectItem>
+                      {PATIENT_BLOOD_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-xl border-[#E8E6E0]/80 px-3.5 text-[12px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-[#FAFAF8]"
                   onClick={() => setEditDialog(null)}
                 >
-                  Save
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34] disabled:opacity-50"
+                  onClick={saveDemographics}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? <Loader2Icon className="size-4 animate-spin" /> : "Save"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Personal Dialog */}
+        <Dialog open={editDialog === "personal"} onOpenChange={(open) => { if (!open) setEditDialog(null) }}>
+          <DialogContent
+            aria-describedby={undefined}
+            className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[480px]"
+          >
+            <div className="flex flex-col gap-4 bg-white p-5 sm:p-6">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <UserRoundIcon className="size-5 shrink-0 text-[#1A5345] sm:size-6" aria-hidden />
+                <DialogTitle className="text-left font-serif text-[17px] font-bold leading-tight text-[#1A1F1E]">
+                  Edit personal info
+                </DialogTitle>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="personal-marital" className="text-[12px] font-bold text-[#1A1F1E]">
+                    Marital status
+                  </Label>
+                  <Select
+                    value={personal.maritalStatus || "unset"}
+                    onValueChange={(value) =>
+                      setPersonal((prev) => ({
+                        ...prev,
+                        maritalStatus: value === "unset" ? "" : value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger
+                      id="personal-marital"
+                      className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus:ring-[#1A5345]/20"
+                    >
+                      <SelectValue placeholder="Not set" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-[#E8E6E0]">
+                      <SelectItem value="unset">Not set</SelectItem>
+                      {PATIENT_MARITAL_STATUSES.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="personal-occupation" className="text-[12px] font-bold text-[#1A1F1E]">
+                    Occupation
+                  </Label>
+                  <Input
+                    id="personal-occupation"
+                    value={personal.occupation}
+                    onChange={(e) => setPersonal((prev) => ({ ...prev, occupation: e.target.value }))}
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="personal-national-id" className="text-[12px] font-bold text-[#1A1F1E]">
+                    National ID
+                  </Label>
+                  <Input
+                    id="personal-national-id"
+                    value={personal.nationalId}
+                    onChange={(e) => setPersonal((prev) => ({ ...prev, nationalId: e.target.value }))}
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-xl border-[#E8E6E0]/80 px-3.5 text-[12px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-[#FAFAF8]"
+                  onClick={() => setEditDialog(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34] disabled:opacity-50"
+                  onClick={savePersonal}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? <Loader2Icon className="size-4 animate-spin" /> : "Save"}
                 </Button>
               </div>
             </div>
@@ -760,37 +1193,35 @@ export function PatientProfile({ record }: PatientProfileProps) {
                     Smoking status
                   </Label>
                   <Select
-                    value={lifestyle.smokingStatus}
-                    onValueChange={(v) => setLifestyle((l) => ({ ...l, smokingStatus: v }))}
+                    value={lifestyle.smokingStatus || "unset"}
+                    onValueChange={(value) =>
+                      setLifestyle((l) => ({
+                        ...l,
+                        smokingStatus: value === "unset" ? "" : value,
+                      }))
+                    }
                   >
                     <SelectTrigger
                       id="lifestyle-smoking"
                       className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus:ring-[#1A5345]/20"
                     >
-                      <SelectValue />
+                      <SelectValue placeholder="Not set" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-[#E8E6E0]">
-                      <SelectItem value="Never">Never</SelectItem>
-                      <SelectItem value="Former (quit 5 yrs ago, 20 pack-years)">Former</SelectItem>
-                      <SelectItem value="Current (10 cig/day)">Current (Light)</SelectItem>
-                      <SelectItem value="Current (20 cig/day)">Current (Moderate)</SelectItem>
-                      <SelectItem value="Current (30+ cig/day)">Current (Heavy)</SelectItem>
+                      <SelectItem value="unset">Not set</SelectItem>
+                      {PATIENT_SMOKING_STATUSES.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="lifestyle-bmi" className="text-[12px] font-bold text-[#1A1F1E]">
-                    BMI
-                  </Label>
-                  <Input
-                    id="lifestyle-bmi"
-                    type="number"
-                    step="0.1"
-                    value={lifestyle.bmi ?? ""}
-                    onChange={(e) => setLifestyle((l) => ({ ...l, bmi: e.target.value ? Number(e.target.value) : null }))}
-                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
-                  />
-                </div>
+                {lifestyle.bmi != null ? (
+                  <p className="text-[12px] text-muted-foreground">
+                    BMI is calculated from height and weight in vitals ({lifestyle.bmi}).
+                  </p>
+                ) : null}
               </div>
 
               <div className="flex justify-end gap-2">
@@ -806,10 +1237,11 @@ export function PatientProfile({ record }: PatientProfileProps) {
                 <Button
                   type="button"
                   size="sm"
-                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34]"
-                  onClick={() => setEditDialog(null)}
+                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34] disabled:opacity-50"
+                  onClick={saveLifestyle}
+                  disabled={isUpdating}
                 >
-                  Save
+                  {isUpdating ? <Loader2Icon className="size-4 animate-spin" /> : "Save"}
                 </Button>
               </div>
             </div>
@@ -1245,50 +1677,58 @@ export function PatientProfile({ record }: PatientProfileProps) {
           </DialogContent>
         </Dialog>
 
-        {/* Add Clinical Note Dialog */}
-        <Dialog open={noteDialog} onOpenChange={setNoteDialog}>
+        <Dialog
+          open={clinicalNoteDialog}
+          onOpenChange={(open) => {
+            setClinicalNoteDialog(open)
+            if (!open) setNewClinicalNote("")
+          }}
+        >
           <DialogContent
             aria-describedby={undefined}
-            className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[480px]"
+            className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[520px]"
           >
             <div className="flex flex-col gap-4 bg-white p-5 sm:p-6">
               <div className="flex items-center gap-2.5 sm:gap-3">
-                <FileTextIcon className="size-5 shrink-0 text-[#1A5345] sm:size-6" aria-hidden />
+                <MessageSquareIcon className="size-5 shrink-0 text-[#CC5533] sm:size-6" aria-hidden />
                 <DialogTitle className="text-left font-serif text-[17px] font-bold leading-tight text-[#1A1F1E]">
                   Add clinical note
                 </DialogTitle>
               </div>
-
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="clinical-note-text" className="text-[12px] font-bold text-[#1A1F1E]">
+                <Label htmlFor="clinical-note-body" className="text-[12px] font-bold text-[#1A1F1E]">
                   Note
                 </Label>
                 <Textarea
-                  id="clinical-note-text"
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                  placeholder="Enter clinical note, observation, or flag..."
-                  className="min-h-[100px] resize-none rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                  id="clinical-note-body"
+                  value={newClinicalNote}
+                  onChange={(e) => setNewClinicalNote(e.target.value)}
+                  placeholder="Document observations, follow-up reminders, or care context…"
+                  className="min-h-[120px] rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#CC5533] focus-visible:ring-[#CC5533]/20"
                 />
               </div>
-
               <div className="flex justify-end gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-9 rounded-xl border-[#E8E6E0]/80 px-3.5 text-[12px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-[#FAFAF8]"
-                  onClick={() => setNoteDialog(false)}
+                  className="h-9 rounded-xl border-[#E8E6E0]/80 px-3.5 text-[12px] font-semibold"
+                  onClick={() => setClinicalNoteDialog(false)}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="button"
                   size="sm"
-                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34] disabled:opacity-50"
-                  onClick={addNote}
-                  disabled={!noteText.trim()}
+                  className="h-9 gap-1.5 rounded-xl border-0 bg-[#CC5533] px-4 text-[12px] font-bold text-white hover:bg-[#B84A2D] disabled:opacity-50"
+                  onClick={() => void saveClinicalNote()}
+                  disabled={!newClinicalNote.trim() || profileExtras.isSavingNote}
                 >
+                  {profileExtras.isSavingNote ? (
+                    <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
+                  ) : (
+                    <PlusIcon className="size-3.5" aria-hidden />
+                  )}
                   Save note
                 </Button>
               </div>
@@ -1296,31 +1736,35 @@ export function PatientProfile({ record }: PatientProfileProps) {
           </DialogContent>
         </Dialog>
 
-        {/* Add Care Goal Dialog */}
-        <Dialog open={goalDialog} onOpenChange={setGoalDialog}>
+        <Dialog
+          open={careGoalDialog}
+          onOpenChange={(open) => {
+            setCareGoalDialog(open)
+            if (!open) setNewCareGoal(emptyCareGoalForm())
+          }}
+        >
           <DialogContent
             aria-describedby={undefined}
-            className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[480px]"
+            className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[520px]"
           >
             <div className="flex flex-col gap-4 bg-white p-5 sm:p-6">
               <div className="flex items-center gap-2.5 sm:gap-3">
-                <TargetIcon className="size-5 shrink-0 text-[#1A5345] sm:size-6" aria-hidden />
+                <TargetIcon className="size-5 shrink-0 text-[#CC5533] sm:size-6" aria-hidden />
                 <DialogTitle className="text-left font-serif text-[17px] font-bold leading-tight text-[#1A1F1E]">
                   Add care goal
                 </DialogTitle>
               </div>
-
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
                   <Label htmlFor="care-goal-metric" className="text-[12px] font-bold text-[#1A1F1E]">
                     Metric
                   </Label>
                   <Input
                     id="care-goal-metric"
-                    value={goalForm.metric}
-                    onChange={(e) => setGoalForm((f) => ({ ...f, metric: e.target.value }))}
-                    placeholder="e.g. Blood pressure, HbA1c, weight"
-                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                    value={newCareGoal.metric}
+                    onChange={(e) => setNewCareGoal((prev) => ({ ...prev, metric: e.target.value }))}
+                    placeholder="e.g. HbA1c, Blood pressure"
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px]"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -1329,44 +1773,75 @@ export function PatientProfile({ record }: PatientProfileProps) {
                   </Label>
                   <Input
                     id="care-goal-target"
-                    value={goalForm.target}
-                    onChange={(e) => setGoalForm((f) => ({ ...f, target: e.target.value }))}
-                    placeholder="e.g. &lt; 130/80 mmHg"
-                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                    value={newCareGoal.target}
+                    onChange={(e) => setNewCareGoal((prev) => ({ ...prev, target: e.target.value }))}
+                    placeholder="e.g. < 7%"
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px]"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="care-goal-current" className="text-[12px] font-bold text-[#1A1F1E]">
-                    Current value <span className="font-medium text-muted-foreground">(optional)</span>
+                    Current (optional)
                   </Label>
                   <Input
                     id="care-goal-current"
-                    value={goalForm.current}
-                    onChange={(e) => setGoalForm((f) => ({ ...f, current: e.target.value }))}
-                    placeholder="e.g. 148/92 mmHg"
-                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                    value={newCareGoal.current}
+                    onChange={(e) => setNewCareGoal((prev) => ({ ...prev, current: e.target.value }))}
+                    placeholder="e.g. 7.4%"
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px]"
                   />
                 </div>
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <Label className="text-[12px] font-bold text-[#1A1F1E]">Status</Label>
+                  <Select
+                    value={newCareGoal.status}
+                    onValueChange={(value) =>
+                      setNewCareGoal((prev) => ({
+                        ...prev,
+                        status: value as PatientCareGoal["status"],
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-[#E8E6E0]">
+                      {CARE_GOAL_STATUS_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-
               <div className="flex justify-end gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-9 rounded-xl border-[#E8E6E0]/80 px-3.5 text-[12px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-[#FAFAF8]"
-                  onClick={() => setGoalDialog(false)}
+                  className="h-9 rounded-xl border-[#E8E6E0]/80 px-3.5 text-[12px] font-semibold"
+                  onClick={() => setCareGoalDialog(false)}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="button"
                   size="sm"
-                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34] disabled:opacity-50"
-                  onClick={addGoal}
-                  disabled={!goalForm.metric || !goalForm.target}
+                  className="h-9 gap-1.5 rounded-xl border-0 bg-[#CC5533] px-4 text-[12px] font-bold text-white hover:bg-[#B84A2D] disabled:opacity-50"
+                  onClick={() => void saveCareGoal()}
+                  disabled={
+                    !newCareGoal.metric.trim() ||
+                    !newCareGoal.target.trim() ||
+                    profileExtras.isSavingGoal
+                  }
                 >
-                  Add goal
+                  {profileExtras.isSavingGoal ? (
+                    <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
+                  ) : (
+                    <PlusIcon className="size-3.5" aria-hidden />
+                  )}
+                  Save goal
                 </Button>
               </div>
             </div>

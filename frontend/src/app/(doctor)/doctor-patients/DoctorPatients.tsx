@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import type { DoctorPatientsPagePatient, DoctorPatientsPageStats } from "./doctorPatients.types"
+import { patientDisplayId } from "./doctorPatients.utils"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import {
@@ -83,9 +84,11 @@ function PatientCard({ patient }: { patient: DoctorPatientsPagePatient }) {
     <Link href={`/doctor-patients/${patient.id}`} className="block h-full">
       <Card className="group relative h-full gap-0 overflow-hidden rounded-3xl border border-[#E8E6E0]/60 bg-white py-0 shadow-sm ring-0 transition-all hover:border-[#A8C4BC]/60 hover:shadow-md">
         <CardContent className="flex h-full flex-col p-5">
-          <div className="mb-4 flex w-full items-start justify-between">
+          <div className="mb-4 flex w-full items-center justify-between gap-2">
             <RiskBadge level={patient.riskLevel} />
-            <span className="text-[10px] font-bold text-[#1A5345]/70">{patient.id.toUpperCase()}</span>
+            <span className="shrink-0 text-[10px] font-bold tracking-wide text-[#1A5345]/70 tabular-nums">
+              {patientDisplayId(patient)}
+            </span>
           </div>
 
           <div className="mb-4 flex flex-col items-center gap-2.5">
@@ -164,7 +167,7 @@ function PatientListRow({ patient }: { patient: DoctorPatientsPagePatient }) {
             <p className="truncate text-[14px] font-bold text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">
               {patient.fullName}
             </p>
-            <p className="truncate text-[12px] font-medium text-muted-foreground">{patient.id.toUpperCase()}</p>
+            <p className="truncate text-[12px] font-medium text-muted-foreground">{patientDisplayId(patient)}</p>
           </div>
         </Link>
       </td>

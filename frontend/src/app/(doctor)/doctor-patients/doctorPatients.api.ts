@@ -7,6 +7,8 @@ import type {
   PatientAllergyEntry,
   LabResult,
   MedicationRecord,
+  PatientCareGoal,
+  PatientClinicalNote,
   PatientFullRecord,
   UploadedDocument,
   VisitRecord,
@@ -33,6 +35,9 @@ type ApiListPatient = {
   activeMedications: number
   poorComplianceCount: number
   totalVisits: number
+  lastVisitDate: string | null
+  condition: string | null
+  allergyCount: number
 }
 
 type ApiFullRecord = {
@@ -50,6 +55,8 @@ type ApiFullRecord = {
   labResults: Array<Record<string, unknown>>
   documents: Array<Record<string, unknown>>
   visits: Array<Record<string, unknown>>
+  profileClinicalNotes?: Array<Record<string, unknown>>
+  careGoals?: Array<Record<string, unknown>>
 }
 
 function mapAllergyEntry(raw: PatientAllergyEntry | string, index: number): PatientAllergyEntry {
@@ -111,6 +118,16 @@ function mapFamilyHistoryEntry(raw: FamilyHistoryEntry | string, index: number):
   }
 }
 
+function mapAllergyCount(count: number): PatientAllergyEntry[] {
+  if (count <= 0) return []
+  return Array.from({ length: count }, (_, index) => ({
+    id: `al-list-${index}`,
+    category: "other" as const,
+    allergen: "",
+    reaction: "",
+  }))
+}
+
 function mapListPatient(row: ApiListPatient): DoctorPatientsPagePatient {
   return {
     id: row.id,
@@ -121,13 +138,13 @@ function mapListPatient(row: ApiListPatient): DoctorPatientsPagePatient {
     phone: row.phone ?? "",
     email: row.email ?? "",
     address: row.address ?? "",
-    condition: "—",
+    condition: row.condition?.trim() ? row.condition : "—",
     activeMedications: row.activeMedications,
     poorComplianceCount: row.poorComplianceCount,
-    lastVisitDate: null,
+    lastVisitDate: row.lastVisitDate,
     upcomingAppointmentDate: null,
     riskLevel: row.riskLevel,
-    allergies: [],
+    allergies: mapAllergyCount(row.allergyCount ?? 0),
     familyHistory: [],
     smokingStatus: row.smokingStatus ?? "",
     bmi: row.bmi,
@@ -257,6 +274,27 @@ function mapVisit(row: Record<string, unknown>): VisitRecord {
   }
 }
 
+function mapProfileClinicalNote(row: Record<string, unknown>): PatientClinicalNote {
+  return {
+    id: String(row.id ?? ""),
+    date: String(row.date ?? ""),
+    text: String(row.text ?? row.body ?? ""),
+    author: String(row.author ?? "Doctor"),
+  }
+}
+
+function mapCareGoal(row: Record<string, unknown>): PatientCareGoal {
+  return {
+    id: String(row.id ?? ""),
+    metric: String(row.metric ?? ""),
+    target: String(row.target ?? ""),
+    current: row.current != null ? String(row.current) : undefined,
+    status: (row.status as PatientCareGoal["status"]) ?? "on-track",
+    createdAt: String(row.createdAt ?? ""),
+    updatedAt: String(row.updatedAt ?? ""),
+  }
+}
+
 export async function fetchDoctorPatients(): Promise<DoctorPatientsPagePatient[]> {
   const { data } = await apiClient.get<ApiListPatient[]>("/doctor/patients")
   return data.map(mapListPatient)
@@ -269,6 +307,10 @@ export async function fetchDoctorPatientStats(): Promise<DoctorPatientsPageStats
 
 export async function fetchDoctorPatientRecord(patientId: string): Promise<PatientFullRecord> {
   const { data } = await apiClient.get<ApiFullRecord>(`/doctor/patients/${patientId}`)
+  return mapFullRecord(data)
+}
+
+function mapFullRecord(data: ApiFullRecord): PatientFullRecord {
   const latest = data.latestVitals ? mapVitalReading(data.latestVitals) : null
   return {
     patient: mapPatientFromFull(data.patient),
@@ -289,5 +331,108 @@ export async function fetchDoctorPatientRecord(patientId: string): Promise<Patie
     labResults: data.labResults.map(mapLabResult),
     documents: data.documents.map(mapDocument),
     visits: data.visits.map(mapVisit),
+    profileClinicalNotes: (data.profileClinicalNotes ?? []).map(mapProfileClinicalNote),
+    careGoals: (data.careGoals ?? []).map(mapCareGoal),
   }
+}
+
+export type UpdateDoctorPatientProfilePayload = {
+  fullName?: string
+  email?: string
+  phone?: string
+  address?: string
+  avatarUrl?: string
+  gender?: "male" | "female" | "other"
+  bloodType?: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-" | null
+  maritalStatus?: "single" | "married" | "divorced" | "widowed" | null
+  occupation?: string
+  nationalId?: string
+  smokingStatus?:
+    | "never"
+    | "former-5"
+    | "former-10"
+    | "former-15"
+    | "former-20"
+    | "current-5"
+    | "current-10"
+    | "current-15"
+    | "current-20"
+    | null
+}
+
+export async function updateDoctorPatientProfile(
+  patientId: string,
+  payload: UpdateDoctorPatientProfilePayload,
+): Promise<PatientFullRecord> {
+  const { data } = await apiClient.patch<ApiFullRecord>(
+    `/doctor/patients/${patientId}`,
+    payload,
+  )
+  return mapFullRecord(data)
+}
+
+export type CreatePatientClinicalNotePayload = {
+  body: string
+}
+
+export type CreatePatientCareGoalPayload = {
+  metric: string
+  target: string
+  current?: string
+  status?: PatientCareGoal["status"]
+}
+
+export type UpdatePatientCareGoalPayload = {
+  metric?: string
+  target?: string
+  current?: string | null
+  status?: PatientCareGoal["status"]
+}
+
+export async function createPatientClinicalNote(
+  patientId: string,
+  payload: CreatePatientClinicalNotePayload,
+): Promise<PatientClinicalNote> {
+  const { data } = await apiClient.post<PatientClinicalNote>(
+    `/doctor/patients/${patientId}/clinical-notes`,
+    payload,
+  )
+  return mapProfileClinicalNote(data as Record<string, unknown>)
+}
+
+export async function deletePatientClinicalNote(
+  patientId: string,
+  noteId: string,
+): Promise<void> {
+  await apiClient.delete(`/doctor/patients/${patientId}/clinical-notes/${noteId}`)
+}
+
+export async function createPatientCareGoal(
+  patientId: string,
+  payload: CreatePatientCareGoalPayload,
+): Promise<PatientCareGoal> {
+  const { data } = await apiClient.post<PatientCareGoal>(
+    `/doctor/patients/${patientId}/care-goals`,
+    payload,
+  )
+  return mapCareGoal(data as Record<string, unknown>)
+}
+
+export async function updatePatientCareGoal(
+  patientId: string,
+  goalId: string,
+  payload: UpdatePatientCareGoalPayload,
+): Promise<PatientCareGoal> {
+  const { data } = await apiClient.patch<PatientCareGoal>(
+    `/doctor/patients/${patientId}/care-goals/${goalId}`,
+    payload,
+  )
+  return mapCareGoal(data as Record<string, unknown>)
+}
+
+export async function deletePatientCareGoal(
+  patientId: string,
+  goalId: string,
+): Promise<void> {
+  await apiClient.delete(`/doctor/patients/${patientId}/care-goals/${goalId}`)
 }

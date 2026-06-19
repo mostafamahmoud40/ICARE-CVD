@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import type { VitalReading } from "../../doctorPatients.types"
+import type { DoctorPatientsPagePatient, VitalReading } from "../../doctorPatients.types"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import {
@@ -86,16 +86,26 @@ function VitalMiniCard({ icon: Icon, label, value, unit, status }: {
   }
 
   return (
-    <div className={cn("flex flex-col gap-1 rounded-xl border p-2.5 transition-all duration-300 hover:shadow-sm", status ? statusStyles[status] : "border-[#E8E6E0]/60 bg-white")}>
-      <div className="flex items-center gap-1.5">
-        <Icon className={cn("size-3", status ? iconColors[status] : "text-[#1A5345]")} />
-        <span className="text-[10px] font-bold text-muted-foreground">{label}</span>
+    <div
+      className={cn(
+        "flex flex-col gap-1.5 rounded-xl border p-3 shadow-sm transition-all duration-300 hover:shadow-md",
+        status ? statusStyles[status] : "border-[#E8E6E0]/60 bg-white",
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <Icon className={cn("size-4", status ? iconColors[status] : "text-[#1A5345]")} />
+        <span className="text-[12px] font-medium text-[#6B7870]">{label}</span>
       </div>
-      <div className="mt-0.5 flex items-baseline gap-1">
-        <span className={cn("text-[16px] font-bold tabular-nums", status ? iconColors[status] : "text-[#102F27]")}>
+      <div className="flex items-baseline gap-1.5">
+        <span
+          className={cn(
+            "font-serif text-[20px] font-bold leading-none tabular-nums sm:text-[22px]",
+            status ? iconColors[status] : "text-[#1A1F1E]",
+          )}
+        >
           {value ?? "\u2014"}
         </span>
-        <span className="text-[9px] font-medium text-muted-foreground">{unit}</span>
+        <span className="text-[12px] font-medium text-muted-foreground">{unit}</span>
       </div>
     </div>
   )
@@ -272,13 +282,13 @@ function VitalForm({ initial, onSave, onCancel }: {
 }
 
 type VitalsPageProps = {
-  patientId: string
-  patientName: string
+  patient: DoctorPatientsPagePatient
   latestVitals: VitalReading | null
   vitalReadings: VitalReading[]
 }
 
-export function VitalsPage({ patientId, patientName, latestVitals, vitalReadings: initialReadings }: VitalsPageProps) {
+export function VitalsPage({ patient, vitalReadings: initialReadings }: VitalsPageProps) {
+  const basePath = `/doctor-patients/${patient.id}`
   const [readings, setReadings] = useState<VitalReading[]>(initialReadings)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -333,36 +343,43 @@ export function VitalsPage({ patientId, patientName, latestVitals, vitalReadings
         <div className="flex flex-col px-6 pb-4 pt-5 sm:px-8">
           <div className="mb-2.5 flex items-center gap-2">
             <Breadcrumb>
-              <BreadcrumbList className="text-[11px]">
+              <BreadcrumbList className="text-[11px] sm:text-[12px]">
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link href="/doctor-patients" className="font-medium text-muted-foreground hover:text-[#1A1F1E]">Patients</Link>
+                    <Link href="/doctor-patients" className="text-[11px] font-medium sm:text-[12px]">
+                      Patients
+                    </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link href={`/doctor-patients/${patientId}`} className="font-medium text-muted-foreground hover:text-[#1A1F1E]">{patientName}</Link>
+                    <Link href={basePath} className="text-[11px] font-medium sm:text-[12px]">
+                      {patient.fullName}
+                    </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbPage className="font-bold text-[#102F27]">Vitals & Readings</BreadcrumbPage>
+                  <BreadcrumbPage className="text-[11px] font-medium sm:text-[12px]">
+                    Vitals &amp; readings
+                  </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
 
           <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0 space-y-0.5">
-              <h1 className="font-serif text-[24px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[28px]">
-                Vitals Monitoring
+            <div className="min-w-0 space-y-1">
+              <h1 className="font-serif text-[24px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[26px] lg:text-[28px]">
+                Vitals &amp; readings
               </h1>
-              <p className="text-[13px] font-medium text-muted-foreground">
-                Track and analyze physiological parameters for <span className="text-[#102F27] font-bold">{patientName}</span>.
+              <p className="text-[13px] font-medium text-[#6B7870] sm:text-[14px]">
+                Track and analyze physiological parameters for{" "}
+                <span className="font-bold text-[#1A1F1E]">{patient.fullName}</span>.
               </p>
             </div>
-            <Button size="sm" onClick={openAdd} className="h-8 gap-1.5 rounded-lg bg-[#1A5345] px-4 text-[11px] font-bold text-white shadow-sm border-0 hover:bg-[#133F34] transition-all">
+            <Button size="sm" onClick={openAdd} className="h-9 gap-1.5 rounded-lg bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm border-0 hover:bg-[#133F34] transition-all sm:text-[13px]">
               <PlusIcon className="size-3.5" />
               Add Record
             </Button>
@@ -370,18 +387,18 @@ export function VitalsPage({ patientId, patientName, latestVitals, vitalReadings
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-6 pb-12 pt-8 sm:px-8">
-        <div className="max-w-7xl space-y-10">
+      <div className="relative flex-1 overflow-auto custom-scrollbar bg-[#F9F8F5] px-6 pb-10 pt-6 sm:px-8 sm:pb-12 sm:pt-8">
+        <div className="w-full min-w-0 space-y-10">
           
           {latest && (
             <section className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
-                  <ActivityIcon className="size-4 text-[#CC5533]" />
-                  <h3 className="text-[13px] font-bold text-[#102F27]">Latest assessment</h3>
+                  <ActivityIcon className="size-5 text-[#CC5533]" />
+                  <h3 className="font-serif text-[16px] font-bold text-[#1A1F1E] sm:text-[17px]">Latest assessment</h3>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[11px] font-bold text-[#6B7870] shadow-sm border border-[#E8E6E0]/60">
+                  <div className="flex items-center gap-1.5 rounded-full border border-[#E8E6E0]/60 bg-white px-3 py-1.5 text-[12px] font-medium text-[#6B7870] shadow-sm sm:text-[13px]">
                     <CalendarIcon className="size-3.5 text-[#1A5345]" />
                     {new Date(latest.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
                     <span className="mx-0.5 text-[#E8E6E0]">&bull;</span>
@@ -404,23 +421,28 @@ export function VitalsPage({ patientId, patientName, latestVitals, vitalReadings
                 <VitalMiniCard icon={ThermometerIcon} label="Temp" value={latest.temperature} unit="\u00B0C" />
                 <VitalMiniCard icon={ScaleIcon} label="Weight" value={latest.weight} unit="kg" />
                 <VitalMiniCard icon={DropletIcon} label="Glucose" value={latest.bloodSugar} unit="mg/dL" status={bsStatus(latest.bloodSugar)} />
-                <div className="rounded-xl border border-[#E8E6E0]/60 bg-white p-2.5 shadow-sm">
-                  <div className="flex items-center gap-1.5">
-                    <HomeIcon className="size-3 text-[#1A5345]" />
-                    <span className="text-[10px] font-bold text-muted-foreground">Context</span>
+                <div className="flex flex-col gap-1.5 rounded-xl border border-[#E8E6E0]/60 bg-white p-3 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <HomeIcon className="size-4 text-[#1A5345]" />
+                    <span className="text-[12px] font-medium text-[#6B7870]">Context</span>
                   </div>
-                  <div className="mt-1">
-                    <span className={cn("inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold", latest.source === "home" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700")}>
-                      {latest.source === "home" ? "At Home" : "In Clinic"}
+                  <div>
+                    <span
+                      className={cn(
+                        "inline-flex rounded-md px-2.5 py-1 text-[12px] font-bold",
+                        latest.source === "home" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700",
+                      )}
+                    >
+                      {latest.source === "home" ? "At home" : "In clinic"}
                     </span>
                   </div>
                 </div>
               </div>
 
               {latest.notes && (
-                <div className="rounded-xl border border-dashed border-[#E8E6E0] bg-[#FFFCFA] p-3.5">
-                  <div className="flex gap-2.5 text-[13px] leading-relaxed text-[#6B7870]">
-                    <span className="mt-0.5 shrink-0 text-[11px] font-bold text-[#102F27]">Clinical notes:</span>
+                <div className="rounded-xl border border-dashed border-[#E8E6E0] bg-[#FFFCFA] p-4">
+                  <div className="flex gap-2.5 text-[14px] leading-relaxed text-[#6B7870]">
+                    <span className="mt-0.5 shrink-0 text-[13px] font-bold text-[#102F27]">Clinical notes:</span>
                     <p className="italic">"{latest.notes}"</p>
                   </div>
                 </div>
@@ -431,10 +453,12 @@ export function VitalsPage({ patientId, patientName, latestVitals, vitalReadings
           <section className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
-                <LayoutGridIcon className="size-4 text-[#CC5533]" />
-                <h3 className="text-[13px] font-bold text-[#102F27]">Historical timeline</h3>
+                <LayoutGridIcon className="size-5 text-[#CC5533]" />
+                <h3 className="font-serif text-[16px] font-bold text-[#1A1F1E] sm:text-[17px]">Historical timeline</h3>
               </div>
-              <p className="text-[11px] font-bold text-muted-foreground">{readings.length} assessment records</p>
+              <p className="text-[12px] font-medium text-muted-foreground sm:text-[13px]">
+                {readings.length} assessment records
+              </p>
             </div>
 
             <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
@@ -459,38 +483,49 @@ export function VitalsPage({ patientId, patientName, latestVitals, vitalReadings
                               <CalendarIcon className="size-4" />
                             </div>
                             <div>
-                              <p className="text-[14px] font-bold text-[#102F27]">
+                              <p className="text-[15px] font-bold text-[#1A1F1E]">
                                 {new Date(v.date).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })}
                               </p>
-                              <p className="text-[11px] font-medium text-muted-foreground">{v.time}</p>
+                              <p className="text-[12px] font-medium text-muted-foreground">{v.time}</p>
                             </div>
                           </div>
                         </td>
                         <td className="px-4 py-4">
-                          <span className={cn("inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold", v.source === "home" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700")}>
+                          <span className={cn("inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[12px] font-bold", v.source === "home" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700")}>
                             {v.source === "home" ? <HomeIcon className="size-3" /> : <ActivityIcon className="size-3" />}
                             {v.source === "home" ? "Home" : "Clinic"}
                           </span>
                         </td>
                         <td className="px-4 py-4">
                           <div className="space-y-1">
-                            <p className={cn("text-[14px] font-bold tabular-nums", v.systolicBP && v.systolicBP >= 140 ? "text-red-600" : "text-[#102F27]")}>
-                              {v.systolicBP && v.diastolicBP ? `${v.systolicBP}/${v.diastolicBP}` : "\u2014"} <span className="text-[10px] font-normal text-muted-foreground ml-0.5">mmHg</span>
+                            <p className={cn("text-[15px] font-bold tabular-nums", v.systolicBP && v.systolicBP >= 140 ? "text-red-600" : "text-[#1A1F1E]")}>
+                              {v.systolicBP && v.diastolicBP ? `${v.systolicBP}/${v.diastolicBP}` : "\u2014"}{" "}
+                              <span className="text-[12px] font-medium text-muted-foreground">mmHg</span>
                             </p>
-                            <p className="text-[11px] font-medium text-[#6B7870]">
-                              HR: <span className="font-bold text-[#102F27]">{v.heartRate ?? "\u2014"}</span> bpm
+                            <p className="text-[12px] font-medium text-[#6B7870]">
+                              HR: <span className="font-bold text-[#1A1F1E]">{v.heartRate ?? "\u2014"}</span> bpm
                             </p>
                           </div>
                         </td>
-                        <td className="px-4 py-4 text-[#102F27]">
+                        <td className="px-4 py-4 text-[#1A1F1E]">
                           <div className="space-y-1">
-                            <p className="text-[13px] font-medium">SpO\u2082: <span className="font-bold">{v.oxygenSaturation ? `${v.oxygenSaturation}%` : "\u2014"}</span></p>
-                            <p className="text-[13px] font-medium text-[#6B7870]">Temp: <span className="font-bold text-[#102F27]">{v.temperature ? `${v.temperature}\u00B0C` : "\u2014"}</span></p>
+                            <p className="text-[14px] font-medium">
+                              SpO₂: <span className="font-bold">{v.oxygenSaturation ? `${v.oxygenSaturation}%` : "\u2014"}</span>
+                            </p>
+                            <p className="text-[14px] font-medium text-[#6B7870]">
+                              Temp: <span className="font-bold text-[#1A1F1E]">{v.temperature ? `${v.temperature}\u00B0C` : "\u2014"}</span>
+                            </p>
                           </div>
                         </td>
                         <td className="px-4 py-4">
-                          <div className={cn("inline-flex rounded-lg px-3 py-1 text-[13px] font-bold tabular-nums", v.bloodSugar && v.bloodSugar > 100 ? "bg-red-50 text-red-700" : "bg-slate-50 text-[#102F27]")}>
-                            {v.bloodSugar ?? "\u2014"} <span className="text-[9px] font-normal ml-1 mt-0.5">mg/dL</span>
+                          <div
+                            className={cn(
+                              "inline-flex rounded-lg px-3 py-1.5 text-[14px] font-bold tabular-nums",
+                              v.bloodSugar && v.bloodSugar > 100 ? "bg-red-50 text-red-700" : "bg-slate-50 text-[#1A1F1E]",
+                            )}
+                          >
+                            {v.bloodSugar ?? "\u2014"}{" "}
+                            <span className="text-[12px] font-medium text-muted-foreground">mg/dL</span>
                           </div>
                         </td>
                         <td className="px-4 py-4 text-right">

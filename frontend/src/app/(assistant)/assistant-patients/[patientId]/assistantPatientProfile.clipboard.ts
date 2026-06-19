@@ -43,7 +43,7 @@ export async function copyAssistantPatientRowToClipboard(label: string, text: st
       title: "Could not copy to clipboard",
       description: "Clipboard access was denied or is not available.",
       icon: AlertTriangleIcon,
-      iconWrapClassName: "bg-red-50 text-red-600 ring-red-200/80",
+      variant: "destructive",
       duration: 6000,
     })
   }
