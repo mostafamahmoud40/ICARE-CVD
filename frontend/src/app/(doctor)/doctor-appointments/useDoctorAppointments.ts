@@ -71,6 +71,19 @@ async function rescheduleAppointment({
   return data
 }
 
+export function useDoctorAvailableSlots(
+  date: string,
+  options?: { enabled?: boolean; excludeAppointmentId?: string },
+) {
+  const enabled = options?.enabled ?? true
+  return useQuery<DoctorAvailableSlot[], Error>({
+    queryKey: ["doctor-appointments-available-slots", date, options?.excludeAppointmentId],
+    queryFn: () => fetchAvailableSlots(date, options?.excludeAppointmentId),
+    enabled: enabled && Boolean(date),
+    staleTime: 15 * 1000,
+  })
+}
+
 export function useDoctorAppointments() {
   const queryClient = useQueryClient()
 

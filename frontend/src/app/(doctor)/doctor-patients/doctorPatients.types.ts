@@ -1,3 +1,17 @@
+export type FamilyHistoryEntry = {
+  id: string
+  relationship: string
+  condition: string
+  details: string
+}
+
+export type PatientAllergyEntry = {
+  id: string
+  category: "drug" | "food" | "other"
+  allergen: string
+  reaction: string
+}
+
 export type DoctorPatientsPagePatient = {
   id: string
   fullName: string
@@ -13,8 +27,8 @@ export type DoctorPatientsPagePatient = {
   lastVisitDate: string | null
   upcomingAppointmentDate: string | null
   riskLevel: "low" | "moderate" | "high"
-  allergies: string[]
-  familyHistory: string[]
+  allergies: PatientAllergyEntry[]
+  familyHistory: FamilyHistoryEntry[]
   smokingStatus: string
   bmi: number | null
   totalVisits: number
@@ -131,8 +145,11 @@ export type DiagnosisRecord = {
   updatedAt: string
 }
 
+export type LabPanelSource = "upload" | "manual" | "order"
+
 export type LabResult = {
   id: string
+  panelId: string
   testName: string
   value: string
   unit: string
@@ -140,6 +157,9 @@ export type LabResult = {
   status: "normal" | "high" | "low" | "critical"
   date: string
   orderedBy: string
+  source: LabPanelSource
+  documentId?: string
+  panelTitle?: string
 }
 
 export type UploadedDocument = {

@@ -3,6 +3,8 @@ import type {
   DiagnosisRecord,
   DoctorPatientsPagePatient,
   DoctorPatientsPageStats,
+  FamilyHistoryEntry,
+  PatientAllergyEntry,
   LabResult,
   MedicationRecord,
   PatientFullRecord,
@@ -35,8 +37,8 @@ type ApiListPatient = {
 
 type ApiFullRecord = {
   patient: ApiListPatient & {
-    allergies: string[]
-    familyHistory: string[]
+    allergies: Array<PatientAllergyEntry | string>
+    familyHistory: Array<FamilyHistoryEntry | string>
     condition: string | null
     lastVisitDate: string | null
     upcomingAppointmentDate: string | null
@@ -48,6 +50,65 @@ type ApiFullRecord = {
   labResults: Array<Record<string, unknown>>
   documents: Array<Record<string, unknown>>
   visits: Array<Record<string, unknown>>
+}
+
+function mapAllergyEntry(raw: PatientAllergyEntry | string, index: number): PatientAllergyEntry {
+  if (typeof raw === "object" && raw !== null && "allergen" in raw) {
+    return {
+      id: raw.id || `al-${index}`,
+      category: raw.category ?? "other",
+      allergen: raw.allergen,
+      reaction: raw.reaction ?? "",
+    }
+  }
+
+  const text = String(raw).trim()
+  const parenMatch = text.match(/^(.+?)\s*\(([^)]+)\)\s*$/)
+  if (parenMatch) {
+    return {
+      id: `al-${index}`,
+      category: "drug",
+      allergen: parenMatch[1]!.trim(),
+      reaction: parenMatch[2]!.trim(),
+    }
+  }
+
+  return {
+    id: `al-${index}`,
+    category: "other",
+    allergen: text,
+    reaction: "",
+  }
+}
+
+function mapFamilyHistoryEntry(raw: FamilyHistoryEntry | string, index: number): FamilyHistoryEntry {
+  if (typeof raw === "object" && raw !== null && "relationship" in raw) {
+    return {
+      id: raw.id || `fh-${index}`,
+      relationship: raw.relationship,
+      condition: raw.condition,
+      details: raw.details ?? "",
+    }
+  }
+
+  const text = String(raw)
+  const separator = text.includes("—") ? "—" : text.includes(":") ? ":" : null
+  if (separator) {
+    const [relationship, ...rest] = text.split(separator).map((part) => part.trim())
+    return {
+      id: `fh-${index}`,
+      relationship: relationship || "Other",
+      condition: rest.join(separator === "—" ? " — " : ": ") || text,
+      details: "",
+    }
+  }
+
+  return {
+    id: `fh-${index}`,
+    relationship: "Other",
+    condition: text,
+    details: "",
+  }
 }
 
 function mapListPatient(row: ApiListPatient): DoctorPatientsPagePatient {
@@ -85,8 +146,8 @@ function mapPatientFromFull(
   return {
     ...mapListPatient(row),
     condition: row.condition ?? "—",
-    allergies: row.allergies ?? [],
-    familyHistory: row.familyHistory ?? [],
+    allergies: (row.allergies ?? []).map(mapAllergyEntry),
+    familyHistory: (row.familyHistory ?? []).map(mapFamilyHistoryEntry),
     lastVisitDate: row.lastVisitDate,
     upcomingAppointmentDate: row.upcomingAppointmentDate,
   }
@@ -151,16 +212,24 @@ function mapDiagnosis(row: Record<string, unknown>): DiagnosisRecord {
   }
 }
 
-function mapLabResult(row: Record<string, unknown>): LabResult {
+function mapLabResult(row: Record<string, unknown>, index: number): LabResult {
+  const documentId = row.documentId ? String(row.documentId) : undefined
+  const date = String(row.resultAt ?? row.date ?? "")
+  const panelId = String(row.panelId ?? documentId ?? (date ? `${date}-${index}` : `panel-${index}`))
+
   return {
     id: String(row.id ?? ""),
+    panelId,
     testName: String(row.testName ?? ""),
     value: String(row.value ?? ""),
     unit: String(row.unit ?? ""),
     referenceRange: String(row.referenceRange ?? ""),
     status: (row.status as LabResult["status"]) ?? "normal",
-    date: String(row.resultAt ?? row.date ?? ""),
+    date,
     orderedBy: String(row.orderedBy ?? "Doctor"),
+    source: (row.source as LabResult["source"]) ?? (documentId ? "upload" : "manual"),
+    documentId,
+    panelTitle: row.panelTitle ? String(row.panelTitle) : undefined,
   }
 }
 

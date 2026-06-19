@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import type { PatientFullRecord } from "../doctorPatients.types"
+import { useDoctorAvailableSlots } from "@/app/(doctor)/doctor-appointments/useDoctorAppointments"
+import type { PatientFullRecord, FamilyHistoryEntry, PatientAllergyEntry } from "../doctorPatients.types"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import {
@@ -30,6 +31,7 @@ import {
   UserRoundIcon,
   UsersIcon,
   BriefcaseIcon,
+  CalendarIcon,
   CalendarPlusIcon,
   ChevronRightIcon,
   MessageSquareIcon,
@@ -44,13 +46,13 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
@@ -117,6 +119,47 @@ function Section({ title, icon: Icon, children, action }: {
   )
 }
 
+const ALLERGY_CATEGORY_LABELS: Record<PatientAllergyEntry["category"], string> = {
+  drug: "Drug",
+  food: "Food",
+  other: "Other",
+}
+
+type AllergyForm = {
+  category: PatientAllergyEntry["category"]
+  allergen: string
+  reaction: string
+}
+
+function emptyAllergyForm(): AllergyForm {
+  return { category: "drug", allergen: "", reaction: "" }
+}
+
+const FAMILY_RELATIONSHIP_OPTIONS = [
+  "Mother",
+  "Father",
+  "Sister",
+  "Brother",
+  "Grandmother",
+  "Grandfather",
+  "Aunt",
+  "Uncle",
+  "Daughter",
+  "Son",
+  "Cousin",
+  "Other",
+] as const
+
+type FamilyHistoryForm = {
+  relationship: string
+  condition: string
+  details: string
+}
+
+function emptyFamilyHistoryForm(): FamilyHistoryForm {
+  return { relationship: "", condition: "", details: "" }
+}
+
 function TagList({ items, variant, onRemove }: {
   items: string[]
   variant: "red" | "blue"
@@ -135,6 +178,62 @@ function TagList({ items, variant, onRemove }: {
             </button>
           )}
         </span>
+      ))}
+    </div>
+  )
+}
+
+function AllergyPreview({ items }: { items: PatientAllergyEntry[] }) {
+  if (items.length === 0) {
+    return <p className="text-[11px] text-muted-foreground sm:text-[12px]">None reported</p>
+  }
+
+  return (
+    <div className="space-y-2">
+      {items.map((entry) => (
+        <div
+          key={entry.id}
+          className="rounded-lg border border-rose-100 bg-rose-50/60 px-3 py-2.5"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="rounded-lg border-0 bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-none hover:bg-rose-600">
+              {entry.allergen}
+            </Badge>
+            <span className="text-[11px] font-medium text-rose-600/80 sm:text-[12px]">
+              {ALLERGY_CATEGORY_LABELS[entry.category]}
+            </span>
+          </div>
+          {entry.reaction ? (
+            <p className="mt-1 text-[11px] leading-relaxed text-rose-700 sm:text-[12px]">{entry.reaction}</p>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function FamilyHistoryPreview({ items }: { items: FamilyHistoryEntry[] }) {
+  if (items.length === 0) {
+    return <p className="text-[11px] text-muted-foreground sm:text-[12px]">None reported</p>
+  }
+
+  return (
+    <div className="space-y-2">
+      {items.map((entry) => (
+        <div
+          key={entry.id}
+          className="rounded-lg border border-[#E8E6E0]/60 bg-[#FAFAF8] px-3 py-2.5"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="rounded-lg border-0 bg-[#1A5345] px-2 py-0.5 text-[10px] font-bold text-white shadow-none hover:bg-[#1A5345]">
+              {entry.relationship}
+            </Badge>
+            <span className="text-[12px] font-bold text-[#1A1F1E] sm:text-[13px]">{entry.condition}</span>
+          </div>
+          {entry.details ? (
+            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground sm:text-[12px]">{entry.details}</p>
+          ) : null}
+        </div>
       ))}
     </div>
   )
@@ -189,15 +288,23 @@ export function PatientProfile({ record }: PatientProfileProps) {
 
   const [contact, setContact] = useState({ phone: p.phone, email: p.email, address: p.address })
   const [lifestyle, setLifestyle] = useState({ smokingStatus: p.smokingStatus, bmi: p.bmi })
-  const [allergies, setAllergies] = useState<string[]>(p.allergies)
-  const [familyHistory, setFamilyHistory] = useState<string[]>(p.familyHistory)
+  const [allergies, setAllergies] = useState<PatientAllergyEntry[]>(p.allergies)
+  const [familyHistory, setFamilyHistory] = useState<FamilyHistoryEntry[]>(p.familyHistory)
 
   const [editDialog, setEditDialog] = useState<"contact" | "personal" | "lifestyle" | "allergies" | "family" | null>(null)
-  const [newAllergy, setNewAllergy] = useState("")
-  const [newFamily, setNewFamily] = useState("")
+  const [newAllergy, setNewAllergy] = useState<AllergyForm>(emptyAllergyForm())
+  const [newFamily, setNewFamily] = useState<FamilyHistoryForm>(emptyFamilyHistoryForm())
 
   const [appointmentDialog, setAppointmentDialog] = useState(false)
   const [appointmentForm, setAppointmentForm] = useState({ date: "", time: "", type: "follow-up", notes: "" })
+  const appointmentSlotsQuery = useDoctorAvailableSlots(appointmentForm.date, {
+    enabled: appointmentDialog && Boolean(appointmentForm.date),
+  })
+
+  function openAppointmentDialog() {
+    setAppointmentForm({ date: "", time: "", type: "follow-up", notes: "" })
+    setAppointmentDialog(true)
+  }
 
   const [clinicalNotes, setClinicalNotes] = useState<ClinicalNote[]>([
     { id: "n-1", date: "2026-04-15", text: "Patient reports increased stress levels. Monitor BP closely.", author: "Dr. Mahmoud" },
@@ -213,6 +320,44 @@ export function PatientProfile({ record }: PatientProfileProps) {
     { id: "g-4", metric: "Weight", target: "< 80 kg", current: "87 kg", status: "off-track" },
     { id: "g-5", metric: "Exercise", target: "30 min/day, 5x/week", status: "on-track" },
   ])
+  function addAllergyEntry() {
+    if (!newAllergy.allergen.trim()) return
+    setAllergies((prev) => [
+      ...prev,
+      {
+        id: `al-${Date.now()}`,
+        category: newAllergy.category,
+        allergen: newAllergy.allergen.trim(),
+        reaction: newAllergy.reaction.trim(),
+      },
+    ])
+    setNewAllergy(emptyAllergyForm())
+  }
+
+  function openAllergiesDialog() {
+    setNewAllergy(emptyAllergyForm())
+    setEditDialog("allergies")
+  }
+
+  function addFamilyHistoryEntry() {
+    if (!newFamily.relationship.trim() || !newFamily.condition.trim()) return
+    setFamilyHistory((prev) => [
+      ...prev,
+      {
+        id: `fh-${Date.now()}`,
+        relationship: newFamily.relationship.trim(),
+        condition: newFamily.condition.trim(),
+        details: newFamily.details.trim(),
+      },
+    ])
+    setNewFamily(emptyFamilyHistoryForm())
+  }
+
+  function openFamilyHistoryDialog() {
+    setNewFamily(emptyFamilyHistoryForm())
+    setEditDialog("family")
+  }
+
   const [goalDialog, setGoalDialog] = useState(false)
   const [goalForm, setGoalForm] = useState({ metric: "", target: "", current: "" })
 
@@ -362,16 +507,16 @@ export function PatientProfile({ record }: PatientProfileProps) {
             <InfoRow icon={CalendarClockIcon} label="Patient since" value={fmt(p.patientSince)} />
           </Section>
           <Section title="Allergies" icon={ShieldAlertIcon}
-            action={<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setNewAllergy(""); setEditDialog("allergies") }}><PencilIcon className="size-3 text-muted-foreground" /></Button>}>
-            <TagList items={allergies} variant="red" onRemove={(idx) => setAllergies((prev) => prev.filter((_, i) => i !== idx))} />
+            action={<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={openAllergiesDialog}><PencilIcon className="size-3 text-muted-foreground" /></Button>}>
+            <AllergyPreview items={allergies} />
           </Section>
           <Section title="Family History" icon={UsersIcon}
-            action={<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setNewFamily(""); setEditDialog("family") }}><PencilIcon className="size-3 text-muted-foreground" /></Button>}>
-            <TagList items={familyHistory} variant="blue" onRemove={(idx) => setFamilyHistory((prev) => prev.filter((_, i) => i !== idx))} />
+            action={<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={openFamilyHistoryDialog}><PencilIcon className="size-3 text-muted-foreground" /></Button>}>
+            <FamilyHistoryPreview items={familyHistory} />
           </Section>
           <Section title="Upcoming" icon={CalendarClockIcon}
             action={
-                  <Button size="sm" variant="ghost" className="h-7 gap-1 px-1.5 text-[11px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[12px]" onClick={() => setAppointmentDialog(true)}>
+                  <Button size="sm" variant="ghost" className="h-7 gap-1 px-1.5 text-[11px] text-[#CC5533] hover:bg-[#CC5533]/5 sm:text-[12px]" onClick={openAppointmentDialog}>
                 <CalendarPlusIcon className="size-3.5" />Book
               </Button>
             }>
@@ -523,26 +668,73 @@ export function PatientProfile({ record }: PatientProfileProps) {
 
         {/* Edit Contact Dialog */}
         <Dialog open={editDialog === "contact"} onOpenChange={(open) => { if (!open) setEditDialog(null) }}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-[13px] font-semibold text-[#102F27] sm:text-[14px]">Edit Contact Info</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Phone</Label>
-                <Input value={contact.phone} onChange={(e) => setContact((c) => ({ ...c, phone: e.target.value }))} className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]" />
+          <DialogContent
+            aria-describedby={undefined}
+            className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[480px]"
+          >
+            <div className="flex flex-col gap-4 bg-white p-5 sm:p-6">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <PhoneIcon className="size-5 shrink-0 text-[#1A5345] sm:size-6" aria-hidden />
+                <DialogTitle className="text-left font-serif text-[17px] font-bold leading-tight text-[#1A1F1E]">
+                  Edit contact info
+                </DialogTitle>
               </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Email</Label>
-                <Input value={contact.email} onChange={(e) => setContact((c) => ({ ...c, email: e.target.value }))} className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]" />
+
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="contact-phone" className="text-[12px] font-bold text-[#1A1F1E]">
+                    Phone
+                  </Label>
+                  <Input
+                    id="contact-phone"
+                    value={contact.phone}
+                    onChange={(e) => setContact((c) => ({ ...c, phone: e.target.value }))}
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="contact-email" className="text-[12px] font-bold text-[#1A1F1E]">
+                    Email
+                  </Label>
+                  <Input
+                    id="contact-email"
+                    type="email"
+                    value={contact.email}
+                    onChange={(e) => setContact((c) => ({ ...c, email: e.target.value }))}
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="contact-address" className="text-[12px] font-bold text-[#1A1F1E]">
+                    Address
+                  </Label>
+                  <Input
+                    id="contact-address"
+                    value={contact.address}
+                    onChange={(e) => setContact((c) => ({ ...c, address: e.target.value }))}
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                  />
+                </div>
               </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Address</Label>
-                <Input value={contact.address} onChange={(e) => setContact((c) => ({ ...c, address: e.target.value }))} className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]" />
-              </div>
+
               <div className="flex justify-end gap-2">
-                <Button size="sm" variant="outline" onClick={() => setEditDialog(null)} className="text-[10px] sm:text-[11px]">Cancel</Button>
-                <Button size="sm" onClick={() => setEditDialog(null)} className="bg-[#1A5345] text-[10px] hover:bg-[#0F3D32] sm:text-[11px]">Save</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-xl border-[#E8E6E0]/80 px-3.5 text-[12px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-[#FAFAF8]"
+                  onClick={() => setEditDialog(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34]"
+                  onClick={() => setEditDialog(null)}
+                >
+                  Save
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -550,124 +742,502 @@ export function PatientProfile({ record }: PatientProfileProps) {
 
         {/* Edit Lifestyle Dialog */}
         <Dialog open={editDialog === "lifestyle"} onOpenChange={(open) => { if (!open) setEditDialog(null) }}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-[13px] font-semibold text-[#102F27] sm:text-[14px]">Edit Lifestyle</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Smoking Status</Label>
-                <Select value={lifestyle.smokingStatus} onValueChange={(v) => setLifestyle((l) => ({ ...l, smokingStatus: v }))}>
-                  <SelectTrigger className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Never">Never</SelectItem>
-                    <SelectItem value="Former (quit 5 yrs ago, 20 pack-years)">Former</SelectItem>
-                    <SelectItem value="Current (10 cig/day)">Current (Light)</SelectItem>
-                    <SelectItem value="Current (20 cig/day)">Current (Moderate)</SelectItem>
-                    <SelectItem value="Current (30+ cig/day)">Current (Heavy)</SelectItem>
-                  </SelectContent>
-                </Select>
+          <DialogContent
+            aria-describedby={undefined}
+            className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[480px]"
+          >
+            <div className="flex flex-col gap-4 bg-white p-5 sm:p-6">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <CigaretteIcon className="size-5 shrink-0 text-[#1A5345] sm:size-6" aria-hidden />
+                <DialogTitle className="text-left font-serif text-[17px] font-bold leading-tight text-[#1A1F1E]">
+                  Edit lifestyle
+                </DialogTitle>
               </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground sm:text-[11px]">BMI</Label>
-                <Input type="number" step="0.1" value={lifestyle.bmi ?? ""} onChange={(e) => setLifestyle((l) => ({ ...l, bmi: e.target.value ? Number(e.target.value) : null }))} className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]" />
+
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="lifestyle-smoking" className="text-[12px] font-bold text-[#1A1F1E]">
+                    Smoking status
+                  </Label>
+                  <Select
+                    value={lifestyle.smokingStatus}
+                    onValueChange={(v) => setLifestyle((l) => ({ ...l, smokingStatus: v }))}
+                  >
+                    <SelectTrigger
+                      id="lifestyle-smoking"
+                      className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus:ring-[#1A5345]/20"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-[#E8E6E0]">
+                      <SelectItem value="Never">Never</SelectItem>
+                      <SelectItem value="Former (quit 5 yrs ago, 20 pack-years)">Former</SelectItem>
+                      <SelectItem value="Current (10 cig/day)">Current (Light)</SelectItem>
+                      <SelectItem value="Current (20 cig/day)">Current (Moderate)</SelectItem>
+                      <SelectItem value="Current (30+ cig/day)">Current (Heavy)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="lifestyle-bmi" className="text-[12px] font-bold text-[#1A1F1E]">
+                    BMI
+                  </Label>
+                  <Input
+                    id="lifestyle-bmi"
+                    type="number"
+                    step="0.1"
+                    value={lifestyle.bmi ?? ""}
+                    onChange={(e) => setLifestyle((l) => ({ ...l, bmi: e.target.value ? Number(e.target.value) : null }))}
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                  />
+                </div>
               </div>
+
               <div className="flex justify-end gap-2">
-                <Button size="sm" variant="outline" onClick={() => setEditDialog(null)} className="text-[10px] sm:text-[11px]">Cancel</Button>
-                <Button size="sm" onClick={() => setEditDialog(null)} className="bg-[#1A5345] text-[10px] hover:bg-[#0F3D32] sm:text-[11px]">Save</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-xl border-[#E8E6E0]/80 px-3.5 text-[12px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-[#FAFAF8]"
+                  onClick={() => setEditDialog(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34]"
+                  onClick={() => setEditDialog(null)}
+                >
+                  Save
+                </Button>
               </div>
             </div>
           </DialogContent>
         </Dialog>
 
         {/* Edit Allergies Dialog */}
-        <Dialog open={editDialog === "allergies"} onOpenChange={(open) => { if (!open) setEditDialog(null) }}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-[13px] font-semibold text-[#102F27] sm:text-[14px]">Manage Allergies</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div className="flex flex-wrap gap-1.5">
-                {allergies.map((a, idx) => (
-                  <span key={idx} className="flex items-center gap-1 rounded-full bg-red-500 px-2.5 py-0.5 text-[10px] text-white shadow-sm sm:text-[11px]">
-                    {a}
-                    <button type="button" onClick={() => setAllergies((prev) => prev.filter((_, i) => i !== idx))} className="ml-1 rounded-full hover:bg-white/20"><XIcon className="size-3" /></button>
-                  </span>
-                ))}
+        <Dialog
+          open={editDialog === "allergies"}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditDialog(null)
+              setNewAllergy(emptyAllergyForm())
+            }
+          }}
+        >
+          <DialogContent
+            aria-describedby={undefined}
+            className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[520px]"
+          >
+            <div className="flex flex-col gap-4 bg-white p-5 sm:p-6">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <ShieldAlertIcon className="size-5 shrink-0 text-rose-600 sm:size-6" aria-hidden />
+                <DialogTitle className="text-left font-serif text-[17px] font-bold leading-tight text-[#1A1F1E]">
+                  Manage allergies
+                </DialogTitle>
               </div>
-              <div className="flex gap-2">
-                <Input value={newAllergy} onChange={(e) => setNewAllergy(e.target.value)} placeholder="e.g. Penicillin (Rash)" className="h-8 text-[11px] sm:h-9 sm:text-[12px]" onKeyDown={(e) => { if (e.key === "Enter" && newAllergy.trim()) { setAllergies((prev) => [...prev, newAllergy.trim()]); setNewAllergy("") } }} />
-                <Button size="sm" variant="outline" onClick={() => { if (newAllergy.trim()) { setAllergies((prev) => [...prev, newAllergy.trim()]); setNewAllergy("") } }} className="text-[10px] sm:text-[11px]">Add</Button>
+
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label className="text-[12px] font-bold text-[#1A1F1E]">Current allergies</Label>
+                  {allergies.length > 0 ? (
+                    <div className="space-y-2">
+                      {allergies.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="flex items-start justify-between gap-3 rounded-xl border border-rose-100 bg-rose-50/60 px-3 py-2.5"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge className="rounded-lg border-0 bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-none hover:bg-rose-600">
+                                {entry.allergen}
+                              </Badge>
+                              <span className="text-[11px] font-medium text-rose-600/80">
+                                {ALLERGY_CATEGORY_LABELS[entry.category]}
+                              </span>
+                            </div>
+                            {entry.reaction ? (
+                              <p className="mt-1 text-[12px] leading-relaxed text-rose-700">{entry.reaction}</p>
+                            ) : null}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAllergies((prev) => prev.filter((item) => item.id !== entry.id))}
+                            className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+                            aria-label={`Remove ${entry.allergen}`}
+                          >
+                            <XIcon className="size-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[13px] font-medium text-muted-foreground">No allergies recorded.</p>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-[#E8E6E0]/60 bg-[#FAFAF8] p-4">
+                  <p className="mb-3 text-[13px] font-bold text-[#1A1F1E]">Add allergy</p>
+                  <div className="flex flex-col gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="allergy-category" className="text-[12px] font-bold text-[#1A1F1E]">
+                          Category
+                        </Label>
+                        <Select
+                          value={newAllergy.category}
+                          onValueChange={(value) =>
+                            setNewAllergy((prev) => ({
+                              ...prev,
+                              category: value as PatientAllergyEntry["category"],
+                            }))
+                          }
+                        >
+                          <SelectTrigger
+                            id="allergy-category"
+                            className="h-10 rounded-xl border-[#E8E6E0] bg-white text-[13px] shadow-sm focus:ring-[#1A5345]/20"
+                          >
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-[#E8E6E0]">
+                            <SelectItem value="drug">Drug</SelectItem>
+                            <SelectItem value="food">Food</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="allergy-allergen" className="text-[12px] font-bold text-[#1A1F1E]">
+                          Allergen
+                        </Label>
+                        <Input
+                          id="allergy-allergen"
+                          value={newAllergy.allergen}
+                          onChange={(e) => setNewAllergy((prev) => ({ ...prev, allergen: e.target.value }))}
+                          placeholder="e.g. Penicillin"
+                          className="h-10 rounded-xl border-[#E8E6E0] bg-white text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="allergy-reaction" className="text-[12px] font-bold text-[#1A1F1E]">
+                        Reaction <span className="font-medium text-muted-foreground">(optional)</span>
+                      </Label>
+                      <Input
+                        id="allergy-reaction"
+                        value={newAllergy.reaction}
+                        onChange={(e) => setNewAllergy((prev) => ({ ...prev, reaction: e.target.value }))}
+                        placeholder="e.g. Anaphylaxis, rash"
+                        className="h-10 rounded-xl border-[#E8E6E0] bg-white text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-10 w-full rounded-xl border-[#E8E6E0]/80 bg-white text-[12px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-[#F9F8F5]"
+                      onClick={addAllergyEntry}
+                      disabled={!newAllergy.allergen.trim()}
+                    >
+                      <PlusIcon className="size-3.5" aria-hidden />
+                      Add allergy
+                    </Button>
+                  </div>
+                </div>
               </div>
+
               <div className="flex justify-end">
-                <Button size="sm" onClick={() => setEditDialog(null)} className="bg-[#1A5345] text-[10px] hover:bg-[#0F3D32] sm:text-[11px]">Done</Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34]"
+                  onClick={() => setEditDialog(null)}
+                >
+                  Done
+                </Button>
               </div>
             </div>
           </DialogContent>
         </Dialog>
 
         {/* Edit Family History Dialog */}
-        <Dialog open={editDialog === "family"} onOpenChange={(open) => { if (!open) setEditDialog(null) }}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-[13px] font-semibold text-[#102F27] sm:text-[14px]">Manage Family History</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div className="flex flex-wrap gap-1.5">
-                {familyHistory.map((f, idx) => (
-                  <span key={idx} className="flex items-center gap-1 rounded-full bg-[#1A5345] px-2.5 py-0.5 text-[10px] text-white shadow-sm sm:text-[11px]">
-                    {f}
-                    <button type="button" onClick={() => setFamilyHistory((prev) => prev.filter((_, i) => i !== idx))} className="ml-1 rounded-full hover:bg-white/20"><XIcon className="size-3" /></button>
-                  </span>
-                ))}
+        <Dialog
+          open={editDialog === "family"}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditDialog(null)
+              setNewFamily(emptyFamilyHistoryForm())
+            }
+          }}
+        >
+          <DialogContent
+            aria-describedby={undefined}
+            className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[520px]"
+          >
+            <div className="flex flex-col gap-4 bg-white p-5 sm:p-6">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <UsersIcon className="size-5 shrink-0 text-[#1A5345] sm:size-6" aria-hidden />
+                <DialogTitle className="text-left font-serif text-[17px] font-bold leading-tight text-[#1A1F1E]">
+                  Manage family history
+                </DialogTitle>
               </div>
-              <div className="flex gap-2">
-                <Input value={newFamily} onChange={(e) => setNewFamily(e.target.value)} placeholder="e.g. Father — MI at 52" className="h-8 text-[11px] sm:h-9 sm:text-[12px]" onKeyDown={(e) => { if (e.key === "Enter" && newFamily.trim()) { setFamilyHistory((prev) => [...prev, newFamily.trim()]); setNewFamily("") } }} />
-                <Button size="sm" variant="outline" onClick={() => { if (newFamily.trim()) { setFamilyHistory((prev) => [...prev, newFamily.trim()]); setNewFamily("") } }} className="text-[10px] sm:text-[11px]">Add</Button>
+
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label className="text-[12px] font-bold text-[#1A1F1E]">Recorded conditions</Label>
+                  {familyHistory.length > 0 ? (
+                    <div className="space-y-2">
+                      {familyHistory.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="flex items-start justify-between gap-3 rounded-xl border border-[#E8E6E0]/60 bg-[#FAFAF8] px-3 py-2.5"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge className="rounded-lg border-0 bg-[#1A5345] px-2 py-0.5 text-[10px] font-bold text-white shadow-none hover:bg-[#1A5345]">
+                                {entry.relationship}
+                              </Badge>
+                              <span className="text-[13px] font-bold text-[#1A1F1E]">{entry.condition}</span>
+                            </div>
+                            {entry.details ? (
+                              <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">{entry.details}</p>
+                            ) : null}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setFamilyHistory((prev) => prev.filter((item) => item.id !== entry.id))}
+                            className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+                            aria-label={`Remove ${entry.relationship} — ${entry.condition}`}
+                          >
+                            <XIcon className="size-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[13px] font-medium text-muted-foreground">No family history recorded.</p>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-[#E8E6E0]/60 bg-[#FAFAF8] p-4">
+                  <p className="mb-3 text-[13px] font-bold text-[#1A1F1E]">Add family member</p>
+                  <div className="flex flex-col gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="family-relationship" className="text-[12px] font-bold text-[#1A1F1E]">
+                          Relationship
+                        </Label>
+                        <Select
+                          value={newFamily.relationship}
+                          onValueChange={(value) => setNewFamily((prev) => ({ ...prev, relationship: value }))}
+                        >
+                          <SelectTrigger
+                            id="family-relationship"
+                            className="h-10 rounded-xl border-[#E8E6E0] bg-white text-[13px] shadow-sm focus:ring-[#1A5345]/20"
+                          >
+                            <SelectValue placeholder="Select relationship" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-[#E8E6E0]">
+                            {FAMILY_RELATIONSHIP_OPTIONS.map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {option}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="family-condition" className="text-[12px] font-bold text-[#1A1F1E]">
+                          Condition
+                        </Label>
+                        <Input
+                          id="family-condition"
+                          value={newFamily.condition}
+                          onChange={(e) => setNewFamily((prev) => ({ ...prev, condition: e.target.value }))}
+                          placeholder="e.g. Diabetes"
+                          className="h-10 rounded-xl border-[#E8E6E0] bg-white text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="family-details" className="text-[12px] font-bold text-[#1A1F1E]">
+                        Additional details <span className="font-medium text-muted-foreground">(optional)</span>
+                      </Label>
+                      <Input
+                        id="family-details"
+                        value={newFamily.details}
+                        onChange={(e) => setNewFamily((prev) => ({ ...prev, details: e.target.value }))}
+                        placeholder="e.g. Diagnosed at age 52"
+                        className="h-10 rounded-xl border-[#E8E6E0] bg-white text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-10 w-full rounded-xl border-[#E8E6E0]/80 bg-white text-[12px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-[#F9F8F5]"
+                      onClick={addFamilyHistoryEntry}
+                      disabled={!newFamily.relationship.trim() || !newFamily.condition.trim()}
+                    >
+                      <PlusIcon className="size-3.5" aria-hidden />
+                      Add family member
+                    </Button>
+                  </div>
+                </div>
               </div>
+
               <div className="flex justify-end">
-                <Button size="sm" onClick={() => setEditDialog(null)} className="bg-[#1A5345] text-[10px] hover:bg-[#0F3D32] sm:text-[11px]">Done</Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34]"
+                  onClick={() => setEditDialog(null)}
+                >
+                  Done
+                </Button>
               </div>
             </div>
           </DialogContent>
         </Dialog>
 
         {/* Schedule Appointment Dialog */}
-        <Dialog open={appointmentDialog} onOpenChange={setAppointmentDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-[13px] font-semibold text-[#102F27] sm:text-[14px]">Schedule Appointment</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Date</Label>
-                  <Input type="date" value={appointmentForm.date} onChange={(e) => setAppointmentForm((f) => ({ ...f, date: e.target.value }))} className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]" />
+        <Dialog
+          open={appointmentDialog}
+          onOpenChange={(open) => {
+            setAppointmentDialog(open)
+            if (!open) {
+              setAppointmentForm({ date: "", time: "", type: "follow-up", notes: "" })
+            }
+          }}
+        >
+          <DialogContent
+            aria-describedby={undefined}
+            className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[480px]"
+          >
+            <div className="flex flex-col gap-4 bg-white p-5 sm:p-6">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <CalendarPlusIcon className="size-5 shrink-0 text-[#1A5345] sm:size-6" aria-hidden />
+                <DialogTitle className="text-left font-serif text-[17px] font-bold leading-tight text-[#1A1F1E]">
+                  Schedule appointment
+                </DialogTitle>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="appointment-date" className="text-[12px] font-bold text-[#1A1F1E]">
+                    Date
+                  </Label>
+                  <Input
+                    id="appointment-date"
+                    type="date"
+                    value={appointmentForm.date}
+                    min={new Date().toISOString().slice(0, 10)}
+                    onChange={(e) => setAppointmentForm((f) => ({ ...f, date: e.target.value, time: "" }))}
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                  />
                 </div>
-                <div>
-                  <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Time</Label>
-                  <Input type="time" value={appointmentForm.time} onChange={(e) => setAppointmentForm((f) => ({ ...f, time: e.target.value }))} className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]" />
+
+                <div className="flex flex-col gap-2">
+                  <Label className="text-[12px] font-bold text-[#1A1F1E]">Available slots</Label>
+                  {appointmentForm.date ? (
+                    <div className="animate-in fade-in slide-in-from-top-1 duration-300">
+                      {appointmentSlotsQuery.isLoading ? (
+                        <div className="flex h-[88px] items-center justify-center rounded-xl border border-dashed border-[#E8E6E0] bg-[#FAFAF8]">
+                          <span className="text-[13px] font-medium text-muted-foreground">Loading slots…</span>
+                        </div>
+                      ) : appointmentSlotsQuery.isError ? (
+                        <div className="flex h-[88px] items-center justify-center rounded-xl border border-dashed border-red-200 bg-red-50/40 px-4 text-center">
+                          <span className="text-[13px] font-medium text-red-600">Could not load slots for this date.</span>
+                        </div>
+                      ) : (appointmentSlotsQuery.data?.length ?? 0) > 0 ? (
+                        <div className="grid grid-cols-3 gap-2">
+                          {appointmentSlotsQuery.data!.map((slot) => (
+                            <button
+                              key={slot.value}
+                              type="button"
+                              onClick={() => setAppointmentForm((f) => ({ ...f, time: slot.value }))}
+                              className={cn(
+                                "h-10 rounded-xl border text-[13px] font-semibold transition-colors",
+                                appointmentForm.time === slot.value
+                                  ? "border-[#1A5345] bg-[#1A5345] text-white shadow-[0_2px_10px_rgba(26,83,69,0.2)]"
+                                  : "border-[#E8E6E0]/80 bg-white text-[#6B7870] hover:border-[#1A5345]/40 hover:bg-[#1A5345]/5 hover:text-[#1A5345]",
+                              )}
+                            >
+                              {slot.label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex h-[88px] items-center justify-center rounded-xl border border-dashed border-[#E8E6E0] bg-[#FAFAF8] px-4 text-center">
+                          <span className="text-[13px] font-medium text-muted-foreground">No available slots on this date.</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex h-[88px] items-center justify-center rounded-xl border border-dashed border-[#E8E6E0] bg-[#FAFAF8]">
+                      <span className="flex items-center gap-2 text-[13px] font-medium text-muted-foreground">
+                        <CalendarIcon className="size-4 opacity-50" aria-hidden />
+                        Select a date to see available slots
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="appointment-type" className="text-[12px] font-bold text-[#1A1F1E]">
+                    Type
+                  </Label>
+                  <Select
+                    value={appointmentForm.type}
+                    onValueChange={(v) => setAppointmentForm((f) => ({ ...f, type: v }))}
+                  >
+                    <SelectTrigger
+                      id="appointment-type"
+                      className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus:ring-[#1A5345]/20"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-[#E8E6E0]">
+                      <SelectItem value="follow-up">Follow-up</SelectItem>
+                      <SelectItem value="new">New consultation</SelectItem>
+                      <SelectItem value="post-procedure">Post-procedure</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="appointment-notes" className="text-[12px] font-bold text-[#1A1F1E]">
+                    Notes <span className="font-medium text-muted-foreground">(optional)</span>
+                  </Label>
+                  <Textarea
+                    id="appointment-notes"
+                    value={appointmentForm.notes}
+                    onChange={(e) => setAppointmentForm((f) => ({ ...f, notes: e.target.value }))}
+                    placeholder="Optional notes..."
+                    className="min-h-[80px] resize-none rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                  />
                 </div>
               </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Type</Label>
-                <Select value={appointmentForm.type} onValueChange={(v) => setAppointmentForm((f) => ({ ...f, type: v }))}>
-                  <SelectTrigger className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="follow-up">Follow-up</SelectItem>
-                    <SelectItem value="new">New Consultation</SelectItem>
-                    <SelectItem value="post-procedure">Post-Procedure</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Notes</Label>
-                <Textarea value={appointmentForm.notes} onChange={(e) => setAppointmentForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Optional notes..." className="mt-1 min-h-[50px] text-[11px] sm:text-[12px]" />
-              </div>
+
               <div className="flex justify-end gap-2">
-                <Button size="sm" variant="outline" onClick={() => setAppointmentDialog(false)} className="text-[10px] sm:text-[11px]">Cancel</Button>
-                <Button size="sm" onClick={() => setAppointmentDialog(false)} className="bg-[#1A5345] text-[10px] hover:bg-[#0F3D32] sm:text-[11px]" disabled={!appointmentForm.date || !appointmentForm.time}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-xl border-[#E8E6E0]/80 px-3.5 text-[12px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-[#FAFAF8]"
+                  onClick={() => setAppointmentDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34] disabled:opacity-50"
+                  onClick={() => setAppointmentDialog(false)}
+                  disabled={!appointmentForm.date || !appointmentForm.time}
+                >
                   Schedule
                 </Button>
               </div>
@@ -677,15 +1247,50 @@ export function PatientProfile({ record }: PatientProfileProps) {
 
         {/* Add Clinical Note Dialog */}
         <Dialog open={noteDialog} onOpenChange={setNoteDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-[13px] font-semibold text-[#102F27] sm:text-[14px]">Add Clinical Note</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <Textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Enter clinical note, observation, or flag..." className="min-h-[80px] text-[11px] sm:text-[12px]" />
+          <DialogContent
+            aria-describedby={undefined}
+            className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[480px]"
+          >
+            <div className="flex flex-col gap-4 bg-white p-5 sm:p-6">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <FileTextIcon className="size-5 shrink-0 text-[#1A5345] sm:size-6" aria-hidden />
+                <DialogTitle className="text-left font-serif text-[17px] font-bold leading-tight text-[#1A1F1E]">
+                  Add clinical note
+                </DialogTitle>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="clinical-note-text" className="text-[12px] font-bold text-[#1A1F1E]">
+                  Note
+                </Label>
+                <Textarea
+                  id="clinical-note-text"
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  placeholder="Enter clinical note, observation, or flag..."
+                  className="min-h-[100px] resize-none rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                />
+              </div>
+
               <div className="flex justify-end gap-2">
-                <Button size="sm" variant="outline" onClick={() => setNoteDialog(false)} className="text-[10px] sm:text-[11px]">Cancel</Button>
-                <Button size="sm" onClick={addNote} className="bg-[#1A5345] text-[10px] hover:bg-[#0F3D32] sm:text-[11px]" disabled={!noteText.trim()}>Save Note</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-xl border-[#E8E6E0]/80 px-3.5 text-[12px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-[#FAFAF8]"
+                  onClick={() => setNoteDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34] disabled:opacity-50"
+                  onClick={addNote}
+                  disabled={!noteText.trim()}
+                >
+                  Save note
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -693,26 +1298,76 @@ export function PatientProfile({ record }: PatientProfileProps) {
 
         {/* Add Care Goal Dialog */}
         <Dialog open={goalDialog} onOpenChange={setGoalDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-[13px] font-semibold text-[#102F27] sm:text-[14px]">Add Care Goal</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Metric</Label>
-                <Input value={goalForm.metric} onChange={(e) => setGoalForm((f) => ({ ...f, metric: e.target.value }))} placeholder="e.g. Blood Pressure, HbA1c, Weight" className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]" />
+          <DialogContent
+            aria-describedby={undefined}
+            className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[480px]"
+          >
+            <div className="flex flex-col gap-4 bg-white p-5 sm:p-6">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <TargetIcon className="size-5 shrink-0 text-[#1A5345] sm:size-6" aria-hidden />
+                <DialogTitle className="text-left font-serif text-[17px] font-bold leading-tight text-[#1A1F1E]">
+                  Add care goal
+                </DialogTitle>
               </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Target</Label>
-                <Input value={goalForm.target} onChange={(e) => setGoalForm((f) => ({ ...f, target: e.target.value }))} placeholder="e.g. < 130/80 mmHg" className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]" />
+
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="care-goal-metric" className="text-[12px] font-bold text-[#1A1F1E]">
+                    Metric
+                  </Label>
+                  <Input
+                    id="care-goal-metric"
+                    value={goalForm.metric}
+                    onChange={(e) => setGoalForm((f) => ({ ...f, metric: e.target.value }))}
+                    placeholder="e.g. Blood pressure, HbA1c, weight"
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="care-goal-target" className="text-[12px] font-bold text-[#1A1F1E]">
+                    Target
+                  </Label>
+                  <Input
+                    id="care-goal-target"
+                    value={goalForm.target}
+                    onChange={(e) => setGoalForm((f) => ({ ...f, target: e.target.value }))}
+                    placeholder="e.g. &lt; 130/80 mmHg"
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="care-goal-current" className="text-[12px] font-bold text-[#1A1F1E]">
+                    Current value <span className="font-medium text-muted-foreground">(optional)</span>
+                  </Label>
+                  <Input
+                    id="care-goal-current"
+                    value={goalForm.current}
+                    onChange={(e) => setGoalForm((f) => ({ ...f, current: e.target.value }))}
+                    placeholder="e.g. 148/92 mmHg"
+                    className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+                  />
+                </div>
               </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground sm:text-[11px]">Current Value (optional)</Label>
-                <Input value={goalForm.current} onChange={(e) => setGoalForm((f) => ({ ...f, current: e.target.value }))} placeholder="e.g. 148/92 mmHg" className="mt-1 h-8 text-[11px] sm:h-9 sm:text-[12px]" />
-              </div>
+
               <div className="flex justify-end gap-2">
-                <Button size="sm" variant="outline" onClick={() => setGoalDialog(false)} className="text-[10px] sm:text-[11px]">Cancel</Button>
-                <Button size="sm" onClick={addGoal} className="bg-[#1A5345] text-[10px] hover:bg-[#0F3D32] sm:text-[11px]" disabled={!goalForm.metric || !goalForm.target}>Add Goal</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-xl border-[#E8E6E0]/80 px-3.5 text-[12px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-[#FAFAF8]"
+                  onClick={() => setGoalDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34] disabled:opacity-50"
+                  onClick={addGoal}
+                  disabled={!goalForm.metric || !goalForm.target}
+                >
+                  Add goal
+                </Button>
               </div>
             </div>
           </DialogContent>

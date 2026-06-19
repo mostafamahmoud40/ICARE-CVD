@@ -14,7 +14,11 @@ export default function PatientLabResultsPage({ params }: PageProps) {
   return (
     <DoctorPatientRecordShell patientId={patientId}>
       {(record) => (
-        <LabResultsPage patient={record.patient} labResults={record.labResults} />
+        <LabResultsPage
+          patient={record.patient}
+          labResults={record.labResults}
+          documents={record.documents}
+        />
       )}
     </DoctorPatientRecordShell>
   )

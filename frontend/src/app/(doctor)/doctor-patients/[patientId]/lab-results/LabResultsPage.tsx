@@ -1,16 +1,30 @@
 "use client"
 
 import React, { useMemo, useState } from "react"
-import type { DoctorPatientsPagePatient, LabResult } from "../../doctorPatients.types"
+import type {
+  DoctorPatientsPagePatient,
+  LabPanelSource,
+  LabResult,
+  UploadedDocument,
+} from "../../doctorPatients.types"
+import {
+  analyzeLabReportFile,
+  analysisToLabResults,
+  panelTitleFromFileName,
+} from "./labReportAnalysis"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import {
   AlertTriangleIcon,
   CheckCircle2Icon,
+  ChevronDownIcon,
+  FileTextIcon,
   FlaskConicalIcon,
+  Loader2Icon,
   PlusIcon,
   RefreshCwIcon,
   SearchIcon,
+  SparklesIcon,
   TestTube2Icon,
   UploadIcon,
 } from "lucide-react"
@@ -67,29 +81,21 @@ type StatusFilter = "all" | "abnormal" | "normal"
 
 const DEFAULT_ORDERED_BY = "Dr. Mahmoud"
 
-const MOCK_PANEL_TEMPLATES: Record<string, Omit<LabResult, "id" | "date" | "orderedBy">[]> = {
-  lipid: [
-    { testName: "Total Cholesterol", value: "215", unit: "mg/dL", referenceRange: "< 200 mg/dL", status: "high" },
-    { testName: "LDL Cholesterol", value: "138", unit: "mg/dL", referenceRange: "< 100 mg/dL", status: "high" },
-    { testName: "HDL Cholesterol", value: "42", unit: "mg/dL", referenceRange: "> 40 mg/dL", status: "normal" },
-    { testName: "Triglycerides", value: "168", unit: "mg/dL", referenceRange: "< 150 mg/dL", status: "high" },
-  ],
-  hba1c: [
-    { testName: "HbA1c", value: "7.0", unit: "%", referenceRange: "< 6.5%", status: "high" },
-    { testName: "Fasting Blood Sugar", value: "128", unit: "mg/dL", referenceRange: "70-100 mg/dL", status: "high" },
-  ],
-  cbc: [
-    { testName: "WBC", value: "7.2", unit: "x10³/µL", referenceRange: "4.5-11.0", status: "normal" },
-    { testName: "RBC", value: "4.8", unit: "x10⁶/µL", referenceRange: "4.5-5.5", status: "normal" },
-    { testName: "Hemoglobin", value: "14.1", unit: "g/dL", referenceRange: "13.5-17.5", status: "normal" },
-    { testName: "Platelets", value: "245", unit: "x10³/µL", referenceRange: "150-400", status: "normal" },
-  ],
-  metabolic: [
-    { testName: "Sodium", value: "139", unit: "mEq/L", referenceRange: "136-145 mEq/L", status: "normal" },
-    { testName: "Potassium", value: "4.1", unit: "mEq/L", referenceRange: "3.5-5.0 mEq/L", status: "normal" },
-    { testName: "Serum Creatinine", value: "1.0", unit: "mg/dL", referenceRange: "0.7-1.3 mg/dL", status: "normal" },
-    { testName: "BUN", value: "16", unit: "mg/dL", referenceRange: "7-20 mg/dL", status: "normal" },
-  ],
+type AnalyzingLabPanel = {
+  panelId: string
+  documentId: string
+  fileName: string
+  fileSize: string
+  date: string
+  phase: "analyzing" | "error"
+  errorMessage?: string
+  file: File
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function todayIso() {
@@ -106,15 +112,6 @@ function emptyAddForm(): AddLabResultForm {
     date: todayIso(),
     orderedBy: DEFAULT_ORDERED_BY,
   }
-}
-
-function detectPanelTemplate(fileName: string): keyof typeof MOCK_PANEL_TEMPLATES | "generic" {
-  const name = fileName.toLowerCase()
-  if (name.includes("lipid")) return "lipid"
-  if (name.includes("hba1c") || name.includes("a1c") || name.includes("glucose") || name.includes("sugar")) return "hba1c"
-  if (name.includes("cbc") || name.includes("blood count")) return "cbc"
-  if (name.includes("metabolic") || name.includes("bmp") || name.includes("cmp") || name.includes("electrolyte")) return "metabolic"
-  return "generic"
 }
 
 const COMMON_TESTS = [
@@ -152,23 +149,85 @@ const statusValueStyles: Record<LabResult["status"], string> = {
   critical: "text-red-700 font-bold",
 }
 
-type LabResultsPageProps = {
-  patient: DoctorPatientsPagePatient
-  labResults: LabResult[]
-}
-
 function isAbnormal(status: LabResult["status"]) {
   return status === "high" || status === "low" || status === "critical"
 }
 
-export function LabResultsPage({ patient, labResults: initialLabResults }: LabResultsPageProps) {
+type LabPanelView = {
+  id: string
+  title: string
+  date: string
+  orderedBy: string
+  source: LabPanelSource
+  document?: UploadedDocument
+  results: LabResult[]
+}
+
+const SOURCE_LABELS: Record<LabPanelSource, string> = {
+  upload: "Uploaded report",
+  manual: "Manual entry",
+  order: "Lab order",
+}
+
+const SOURCE_BADGE_STYLES: Record<LabPanelSource, string> = {
+  upload: "bg-violet-600 text-white",
+  manual: "bg-slate-500 text-white",
+  order: "bg-[#1A5345] text-white",
+}
+
+function buildPanels(results: LabResult[], documents: UploadedDocument[]): LabPanelView[] {
+  const docById = new Map(documents.map((doc) => [doc.id, doc]))
+  const grouped = results.reduce<Record<string, LabResult[]>>((acc, result) => {
+    if (!acc[result.panelId]) acc[result.panelId] = []
+    acc[result.panelId].push(result)
+    return acc
+  }, {})
+
+  return Object.entries(grouped)
+    .map(([id, panelResults]) => {
+      const first = panelResults[0]!
+      const document = first.documentId ? docById.get(first.documentId) : undefined
+      const title =
+        first.panelTitle ??
+        (document ? panelTitleFromFileName(document.fileName) : `${fmtShort(first.date)} panel`)
+
+      return {
+        id,
+        title,
+        date: first.date,
+        orderedBy: first.orderedBy,
+        source: first.source,
+        document,
+        results: panelResults,
+      }
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+}
+
+type LabResultsPageProps = {
+  patient: DoctorPatientsPagePatient
+  labResults: LabResult[]
+  documents: UploadedDocument[]
+}
+
+export function LabResultsPage({
+  patient,
+  labResults: initialLabResults,
+  documents: initialDocuments,
+}: LabResultsPageProps) {
   const [results, setResults] = useState<LabResult[]>(initialLabResults)
+  const [documents, setDocuments] = useState<UploadedDocument[]>(initialDocuments)
   const [orderDialog, setOrderDialog] = useState(false)
   const [addDialog, setAddDialog] = useState(false)
   const [uploadDialog, setUploadDialog] = useState(false)
   const [addForm, setAddForm] = useState<AddLabResultForm>(emptyAddForm)
   const [uploadFileName, setUploadFileName] = useState("")
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [uploadDate, setUploadDate] = useState(todayIso())
+  const [uploadSubmitting, setUploadSubmitting] = useState(false)
+  const [analyzingPanels, setAnalyzingPanels] = useState<AnalyzingLabPanel[]>([])
+  const [expandedPanels, setExpandedPanels] = useState<Set<string>>(() => new Set())
+  const [previewDocument, setPreviewDocument] = useState<UploadedDocument | null>(null)
   const [orderForm, setOrderForm] = useState<LabOrderFormData>({ tests: "", priority: "routine", notes: "" })
   const [selectedTests, setSelectedTests] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -179,40 +238,55 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
   const stats = useMemo(() => {
     const abnormalCount = results.filter((r) => isAbnormal(r.status)).length
     const normalCount = results.filter((r) => r.status === "normal").length
-    const panelDates = new Set(results.map((r) => r.date))
+    const panelIds = new Set(results.map((r) => r.panelId))
     return {
       total: results.length,
-      panels: panelDates.size,
+      panels: panelIds.size + analyzingPanels.length,
       abnormal: abnormalCount,
       normal: normalCount,
       latestDate: results.length > 0
         ? fmtShort([...results].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date)
-        : "N/A",
+        : analyzingPanels[0] ? fmtShort(analyzingPanels[0].date) : "N/A",
     }
-  }, [results])
+  }, [results, analyzingPanels])
 
-  const filteredResults = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    return results.filter((r) => {
-      const matchesSearch = !q || r.testName.toLowerCase().includes(q) || r.orderedBy.toLowerCase().includes(q)
+  const panels = useMemo(() => {
+    const filtered = results.filter((r) => {
+      const q = searchQuery.trim().toLowerCase()
+      const matchesSearch =
+        !q ||
+        r.testName.toLowerCase().includes(q) ||
+        r.orderedBy.toLowerCase().includes(q) ||
+        (r.panelTitle?.toLowerCase().includes(q) ?? false)
       const matchesStatus =
         statusFilter === "all" ||
         (statusFilter === "abnormal" && isAbnormal(r.status)) ||
         (statusFilter === "normal" && r.status === "normal")
       return matchesSearch && matchesStatus
     })
-  }, [results, searchQuery, statusFilter])
 
-  const grouped = useMemo(() => {
-    return filteredResults.reduce<Record<string, LabResult[]>>((acc, r) => {
-      const key = r.date
-      if (!acc[key]) acc[key] = []
-      acc[key].push(r)
-      return acc
-    }, {})
-  }, [filteredResults])
+    return buildPanels(filtered, documents)
+  }, [results, documents, searchQuery, statusFilter])
 
-  const dates = Object.keys(grouped).sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+  const filteredTestCount = useMemo(
+    () => panels.reduce((sum, panel) => sum + panel.results.length, 0),
+    [panels],
+  )
+
+  function isPanelExpanded(panelId: string) {
+    if (expandedPanels.size === 0) return panels[0]?.id === panelId || analyzingPanels[0]?.panelId === panelId
+    return expandedPanels.has(panelId)
+  }
+
+  function togglePanel(panelId: string) {
+    setExpandedPanels((prev) => {
+      const defaultId = analyzingPanels[0]?.panelId ?? panels[0]?.id
+      const next = new Set(prev.size === 0 && defaultId ? [defaultId] : prev)
+      if (next.has(panelId)) next.delete(panelId)
+      else next.add(panelId)
+      return next
+    })
+  }
 
   function toggleTest(test: string) {
     setSelectedTests((prev) =>
@@ -228,8 +302,12 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
     if (tests.length === 0) return
 
     const orderDate = todayIso()
+    const panelId = `panel-${Date.now()}`
     const newResults: LabResult[] = tests.map((testName, index) => ({
       id: `lab-${Date.now()}-${index}`,
+      panelId,
+      panelTitle: "Ordered tests",
+      source: "order",
       testName,
       value: "Pending",
       unit: "",
@@ -248,8 +326,12 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
   function submitAddResult() {
     if (!addForm.testName.trim() || !addForm.value.trim()) return
 
+    const panelId = `panel-${Date.now()}`
     const newResult: LabResult = {
       id: `lab-${Date.now()}`,
+      panelId,
+      panelTitle: addForm.testName.trim(),
+      source: "manual",
       testName: addForm.testName.trim(),
       value: addForm.value.trim(),
       unit: addForm.unit.trim(),
@@ -266,38 +348,88 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
 
   function handleUploadFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) setUploadFileName(file.name)
+    if (file) {
+      setUploadFile(file)
+      setUploadFileName(file.name)
+    }
   }
 
-  function submitUpload() {
-    if (!uploadFileName.trim()) return
+  async function runPanelAnalysis(panel: AnalyzingLabPanel) {
+    setAnalyzingPanels((prev) =>
+      prev.map((item) =>
+        item.panelId === panel.panelId
+          ? { ...item, phase: "analyzing", errorMessage: undefined }
+          : item,
+      ),
+    )
 
-    const templateKey = detectPanelTemplate(uploadFileName)
+    try {
+      const bundle = await analyzeLabReportFile(panel.file)
+      const baseId = Date.now()
+      const panelTitle = panelTitleFromFileName(panel.fileName)
+      const newResults = analysisToLabResults({
+        bundle,
+        panelId: panel.panelId,
+        documentId: panel.documentId,
+        panelTitle,
+        date: panel.date,
+        orderedBy: DEFAULT_ORDERED_BY,
+        baseId,
+      })
+
+      const newDocument: UploadedDocument = {
+        id: panel.documentId,
+        fileName: panel.fileName,
+        type: "lab_report",
+        uploadedAt: panel.date,
+        uploadedBy: DEFAULT_ORDERED_BY,
+        fileSize: panel.fileSize,
+      }
+
+      setDocuments((prev) => [newDocument, ...prev])
+      setResults((prev) => [...newResults, ...prev])
+      setAnalyzingPanels((prev) => prev.filter((item) => item.panelId !== panel.panelId))
+      setExpandedPanels(new Set([panel.panelId]))
+    } catch (err) {
+      setAnalyzingPanels((prev) =>
+        prev.map((item) =>
+          item.panelId === panel.panelId
+            ? {
+                ...item,
+                phase: "error",
+                errorMessage: err instanceof Error ? err.message : "Analysis failed",
+              }
+            : item,
+        ),
+      )
+    }
+  }
+
+  async function submitUpload() {
+    if (!uploadFile) return
+
     const baseId = Date.now()
+    const panelId = `panel-${baseId}`
+    const documentId = `doc-${baseId}`
+    const pendingPanel: AnalyzingLabPanel = {
+      panelId,
+      documentId,
+      fileName: uploadFile.name,
+      fileSize: formatBytes(uploadFile.size),
+      date: uploadDate,
+      phase: "analyzing",
+      file: uploadFile,
+    }
 
-    const newResults: LabResult[] =
-      templateKey === "generic"
-        ? [{
-            id: `lab-${baseId}`,
-            testName: uploadFileName.replace(/\.[^.]+$/, ""),
-            value: "See attached report",
-            unit: "",
-            referenceRange: "",
-            status: "normal",
-            date: uploadDate,
-            orderedBy: DEFAULT_ORDERED_BY,
-          }]
-        : MOCK_PANEL_TEMPLATES[templateKey].map((row, index) => ({
-            id: `lab-${baseId}-${index}`,
-            ...row,
-            date: uploadDate,
-            orderedBy: DEFAULT_ORDERED_BY,
-          }))
-
-    setResults((prev) => [...newResults, ...prev])
+    setAnalyzingPanels((prev) => [pendingPanel, ...prev])
+    setExpandedPanels(new Set([panelId]))
     setUploadDialog(false)
+    setUploadSubmitting(false)
+    setUploadFile(null)
     setUploadFileName("")
     setUploadDate(todayIso())
+
+    await runPanelAnalysis(pendingPanel)
   }
 
   function resetFilters() {
@@ -382,7 +514,7 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
           <div className="mt-4 grid w-full grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
               <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">Total tests</span>
+                <span className="text-[12px] font-semibold text-muted-foreground">Total tests</span>
                 <span className="font-serif text-[32px] font-bold leading-none tracking-tight text-[#1A1F1E] tabular-nums">{stats.total}</span>
               </div>
               <TestTube2Icon className="size-5 shrink-0 text-[#1A5345]" strokeWidth={2} aria-hidden />
@@ -390,7 +522,7 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
 
             <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
               <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">Panels</span>
+                <span className="text-[12px] font-semibold text-muted-foreground">Panels</span>
                 <span className="font-serif text-[32px] font-bold leading-none tracking-tight text-[#1A1F1E] tabular-nums">{stats.panels}</span>
               </div>
               <FlaskConicalIcon className="size-5 shrink-0 text-[#2C6A5B]" strokeWidth={2} aria-hidden />
@@ -398,7 +530,7 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
 
             <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
               <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">Abnormal</span>
+                <span className="text-[12px] font-semibold text-muted-foreground">Abnormal</span>
                 <span className="font-serif text-[32px] font-bold leading-none tracking-tight text-red-600 tabular-nums">{stats.abnormal}</span>
               </div>
               <AlertTriangleIcon className="size-5 shrink-0 text-red-600" strokeWidth={2} aria-hidden />
@@ -406,7 +538,7 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
 
             <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
               <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">Latest panel</span>
+                <span className="text-[12px] font-semibold text-muted-foreground">Latest panel</span>
                 <span className="font-serif text-[18px] font-bold leading-tight tracking-tight text-[#1A1F1E]">{stats.latestDate}</span>
               </div>
               <CheckCircle2Icon className="size-5 shrink-0 text-emerald-600" strokeWidth={2} aria-hidden />
@@ -461,11 +593,11 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
           <div className="flex items-center justify-between gap-3 px-0.5">
             <h2 className="font-serif text-[18px] font-bold text-[#1A1F1E]">Result panels</h2>
             <span className="rounded-lg bg-[#1A5345] px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm">
-              {filteredResults.length} test{filteredResults.length === 1 ? "" : "s"}
+              {panels.length + analyzingPanels.length} panel{(panels.length + analyzingPanels.length) === 1 ? "" : "s"} · {filteredTestCount} test{filteredTestCount === 1 ? "" : "s"}
             </span>
           </div>
 
-          {dates.length === 0 ? (
+          {panels.length === 0 && analyzingPanels.length === 0 ? (
             <div className="rounded-2xl border-2 border-dashed border-[#E5EEEA] bg-white py-12 text-center">
               <div className="mx-auto mb-3.5 flex size-12 items-center justify-center rounded-full bg-[#F5F5F3]">
                 <FlaskConicalIcon className="size-6 text-[#9CA3AF]" aria-hidden />
@@ -511,66 +643,200 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
               )}
             </div>
           ) : (
-            dates.map((date) => {
-              const panel = grouped[date]
-              const abnormalInPanel = panel.filter((r) => isAbnormal(r.status)).length
+            <>
+              {analyzingPanels.map((pending) => {
+                const expanded = isPanelExpanded(pending.panelId)
 
-              return (
-                <div key={date} className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8E6E0]/60 bg-[#F4F3ED]/50 px-4 py-3 sm:px-5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <FlaskConicalIcon className="size-4 text-[#1A5345]" aria-hidden />
-                      <h3 className="font-serif text-[15px] font-bold text-[#1A1F1E]">{fmtShort(date)}</h3>
-                      <span className="rounded-lg bg-[#1A5345] px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
-                        {panel.length} test{panel.length === 1 ? "" : "s"}
-                      </span>
-                      {abnormalInPanel > 0 ? (
-                        <span className="rounded-lg bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
-                          {abnormalInPanel} abnormal
-                        </span>
+                return (
+                  <div
+                    key={pending.panelId}
+                    className="overflow-hidden rounded-2xl border border-violet-200/80 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => togglePanel(pending.panelId)}
+                      className="flex w-full flex-col gap-3 border-b border-[#E8E6E0]/60 bg-[#F4F3ED]/50 px-4 py-3 text-left sm:px-5"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                          <ChevronDownIcon
+                            className={cn(
+                              "size-4 shrink-0 text-[#1A5345] transition-transform",
+                              expanded ? "rotate-0" : "-rotate-90",
+                            )}
+                            aria-hidden
+                          />
+                          <FlaskConicalIcon className="size-4 text-violet-600" aria-hidden />
+                          <h3 className="font-serif text-[15px] font-bold text-[#1A1F1E]">
+                            {panelTitleFromFileName(pending.fileName)}
+                          </h3>
+                          <span className="text-[12px] font-medium text-muted-foreground">{fmtShort(pending.date)}</span>
+                          <span className="rounded-lg bg-violet-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                            Uploaded report
+                          </span>
+                          {pending.phase === "analyzing" ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                              <Loader2Icon className="size-3 animate-spin" aria-hidden />
+                              Analyzing…
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50/60 px-3 py-2.5">
+                        <FileTextIcon className="size-4 shrink-0 text-violet-600" aria-hidden />
+                        <div className="min-w-0 flex-1 text-left">
+                          <p className="truncate text-[12px] font-bold text-[#1A1F1E]">{pending.fileName}</p>
+                          <p className="text-[11px] font-medium text-violet-700/80">{pending.fileSize}</p>
+                        </div>
+                      </div>
+                    </button>
+
+                    {expanded ? (
+                      <div className="px-4 py-8 sm:px-5">
+                        {pending.phase === "analyzing" ? (
+                          <div className="flex flex-col items-center justify-center gap-3 text-center">
+                            <div className="flex size-12 items-center justify-center rounded-full bg-violet-50">
+                              <SparklesIcon className="size-6 text-violet-600 animate-pulse" aria-hidden />
+                            </div>
+                            <div>
+                              <p className="text-[14px] font-bold text-[#1A1F1E]">Extracting lab values…</p>
+                              <p className="mt-1 max-w-sm text-[12px] font-medium text-muted-foreground">
+                                AI is reading the report and structuring test results. This may take a moment.
+                              </p>
+                            </div>
+                            <Loader2Icon className="size-5 animate-spin text-violet-600" aria-hidden />
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-3 text-center">
+                            <AlertTriangleIcon className="size-8 text-red-600" aria-hidden />
+                            <div>
+                              <p className="text-[14px] font-bold text-[#1A1F1E]">Could not analyze report</p>
+                              <p className="mt-1 max-w-md text-[12px] font-medium text-muted-foreground">
+                                {pending.errorMessage ?? "The medical analyzer service may be offline."}
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-8 rounded-lg border-[#E8E6E0] text-[12px] font-bold"
+                              onClick={() => void runPanelAnalysis(pending)}
+                            >
+                              <RefreshCwIcon className="size-3.5" aria-hidden />
+                              Retry analysis
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })}
+
+              {panels.map((panel) => {
+                const abnormalInPanel = panel.results.filter((r) => isAbnormal(r.status)).length
+                const expanded = isPanelExpanded(panel.id)
+
+                return (
+                  <div key={panel.id} className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
+                    <button
+                      type="button"
+                      onClick={() => togglePanel(panel.id)}
+                      className="flex w-full flex-col gap-3 border-b border-[#E8E6E0]/60 bg-[#F4F3ED]/50 px-4 py-3 text-left sm:px-5"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                          <ChevronDownIcon
+                            className={cn(
+                              "size-4 shrink-0 text-[#1A5345] transition-transform",
+                              expanded ? "rotate-0" : "-rotate-90",
+                            )}
+                            aria-hidden
+                          />
+                          <FlaskConicalIcon className="size-4 text-[#1A5345]" aria-hidden />
+                          <h3 className="font-serif text-[15px] font-bold text-[#1A1F1E]">{panel.title}</h3>
+                          <span className="text-[12px] font-medium text-muted-foreground">{fmtShort(panel.date)}</span>
+                          <span className={cn(
+                            "rounded-lg px-2 py-0.5 text-[10px] font-bold shadow-sm",
+                            SOURCE_BADGE_STYLES[panel.source],
+                          )}>
+                            {SOURCE_LABELS[panel.source]}
+                          </span>
+                          <span className="rounded-lg bg-[#1A5345] px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                            {panel.results.length} test{panel.results.length === 1 ? "" : "s"}
+                          </span>
+                          {abnormalInPanel > 0 ? (
+                            <span className="rounded-lg bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                              {abnormalInPanel} abnormal
+                            </span>
+                          ) : null}
+                        </div>
+                        <DiagnosedByCell name={panel.orderedBy} />
+                      </div>
+
+                      {panel.document ? (
+                        <div
+                          role="presentation"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setPreviewDocument(panel.document ?? null)
+                          }}
+                          className="flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50/60 px-3 py-2.5 transition-colors hover:bg-violet-50"
+                        >
+                          <FileTextIcon className="size-4 shrink-0 text-violet-600" aria-hidden />
+                          <div className="min-w-0 flex-1 text-left">
+                            <p className="truncate text-[12px] font-bold text-[#1A1F1E]">{panel.document.fileName}</p>
+                            <p className="text-[11px] font-medium text-violet-700/80">
+                              {panel.document.fileSize} · Uploaded {fmtShort(panel.document.uploadedAt)}
+                            </p>
+                          </div>
+                          <span className="shrink-0 text-[11px] font-bold text-violet-700">View file</span>
+                        </div>
                       ) : null}
-                    </div>
-                    <DiagnosedByCell name={panel[0]?.orderedBy ?? "\u2014"} />
-                  </div>
+                    </button>
 
-                  <div className="overflow-x-auto">
-                    <table className="min-w-[720px] w-full border-collapse bg-white text-left">
-                      <thead className="bg-[#F4F3ED]/90">
-                        <tr className="font-serif text-[13px] font-bold text-[#1A1F1E]">
-                          <th className="py-3 pl-4 pr-4">Test</th>
-                          <th className="px-4 py-3">Result</th>
-                          <th className="hidden px-4 py-3 sm:table-cell">Reference range</th>
-                          <th className="py-3 pl-4 pr-4 text-right">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#E8E6E0]/40">
-                        {panel.map((r) => (
-                          <tr key={r.id} className="transition-colors hover:bg-[#F9F8F5]/60">
-                            <td className="py-3.5 pl-4 pr-4 text-[12px] font-bold text-[#1A1F1E] sm:text-[13px]">{r.testName}</td>
-                            <td className={cn("px-4 py-3.5 text-[12px] font-bold tabular-nums sm:text-[13px]", statusValueStyles[r.status])}>
-                              {r.value}
-                              {r.unit ? <span className="ml-1 text-[11px] font-medium text-muted-foreground">{r.unit}</span> : null}
-                            </td>
-                            <td className="hidden px-4 py-3.5 text-[12px] font-medium text-[#6B7870] sm:table-cell">
-                              {r.referenceRange || "\u2014"}
-                            </td>
-                            <td className="py-3.5 pl-4 pr-4 text-right">
-                              <span className={cn(
-                                "inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-[10px] font-bold capitalize",
-                                statusBadgeStyles[r.status],
-                                r.status === "critical" && "animate-pulse"
-                              )}>
-                                {r.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    {expanded ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-[720px] w-full border-collapse bg-white text-left">
+                          <thead className="bg-[#F4F3ED]/90">
+                            <tr className="font-serif text-[13px] font-bold text-[#1A1F1E]">
+                              <th className="py-3 pl-4 pr-4">Test</th>
+                              <th className="px-4 py-3">Result</th>
+                              <th className="hidden px-4 py-3 sm:table-cell">Reference range</th>
+                              <th className="py-3 pl-4 pr-4 text-right">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#E8E6E0]/40">
+                            {panel.results.map((r) => (
+                              <tr key={r.id} className="transition-colors hover:bg-[#F9F8F5]/60">
+                                <td className="py-3.5 pl-4 pr-4 text-[12px] font-bold text-[#1A1F1E] sm:text-[13px]">{r.testName}</td>
+                                <td className={cn("px-4 py-3.5 text-[12px] font-bold tabular-nums sm:text-[13px]", statusValueStyles[r.status])}>
+                                  {r.value}
+                                  {r.unit ? <span className="ml-1 text-[11px] font-medium text-muted-foreground">{r.unit}</span> : null}
+                                </td>
+                                <td className="hidden px-4 py-3.5 text-[12px] font-medium text-[#6B7870] sm:table-cell">
+                                  {r.referenceRange || "\u2014"}
+                                </td>
+                                <td className="py-3.5 pl-4 pr-4 text-right">
+                                  <span className={cn(
+                                    "inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-[10px] font-bold capitalize",
+                                    statusBadgeStyles[r.status],
+                                    r.status === "critical" && "animate-pulse"
+                                  )}>
+                                    {r.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : null}
                   </div>
-                </div>
-              )
-            })
+                )
+              })}
+            </>
           )}
         </div>
       </div>
@@ -790,7 +1056,7 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
               Upload lab report
             </DialogTitle>
             <DialogDescription className="text-[13px] font-medium text-[#6B7870] sm:text-[14px]">
-              Mock upload — adds sample panel values based on the file name (lipid, HbA1c, CBC, etc.).
+              Upload a PDF or image. AI will extract test values and add them as a new panel.
             </DialogDescription>
           </DialogHeader>
 
@@ -802,7 +1068,7 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
                 <span className="text-[12px] font-bold text-[#1A1F1E]">
                   {uploadFileName || "Click to choose a file"}
                 </span>
-                <span className="text-[11px] font-medium text-muted-foreground">PDF, JPG, PNG — mock data only</span>
+                <span className="text-[11px] font-medium text-muted-foreground">PDF, JPG, PNG</span>
                 <input
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
@@ -823,7 +1089,7 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
             </div>
 
             <p className="rounded-lg bg-[#EEF5F3] px-3 py-2 text-[11px] font-medium leading-relaxed text-[#1A5345]">
-              Tip: name the file with keywords like <strong>Lipid_Panel</strong>, <strong>HbA1c</strong>, or <strong>CBC</strong> to auto-fill a full mock panel.
+              After upload, the report appears as a panel with an <strong>Analyzing…</strong> badge while AI extracts values. Results show in the table when complete.
             </p>
 
             <div className="flex justify-end gap-2 border-t border-[#E8E6E0]/60 pt-4">
@@ -833,6 +1099,7 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
                 variant="outline"
                 onClick={() => {
                   setUploadDialog(false)
+                  setUploadFile(null)
                   setUploadFileName("")
                   setUploadDate(todayIso())
                 }}
@@ -843,12 +1110,40 @@ export function LabResultsPage({ patient, labResults: initialLabResults }: LabRe
               <Button
                 type="button"
                 size="sm"
-                onClick={submitUpload}
-                disabled={!uploadFileName.trim()}
-                className="h-8 rounded-lg border-0 bg-[#1A5345] text-[12px] font-bold text-white hover:bg-[#133F34]"
+                onClick={() => void submitUpload()}
+                disabled={!uploadFile || uploadSubmitting}
+                className="h-8 gap-1.5 rounded-lg border-0 bg-[#1A5345] text-[12px] font-bold text-white hover:bg-[#133F34]"
               >
-                Import mock panel
+                {uploadSubmitting ? (
+                  <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <SparklesIcon className="size-3.5" aria-hidden />
+                )}
+                Upload & analyze
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={previewDocument !== null} onOpenChange={(open) => !open && setPreviewDocument(null)}>
+        <DialogContent className="gap-0 overflow-hidden rounded-2xl border border-[#E8E6E0]/80 bg-white p-0 sm:max-w-[480px]">
+          <DialogHeader className="border-b border-[#E8E6E0]/60 px-5 py-4 text-left">
+            <DialogTitle className="flex items-center gap-2 font-serif text-[17px] font-bold text-[#1A1F1E]">
+              <FileTextIcon className="size-4 text-violet-600" aria-hidden />
+              <span className="truncate">{previewDocument?.fileName}</span>
+            </DialogTitle>
+            <DialogDescription className="text-[12px] font-medium text-muted-foreground">
+              Source report for this panel
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 px-5 py-5">
+            <div className="rounded-xl border border-dashed border-violet-100 bg-violet-50/40 px-4 py-8 text-center">
+              <FileTextIcon className="mx-auto size-10 text-violet-600" aria-hidden />
+              <p className="mt-3 text-[13px] font-bold text-[#1A1F1E]">{previewDocument?.fileName}</p>
+              <p className="mt-1 text-[12px] font-medium text-muted-foreground">
+                {previewDocument?.fileSize} · {previewDocument?.uploadedBy}
+              </p>
             </div>
           </div>
         </DialogContent>

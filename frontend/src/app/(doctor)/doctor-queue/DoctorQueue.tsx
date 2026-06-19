@@ -4,6 +4,7 @@ import React from "react"
 import type { QueuePatient, QueueStats, QueueStatus, QueuePriority } from "./doctorQueue.types"
 import { useHasConsultationDraft } from "./useHasConsultationDraft"
 import { clearConsultationDraft } from "./[queueEntryId]/consultation/consultationDraftStorage"
+import { useBriefingPreparation } from "./[queueEntryId]/consultation/useBriefingPreparation"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import {
@@ -16,6 +17,7 @@ import {
   LogInIcon,
   PlayCircleIcon,
   ShieldAlertIcon,
+  SparklesIcon,
   StethoscopeIcon,
   TimerIcon,
   UsersIcon,
@@ -88,6 +90,28 @@ function QueuePositionBadge({ index, status }: { index: number; status: QueueSta
   )
 }
 
+function BriefingQueueBadge({ queueEntryId, enabled }: { queueEntryId: string; enabled: boolean }) {
+  const { isReady, isPreparing } = useBriefingPreparation(queueEntryId, enabled)
+  if (!enabled) return null
+  if (isReady) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-bold text-violet-700">
+        <SparklesIcon className="size-3" aria-hidden />
+        Briefing ready
+      </span>
+    )
+  }
+  if (isPreparing) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+        <SparklesIcon className="size-3 animate-pulse" aria-hidden />
+        Preparing briefing
+      </span>
+    )
+  }
+  return null
+}
+
 function QueuePatientCard({
   patient,
   position,
@@ -109,13 +133,19 @@ function QueuePatientCard({
   const hasDraft = useHasConsultationDraft(patient.queueEntryId)
   const isReportPending = patient.status === "report-pending"
   const isInConsultation = patient.status === "in-consultation"
+  const isWaiting = patient.status === "waiting"
   const showContinueConsultation = isInConsultation || isReportPending || hasDraft
-  const consultationHref = `/doctor-queue/${patient.queueEntryId}/consultation/new`
+  const needsBriefingFirst = isWaiting && !hasDraft
+  const consultationHref = needsBriefingFirst
+    ? `/doctor-queue/${patient.queueEntryId}/briefing`
+    : `/doctor-queue/${patient.queueEntryId}/consultation/new`
   const primaryActionLabel = isReportPending
     ? "Complete report"
-    : showContinueConsultation
-      ? "Continue consultation"
-      : "Start consultation"
+    : needsBriefingFirst
+      ? "Review briefing"
+      : showContinueConsultation
+        ? "Continue consultation"
+        : "Start consultation"
 
   return (
     <div
@@ -192,6 +222,7 @@ function QueuePatientCard({
                 <AlertTriangleIcon className="size-3" /> {patient.vitalAlerts} alert{patient.vitalAlerts > 1 ? "s" : ""}
               </span>
             )}
+            <BriefingQueueBadge queueEntryId={patient.queueEntryId} enabled={isWaiting} />
           </div>
 
           <div className="mt-3.5 bg-[#F9F8F5] px-3 py-2.5 rounded-xl border border-[#E8E6E0]/40">
@@ -254,6 +285,11 @@ function QueuePatientCard({
                   )}
                 >
                   {isReportPending ? (
+                    <>
+                      <FileTextIcon className="size-4" />
+                      {primaryActionLabel}
+                    </>
+                  ) : needsBriefingFirst ? (
                     <>
                       <FileTextIcon className="size-4" />
                       {primaryActionLabel}

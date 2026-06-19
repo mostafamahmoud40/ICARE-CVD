@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
 import type { QueuePatient, QueueStats, QueueStatus } from "./doctorQueue.types"
+import { startBriefingPreparation } from "./[queueEntryId]/consultation/useBriefingPreparation"
 
 /* ---------- API helpers ---------- */
 
@@ -92,6 +93,7 @@ export function useDoctorQueue() {
   }
 
   const moveToWaiting = (queueEntryId: string) => {
+    startBriefingPreparation(queueEntryId)
     statusMutation.mutate({ queueId: queueEntryId, status: "waiting" })
   }
 

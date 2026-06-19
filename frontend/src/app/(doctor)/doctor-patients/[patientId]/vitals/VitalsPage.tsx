@@ -89,13 +89,13 @@ function VitalMiniCard({ icon: Icon, label, value, unit, status }: {
     <div className={cn("flex flex-col gap-1 rounded-xl border p-2.5 transition-all duration-300 hover:shadow-sm", status ? statusStyles[status] : "border-[#E8E6E0]/60 bg-white")}>
       <div className="flex items-center gap-1.5">
         <Icon className={cn("size-3", status ? iconColors[status] : "text-[#1A5345]")} />
-        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
+        <span className="text-[10px] font-bold text-muted-foreground">{label}</span>
       </div>
       <div className="mt-0.5 flex items-baseline gap-1">
         <span className={cn("text-[16px] font-bold tabular-nums", status ? iconColors[status] : "text-[#102F27]")}>
           {value ?? "\u2014"}
         </span>
-        <span className="text-[9px] font-bold text-muted-foreground uppercase">{unit}</span>
+        <span className="text-[9px] font-medium text-muted-foreground">{unit}</span>
       </div>
     </div>
   )
@@ -378,7 +378,7 @@ export function VitalsPage({ patientId, patientName, latestVitals, vitalReadings
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
                   <ActivityIcon className="size-4 text-[#CC5533]" />
-                  <h3 className="text-[13px] font-bold text-[#102F27] uppercase tracking-wider">Latest Assessment</h3>
+                  <h3 className="text-[13px] font-bold text-[#102F27]">Latest assessment</h3>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[11px] font-bold text-[#6B7870] shadow-sm border border-[#E8E6E0]/60">
@@ -407,7 +407,7 @@ export function VitalsPage({ patientId, patientName, latestVitals, vitalReadings
                 <div className="rounded-xl border border-[#E8E6E0]/60 bg-white p-2.5 shadow-sm">
                   <div className="flex items-center gap-1.5">
                     <HomeIcon className="size-3 text-[#1A5345]" />
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Context</span>
+                    <span className="text-[10px] font-bold text-muted-foreground">Context</span>
                   </div>
                   <div className="mt-1">
                     <span className={cn("inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold", latest.source === "home" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700")}>
@@ -420,7 +420,7 @@ export function VitalsPage({ patientId, patientName, latestVitals, vitalReadings
               {latest.notes && (
                 <div className="rounded-xl border border-dashed border-[#E8E6E0] bg-[#FFFCFA] p-3.5">
                   <div className="flex gap-2.5 text-[13px] leading-relaxed text-[#6B7870]">
-                    <span className="font-bold text-[#102F27] uppercase text-[10px] tracking-wider mt-0.5 shrink-0">Clinical Notes:</span>
+                    <span className="mt-0.5 shrink-0 text-[11px] font-bold text-[#102F27]">Clinical notes:</span>
                     <p className="italic">"{latest.notes}"</p>
                   </div>
                 </div>
@@ -432,22 +432,22 @@ export function VitalsPage({ patientId, patientName, latestVitals, vitalReadings
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
                 <LayoutGridIcon className="size-4 text-[#CC5533]" />
-                <h3 className="text-[13px] font-bold text-[#102F27] uppercase tracking-wider">Historical Timeline</h3>
+                <h3 className="text-[13px] font-bold text-[#102F27]">Historical timeline</h3>
               </div>
-              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{readings.length} Assessment Records</p>
+              <p className="text-[11px] font-bold text-muted-foreground">{readings.length} assessment records</p>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-[#F9F8F5]/80 border-b border-[#E8E6E0]/60">
-                      <th className="px-5 py-4 text-[12px] font-bold uppercase tracking-wider text-[#102F27]">Assessment Date</th>
-                      <th className="px-4 py-4 text-[12px] font-bold uppercase tracking-wider text-[#102F27]">Context</th>
-                      <th className="px-4 py-4 text-[12px] font-bold uppercase tracking-wider text-[#102F27]">Vital Signs (BP/HR)</th>
-                      <th className="px-4 py-4 text-[12px] font-bold uppercase tracking-wider text-[#102F27]">Oxygen/Temp</th>
-                      <th className="px-4 py-4 text-[12px] font-bold uppercase tracking-wider text-[#102F27]">Glucose</th>
-                      <th className="px-4 py-4 text-right text-[12px] font-bold uppercase tracking-wider text-[#102F27]">Action</th>
+                <table className="w-full min-w-[920px] border-collapse bg-white text-left">
+                  <thead className="sticky top-0 z-10 bg-[#F4F3ED]/90 shadow-[0_1px_0_0_#E8E6E0] backdrop-blur-md">
+                    <tr className="font-serif text-[15px] font-bold text-[#1A1F1E]">
+                      <th className="py-4 pl-5 pr-4">Assessment date</th>
+                      <th className="px-4 py-4">Context</th>
+                      <th className="px-4 py-4">Vital signs (BP/HR)</th>
+                      <th className="px-4 py-4">Oxygen / temp</th>
+                      <th className="px-4 py-4">Glucose</th>
+                      <th className="py-4 pl-4 pr-5 text-right"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E8E6E0]/40">
