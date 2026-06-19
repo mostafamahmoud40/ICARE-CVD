@@ -27,6 +27,12 @@ export function getDoctorNotificationsSnapshot() {
   return notifications
 }
 
+const doctorNotificationsServerSnapshot = getDoctorNotificationsMock()
+
+export function getDoctorNotificationsServerSnapshot() {
+  return doctorNotificationsServerSnapshot
+}
+
 export function prependRealtimeNotification(item: DoctorNotification) {
   if (notifications.some((n) => n.id === item.id)) return
   notifications = [item, ...notifications]
@@ -108,7 +114,7 @@ export function useDoctorNotifications() {
   const items = useSyncExternalStore(
     subscribeDoctorNotifications,
     getDoctorNotificationsSnapshot,
-    getDoctorNotificationsMock,
+    getDoctorNotificationsServerSnapshot,
   )
 
   useEffect(() => {
