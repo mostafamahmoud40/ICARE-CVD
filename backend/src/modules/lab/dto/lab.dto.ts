@@ -1,5 +1,6 @@
 import {
   IsEnum,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -103,4 +104,25 @@ export class CreateLabResultDto {
   @IsOptional()
   @IsEnum(LabResultStatus)
   status?: LabResultStatus;
+}
+
+export class ImportLabReportPanelDto {
+  @IsUUID()
+  documentId!: string;
+
+  @IsOptional()
+  @IsUUID()
+  consultationId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  panelTitle?: string;
+
+  @IsObject()
+  analysis!: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  orderedBy?: string;
 }

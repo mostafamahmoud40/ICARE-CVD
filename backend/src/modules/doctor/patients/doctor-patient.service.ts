@@ -26,6 +26,7 @@ import type {
   CreatePatientClinicalNoteDto,
   UpdatePatientCareGoalDto,
 } from './dto/patient-profile-extras.dto';
+import type { CreatePatientAllergyDto } from './dto/patient-allergy.dto';
 
 function toIsoString(value: Date | string | null | undefined): string | null {
   if (value == null) return null;
@@ -652,6 +653,60 @@ export class DoctorPatientService {
     if (!existing) throw new NotFoundException('Care goal not found');
 
     await this.db.delete(patientCareGoal).where(eq(patientCareGoal.id, goalId));
+
+    return { success: true };
+  }
+
+  async createPatientAllergy(
+    doctorUserId: number,
+    patientId: string,
+    dto: CreatePatientAllergyDto,
+  ) {
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+    await this.verifyDoctorPatientAccess(doctorRow.id, patientId);
+
+    const patientRow = await this.db.query.patient.findFirst({
+      where: eq(patient.id, patientId),
+    });
+    if (!patientRow) throw new NotFoundException('Patient not found');
+
+    const [created] = await this.db
+      .insert(allergy)
+      .values({
+        userId: patientRow.userId,
+        category: dto.category,
+        allergen: dto.allergen.trim(),
+        reaction: dto.reaction?.trim() || null,
+      })
+      .returning();
+
+    return {
+      id: created.id,
+      category: created.category,
+      allergen: created.allergen,
+      reaction: created.reaction ?? '',
+    };
+  }
+
+  async deletePatientAllergy(
+    doctorUserId: number,
+    patientId: string,
+    allergyId: string,
+  ) {
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+    await this.verifyDoctorPatientAccess(doctorRow.id, patientId);
+
+    const patientRow = await this.db.query.patient.findFirst({
+      where: eq(patient.id, patientId),
+    });
+    if (!patientRow) throw new NotFoundException('Patient not found');
+
+    const existing = await this.db.query.allergy.findFirst({
+      where: and(eq(allergy.id, allergyId), eq(allergy.userId, patientRow.userId)),
+    });
+    if (!existing) throw new NotFoundException('Allergy not found');
+
+    await this.db.delete(allergy).where(eq(allergy.id, allergyId));
 
     return { success: true };
   }

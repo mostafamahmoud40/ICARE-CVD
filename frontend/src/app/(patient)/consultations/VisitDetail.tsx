@@ -22,6 +22,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import type { VisitSummary } from "./consultations.types"
+import { REPORT_EMPTY_MESSAGES } from "@/lib/consultation-report.mapper"
 import { ClinicalOrdersPanel } from "./ClinicalOrdersPanel"
 import {
   ConsultationRecordStatusBadge,
@@ -145,7 +146,14 @@ export function VisitDetail({ visit }: VisitDetailProps) {
                     Clinical Notes
                   </h3>
                   <div className="rounded-xl bg-[#F9F8F5] p-5">
-                    <p className="whitespace-pre-line text-[14.5px] leading-relaxed text-[#2D3633] font-medium">
+                    <p
+                      className={cn(
+                        "whitespace-pre-line text-[14.5px] leading-relaxed font-medium",
+                        visit.doctorNotes === REPORT_EMPTY_MESSAGES.clinicalNotes
+                          ? "text-[#6B7870] italic"
+                          : "text-[#2D3633]",
+                      )}
+                    >
                       {visit.doctorNotes}
                     </p>
                   </div>
@@ -157,7 +165,11 @@ export function VisitDetail({ visit }: VisitDetailProps) {
                     <ClipboardList className="size-5 text-[#6B7870]" />
                     Orders
                   </h3>
-                  <ClinicalOrdersPanel orders={visit.orders} layout="grid" />
+                  <ClinicalOrdersPanel
+                    orders={visit.orders}
+                    layout="grid"
+                    emptyMessage="No orders or follow-up tasks were recorded for this visit."
+                  />
                 </div>
 
               </div>
@@ -177,6 +189,11 @@ export function VisitDetail({ visit }: VisitDetailProps) {
                     </Button>
                   </div>
                   <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-[#E8E6E0]/60">
+                    {visit.medications.length === 0 ? (
+                      <p className="px-4 py-5 text-[13px] font-medium italic text-[#6B7870]">
+                        No prescriptions were recorded for this visit.
+                      </p>
+                    ) : (
                     <ul className="divide-y divide-[#E8E6E0]/60">
                       {visit.medications.map((med, idx) => {
                         const isDiscontinued = med.status === "discontinued"
@@ -218,6 +235,7 @@ export function VisitDetail({ visit }: VisitDetailProps) {
                         )
                       })}
                     </ul>
+                    )}
                   </div>
                 </div>
 

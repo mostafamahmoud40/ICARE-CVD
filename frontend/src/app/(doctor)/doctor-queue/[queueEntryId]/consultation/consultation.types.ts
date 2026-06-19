@@ -147,10 +147,17 @@ export type HomeMeasurement = {
   instructions: string
 }
 
-/** Staged lab document uploads on the consultation form (browser `File` handles). */
+/** Staged or persisted lab document on the consultation form. */
 export type LabMaterialFile = {
   id: string
-  file: File
+  /** Present only before the file is uploaded to object storage. */
+  file?: File
+  fileName: string
+  fileSize: number
+  documentId?: string
+  panelId?: string
+  uploadPhase?: "uploading" | "ready" | "error"
+  uploadError?: string
 }
 
 export type ProcedurePriority = "elective" | "urgent" | "emergency"
@@ -181,6 +188,18 @@ export type ConsultationMedicalHistory = {
   noChronicConditions: boolean
 }
 
+export type ChiefComplaintStructured = {
+  primaryComplaint: string
+  onset: string
+  duration: string
+  severity: string
+  character: string
+  aggravating: string[]
+  relieving: string[]
+  associatedSymptoms: string[]
+  otherComplaintDetail: string
+}
+
 export type ConsultationData = {
   /** Matches `doctor-patients` mock IDs (e.g. `p-001`) for profile navigation */
   patientId: string
@@ -191,6 +210,7 @@ export type ConsultationData = {
   procedureDetails: ProcedureDetails
   chiefComplaint: string
   structuredComplaint: string
+  chiefComplaintStructured: ChiefComplaintStructured
   physicalExam: PhysicalExamFindings
   diagnoses: DiagnosisEntry[]
   prescriptions: PrescriptionEntry[]

@@ -54,10 +54,7 @@ export class MinioService {
       );
     }
 
-    const prefix =
-      input.conversationId > 0
-        ? buildChatConversationPrefix(input.conversationId, input.category)
-        : MINIO_CATEGORY_PREFIX[input.category];
+    const prefix = this.resolveObjectPrefix(input);
     const key = `${prefix}/${this.buildObjectName(input.fileName, input.contentType)}`;
 
     const command = new PutObjectCommand({
@@ -142,6 +139,53 @@ export class MinioService {
     );
   }
 
+  private resolveObjectPrefix(input: MinioUploadIntentInput): string {
+    if (input.category === 'lab_report') {
+      if (!input.patientId) {
+        throw new InternalServerErrorException(
+          'patientId is required for lab report uploads.',
+        );
+      }
+      return `${MINIO_CATEGORY_PREFIX.lab_report}/${input.patientId}`;
+    }
+
+    if (input.category === 'consultation_xray') {
+      if (!input.patientId) {
+        throw new InternalServerErrorException(
+          'patientId is required for consultation X-ray uploads.',
+        );
+      }
+      return `${MINIO_CATEGORY_PREFIX.consultation_xray}/${input.patientId}`;
+    }
+
+    if (input.category === 'consultation_echo') {
+      if (!input.patientId) {
+        throw new InternalServerErrorException(
+          'patientId is required for consultation echo uploads.',
+        );
+      }
+      return `${MINIO_CATEGORY_PREFIX.consultation_echo}/${input.patientId}`;
+    }
+
+    if (input.category === 'consultation_ecg') {
+      if (!input.patientId) {
+        throw new InternalServerErrorException(
+          'patientId is required for consultation ECG uploads.',
+        );
+      }
+      return `${MINIO_CATEGORY_PREFIX.consultation_ecg}/${input.patientId}`;
+    }
+
+    if (input.conversationId && input.conversationId > 0) {
+      return buildChatConversationPrefix(
+        input.conversationId,
+        input.category as 'chat_image' | 'chat_file',
+      );
+    }
+
+    return MINIO_CATEGORY_PREFIX[input.category];
+  }
+
   private buildObjectName(fileName: string, contentType: string): string {
     const uuid = crypto.randomUUID();
     const extension = this.resolveExtension(fileName, contentType);
@@ -171,6 +215,12 @@ export class MinioService {
       'image/png': 'png',
       'image/webp': 'webp',
       'image/gif': 'gif',
+      'video/mp4': 'mp4',
+      'video/webm': 'webm',
+      'video/quicktime': 'mov',
+      'video/x-msvideo': 'avi',
+      'video/avi': 'avi',
+      'video/x-matroska': 'mkv',
       'application/pdf': 'pdf',
       'text/plain': 'txt',
       'application/zip': 'zip',

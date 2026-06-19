@@ -11,6 +11,7 @@ import {
   UpdatePatientCareGoalDto,
 } from './dto/patient-profile-extras.dto';
 import { UpdateDoctorPatientProfileDto } from './dto/update-doctor-patient-profile.dto';
+import { CreatePatientAllergyDto } from './dto/patient-allergy.dto';
 
 @Controller('doctor/patients')
 @UseGuards(AccessTokenGuard, DoctorGuard)
@@ -97,5 +98,23 @@ export class DoctorPatientController {
     @Param('goalId') goalId: string,
   ) {
     return this.service.deleteCareGoal(user.sub, patientId, goalId);
+  }
+
+  @Post(':patientId/allergies')
+  createAllergy(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Body() dto: CreatePatientAllergyDto,
+  ) {
+    return this.service.createPatientAllergy(user.sub, patientId, dto);
+  }
+
+  @Delete(':patientId/allergies/:allergyId')
+  deleteAllergy(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Param('allergyId') allergyId: string,
+  ) {
+    return this.service.deletePatientAllergy(user.sub, patientId, allergyId);
   }
 }

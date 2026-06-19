@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import type { ConsultationVitalReading, VitalSigns } from "./consultation.types"
-import { ActivityIcon, ChevronRightIcon, HistoryIcon, Loader2Icon } from "lucide-react"
+import { ActivityIcon, ChevronRightIcon, HistoryIcon, Loader2Icon, SaveIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -144,6 +144,8 @@ export type VitalsSectionProps = {
   vitals: VitalSigns
   onVitalChange: (key: keyof VitalSigns, value: string) => void
   onApplyLastReading?: (reading: ConsultationVitalReading) => void
+  onSave?: () => void
+  canSave?: boolean
   patientAge: number
   lastVitalReading?: ConsultationVitalReading | null
   isLoading?: boolean
@@ -160,6 +162,8 @@ export function VitalsSection({
   vitals,
   onVitalChange,
   onApplyLastReading,
+  onSave,
+  canSave = false,
   patientAge,
   lastVitalReading,
   isLoading = false,
@@ -192,7 +196,8 @@ export function VitalsSection({
           ) : null}
         </div>
 
-        {lastVitalReading ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {lastVitalReading ? (
           <>
             <Button
               type="button"
@@ -224,7 +229,8 @@ export function VitalsSection({
               onApply={onApplyLastReading ? () => onApplyLastReading(lastVitalReading) : undefined}
             />
           </>
-        ) : null}
+          ) : null}
+        </div>
       </div>
       {isLoading ? (
         <div className="flex items-center justify-center py-10 text-[13px] text-muted-foreground">
@@ -309,6 +315,26 @@ export function VitalsSection({
             <span className="ml-1.5 text-[12px] text-muted-foreground">kg/m²</span>
           </div>
         </div>
+        {onSave ? (
+          <div className="col-start-2 space-y-1.5 sm:col-start-4">
+            <span className={cn(FIELD_LABEL, "invisible select-none")} aria-hidden>
+              Save
+            </span>
+            <Button
+              type="button"
+              onClick={onSave}
+              disabled={!canSave || isSaving || isLoading}
+              className="h-10 w-full gap-2 rounded-xl bg-[#1A5345] text-[13px] font-bold text-white shadow-sm hover:bg-[#1A5345]/90 disabled:opacity-50"
+            >
+              {isSaving ? (
+                <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <SaveIcon className="size-3.5" aria-hidden />
+              )}
+              Save
+            </Button>
+          </div>
+        ) : null}
       </div>
       )}
     </div>

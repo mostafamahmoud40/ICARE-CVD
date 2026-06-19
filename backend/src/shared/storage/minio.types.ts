@@ -4,7 +4,10 @@ export type MinioUploadIntentInput = {
   fileName: string;
   contentType: string;
   category: MinioStorageCategory;
-  conversationId: number;
+  /** Required for chat attachments. */
+  conversationId?: number;
+  /** Required for patient lab reports. */
+  patientId?: string;
 };
 
 export type MinioUploadIntentResult = {

@@ -30,3 +30,11 @@ export class CreateDocumentDto {
   @IsOptional()
   fileSize?: number;
 }
+
+export class LabReportUploadIntentDto {
+  @IsString()
+  fileName!: string;
+
+  @IsString()
+  contentType!: string;
+}

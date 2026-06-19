@@ -200,12 +200,12 @@ export type PatientCareGoal = {
 }
 
 export type ConsultationVitals = {
-  systolicBP: number
-  diastolicBP: number
-  heartRate: number
-  oxygenSaturation: number
-  temperature: number
-  weight: number
+  systolicBP: number | null
+  diastolicBP: number | null
+  heartRate: number | null
+  oxygenSaturation: number | null
+  temperature: number | null
+  weight: number | null
   bloodSugar: number | null
 }
 

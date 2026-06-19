@@ -10,15 +10,9 @@ import {
 } from "@/lib/patientCareTimelineBridge"
 import { useConsultationPanelWidths } from "./usePanelResize"
 import type {
-  ConsultationMedicalHistory,
-  DiagnosisEntry,
-  PrescriptionEntry,
-  TestOrder,
-  HomeMeasurement,
-  PhysicalExamFindings,
-  ProcedureDetails,
   Allergy,
   ExistingCondition,
+  TestOrder,
 } from "./consultation.types"
 import { PatientSidebar } from "./PatientSidebar"
 import { VitalsSection } from "./VitalsSection"
@@ -33,19 +27,23 @@ import { FollowUpSection } from "./FollowUpSection"
 import { TestsAndMeasurementsSection } from "./TestsAndMeasurementsSection"
 import { CTScanSection } from "./CTScanSection"
 import { XrayScanSection } from "./XrayScanSection"
+import { useConsultationXrayAnalysis } from "./useConsultationXrayAnalysis"
+import { useConsultationEchoAnalysis } from "./useConsultationEchoAnalysis"
 import { EchoVideoSection } from "./EchoVideoSection"
 import { CineMRISection } from "./CineMRISection"
 import { EcgSection } from "./EcgSection"
+import { useConsultationEcgAnalysis } from "./useConsultationEcgAnalysis"
 import { EcgRagSection } from "./EcgRagSection"
 import { LabMaterialsSection } from "./LabMaterialsSection"
-import type { LabMaterialFile } from "./consultation.types"
+import { useConsultationLabMaterials } from "./useConsultationLabMaterials"
 import { AIAssistantPanel } from "./AIAssistantPanel"
 import { ConsultationFloatingPatientQueryBar } from "./ConsultationFloatingPatientQueryBar"
 import { ConsultationVoiceDictationErrorProvider } from "./ConsultationVoiceDictationErrorContext"
 import { useLocalStorageState } from "./useLocalStorageState"
 import { useConsultationDraft } from "./useConsultationDraft"
 import { useConsultationVitals } from "./useConsultationVitals"
-import { hasConsultationDraft } from "./consultationDraftStorage"
+import { useConsultationLiveSections } from "./useConsultationLiveSections"
+import { useCompleteConsultation } from "./useCompleteConsultation"
 import { isBriefingAcknowledged } from "./briefingStorage"
 import { Button } from "@/components/ui/button"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -57,17 +55,34 @@ import {
 
 export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
   const router = useRouter()
-  const { data, setData, saveDraftNow, hydrated, isLoading, isError } = useConsultationDraft(queueEntryId)
+  const { data, setData, hydrated, isLoading, isError } = useConsultationDraft(queueEntryId)
   const consultationVitals = useConsultationVitals(queueEntryId)
+  const liveSections = useConsultationLiveSections(queueEntryId, data, setData, hydrated)
+  const { complete, isCompleting } = useCompleteConsultation()
   const [ctFile, setCtFile] = useState<File | null>(null)
-  const [xrayFile, setXrayFile] = useState<File | null>(null)
-  const [echoFile, setEchoFile] = useState<File | null>(null)
+  const xrayAnalysis = useConsultationXrayAnalysis(
+    queueEntryId,
+    data?.patientId,
+    hydrated && Boolean(data),
+  )
+  const echoAnalysis = useConsultationEchoAnalysis(
+    queueEntryId,
+    data?.patientId,
+    hydrated && Boolean(data),
+  )
+  const ecgAnalysis = useConsultationEcgAnalysis(
+    queueEntryId,
+    data?.patientId,
+    hydrated && Boolean(data),
+  )
   const [mriEdFile, setMriEdFile] = useState<File | null>(null)
   const [mriEsFile, setMriEsFile] = useState<File | null>(null)
-  const [ecgHeaFile, setEcgHeaFile] = useState<File | null>(null)
-  const [ecgDatFile, setEcgDatFile] = useState<File | null>(null)
   // EcgRagSection manages its own file state independently
-  const [labMaterials, setLabMaterials] = useState<LabMaterialFile[]>([])
+  const labMaterials = useConsultationLabMaterials(
+    queueEntryId,
+    data?.patientId,
+    hydrated && Boolean(data),
+  )
   const [isPatientSidebarCollapsed, setIsPatientSidebarCollapsed] = useLocalStorageState("consultation-patient-sidebar-collapsed", false)
   const [isAiPanelCollapsed, setIsAiPanelCollapsed] = useLocalStorageState("consultation-ai-panel-collapsed", false)
   const {
@@ -81,7 +96,7 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
 
   useEffect(() => {
     if (!hydrated || !data) return
-    if (hasConsultationDraft(queueEntryId) || isBriefingAcknowledged(queueEntryId)) return
+    if (isBriefingAcknowledged(queueEntryId)) return
     router.replace(`/doctor-queue/${queueEntryId}/briefing`)
   }, [hydrated, data, queueEntryId, router])
 
@@ -104,105 +119,83 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
     )
   }
 
-  const updateMedicalHistory = (next: ConsultationMedicalHistory) => {
-    setData((prev) => ({ ...prev, medicalHistory: next }))
-  }
+  const updateMedicalHistory = liveSections.updateMedicalHistory
 
   const updateAllergies = (next: Allergy[]) => {
-    setData((prev) => ({
-      ...prev,
-      patientSummary: { ...prev.patientSummary, allergies: next },
-    }))
+    const prev = data.patientSummary.allergies
+    const added = next.filter((item) => !prev.some((p) => p.id === item.id))
+    const removed = prev.filter((item) => !next.some((n) => n.id === item.id))
+    if (added.length === 0 && removed.length === 0) return
+    for (const item of added) void liveSections.addAllergy(item)
+    for (const item of removed) void liveSections.removeAllergy(item.id)
   }
 
   const updateChronicConditions = (next: ExistingCondition[]) => {
-    setData((prev) => ({
-      ...prev,
-      patientSummary: { ...prev.patientSummary, existingConditions: next },
-    }))
+    const prev = data.patientSummary.existingConditions
+    const added = next.filter((item) => !prev.some((p) => p.id === item.id))
+    const removed = prev.filter((item) => !next.some((n) => n.id === item.id))
+    if (added.length === 0 && removed.length === 0) return
+    for (const item of added) void liveSections.addChronicCondition(item)
+    for (const item of removed) void liveSections.removeChronicCondition(item.id)
   }
 
-  const updateExam = (key: keyof PhysicalExamFindings, value: string) => {
-    setData((prev) => ({ ...prev, physicalExam: { ...prev.physicalExam, [key]: value } as PhysicalExamFindings }))
-  }
+  const updateExam = liveSections.updateExam
 
-  const updateProcedureDetails = <K extends keyof ProcedureDetails>(
-    key: K,
-    value: ProcedureDetails[K],
-  ) => {
-    setData((prev) => ({
-      ...prev,
-      procedureDetails: { ...prev.procedureDetails, [key]: value },
-    }))
-  }
+  const updateProcedureDetails = liveSections.updateProcedureDetails
 
-  const addDiagnosis = (entry: DiagnosisEntry) => {
-    setData((prev) => ({ ...prev, diagnoses: [...prev.diagnoses, entry] }))
-  }
+  const addDiagnosis = liveSections.addDiagnosis
+  const removeDiagnosis = liveSections.removeDiagnosis
 
-  const removeDiagnosis = (id: string) => {
-    setData((prev) => ({ ...prev, diagnoses: prev.diagnoses.filter((d) => d.id !== id) }))
-  }
-
-  const addPrescription = (entry: PrescriptionEntry) => {
-    setData((prev) => ({ ...prev, prescriptions: [...prev.prescriptions, entry] }))
-  }
-
-  const removePrescription = (id: string) => {
-    setData((prev) => ({ ...prev, prescriptions: prev.prescriptions.filter((p) => p.id !== id) }))
-  }
+  const addPrescription = liveSections.addPrescription
+  const removePrescription = liveSections.removePrescription
 
   const addTestOrder = (entry: TestOrder) => {
-    setData((prev) => {
-      upsertPatientCareTaskFromTestOrder({
-        patientId: prev.patientId,
-        doctorName: "Your care team",
-        order: entry,
-      })
-      return { ...prev, testOrders: [...prev.testOrders, entry] }
+    upsertPatientCareTaskFromTestOrder({
+      patientId: data.patientId,
+      doctorName: "Your care team",
+      order: entry,
     })
+    void liveSections.addTestOrder(entry)
   }
 
   const removeTestOrder = (id: string) => {
-    setData((prev) => ({ ...prev, testOrders: prev.testOrders.filter((t) => t.id !== id) }))
     removePatientCareTaskByOrderId(id)
+    void liveSections.removeTestOrder(id)
   }
 
-  const addHomeMeasurement = (entry: HomeMeasurement) => {
-    setData((prev) => ({ ...prev, homeMeasurements: [...prev.homeMeasurements, entry] }))
-  }
-
-  const removeHomeMeasurement = (id: string) => {
-    setData((prev) => ({ ...prev, homeMeasurements: prev.homeMeasurements.filter((m) => m.id !== id) }))
-  }
+  const addHomeMeasurement = liveSections.addHomeMeasurement
+  const removeHomeMeasurement = liveSections.removeHomeMeasurement
 
   const addLabMaterials = (files: File[]) => {
-    setLabMaterials((prev) => [
-      ...prev,
-      ...files.map((file) => ({ id: crypto.randomUUID(), file })),
-    ])
+    void labMaterials.addFiles(files)
   }
 
   const removeLabMaterial = (id: string) => {
-    setLabMaterials((prev) => prev.filter((item) => item.id !== id))
+    void labMaterials.removeItem(id)
   }
 
   const acceptSuggestion = (id: string) => {
-    setData((prev) => ({
-      ...prev,
-      aiSuggestions: prev.aiSuggestions.map((s) =>
-        s.id === id ? { ...s, accepted: true } : s,
-      ),
-    }))
+    setData((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        aiSuggestions: prev.aiSuggestions.map((s) =>
+          s.id === id ? { ...s, accepted: true } : s,
+        ),
+      }
+    })
   }
 
   const dismissSuggestion = (id: string) => {
-    setData((prev) => ({
-      ...prev,
-      aiSuggestions: prev.aiSuggestions.map((s) =>
-        s.id === id ? { ...s, accepted: false } : s,
-      ),
-    }))
+    setData((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        aiSuggestions: prev.aiSuggestions.map((s) =>
+          s.id === id ? { ...s, accepted: false } : s,
+        ),
+      }
+    })
   }
 
   return (
@@ -266,6 +259,8 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
               vitals={consultationVitals.vitals}
               onVitalChange={consultationVitals.onVitalChange}
               onApplyLastReading={consultationVitals.applyLastReading}
+              onSave={() => void consultationVitals.saveNow()}
+              canSave={consultationVitals.canSave}
               lastVitalReading={consultationVitals.lastVitalReading}
               patientAge={
                 consultationVitals.patientAge || data.patientSummary.demographics.age
@@ -285,9 +280,9 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
 
             <ChiefComplaintSection
               complaint={data.chiefComplaint}
-              onComplaintChange={(v) => setData((prev) => ({ ...prev, chiefComplaint: v }))}
-              structuredComplaint={data.structuredComplaint}
-              onStructuredComplaintChange={(v) => setData((prev) => ({ ...prev, structuredComplaint: v }))}
+              onComplaintChange={liveSections.updateChiefComplaint}
+              structured={data.chiefComplaintStructured}
+              onStructuredChange={liveSections.updateChiefComplaintStructured}
             />
 
             <PhysicalExamSection exam={data.physicalExam} onExamChange={updateExam} />
@@ -316,16 +311,50 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
             />
 
             <LabMaterialsSection
-              items={labMaterials}
+              items={labMaterials.items}
               onAdd={addLabMaterials}
               onRemove={removeLabMaterial}
+              activeItemId={labMaterials.activeItemId}
+              onSelectItem={labMaterials.setActiveItemId}
+              workspace={{
+                workspaceOpen: labMaterials.workspaceOpen,
+                analysisPhase: labMaterials.analysisPhase,
+                analysis: labMaterials.analysis,
+                analysisError: labMaterials.analysisError,
+                chatOpen: labMaterials.chatOpen,
+                setChatOpen: labMaterials.setChatOpen,
+                runAiAnalysis: labMaterials.runAiAnalysis,
+              }}
             />
 
             <CTScanSection ctFile={ctFile} onCtFileChange={setCtFile} />
 
-            <XrayScanSection xrayFile={xrayFile} onXrayFileChange={setXrayFile} />
+            <XrayScanSection
+              xrayFile={xrayAnalysis.xrayFile}
+              savedResult={xrayAnalysis.savedResult}
+              status={xrayAnalysis.status}
+              errorMsg={xrayAnalysis.errorMsg}
+              isLoading={xrayAnalysis.isLoading}
+              onFileSelected={xrayAnalysis.onFileSelected}
+              onRemove={xrayAnalysis.onRemove}
+              onAnalyze={xrayAnalysis.onAnalyze}
+              onRetry={xrayAnalysis.onRetry}
+            />
 
-            <EchoVideoSection echoFile={echoFile} onEchoFileChange={setEchoFile} />
+            <EchoVideoSection
+              echoFile={echoAnalysis.echoFile}
+              savedEcho={echoAnalysis.savedEcho}
+              analysisResult={echoAnalysis.analysisResult}
+              report={echoAnalysis.report}
+              isLoading={echoAnalysis.isLoading}
+              isAnalyzing={echoAnalysis.isAnalyzing}
+              isGeneratingReport={echoAnalysis.isGeneratingReport}
+              analyzeError={echoAnalysis.analyzeError}
+              onFileSelected={echoAnalysis.onFileSelected}
+              onRemove={echoAnalysis.onRemove}
+              onAnalyze={echoAnalysis.onAnalyze}
+              onGenerateReport={echoAnalysis.onGenerateReport}
+            />
 
             <CineMRISection
               edFile={mriEdFile}
@@ -335,10 +364,20 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
             />
 
             <EcgSection
-              heaFile={ecgHeaFile}
-              datFile={ecgDatFile}
-              onHeaFileChange={setEcgHeaFile}
-              onDatFileChange={setEcgDatFile}
+              heaFile={ecgAnalysis.heaFile}
+              datFile={ecgAnalysis.datFile}
+              savedEcg={ecgAnalysis.savedEcg}
+              analysisResult={ecgAnalysis.analysisResult}
+              report={ecgAnalysis.report}
+              isLoading={ecgAnalysis.isLoading}
+              isAnalyzing={ecgAnalysis.isAnalyzing}
+              isGeneratingReport={ecgAnalysis.isGeneratingReport}
+              analyzeError={ecgAnalysis.analyzeError}
+              reportError={ecgAnalysis.reportError}
+              onHeaFileSelected={ecgAnalysis.onHeaFileSelected}
+              onDatFileSelected={ecgAnalysis.onDatFileSelected}
+              onRemove={ecgAnalysis.onRemove}
+              onAnalyze={ecgAnalysis.onAnalyze}
             />
 
             {/* EcgRagSection is fully self-contained with its own file upload */}
@@ -346,16 +385,16 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
 
             <ClinicalNotesSection
               clinicalNotes={data.clinicalNotes}
-              onClinicalNotesChange={(v) => setData((prev) => ({ ...prev, clinicalNotes: v }))}
+              onClinicalNotesChange={liveSections.updateClinicalNotes}
               assessmentAndPlan={data.assessmentAndPlan}
-              onAssessmentAndPlanChange={(v) => setData((prev) => ({ ...prev, assessmentAndPlan: v }))}
+              onAssessmentAndPlanChange={liveSections.updateAssessmentAndPlan}
             />
 
             <FollowUpSection
               followUpDate={data.followUpDate}
-              onFollowUpDateChange={(v) => setData((prev) => ({ ...prev, followUpDate: v }))}
+              onFollowUpDateChange={liveSections.updateFollowUpDate}
               followUpNotes={data.followUpNotes}
-              onFollowUpNotesChange={(v) => setData((prev) => ({ ...prev, followUpNotes: v }))}
+              onFollowUpNotesChange={liveSections.updateFollowUpNotes}
             />
 
             <ProceduresSection
@@ -369,17 +408,34 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
                 variant="ghost"
                 size="sm"
                 className="gap-1.5 border border-[#E5EEEA] bg-white text-[14px] hover:bg-[#E8F0EE] hover:text-[#1A5345]"
-                onClick={saveDraftNow}
+                onClick={liveSections.saveNow}
               >
                 <SaveIcon className="size-3.5" />
-                Save Draft
+                Save
               </Button>
               <Button
                 size="sm"
                 className="gap-1.5 border border-white/20 bg-[#1A5345]/80 text-[14px] hover:bg-[#1A5345] backdrop-blur-sm"
+                disabled={
+                  isCompleting ||
+                  liveSections.isSaving ||
+                  consultationVitals.isSaving ||
+                  !liveSections.consultationId ||
+                  !liveSections.patientId
+                }
+                onClick={() => {
+                  if (!liveSections.consultationId || !liveSections.patientId) return
+                  void complete({
+                    patientId: liveSections.patientId,
+                    consultationId: liveSections.consultationId,
+                    queueEntryId,
+                    saveVitals: consultationVitals.saveNow,
+                    saveSections: liveSections.saveNow,
+                  })
+                }}
               >
                 <CheckCircle2Icon className="size-3.5" />
-                Complete & Sign
+                {isCompleting ? "Completing…" : "Complete & Sign"}
               </Button>
             </div>
           </div>

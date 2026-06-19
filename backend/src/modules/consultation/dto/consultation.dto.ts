@@ -53,6 +53,10 @@ export class CreateConsultationDto {
 
   @IsOptional()
   @IsString()
+  chiefComplaintStructured?: string;
+
+  @IsOptional()
+  @IsString()
   physicalExam?: string;
 
   @IsOptional()
@@ -71,6 +75,18 @@ export class CreateConsultationDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  homeMonitoring?: string;
+
+  @IsOptional()
+  @IsString()
+  consultationMedicalHistory?: string;
+
+  @IsOptional()
+  @IsString()
+  consultationProcedureDetails?: string;
 
   @IsOptional()
   @IsInt()
@@ -90,6 +106,10 @@ export class UpdateConsultationDto {
 
   @IsOptional()
   @IsString()
+  chiefComplaintStructured?: string;
+
+  @IsOptional()
+  @IsString()
   physicalExam?: string;
 
   @IsOptional()
@@ -108,6 +128,18 @@ export class UpdateConsultationDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  homeMonitoring?: string;
+
+  @IsOptional()
+  @IsString()
+  consultationMedicalHistory?: string;
+
+  @IsOptional()
+  @IsString()
+  consultationProcedureDetails?: string;
 
   @IsOptional()
   @IsInt()

@@ -6,7 +6,6 @@ import type { LucideIcon } from "lucide-react"
 import {
   ActivityIcon,
   BarChart2Icon,
-  BoxIcon,
   BrainCircuitIcon,
   CheckCircle2Icon,
   ClockIcon,
@@ -21,7 +20,6 @@ import {
   SparklesIcon,
   SplitIcon,
   Trash2Icon,
-  TrendingUpIcon,
   UploadCloudIcon,
   XCircleIcon,
 } from "lucide-react"
@@ -588,25 +586,11 @@ function MriResultPanel({ result, elapsedSec }: { result: MriResult; elapsedSec:
 
       <ClinicalFeaturesTable features={result.clinicalFeatures} />
 
-      <VizChartPanel
-        title="Mean signal intensity per slice — ED vs ES"
-        icon={TrendingUpIcon}
-        description="Mean voxel intensity across slices comparing ED (blue) and ES (red) phases."
-        chartJson={result.meanSignalChartJson}
-      />
-
       <VizPanel
         title="Overview: ED vs ES"
         icon={LayersIcon}
         description="4-row grid: ED grayscale · ES grayscale · ED−ES difference · colour overlay R=ED G=ES."
         imgB64={result.overviewImgB64}
-      />
-
-      <VizPanel
-        title="Intensity histogram — ED vs ES"
-        icon={BarChart2Icon}
-        description="Side-by-side voxel intensity distributions: ED (blue) and ES (red)."
-        imgB64={result.histogramImgB64}
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -623,14 +607,6 @@ function MriResultPanel({ result, elapsedSec }: { result: MriResult; elapsedSec:
           chartJson={result.wallMotionChartJson}
         />
       </div>
-
-      <VizChartPanel
-        title="3D cardiac structure — ED phase"
-        icon={BoxIcon}
-        description="3D point cloud: LV, myocardium, and RV from ED segmentation masks."
-        chartJson={result.rendering3dJson}
-        contentClassName="h-96"
-      />
 
       <VizPanel
         title="Multi-planar reformatting (MPR)"

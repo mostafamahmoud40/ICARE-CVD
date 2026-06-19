@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import type { ChiefComplaintStructured } from "./consultation.types"
 
 const SECTION_CARD = "rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm"
 const FIELD_LABEL = "text-sm font-medium text-[#374151]"
@@ -316,27 +317,36 @@ const COMPLAINT_ORDERS: Record<string, AiOrderSuggestion[]> = {
 export type ChiefComplaintSectionProps = {
   complaint: string
   onComplaintChange: (value: string) => void
-  structuredComplaint: string
-  onStructuredComplaintChange: (value: string) => void
+  structured: ChiefComplaintStructured
+  onStructuredChange: (value: ChiefComplaintStructured) => void
 }
 
 export function ChiefComplaintSection({
   complaint,
   onComplaintChange,
-  structuredComplaint,
-  onStructuredComplaintChange,
+  structured,
+  onStructuredChange,
 }: ChiefComplaintSectionProps) {
-  const [onset, setOnset] = useState("")
-  const [duration, setDuration] = useState("")
-  const [severity, setSeverity] = useState("")
-  const [character, setCharacter] = useState("")
-  const [aggravating, setAggravating] = useState<string[]>([])
-  const [relieving, setRelieving] = useState<string[]>([])
-  const [associatedSymptoms, setAssociatedSymptoms] = useState<string[]>([])
-  const [otherComplaintDetail, setOtherComplaintDetail] = useState("")
+  const patchStructured = useCallback(
+    (patch: Partial<ChiefComplaintStructured>) => {
+      onStructuredChange({ ...structured, ...patch })
+    },
+    [onStructuredChange, structured],
+  )
+
   const [showAiAssist, setShowAiAssist] = useState(false)
   const [freeTextInput, setFreeTextInput] = useState("")
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([])
+
+  const structuredComplaint = structured.primaryComplaint
+  const onset = structured.onset
+  const duration = structured.duration
+  const severity = structured.severity
+  const character = structured.character
+  const aggravating = structured.aggravating
+  const relieving = structured.relieving
+  const associatedSymptoms = structured.associatedSymptoms
+  const otherComplaintDetail = structured.otherComplaintDetail
 
   const complaintLabel = useMemo(() => {
     if (structuredComplaint === "other") {
@@ -499,10 +509,10 @@ export function ChiefComplaintSection({
   ])
 
   useEffect(() => {
-    if (structuredComplaint !== "other") {
-      setOtherComplaintDetail("")
+    if (structuredComplaint !== "other" && otherComplaintDetail) {
+      patchStructured({ otherComplaintDetail: "" })
     }
-  }, [structuredComplaint])
+  }, [structuredComplaint, otherComplaintDetail, patchStructured])
 
   useEffect(() => {
     if (generatedDescription !== complaint) {
@@ -511,15 +521,21 @@ export function ChiefComplaintSection({
   }, [generatedDescription, complaint, onComplaintChange])
 
   useEffect(() => {
-    setAssociatedSymptoms((prev) => prev.filter((symptom) => associatedOptions.includes(symptom)))
-  }, [associatedOptions])
-
-  const toggleMultiValue = (values: string[], value: string, setter: (next: string[]) => void) => {
-    if (values.includes(value)) {
-      setter(values.filter((item) => item !== value))
-      return
+    const next = associatedSymptoms.filter((symptom) => associatedOptions.includes(symptom))
+    if (next.length !== associatedSymptoms.length) {
+      patchStructured({ associatedSymptoms: next })
     }
-    setter([...values, value])
+  }, [associatedOptions, associatedSymptoms, patchStructured])
+
+  const toggleMultiValue = (
+    values: string[],
+    value: string,
+    key: "aggravating" | "relieving" | "associatedSymptoms",
+  ) => {
+    const next = values.includes(value)
+      ? values.filter((item) => item !== value)
+      : [...values, value]
+    patchStructured({ [key]: next })
   }
 
   const inferStructuredComplaintFromText = (text: string) => {
@@ -536,37 +552,61 @@ export function ChiefComplaintSection({
     if (!freeTextInput.trim()) return
     const normalized = freeTextInput.toLowerCase()
     const inferredComplaint = inferStructuredComplaintFromText(freeTextInput)
-    onStructuredComplaintChange(inferredComplaint)
-    if (inferredComplaint === "other") {
-      setOtherComplaintDetail(freeTextInput.trim())
+
+    const next: ChiefComplaintStructured = {
+      ...structured,
+      primaryComplaint: inferredComplaint,
+      otherComplaintDetail:
+        inferredComplaint === "other" ? freeTextInput.trim() : "",
+      onset: normalized.includes("sudden")
+        ? "Sudden"
+        : normalized.includes("gradual")
+          ? "Gradual"
+          : "Intermittent",
+      duration: normalized.includes("week")
+        ? "1 week"
+        : normalized.includes("day")
+          ? "1-3 days"
+          : normalized.includes("month") || normalized.includes("chronic")
+            ? "Chronic"
+            : "< 24 hours",
+      severity: normalized.includes("severe")
+        ? "Severe"
+        : normalized.includes("moderate")
+          ? "Moderate"
+          : "Mild",
+      character:
+        inferredComplaint === "other"
+          ? ""
+          : normalized.includes("pressure")
+            ? "Pressure-like"
+            : normalized.includes("burn")
+              ? "Burning"
+              : normalized.includes("sharp")
+                ? "Sharp"
+                : structured.character,
+      aggravating:
+        inferredComplaint === "other"
+          ? []
+          : AGGRAVATING_OPTIONS.filter((item) => normalized.includes(item.toLowerCase())),
+      relieving:
+        inferredComplaint === "other"
+          ? []
+          : (() => {
+              const matched = RELIEVING_OPTIONS.filter((item) =>
+                normalized.includes(item.toLowerCase()),
+              )
+              return matched.length > 0 ? matched : ["Rest"]
+            })(),
+      associatedSymptoms: (() => {
+        const assocOptions =
+          ASSOCIATED_SYMPTOMS_BY_COMPLAINT[inferredComplaint] ??
+          ASSOCIATED_SYMPTOMS_BY_COMPLAINT.default
+        return assocOptions.filter((item) => normalized.includes(item.toLowerCase()))
+      })(),
     }
-    if (normalized.includes("sudden")) setOnset("Sudden")
-    else if (normalized.includes("gradual")) setOnset("Gradual")
-    else setOnset("Intermittent")
 
-    if (normalized.includes("week")) setDuration("1 week")
-    else if (normalized.includes("day")) setDuration("1-3 days")
-    else if (normalized.includes("month") || normalized.includes("chronic")) setDuration("Chronic")
-    else setDuration("< 24 hours")
-
-    if (normalized.includes("severe")) setSeverity("Severe")
-    else if (normalized.includes("moderate")) setSeverity("Moderate")
-    else setSeverity("Mild")
-
-    if (inferredComplaint !== "other") {
-      if (normalized.includes("pressure")) setCharacter("Pressure-like")
-      else if (normalized.includes("burn")) setCharacter("Burning")
-      else if (normalized.includes("sharp")) setCharacter("Sharp")
-
-      const nextAggravating = AGGRAVATING_OPTIONS.filter((item) => normalized.includes(item.toLowerCase()))
-      const nextRelieving = RELIEVING_OPTIONS.filter((item) => normalized.includes(item.toLowerCase()))
-      setAggravating(nextAggravating)
-      setRelieving(nextRelieving.length > 0 ? nextRelieving : ["Rest"])
-    }
-
-    const assocOptions = ASSOCIATED_SYMPTOMS_BY_COMPLAINT[inferredComplaint] ?? ASSOCIATED_SYMPTOMS_BY_COMPLAINT.default
-    const nextAssociated = assocOptions.filter((item) => normalized.includes(item.toLowerCase()))
-    setAssociatedSymptoms(nextAssociated)
+    onStructuredChange(next)
   }
 
   const getFreeText = useCallback(() => freeTextInput, [freeTextInput])
@@ -801,7 +841,10 @@ export function ChiefComplaintSection({
       <div className="space-y-4">
         <div className="space-y-2">
           <FieldLabel>Primary complaint</FieldLabel>
-          <Select value={structuredComplaint} onValueChange={onStructuredComplaintChange}>
+          <Select
+            value={structuredComplaint}
+            onValueChange={(value) => patchStructured({ primaryComplaint: value })}
+          >
             <SelectTrigger className={SELECT_TRIGGER}>
               <SelectValue placeholder="Select primary complaint…" />
             </SelectTrigger>
@@ -830,7 +873,7 @@ export function ChiefComplaintSection({
                 <Input
                   id="other-complaint-detail"
                   value={otherComplaintDetail}
-                  onChange={(e) => setOtherComplaintDetail(e.target.value)}
+                  onChange={(e) => patchStructured({ otherComplaintDetail: e.target.value })}
                   placeholder="e.g. Recurrent headaches, skin rash, joint stiffness…"
                   className="h-10 rounded-xl border-gray-200 bg-white text-[14px] focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
                 />
@@ -839,9 +882,9 @@ export function ChiefComplaintSection({
               <div className="grid gap-3 sm:grid-cols-3">
                 {(
                   [
-                    { value: onset, onChange: setOnset, placeholder: "Onset", options: ONSET_OPTIONS },
-                    { value: duration, onChange: setDuration, placeholder: "Duration", options: DURATION_OPTIONS },
-                    { value: severity, onChange: setSeverity, placeholder: "Severity", options: SEVERITY_OPTIONS },
+                    { value: onset, onChange: (v: string) => patchStructured({ onset: v }), placeholder: "Onset", options: ONSET_OPTIONS },
+                    { value: duration, onChange: (v: string) => patchStructured({ duration: v }), placeholder: "Duration", options: DURATION_OPTIONS },
+                    { value: severity, onChange: (v: string) => patchStructured({ severity: v }), placeholder: "Severity", options: SEVERITY_OPTIONS },
                   ] as const
                 ).map((field) => (
                   <div key={field.placeholder} className="space-y-1.5">
@@ -866,7 +909,7 @@ export function ChiefComplaintSection({
                 label="Associated symptoms"
                 options={associatedOptions}
                 selected={associatedSymptoms}
-                onToggle={(option) => toggleMultiValue(associatedSymptoms, option, setAssociatedSymptoms)}
+                onToggle={(option) => toggleMultiValue(associatedSymptoms, option, "associatedSymptoms")}
               />
             </div>
           ) : (
@@ -876,10 +919,10 @@ export function ChiefComplaintSection({
               <div className="grid gap-3 sm:grid-cols-2">
                 {(
                   [
-                    { value: onset, onChange: setOnset, placeholder: "Onset", options: ONSET_OPTIONS },
-                    { value: duration, onChange: setDuration, placeholder: "Duration", options: DURATION_OPTIONS },
-                    { value: severity, onChange: setSeverity, placeholder: "Severity", options: SEVERITY_OPTIONS },
-                    { value: character, onChange: setCharacter, placeholder: "Character", options: CHARACTER_OPTIONS },
+                    { value: onset, onChange: (v: string) => patchStructured({ onset: v }), placeholder: "Onset", options: ONSET_OPTIONS },
+                    { value: duration, onChange: (v: string) => patchStructured({ duration: v }), placeholder: "Duration", options: DURATION_OPTIONS },
+                    { value: severity, onChange: (v: string) => patchStructured({ severity: v }), placeholder: "Severity", options: SEVERITY_OPTIONS },
+                    { value: character, onChange: (v: string) => patchStructured({ character: v }), placeholder: "Character", options: CHARACTER_OPTIONS },
                   ] as const
                 ).map((field) => (
                   <div key={field.placeholder} className="space-y-1.5">
@@ -904,21 +947,21 @@ export function ChiefComplaintSection({
                 label="Aggravating factors"
                 options={AGGRAVATING_OPTIONS}
                 selected={aggravating}
-                onToggle={(option) => toggleMultiValue(aggravating, option, setAggravating)}
+                onToggle={(option) => toggleMultiValue(aggravating, option, "aggravating")}
               />
 
               <ChipToggleGroup
                 label="Relieving factors"
                 options={RELIEVING_OPTIONS}
                 selected={relieving}
-                onToggle={(option) => toggleMultiValue(relieving, option, setRelieving)}
+                onToggle={(option) => toggleMultiValue(relieving, option, "relieving")}
               />
 
               <ChipToggleGroup
                 label="Associated symptoms"
                 options={associatedOptions}
                 selected={associatedSymptoms}
-                onToggle={(option) => toggleMultiValue(associatedSymptoms, option, setAssociatedSymptoms)}
+                onToggle={(option) => toggleMultiValue(associatedSymptoms, option, "associatedSymptoms")}
               />
             </div>
           )

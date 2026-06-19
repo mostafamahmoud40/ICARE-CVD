@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { showIcareErrorToast } from "@/components/shared/icare-toast"
+import { showIcareErrorToast, showIcareSuccessToast } from "@/components/shared/icare-toast"
 import { apiClient } from "@/lib/api-client"
 import type { ConsultationVitalReading, VitalSigns } from "./consultation.types"
 import {
@@ -22,7 +22,15 @@ type QueueEntryResponse = {
   age: number
 }
 
-const SAVE_DEBOUNCE_MS = 900
+function canPersistVitals(vitals: VitalSigns): string | null {
+  if (!hasPersistableVitalValue(vitals)) {
+    return "Enter at least one vital sign before saving."
+  }
+  if (hasBpPairMismatch(vitals)) {
+    return "Enter both systolic and diastolic blood pressure, or leave both empty."
+  }
+  return null
+}
 
 async function fetchQueueEntry(queueEntryId: string): Promise<QueueEntryResponse> {
   const { data } = await apiClient.get<{
@@ -47,7 +55,7 @@ export function useConsultationVitals(queueEntryId: string) {
   const [sessionVitalId, setSessionVitalId] = useState<string | null>(null)
   const [patientAge, setPatientAge] = useState(0)
   const [isSaving, setIsSaving] = useState(false)
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [isDirty, setIsDirty] = useState(false)
   const vitalsRef = useRef(vitals)
   const sessionVitalIdRef = useRef(sessionVitalId)
   const patientIdRef = useRef<string | null>(null)
@@ -97,6 +105,7 @@ export function useConsultationVitals(queueEntryId: string) {
     setLastVitalReading(
       pickLastVitalReading(vitalsQuery.data, todayReading?.id ?? null),
     )
+    setIsDirty(false)
   }, [vitalsQuery.data])
 
   const saveMutation = useMutation({
@@ -124,6 +133,8 @@ export function useConsultationVitals(queueEntryId: string) {
     },
     onSuccess: (row) => {
       setSessionVitalId(row.id)
+      setIsDirty(false)
+      showIcareSuccessToast("Vitals saved", "Patient vital signs were saved to the record.")
     },
     onError: () => {
       showIcareErrorToast(
@@ -135,8 +146,11 @@ export function useConsultationVitals(queueEntryId: string) {
 
   const persistVitals = useCallback(
     async (next: VitalSigns, vitalId: string | null, pid: string) => {
-      if (!hasPersistableVitalValue(next)) return
-      if (hasBpPairMismatch(next)) return
+      const validationError = canPersistVitals(next)
+      if (validationError) {
+        showIcareErrorToast("Cannot save vitals", validationError)
+        return false
+      }
 
       setIsSaving(true)
       try {
@@ -145,6 +159,9 @@ export function useConsultationVitals(queueEntryId: string) {
           vitalId,
           payload: vitalSignsToApiPayload(next),
         })
+        return true
+      } catch {
+        return false
       } finally {
         setIsSaving(false)
       }
@@ -152,48 +169,23 @@ export function useConsultationVitals(queueEntryId: string) {
     [saveMutation],
   )
 
-  const scheduleSave = useCallback(
-    (next: VitalSigns) => {
-      const pid = patientIdRef.current
-      if (!pid) return
+  const saveNow = useCallback(async () => {
+    const pid = patientIdRef.current
+    if (!pid) return
 
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-      saveTimerRef.current = setTimeout(() => {
-        void persistVitals(next, sessionVitalIdRef.current, pid)
-      }, SAVE_DEBOUNCE_MS)
-    },
-    [persistVitals],
-  )
+    await persistVitals(vitalsRef.current, sessionVitalIdRef.current, pid)
+  }, [persistVitals])
 
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    }
+  const onVitalChange = useCallback((key: keyof VitalSigns, value: string) => {
+    setVitals((prev) => ({ ...prev, [key]: value }))
+    setIsDirty(true)
   }, [])
 
-  const onVitalChange = useCallback(
-    (key: keyof VitalSigns, value: string) => {
-      setVitals((prev) => {
-        const next = { ...prev, [key]: value }
-        scheduleSave(next)
-        return next
-      })
-    },
-    [scheduleSave],
-  )
-
-  const applyLastReading = useCallback(
-    (reading: ConsultationVitalReading) => {
-      const next = mapConsultationReadingToVitalSigns(reading)
-      setVitals(next)
-      const pid = patientIdRef.current
-      if (pid) {
-        if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-        void persistVitals(next, sessionVitalIdRef.current, pid)
-      }
-    },
-    [persistVitals],
-  )
+  const applyLastReading = useCallback((reading: ConsultationVitalReading) => {
+    const next = mapConsultationReadingToVitalSigns(reading)
+    setVitals(next)
+    setIsDirty(true)
+  }, [])
 
   return {
     vitals,
@@ -201,6 +193,9 @@ export function useConsultationVitals(queueEntryId: string) {
     patientAge,
     onVitalChange,
     applyLastReading,
+    saveNow,
+    isDirty,
+    canSave: isDirty && canPersistVitals(vitals) === null,
     isLoading: contextQuery.isLoading || vitalsQuery.isLoading,
     isError: contextQuery.isError || vitalsQuery.isError,
     isSaving: isSaving || saveMutation.isPending,

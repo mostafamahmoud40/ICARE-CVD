@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 import {
   ActivityIcon,
@@ -16,16 +16,18 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
+import type { PersistedXrayResult, XrayAnalysisStatus } from "./useConsultationXrayAnalysis"
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type AnalysisStatus = "idle" | "processing" | "done" | "error"
+type AnalysisStatus = XrayAnalysisStatus
 
 interface XrayResult {
   findings: Record<string, number>
   riskLevel: "high" | "moderate" | "normal"
   interpretation: string[]
-  originalB64: string
-  annotatedB64: string
+  originalImageUrl: string
+  annotatedImageUrl: string
   totalDetections: number
   inferenceTimeMs: number
 }
@@ -333,7 +335,7 @@ function ResultPanel({ result }: { result: XrayResult }) {
           </div>
           <div className="bg-[#F9F8F5] p-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={result.originalB64} alt="Source chest X-ray" className="w-full rounded-lg object-contain" />
+            <img src={result.originalImageUrl} alt="Source chest X-ray" className="w-full rounded-lg object-contain" />
           </div>
         </div>
         <div className="overflow-hidden rounded-xl border border-[#E5EEEA] bg-white">
@@ -344,7 +346,7 @@ function ResultPanel({ result }: { result: XrayResult }) {
           <div className="bg-[#F9F8F5] p-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={result.annotatedB64}
+              src={result.annotatedImageUrl}
               alt="Chest X-ray with AI bounding boxes"
               className="w-full rounded-lg object-contain"
             />
@@ -408,78 +410,108 @@ function ErrorPanel({ message, onRetry }: { message: string; onRetry: () => void
   )
 }
 
+function SavedResultCard({
+  result,
+  onRemove,
+}: {
+  result: PersistedXrayResult
+  onRemove: () => void
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm">
+      <div className="relative border-b border-[#E8E6E0]/60 bg-[#F9F8F5] p-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={result.originalImageUrl}
+          alt="Saved chest X-ray"
+          className="mx-auto max-h-52 w-full object-contain"
+        />
+      </div>
+      <div className="flex items-center gap-3 px-3 py-2.5">
+        <FileImageIcon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[12px] font-semibold text-[#1A1F1E]">{result.fileName}</p>
+          <p className="text-[10px] text-muted-foreground">{formatBytes(result.fileSize)}</p>
+        </div>
+        <Badge
+          variant="default"
+          className="gap-1 rounded-lg bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-none"
+        >
+          <CheckCircle2Icon className="size-3" aria-hidden />
+          Saved
+        </Badge>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="size-8 border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-rose-600"
+          onClick={onRemove}
+          aria-label="Remove saved X-ray"
+        >
+          <Trash2Icon className="size-4" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main section ─────────────────────────────────────────────────────────────
 
 export type XrayScanSectionProps = {
   xrayFile: File | null
-  onXrayFileChange: (file: File | null) => void
+  savedResult: PersistedXrayResult | null
+  status: AnalysisStatus
+  errorMsg: string
+  isLoading?: boolean
+  onFileSelected: (file: File) => void
+  onRemove: () => void
+  onAnalyze: () => void
+  onRetry: () => void
 }
 
-export function XrayScanSection({ xrayFile, onXrayFileChange }: XrayScanSectionProps) {
-  const [status, setStatus] = useState<AnalysisStatus>("idle")
-  const [result, setResult] = useState<XrayResult | null>(null)
-  const [errorMsg, setErrorMsg] = useState("")
+export function XrayScanSection({
+  xrayFile,
+  savedResult,
+  status,
+  errorMsg,
+  isLoading = false,
+  onFileSelected,
+  onRemove,
+  onAnalyze,
+  onRetry,
+}: XrayScanSectionProps) {
   const previewUrlRef = useRef<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
-  const reset = () => {
-    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
-    previewUrlRef.current = null
-    setPreviewUrl(null)
-    setStatus("idle")
-    setResult(null)
-    setErrorMsg("")
-  }
+  useEffect(() => {
+    if (!xrayFile) {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+      previewUrlRef.current = null
+      setPreviewUrl(null)
+      return
+    }
 
-  const handleFileSelected = (file: File) => {
-    reset()
-    const url = URL.createObjectURL(file)
+    const url = URL.createObjectURL(xrayFile)
     previewUrlRef.current = url
     setPreviewUrl(url)
-    onXrayFileChange(file)
-  }
 
-  const handleRemove = () => {
-    reset()
-    onXrayFileChange(null)
-  }
-
-  const handleAnalyze = async () => {
-    if (!xrayFile) return
-    setStatus("processing")
-    setResult(null)
-    setErrorMsg("")
-
-    try {
-      const formData = new FormData()
-      formData.append("file", xrayFile)
-
-      const res = await fetch(`${ML_URL}/api/v1/xray/analyze`, {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => `HTTP ${res.status}`)
-        throw new Error(text || `HTTP ${res.status}`)
-      }
-
-      const json = await res.json()
-      setResult({
-        findings: json.findings,
-        riskLevel: json.risk_level,
-        interpretation: json.interpretation,
-        originalB64: json.original_b64,
-        annotatedB64: json.annotated_b64,
-        totalDetections: json.total_detections,
-        inferenceTimeMs: json.inference_time_ms,
-      })
-      setStatus("done")
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Unknown error")
-      setStatus("error")
+    return () => {
+      URL.revokeObjectURL(url)
+      if (previewUrlRef.current === url) previewUrlRef.current = null
     }
-  }
+  }, [xrayFile])
+
+  const displayResult: XrayResult | null = savedResult
+    ? {
+        findings: savedResult.findings,
+        riskLevel: savedResult.riskLevel,
+        interpretation: savedResult.interpretation,
+        originalImageUrl: savedResult.originalImageUrl,
+        annotatedImageUrl: savedResult.annotatedImageUrl,
+        totalDetections: savedResult.totalDetections,
+        inferenceTimeMs: savedResult.inferenceTimeMs,
+      }
+    : null
 
   return (
     <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm">
@@ -502,21 +534,28 @@ export function XrayScanSection({ xrayFile, onXrayFileChange }: XrayScanSectionP
       </div>
 
       <div className="space-y-4">
-        {!xrayFile ? (
-          <UploadDropZone onFileSelected={handleFileSelected} />
-        ) : (
+        {isLoading ? (
+          <div className="flex items-center justify-center rounded-xl border border-dashed border-[#E5EEEA] bg-[#FAFAF8] py-10">
+            <Loader2Icon className="size-5 animate-spin text-[#1A5345]" aria-hidden />
+            <span className="sr-only">Loading saved X-ray analysis…</span>
+          </div>
+        ) : !xrayFile && !savedResult ? (
+          <UploadDropZone onFileSelected={onFileSelected} />
+        ) : xrayFile && previewUrl ? (
           <ImagePreviewCard
             file={xrayFile}
-            previewUrl={previewUrl!}
+            previewUrl={previewUrl}
             status={status}
-            onRemove={handleRemove}
+            onRemove={onRemove}
           />
-        )}
+        ) : savedResult ? (
+          <SavedResultCard result={savedResult} onRemove={onRemove} />
+        ) : null}
 
-        {status === "done" && result ? <ResultPanel result={result} /> : null}
+        {status === "done" && displayResult ? <ResultPanel result={displayResult} /> : null}
 
         {status === "error" ? (
-          <ErrorPanel message={errorMsg} onRetry={handleAnalyze} />
+          <ErrorPanel message={errorMsg} onRetry={onRetry} />
         ) : null}
 
         {xrayFile && status !== "done" && status !== "error" ? (
@@ -524,13 +563,13 @@ export function XrayScanSection({ xrayFile, onXrayFileChange }: XrayScanSectionP
             type="button"
             size="sm"
             disabled={status === "processing"}
-            onClick={() => void handleAnalyze()}
+            onClick={onAnalyze}
             className="h-9 w-full gap-1.5 rounded-lg border-0 bg-[#1A5345] text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34]"
           >
             {status === "processing" ? (
               <>
                 <Loader2Icon className="size-4 animate-spin" aria-hidden />
-                Analyzing X-ray…
+                Analyzing & saving X-ray…
               </>
             ) : (
               <>

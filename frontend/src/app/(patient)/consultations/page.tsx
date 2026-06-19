@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 
-import { ConsultationsContent } from "./ConsultationsContent"
-import { mockVisitData, mockStats } from "./consultations.mock"
+import { ConsultationsPageClient } from "./ConsultationsPageClient"
 
 export const metadata: Metadata = {
   title: "Consultations | ICARE-CVD",
@@ -9,5 +8,5 @@ export const metadata: Metadata = {
 }
 
 export default function ConsultationsPage() {
-  return <ConsultationsContent visits={mockVisitData.visits} stats={mockStats} />
+  return <ConsultationsPageClient />
 }

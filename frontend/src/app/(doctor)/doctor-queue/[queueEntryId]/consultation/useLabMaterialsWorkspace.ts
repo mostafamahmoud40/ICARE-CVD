@@ -107,8 +107,15 @@ export function useLabMaterialsWorkspace(
     // The Medical Analyzer accepts one document at a time — use the first file.
     // Multiple files: the first document's analysis is shown; upload remaining
     // individually if needed (can be extended to sequential calls later).
+    const firstFile = items.find((item) => item.file)?.file
+    if (!firstFile) {
+      setAnalysisError("No local file available to analyze. Re-upload the report.")
+      setAnalysisPhase("error")
+      return
+    }
+
     const formData = new FormData()
-    formData.append("file", items[0].file)
+    formData.append("file", firstFile)
 
     try {
       const res = await fetch(OCR_ROUTE, {

@@ -6,6 +6,7 @@ import { DoctorGuard } from '../doctor/doctor.guard';
 import { LabService } from './lab.service';
 import { DoctorLabController } from './doctor-lab.controller';
 import { DoctorVerifierModule } from '../../shared/doctor/doctor-verifier.module';
+import { MinioModule } from '../../shared/storage/minio.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { DoctorVerifierModule } from '../../shared/doctor/doctor-verifier.module
       secret: process.env.JWT_ACCESS_SECRET,
     }),
     DoctorVerifierModule,
+    MinioModule,
   ],
   controllers: [DoctorLabController],
   providers: [LabService, DoctorGuard, AuthJwtService, AccessTokenGuard],

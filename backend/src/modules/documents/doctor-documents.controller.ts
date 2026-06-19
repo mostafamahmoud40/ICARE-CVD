@@ -12,7 +12,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { TokenPayload } from '../auth/jwt';
 import { DoctorGuard } from '../doctor/doctor.guard';
 import { DoctorDocumentService } from './doctor-documents.service';
-import { CreateDocumentDto } from './dto/documents.dto';
+import { CreateDocumentDto, LabReportUploadIntentDto } from './dto/documents.dto';
 
 @Controller('doctor/patients')
 @UseGuards(AccessTokenGuard, DoctorGuard)
@@ -25,6 +25,20 @@ export class DoctorDocumentsController {
     @Param('patientId') patientId: string,
   ) {
     return this.service.listDocuments(user.sub, patientId);
+  }
+
+  @Post(':patientId/documents/upload-intent')
+  createLabReportUploadIntent(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Body() dto: LabReportUploadIntentDto,
+  ) {
+    return this.service.createLabReportUploadIntent(
+      user.sub,
+      patientId,
+      dto.fileName,
+      dto.contentType,
+    );
   }
 
   @Post(':patientId/documents')

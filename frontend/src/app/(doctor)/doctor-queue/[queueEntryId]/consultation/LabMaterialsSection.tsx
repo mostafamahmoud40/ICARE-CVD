@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import type { LabMaterialFile } from "./consultation.types"
 import type { LabAnalysisBundle, LabResultRow, LabResultStatus } from "./labMaterials.types"
 import { LabMaterialsAiChatDialog } from "./LabMaterialsAiChatDialog"
-import { useLabMaterialsWorkspace } from "./useLabMaterialsWorkspace"
+import { useLabMaterialsWorkspace, type UseLabMaterialsWorkspaceResult } from "./useLabMaterialsWorkspace"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -37,8 +37,8 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function isImageFile(file: LabMaterialFile["file"]): boolean {
-  const name = file.name.toLowerCase()
+function isImageFile(item: LabMaterialFile): boolean {
+  const name = (item.file?.name ?? item.fileName).toLowerCase()
   return name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg")
 }
 
@@ -54,7 +54,7 @@ function FilePreviewDialog({
   const [objectUrl, setObjectUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!item) {
+    if (!item?.file) {
       setObjectUrl(null)
       return
     }
@@ -68,7 +68,8 @@ function FilePreviewDialog({
   if (!item) return null
 
   const file = item.file
-  const isImage = isImageFile(file)
+  const isImage = isImageFile(item)
+  const displayName = item.fileName
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -76,27 +77,27 @@ function FilePreviewDialog({
         <DialogHeader className="shrink-0 border-b border-[#E8E6E0] px-4 py-3">
           <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold text-[#102F27]">
             <FileIcon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
-            <span className="truncate">{file.name}</span>
+            <span className="truncate">{displayName}</span>
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-1 items-center justify-center overflow-auto bg-[#F9F8F5] p-4">
           {isImage && objectUrl ? (
             <img
               src={objectUrl}
-              alt={file.name}
+              alt={displayName}
               className="max-h-full max-w-full rounded-lg object-contain shadow-sm"
             />
           ) : (
             <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-[#E5EEEA] bg-white p-8 text-center">
               <FileIcon className="size-10 text-[#1A5345]" aria-hidden />
               <div>
-                <p className="text-[14px] font-medium text-[#102F27]">{file.name}</p>
+                <p className="text-[14px] font-medium text-[#102F27]">{displayName}</p>
                 <p className="mt-0.5 text-[12px] text-muted-foreground">
-                  {formatBytes(file.size)}
-                  {file.type ? ` · ${file.type}` : ""}
+                  {formatBytes(item.fileSize)}
+                  {file?.type ? ` · ${file.type}` : ""}
                 </p>
               </div>
-              {objectUrl && (
+              {objectUrl && file && (
                 <a
                   href={objectUrl}
                   target="_blank"
@@ -106,6 +107,11 @@ function FilePreviewDialog({
                   Open file
                 </a>
               )}
+              {!file && item.documentId ? (
+                <p className="mt-2 text-[12px] text-muted-foreground">
+                  Stored in MinIO — preview available after download is enabled.
+                </p>
+              ) : null}
             </div>
           )}
         </div>
@@ -324,6 +330,9 @@ export type LabMaterialsSectionProps = {
   onAdd: (files: File[]) => void
   onRemove: (id: string) => void
   className?: string
+  activeItemId?: string | null
+  onSelectItem?: (id: string) => void
+  workspace?: UseLabMaterialsWorkspaceResult
 }
 
 export function LabMaterialsSection({
@@ -331,8 +340,12 @@ export function LabMaterialsSection({
   onAdd,
   onRemove,
   className,
+  activeItemId,
+  onSelectItem,
+  workspace: externalWorkspace,
 }: LabMaterialsSectionProps) {
-  const workspace = useLabMaterialsWorkspace(items)
+  const internalWorkspace = useLabMaterialsWorkspace(items)
+  const workspace = externalWorkspace ?? internalWorkspace
   const pickInputRef = useRef<HTMLInputElement>(null)
   const [previewItem, setPreviewItem] = useState<LabMaterialFile | null>(null)
 
@@ -445,43 +458,68 @@ export function LabMaterialsSection({
 
             {items.length > 0 ? (
               <ul className="space-y-2" aria-label="Attached lab files">
-                {items.map((item) => (
-                  <li
-                    key={item.id}
-                    onClick={() => setPreviewItem(item)}
-                    className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm transition-colors hover:bg-[#F9F8F5]"
-                  >
-                    <FileIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[14px] font-semibold text-[#1A1F1E]">{item.file.name}</p>
-                      <p className="text-[12px] text-muted-foreground">
-                        {formatBytes(item.file.size)}
-                        {item.file.type ? ` · ${item.file.type}` : ""}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      disabled={workspace.analysisPhase === "analyzing"}
-                      className="size-8 shrink-0 border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-rose-600"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onRemove(item.id)
+                {items.map((item) => {
+                  const isActive = activeItemId ? item.id === activeItemId : false
+                  return (
+                    <li
+                      key={item.id}
+                      onClick={() => {
+                        onSelectItem?.(item.id)
+                        setPreviewItem(item)
                       }}
-                      aria-label={`Remove ${item.file.name}`}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-3 rounded-xl border bg-white p-4 shadow-sm transition-colors hover:bg-[#F9F8F5]",
+                        isActive
+                          ? "border-[#1A5345]/40"
+                          : "border-[#E8E6E0]/60",
+                      )}
                     >
-                      <Trash2Icon className="size-4" />
-                    </Button>
-                  </li>
-                ))}
+                      <FileIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[14px] font-semibold text-[#1A1F1E]">
+                          {item.fileName}
+                        </p>
+                        <p className="text-[12px] text-muted-foreground">
+                          {formatBytes(item.fileSize)}
+                          {item.uploadPhase === "uploading" ? " · Uploading…" : ""}
+                          {item.uploadPhase === "error" ? " · Upload failed" : ""}
+                          {item.file?.type ? ` · ${item.file.type}` : ""}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        disabled={workspace.analysisPhase === "analyzing"}
+                        className="size-8 shrink-0 border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-rose-600"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onRemove(item.id)
+                        }}
+                        aria-label={`Remove ${item.fileName}`}
+                      >
+                        <Trash2Icon className="size-4" />
+                      </Button>
+                    </li>
+                  )
+                })}
               </ul>
             ) : null}
 
             <Button
               type="button"
               size="sm"
-              disabled={items.length === 0 || workspace.analysisPhase === "analyzing"}
+              disabled={(() => {
+                const selectedId = activeItemId ?? items[0]?.id
+                const selected = items.find((item) => item.id === selectedId)
+                return (
+                  items.length === 0 ||
+                  workspace.analysisPhase === "analyzing" ||
+                  items.some((item) => item.uploadPhase === "uploading") ||
+                  !selected?.file ||
+                  selected.uploadPhase !== "ready"
+                )
+              })()}
               onClick={() => void workspace.runAiAnalysis()}
               className={cn(
                 "h-10 w-full gap-1.5 rounded-lg text-[13px] font-bold shadow-sm",
@@ -542,7 +580,7 @@ export function LabMaterialsSection({
             ) : null}
 
             <p className="text-center text-[12px] leading-relaxed text-muted-foreground">
-              Powered by Mistral OCR + Groq. Files are processed by the Medical Analyzer and not stored permanently.
+              Powered by Mistral OCR + Groq. Files are stored in MinIO; structured results save to the patient record.
             </p>
           </div>
         </div>
