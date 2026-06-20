@@ -5,8 +5,11 @@ import { AuthJwtService } from '../auth/jwt';
 import { DoctorGuard } from '../doctor/doctor.guard';
 import { PatientGuard } from '../patient/patient.guard';
 import { DoctorVerifierModule } from '../../shared/doctor/doctor-verifier.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { AppointmentController } from './appointment.controller';
 import { AppointmentService } from './appointment.service';
+import { AppointmentPatientNotificationService } from './appointment-patient-notification.service';
+import { AppointmentAssistantNotificationService } from './appointment-assistant-notification.service';
 import { DoctorAppointmentController } from './doctor-appointment.controller';
 import { DoctorAppointmentService } from './doctor-appointment.service';
 
@@ -16,16 +19,23 @@ import { DoctorAppointmentService } from './doctor-appointment.service';
       secret: process.env.JWT_ACCESS_SECRET,
     }),
     DoctorVerifierModule,
+    NotificationsModule,
   ],
   controllers: [AppointmentController, DoctorAppointmentController],
   providers: [
     AppointmentService,
+    AppointmentPatientNotificationService,
+    AppointmentAssistantNotificationService,
     DoctorAppointmentService,
     PatientGuard,
     DoctorGuard,
     AuthJwtService,
     AccessTokenGuard,
   ],
-  exports: [AppointmentService],
+  exports: [
+    AppointmentService,
+    AppointmentPatientNotificationService,
+    AppointmentAssistantNotificationService,
+  ],
 })
 export class AppointmentModule {}

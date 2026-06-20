@@ -15,6 +15,7 @@ export const queueStatusEnum = pgEnum('queue_status', [
   'arrived',
   'waiting',
   'in-consultation',
+  'report-pending',
   'completed',
   'no-show',
   'cancelled',

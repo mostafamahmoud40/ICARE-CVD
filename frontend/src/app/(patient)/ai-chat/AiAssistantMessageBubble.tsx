@@ -3,6 +3,8 @@ import Link from "next/link"
 import { CalendarDaysIcon, DownloadIcon, MessageCircleIcon, ActivityIcon, AlertTriangleIcon } from "lucide-react"
 
 import type { AiChatAction, AiChatMessage } from "./ai-chat.types"
+import { AgentActionTrail } from "./AgentActionTrail"
+import { AgentPipelineTrace } from "./AgentPipelineTrace"
 
 const ACTION_ICONS = {
   download: DownloadIcon,
@@ -58,16 +60,26 @@ function AiMessageAction({ action }: { action: AiChatAction }) {
 export function isRichAssistantMessage(message: AiChatMessage): boolean {
   return (
     message.role === "assistant" &&
-    Boolean(message.greeting || (message.actions && message.actions.length > 0) || message.text.match(/(\*\*.*?\*\*|!!.*?!!|\+\+.*?\+\+)/))
+    Boolean(
+      message.greeting ||
+        (message.actions && message.actions.length > 0) ||
+        (message.agentActions && message.agentActions.length > 0) ||
+        (message.pipelineTrace && message.pipelineTrace.length > 0) ||
+        message.text.match(/(\*\*.*?\*\*|!!.*?!!|\+\+.*?\+\+)/),
+    )
   )
 }
 
 export function AiAssistantMessageBubble({ message }: AiAssistantMessageBubbleProps) {
   const hasActions = message.actions && message.actions.length > 0
+  const hasAgentActions = message.agentActions && message.agentActions.length > 0
+  const hasPipelineTrace = message.pipelineTrace && message.pipelineTrace.length > 0
 
   return (
     <div className="overflow-hidden rounded-2xl rounded-tl-xs border border-[#E8E6E0]/70 bg-[#FAFAF8] shadow-xs">
       <div className="px-4 py-3.5 text-[14px] leading-relaxed text-[#1A1F1E]">
+        {hasPipelineTrace ? <AgentPipelineTrace stages={message.pipelineTrace!} /> : null}
+        {hasAgentActions ? <AgentActionTrail actions={message.agentActions!} /> : null}
         {message.greeting ? (
           <p className="mb-2 font-bold text-[#1A5345]">{message.greeting}</p>
         ) : null}

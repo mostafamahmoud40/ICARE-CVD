@@ -4,6 +4,7 @@ export type AuthUser = {
   email: string;
   phone: string;
   role: "admin" | "patient" | "assistant" | "doctor";
+  avatarUrl?: string | null;
 };
 
 export type AuthTokens = {

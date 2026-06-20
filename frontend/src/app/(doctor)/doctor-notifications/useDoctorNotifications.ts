@@ -27,6 +27,12 @@ export function getDoctorNotificationsSnapshot() {
   return notifications
 }
 
+const doctorNotificationsServerSnapshot = getDoctorNotificationsMock()
+
+export function getDoctorNotificationsServerSnapshot() {
+  return doctorNotificationsServerSnapshot
+}
+
 export function prependRealtimeNotification(item: DoctorNotification) {
   if (notifications.some((n) => n.id === item.id)) return
   notifications = [item, ...notifications]
@@ -87,6 +93,10 @@ function mapApiNotification(row: {
 
 async function hydrateFromApi() {
   if (hydratedFromApi) return
+  await refreshDoctorNotificationsFromApi()
+}
+
+export async function refreshDoctorNotificationsFromApi() {
   try {
     const rows = await fetchNotifications()
     if (rows.length > 0) {
@@ -104,7 +114,7 @@ export function useDoctorNotifications() {
   const items = useSyncExternalStore(
     subscribeDoctorNotifications,
     getDoctorNotificationsSnapshot,
-    getDoctorNotificationsMock,
+    getDoctorNotificationsServerSnapshot,
   )
 
   useEffect(() => {

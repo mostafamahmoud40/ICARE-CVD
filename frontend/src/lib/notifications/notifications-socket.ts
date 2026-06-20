@@ -14,6 +14,37 @@ function socketBaseUrl() {
 }
 
 let socket: Socket | null = null
+const notificationListeners = new Set<(notification: ApiNotification) => void>()
+
+function dispatchNotification(notification: ApiNotification) {
+  for (const listener of notificationListeners) {
+    listener(notification)
+  }
+}
+
+function ensureSocket() {
+  const token = getAccessToken()
+  if (!token) return
+
+  if (socket) {
+    socket.auth = { token }
+    if (!socket.connected) {
+      socket.connect()
+    }
+    return
+  }
+
+  socket = io(`${socketBaseUrl()}/notifications`, {
+    auth: { token },
+    transports: ["websocket", "polling"],
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+  })
+
+  socket.on("notification:new", dispatchNotification)
+}
 
 export function connectNotificationsSocket(
   onNotification: (notification: ApiNotification) => void,
@@ -21,27 +52,27 @@ export function connectNotificationsSocket(
   const token = getAccessToken()
   if (!token) return () => {}
 
-  if (socket?.connected) {
-    socket.off("notification:new")
-    socket.on("notification:new", onNotification)
-    return () => {
-      socket?.off("notification:new", onNotification)
-    }
-  }
-
-  socket = io(`${socketBaseUrl()}/notifications`, {
-    auth: { token },
-    transports: ["websocket", "polling"],
-  })
-
-  socket.on("notification:new", onNotification)
+  notificationListeners.add(onNotification)
+  ensureSocket()
 
   return () => {
-    socket?.off("notification:new", onNotification)
+    notificationListeners.delete(onNotification)
   }
+}
+
+export function reconnectNotificationsSocket() {
+  const token = getAccessToken()
+  if (!token || !socket) return
+
+  socket.auth = { token }
+  if (socket.connected) {
+    socket.disconnect()
+  }
+  socket.connect()
 }
 
 export function disconnectNotificationsSocket() {
   socket?.disconnect()
   socket = null
+  notificationListeners.clear()
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import {
   AlertTriangleIcon,
   CheckCircle2Icon,
@@ -12,6 +12,7 @@ import {
   XIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -29,9 +30,11 @@ import {
 } from "./medicalHistory.constants"
 
 const SECTION_CARD = "rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm"
+const INNER_PANEL = "rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-4"
+const ITEM_CARD = "rounded-xl border border-[#E8E6E0]/60 bg-white p-3 shadow-sm"
 const FIELD_LABEL = "text-sm font-medium text-[#374151]"
 const INPUT_CLASS =
-  "h-10 rounded-xl border-gray-200 bg-white text-[14px] focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+  "h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
 
 type TabId = "cardiac" | "non-cardiac" | "chronic" | "allergies"
 
@@ -94,12 +97,12 @@ function PastHistoryChipGrid({
               title={subtitle}
               onClick={() => toggle(field)}
               className={cn(
-                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                "rounded-xl border px-3 py-1.5 text-xs font-medium transition-colors",
                 positive
-                  ? "border-[#1A5345] bg-[#1A534518] text-[#1A5345]"
+                  ? "border-[#1A5345]/30 bg-white text-[#1A5345] shadow-sm"
                   : uncertain
-                    ? "border-amber-400 bg-amber-50 text-amber-800"
-                    : "border-[#E8E6E0] bg-white text-[#6B7870] hover:border-[#A8C4BC] hover:bg-[#F9F8F5]",
+                    ? "border-amber-300 bg-white text-amber-800 shadow-sm"
+                    : "border-[#E8E6E0]/60 bg-white text-[#6B7870] hover:border-[#1A5345]/25 hover:bg-[#F9F8F5]",
               )}
             >
               {title}
@@ -164,18 +167,18 @@ function PastHistoryReviewPanel({
   const flags = countChartFlags(questions, answers)
 
   return (
-    <div role="tabpanel" className="space-y-3">
+    <div role="tabpanel" className={cn(INNER_PANEL, "space-y-4")}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Icon className="size-4 text-[#1A5345]" aria-hidden />
-          <p className="text-sm font-bold text-[#1A5345]">{title}</p>
+          <p className="font-serif text-[14px] font-bold text-[#1A1F1E]">{title}</p>
         </div>
         <NoHistoryToggle active={noHistory} label={noHistoryLabel} onToggle={onNoHistoryToggle} />
       </div>
 
       {reviewed && !noHistory ? (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200/50 bg-emerald-50/60 px-3 py-2 text-emerald-800">
-          <CheckCircle2Icon className="size-4 shrink-0" />
+        <div className="flex items-center gap-2 rounded-xl border border-[#E8E6E0]/60 bg-white px-3 py-2.5 text-[#1A1F1E]">
+          <CheckCircle2Icon className="size-4 shrink-0 text-emerald-600" aria-hidden />
           <span className="text-[13px]">
             Chart reviewed
             {positives > 0 ? ` — ${positives} positive finding${positives === 1 ? "" : "s"}` : " — no positives flagged"}
@@ -184,14 +187,14 @@ function PastHistoryReviewPanel({
       ) : null}
 
       {noHistory ? (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200/50 bg-emerald-50/60 p-3 text-emerald-800">
-          <CheckCircle2Icon className="size-5 shrink-0" />
+        <div className="flex items-center gap-2 rounded-xl border border-[#E8E6E0]/60 bg-white px-3 py-2.5 text-[#1A1F1E]">
+          <CheckCircle2Icon className="size-5 shrink-0 text-emerald-600" aria-hidden />
           <span className="text-sm">{noHistoryMessage}</span>
         </div>
       ) : (
         <>
           {flags === 0 && positives === 0 ? (
-            <p className="rounded-xl border border-[#E8E6E0]/50 bg-[#F9F8F5]/50 px-3 py-2 text-[12px] text-[#6B7870]">
+            <p className="rounded-xl border border-[#E8E6E0]/60 bg-white px-3 py-2.5 text-[12px] text-muted-foreground">
               Nothing flagged on chart — use &quot;No history&quot; or add conditions below.
             </p>
           ) : null}
@@ -204,7 +207,7 @@ function PastHistoryReviewPanel({
 
           <div className="space-y-1.5">
             <label className={FIELD_LABEL} htmlFor={`${title}-notes`}>
-              Clinical notes <span className="font-normal text-[#9CA3AF]">(optional)</span>
+              Clinical notes <span className="font-normal text-muted-foreground">(optional)</span>
             </label>
             <Textarea
               id={`${title}-notes`}
@@ -212,7 +215,7 @@ function PastHistoryReviewPanel({
               onChange={(e) => onNotesChange(e.target.value)}
               placeholder="e.g. MI 2019, stent LAD; patient unsure about arrhythmia history…"
               rows={2}
-              className="min-h-[72px] resize-y rounded-xl border-gray-200 bg-white text-[14px] focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+              className="min-h-[72px] resize-y rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
             />
           </div>
 
@@ -222,13 +225,13 @@ function PastHistoryReviewPanel({
             variant={reviewed ? "outline" : "default"}
             onClick={onConfirm}
             className={cn(
-              "h-8 gap-1.5 rounded-xl text-[12px]",
+              "h-9 gap-1.5 rounded-lg text-[12px] font-semibold",
               reviewed
-                ? "border-[#1A5345]/30 text-[#1A5345] hover:bg-[#1A534508]"
-                : "bg-[#1A5345] hover:bg-[#154434]",
+                ? "border-[#E8E6E0] bg-white text-[#1A5345] hover:bg-[#F9F8F5]"
+                : "border-0 bg-[#1A5345] hover:bg-[#133F34]",
             )}
           >
-            <CheckCircle2Icon className="size-3.5" />
+            <CheckCircle2Icon className="size-3.5" aria-hidden />
             {reviewed ? "Re-confirm chart" : "Confirm chart reviewed"}
           </Button>
         </>
@@ -247,19 +250,21 @@ function NoHistoryToggle({
   onToggle: () => void
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
+      size="sm"
       onClick={onToggle}
       className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors",
+        "h-8 rounded-lg text-[11px] font-semibold shadow-sm",
         active
-          ? "border-[#1A5345] bg-[#1A534518] text-[#1A5345]"
-          : "border-[#E8E6E0] bg-white text-[#6B7870] hover:border-[#A8C4BC]",
+          ? "border-[#1A5345]/30 bg-[#E8F0EE] text-[#1A5345] hover:bg-[#E8F0EE]"
+          : "border-[#E8E6E0] bg-white text-[#6B7870] hover:bg-[#F9F8F5]",
       )}
     >
-      {active ? <CheckCircle2Icon className="size-3.5" /> : null}
+      {active ? <CheckCircle2Icon className="size-3.5" aria-hidden /> : null}
       {label}
-    </button>
+    </Button>
   )
 }
 
@@ -301,20 +306,12 @@ export function MedicalHistorySection({
     medicalHistory.nonCardiacAnswers,
   )
 
-  const tabBadge = useMemo(() => {
-    if (tab === "cardiac") return medicalHistory.cardiacReviewed ? "✓" : String(cardiacPositives || "—")
-    if (tab === "non-cardiac") return medicalHistory.nonCardiacReviewed ? "✓" : String(nonCardiacPositives || "—")
-    if (tab === "chronic") return String(chronicConditions.length)
-    return String(allergies.length)
-  }, [
-    tab,
-    cardiacPositives,
-    nonCardiacPositives,
-    medicalHistory.cardiacReviewed,
-    medicalHistory.nonCardiacReviewed,
-    chronicConditions.length,
-    allergies.length,
-  ])
+  const tabCounts: Record<TabId, string | number> = {
+    cardiac: medicalHistory.cardiacReviewed ? "✓" : cardiacPositives || "—",
+    "non-cardiac": medicalHistory.nonCardiacReviewed ? "✓" : nonCardiacPositives || "—",
+    chronic: chronicConditions.length,
+    allergies: allergies.length,
+  }
 
   function patchHistory(patch: Partial<ConsultationMedicalHistory>) {
     onMedicalHistoryChange({ ...medicalHistory, ...patch })
@@ -372,32 +369,36 @@ export function MedicalHistorySection({
         <span className="text-[11px] font-medium text-[#6B7870]">Confirm or update from patient chart</span>
       </div>
 
-      <div className="mb-3 flex items-center justify-between gap-2 border-b border-[#E8E6E0]/60">
-        <div className="flex items-center gap-0.5" role="tablist" aria-label="Medical background sections">
-          {tabs.map((item) => {
-            const active = tab === item.id
-            return (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setTab(item.id)}
+      <div className="mb-4 flex flex-wrap gap-2 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] p-1" role="tablist" aria-label="Medical background sections">
+        {tabs.map((item) => {
+          const active = tab === item.id
+          const count = tabCounts[item.id]
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setTab(item.id)}
+              className={cn(
+                "inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors sm:flex-none",
+                active
+                  ? "bg-white text-[#1A5345] shadow-sm"
+                  : "text-[#6B7870] hover:text-[#1A1F1E]",
+              )}
+            >
+              {item.label}
+              <span
                 className={cn(
-                  "relative -mb-px inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
-                  active
-                    ? "text-[#1A5345] after:absolute after:inset-x-1 after:bottom-0 after:h-0.5 after:rounded-full after:bg-[#1A5345]"
-                    : "text-[#6B7870] hover:text-[#1A1F1E]",
+                  "tabular-nums text-[10px] font-bold",
+                  active ? "text-[#1A5345]" : "text-muted-foreground",
                 )}
               >
-                {item.label}
-                {active ? (
-                  <span className="tabular-nums text-[10px] font-medium text-[#9CA3AF]">{tabBadge}</span>
-                ) : null}
-              </button>
-            )
-          })}
-        </div>
+                {count}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       {tab === "cardiac" ? (
@@ -447,9 +448,9 @@ export function MedicalHistorySection({
       ) : null}
 
       {tab === "chronic" ? (
-        <div role="tabpanel" className="space-y-3">
+        <div role="tabpanel" className={cn(INNER_PANEL, "space-y-4")}>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-bold text-[#1A5345]">Active chronic conditions</p>
+            <p className="font-serif text-[14px] font-bold text-[#1A1F1E]">Active chronic conditions</p>
             <NoHistoryToggle
               active={medicalHistory.noChronicConditions}
               label="No chronic conditions"
@@ -460,8 +461,8 @@ export function MedicalHistorySection({
           </div>
 
           {medicalHistory.noChronicConditions ? (
-            <div className="flex items-center gap-2 rounded-xl border border-emerald-200/50 bg-emerald-50/60 p-3 text-emerald-800">
-              <CheckCircle2Icon className="size-5 shrink-0" />
+            <div className="flex items-center gap-2 rounded-xl border border-[#E8E6E0]/60 bg-white px-3 py-2.5 text-[#1A1F1E]">
+              <CheckCircle2Icon className="size-5 shrink-0 text-emerald-600" aria-hidden />
               <span className="text-sm">No active chronic conditions documented.</span>
             </div>
           ) : (
@@ -469,17 +470,14 @@ export function MedicalHistorySection({
               {chronicConditions.length > 0 ? (
                 <div className="space-y-2">
                   {chronicConditions.map((condition) => (
-                    <div
-                      key={condition.id}
-                      className="flex items-start justify-between gap-2 rounded-xl border border-[#E8E6E0]/50 bg-[#F9F8F5]/40 px-3 py-2.5"
-                    >
+                    <div key={condition.id} className={cn(ITEM_CARD, "flex items-start justify-between gap-2")}>
                       <div className="min-w-0">
-                        <p className="text-[13px] font-semibold text-[#1A1F1E]">{condition.name}</p>
+                        <p className="text-[13px] font-bold text-[#1A1F1E]">{condition.name}</p>
                         {condition.details ? (
-                          <p className="text-[12px] text-[#6B7870]">{condition.details}</p>
+                          <p className="mt-0.5 text-[12px] text-muted-foreground">{condition.details}</p>
                         ) : null}
                         {condition.diagnosedAt ? (
-                          <p className="text-[11px] text-[#9CA3AF]">Since {condition.diagnosedAt}</p>
+                          <p className="mt-1 text-[11px] text-muted-foreground">Since {condition.diagnosedAt}</p>
                         ) : null}
                       </div>
                       <Button
@@ -500,39 +498,48 @@ export function MedicalHistorySection({
                   ))}
                 </div>
               ) : (
-                <p className="text-[12px] text-[#6B7870]">No chronic conditions on file yet.</p>
+                <p className="text-[12px] text-muted-foreground">No chronic conditions on file yet.</p>
               )}
 
-              <div className="rounded-xl border border-dashed border-[#A8C4BC]/60 bg-[#F9F8F5] p-3">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#6B7870]">Add condition</p>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <Input
-                    value={newCondition.name}
-                    onChange={(e) => setNewCondition((p) => ({ ...p, name: e.target.value }))}
-                    placeholder="e.g. Type 2 diabetes"
-                    className={INPUT_CLASS}
-                  />
-                  <Input
-                    value={newCondition.details}
-                    onChange={(e) => setNewCondition((p) => ({ ...p, details: e.target.value }))}
-                    placeholder="Details (optional)"
-                    className={INPUT_CLASS}
-                  />
-                  <Input
-                    type="date"
-                    value={newCondition.diagnosedAt}
-                    onChange={(e) => setNewCondition((p) => ({ ...p, diagnosedAt: e.target.value }))}
-                    className={INPUT_CLASS}
-                  />
+              <div className={cn(ITEM_CARD, "space-y-3")}>
+                <p className="text-[13px] font-semibold text-[#1A1F1E]">Add condition</p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-medium text-muted-foreground">Condition</label>
+                    <Input
+                      value={newCondition.name}
+                      onChange={(e) => setNewCondition((p) => ({ ...p, name: e.target.value }))}
+                      placeholder="e.g. Type 2 diabetes"
+                      className={INPUT_CLASS}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-medium text-muted-foreground">Details</label>
+                    <Input
+                      value={newCondition.details}
+                      onChange={(e) => setNewCondition((p) => ({ ...p, details: e.target.value }))}
+                      placeholder="Optional"
+                      className={INPUT_CLASS}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-medium text-muted-foreground">Diagnosed</label>
+                    <Input
+                      type="date"
+                      value={newCondition.diagnosedAt}
+                      onChange={(e) => setNewCondition((p) => ({ ...p, diagnosedAt: e.target.value }))}
+                      className={INPUT_CLASS}
+                    />
+                  </div>
                 </div>
                 <Button
                   type="button"
                   size="sm"
                   onClick={addChronicCondition}
                   disabled={!newCondition.name.trim()}
-                  className="mt-2 h-8 gap-1.5 rounded-xl bg-[#1A5345] text-[12px] hover:bg-[#154434]"
+                  className="h-9 gap-1.5 rounded-lg border-0 bg-[#1A5345] text-[12px] font-semibold hover:bg-[#133F34]"
                 >
-                  <PlusIcon className="size-3.5" />
+                  <PlusIcon className="size-3.5" aria-hidden />
                   Add condition
                 </Button>
               </div>
@@ -542,11 +549,19 @@ export function MedicalHistorySection({
       ) : null}
 
       {tab === "allergies" ? (
-        <div role="tabpanel" className="space-y-3">
+        <div role="tabpanel" className={cn(INNER_PANEL, "space-y-4")}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <ShieldAlertIcon className="size-4 text-red-600" aria-hidden />
-              <p className="text-sm font-bold text-[#1A1F1E]">Allergies & contraindications</p>
+              <ShieldAlertIcon className="size-4 text-rose-600" aria-hidden />
+              <p className="font-serif text-[14px] font-bold text-[#1A1F1E]">Allergies & contraindications</p>
+              {allergies.length > 0 ? (
+                <Badge
+                  variant="default"
+                  className="rounded-lg border-0 bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-none hover:bg-rose-500"
+                >
+                  {allergies.length}
+                </Badge>
+              ) : null}
             </div>
             <NoHistoryToggle
               active={medicalHistory.noKnownAllergies}
@@ -556,8 +571,8 @@ export function MedicalHistorySection({
           </div>
 
           {medicalHistory.noKnownAllergies ? (
-            <div className="flex items-center gap-2 rounded-xl border border-emerald-200/50 bg-emerald-50/60 p-3 text-emerald-800">
-              <CheckCircle2Icon className="size-5 shrink-0" />
+            <div className="flex items-center gap-2 rounded-xl border border-[#E8E6E0]/60 bg-white px-3 py-2.5 text-[#1A1F1E]">
+              <CheckCircle2Icon className="size-5 shrink-0 text-emerald-600" aria-hidden />
               <span className="text-sm">NKDA — no known drug or other allergies.</span>
             </div>
           ) : (
@@ -565,27 +580,26 @@ export function MedicalHistorySection({
               {allergies.length > 0 ? (
                 <div className="space-y-2">
                   {allergies.map((allergy) => (
-                    <div
-                      key={allergy.id}
-                      className="flex items-start justify-between gap-2 rounded-xl border border-red-200/50 bg-red-50/40 px-3 py-2.5"
-                    >
-                      <div className="flex min-w-0 items-start gap-2">
-                        <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-red-600" aria-hidden />
-                        <div>
-                          <p className="text-[13px] font-semibold text-red-800">
+                    <div key={allergy.id} className={cn(ITEM_CARD, "flex items-start justify-between gap-2")}>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge className="rounded-lg border-0 bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm hover:bg-rose-600">
                             {allergy.allergen}
-                            <span className="ml-1 text-[11px] font-medium text-red-600">({allergy.category})</span>
-                          </p>
-                          {allergy.reaction ? (
-                            <p className="text-[12px] text-red-700">{allergy.reaction}</p>
-                          ) : null}
+                          </Badge>
+                          <span className="text-[11px] font-medium text-rose-600/80">({allergy.category})</span>
                         </div>
+                        {allergy.reaction ? (
+                          <div className="mt-2 flex items-start gap-1.5">
+                            <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-rose-500" aria-hidden />
+                            <p className="text-[12px] leading-relaxed text-rose-700">{allergy.reaction}</p>
+                          </div>
+                        ) : null}
                       </div>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-8 shrink-0 border-0 bg-transparent text-red-400 shadow-none hover:bg-transparent hover:text-red-700"
+                        className="size-8 shrink-0 border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-rose-600"
                         onClick={() =>
                           onAllergiesChange(allergies.filter((a) => a.id !== allergy.id))
                         }
@@ -597,48 +611,57 @@ export function MedicalHistorySection({
                   ))}
                 </div>
               ) : (
-                <p className="text-[12px] text-[#6B7870]">No allergies documented yet.</p>
+                <p className="text-[12px] text-muted-foreground">No allergies documented yet.</p>
               )}
 
-              <div className="rounded-xl border border-dashed border-red-200/60 bg-red-50/20 p-3">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#6B7870]">Add allergy</p>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <Select
-                    value={newAllergy.category}
-                    onValueChange={(v) =>
-                      setNewAllergy((p) => ({ ...p, category: v as Allergy["category"] }))
-                    }
-                  >
-                    <SelectTrigger className={INPUT_CLASS}>
-                      <SelectValue placeholder="Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="drug">Drug</SelectItem>
-                      <SelectItem value="food">Food</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    value={newAllergy.allergen}
-                    onChange={(e) => setNewAllergy((p) => ({ ...p, allergen: e.target.value }))}
-                    placeholder="Allergen"
-                    className={INPUT_CLASS}
-                  />
-                  <Input
-                    value={newAllergy.reaction}
-                    onChange={(e) => setNewAllergy((p) => ({ ...p, reaction: e.target.value }))}
-                    placeholder="Reaction (optional)"
-                    className={INPUT_CLASS}
-                  />
+              <div className={cn(ITEM_CARD, "space-y-3")}>
+                <p className="text-[13px] font-semibold text-[#1A1F1E]">Add allergy</p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-medium text-muted-foreground">Category</label>
+                    <Select
+                      value={newAllergy.category}
+                      onValueChange={(v) =>
+                        setNewAllergy((p) => ({ ...p, category: v as Allergy["category"] }))
+                      }
+                    >
+                      <SelectTrigger className={INPUT_CLASS}>
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
+                        <SelectItem value="drug">Drug</SelectItem>
+                        <SelectItem value="food">Food</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-medium text-muted-foreground">Allergen</label>
+                    <Input
+                      value={newAllergy.allergen}
+                      onChange={(e) => setNewAllergy((p) => ({ ...p, allergen: e.target.value }))}
+                      placeholder="e.g. Penicillin"
+                      className={INPUT_CLASS}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-medium text-muted-foreground">Reaction</label>
+                    <Input
+                      value={newAllergy.reaction}
+                      onChange={(e) => setNewAllergy((p) => ({ ...p, reaction: e.target.value }))}
+                      placeholder="Optional"
+                      className={INPUT_CLASS}
+                    />
+                  </div>
                 </div>
                 <Button
                   type="button"
                   size="sm"
                   onClick={addAllergy}
                   disabled={!newAllergy.allergen.trim()}
-                  className="mt-2 h-8 gap-1.5 rounded-xl bg-[#1A5345] text-[12px] hover:bg-[#154434]"
+                  className="h-9 gap-1.5 rounded-lg border-0 bg-[#1A5345] text-[12px] font-semibold hover:bg-[#133F34]"
                 >
-                  <PlusIcon className="size-3.5" />
+                  <PlusIcon className="size-3.5" aria-hidden />
                   Add allergy
                 </Button>
               </div>

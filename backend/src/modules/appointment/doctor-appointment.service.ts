@@ -6,6 +6,7 @@ import { appointment, doctor, patient, user } from '../../database/schema';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type { UpdateDoctorAppointmentDto } from './dto/doctor-appointment.dto';
 import { AppointmentService } from './appointment.service';
+import { AppointmentPatientNotificationService } from './appointment-patient-notification.service';
 
 export type AppointmentFilter =
   | 'all'
@@ -22,6 +23,7 @@ export class DoctorAppointmentService {
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly doctorVerifier: DoctorVerifierService,
     private readonly appointmentService: AppointmentService,
+    private readonly appointmentPatientNotifications: AppointmentPatientNotificationService,
   ) {}
 
   async getStats(doctorUserId: number) {
@@ -315,6 +317,10 @@ export class DoctorAppointmentService {
       .set(updates)
       .where(eq(appointment.id, appointmentId))
       .returning();
+
+    void this.appointmentPatientNotifications
+      .notifyAfterUpdate(existing, updated)
+      .catch(() => undefined);
 
     return {
       id: updated.id,

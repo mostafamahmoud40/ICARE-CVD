@@ -14,6 +14,7 @@ import { CurrentUser } from '../../auth/current-user.decorator';
 import type { TokenPayload } from '../../auth/jwt';
 import { DoctorGuard } from '../doctor.guard';
 import { DoctorQueueService } from './doctor-queue.service';
+import { ConsultationService } from '../../consultation/consultation.service';
 import {
   UpdateQueueEntryDto,
   UpdateQueueStatusDto,
@@ -28,6 +29,7 @@ import { doctor } from '../../../database/schema';
 export class DoctorQueueController {
   constructor(
     private readonly service: DoctorQueueService,
+    private readonly consultationService: ConsultationService,
     @Inject(DRIZZLE) private readonly db: Database,
   ) {}
 
@@ -53,6 +55,17 @@ export class DoctorQueueController {
   ) {
     const doctorId = await this.resolveDoctorId(user.sub);
     return this.service.listQueueEntries(doctorId, filter);
+  }
+
+  @Get(':queueId/consultation-session')
+  getConsultationSession(
+    @CurrentUser() user: TokenPayload,
+    @Param('queueId') queueId: string,
+  ) {
+    return this.consultationService.resolveQueueConsultationSession(
+      user.sub,
+      queueId,
+    );
   }
 
   @Get(':queueId')

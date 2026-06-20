@@ -23,12 +23,18 @@ import {
 import { mergePeriodsForDate } from '../doctor/schedule/schedule-periods.util';
 import type { CreateAppointmentDto } from './dto/create-appointment.dto';
 import type { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { AppointmentPatientNotificationService } from './appointment-patient-notification.service';
+import { AppointmentAssistantNotificationService } from './appointment-assistant-notification.service';
 
 @Injectable()
 export class AppointmentService {
   private readonly clinicTimeZone = 'Africa/Cairo';
 
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly appointmentPatientNotifications: AppointmentPatientNotificationService,
+    private readonly appointmentAssistantNotifications: AppointmentAssistantNotificationService,
+  ) {}
 
   async listDoctors() {
     const rows = await this.db
@@ -393,6 +399,13 @@ export class AppointmentService {
       );
     }
 
+    void this.appointmentPatientNotifications
+      .notifyBooked(created.id)
+      .catch(() => undefined);
+    void this.appointmentAssistantNotifications
+      .notifyPatientBooked(created.id)
+      .catch(() => undefined);
+
     return {
       id: created.id,
       confirmationCode: created.confirmationCode,
@@ -434,6 +447,13 @@ export class AppointmentService {
       })
       .where(eq(appointment.id, existing.id))
       .returning();
+
+    void this.appointmentPatientNotifications
+      .notifyAfterUpdate(existing, updated)
+      .catch(() => undefined);
+    void this.appointmentAssistantNotifications
+      .notifyAfterPatientUpdate(existing, updated)
+      .catch(() => undefined);
 
     return {
       id: updated.id,

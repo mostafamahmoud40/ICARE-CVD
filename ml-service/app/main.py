@@ -2,8 +2,8 @@
 ICARE-CVD ML Service — FastAPI application.
 
 Models loaded at startup (once):
-  - BasicUNet        → POST /api/v1/ct/segment   (coronary artery CT segmentation)
-  - DenseNet121 xrv  → POST /api/v1/xray/analyze  (chest X-ray cardiovascular findings)
+  - BasicUNet   → POST /api/v1/ct/segment   (coronary artery CT segmentation)
+  - YOLO12s     → POST /api/v1/xray/analyze  (chest X-ray object detection)
 """
 
 import base64
@@ -20,9 +20,11 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from .predictor import build_transform, generate_slice_images, load_model, run_inference
-from .schemas import HealthResponse, SegmentationResponse, SliceImages, XrayResponse
-from .xray_predictor import (
-    generate_xray_visuals,
+from .schemas import HealthResponse, SegmentationResponse, SliceImages, XrayDetection, XrayResponse
+from .xray import (
+    build_xray_visuals,
+    device_summary,
+    findings_from_detections,
     interpret,
     load_xray_model,
     run_xray_inference,
@@ -68,9 +70,10 @@ async def lifespan(app: FastAPI):
     ct_transform = build_transform()
     print("[startup] CT segmentation model loaded (BasicUNet)")
 
-    # Chest X-ray model (downloads weights on first run)
-    xray_model = load_xray_model(device)
-    print("[startup] Chest X-ray model loaded (DenseNet121-xrv)")
+    # Chest X-ray model (YOLO12s weights bind-mounted at runtime)
+    xray_model = load_xray_model()
+    xray_device = device_summary()
+    print(f"[startup] Chest X-ray model loaded (YOLO12s) — {xray_device['yolo_device']} ({xray_device['gpu_name']})")
 
     if torch.cuda.is_available():
         props = torch.cuda.get_device_properties(0)
@@ -174,10 +177,8 @@ async def xray_analyze(
     file: UploadFile = File(..., description="Chest X-ray image (JPEG / PNG)"),
 ) -> XrayResponse:
     """
-    Detect cardiovascular pathologies from a chest X-ray using DenseNet121.
-
-    Returns probabilities for: Cardiomegaly, Edema, Effusion,
-    Enlarged Cardiomediastinum — plus rendered visualizations.
+    Detect chest X-ray pathologies with YOLO12s and return localized findings
+    plus an annotated overlay image for clinical review.
     """
     filename = file.filename or ""
     ext = Path(filename).suffix.lower()
@@ -188,26 +189,33 @@ async def xray_analyze(
         )
 
     contents = await file.read()
-    with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
-        tmp.write(contents)
-        tmp_path = tmp.name
 
     try:
-        cardio, display = run_xray_inference(
-            tmp_path, _state["xray_model"], _state["device"],
+        detections, image_np, inference_ms = run_xray_inference(
+            contents, _state["xray_model"],
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        Path(tmp_path).unlink(missing_ok=True)
 
-    risk_level, interpretation = interpret(cardio)
-    xray_b64, chart_b64 = generate_xray_visuals(display, cardio)
+    findings = findings_from_detections(detections)
+    risk_level, interpretation = interpret(detections)
+    original_b64, annotated_b64 = build_xray_visuals(image_np, detections)
 
     return XrayResponse(
-        findings=cardio,
+        findings=findings,
         risk_level=risk_level,
         interpretation=interpretation,
-        xray_b64=xray_b64,
-        chart_b64=chart_b64,
+        original_b64=original_b64,
+        annotated_b64=annotated_b64,
+        detections=[
+            XrayDetection(
+                class_id=det["class_id"],
+                class_name=det["class"],
+                confidence=det["confidence"],
+                box=det["box"],
+            )
+            for det in detections
+        ],
+        total_detections=len(detections),
+        inference_time_ms=round(inference_ms, 1),
     )

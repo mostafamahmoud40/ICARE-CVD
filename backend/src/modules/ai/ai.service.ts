@@ -5,23 +5,22 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import Groq from 'groq-sdk';
 import { and, eq, isNull } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import { patient } from '../../database/schema';
 import { RegistrationAnalyzeDto } from './dto/registration-analyze.dto';
+import { EmbeddingService } from './embedding/embedding.service';
 
-const REGISTRATION_SUMMARY_EMBEDDING_DIM = 384;
-
-type OllamaGenerateResponse = {
-  response?: string;
-  thinking?: string;
-  done_reason?: string;
-};
+const REGISTRATION_SUMMARY_EMBEDDING_DIM = 384; // pgvector column size — BGE-M3 (1024d) is Chroma-only until migrated
 
 @Injectable()
 export class AiService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly embeddingService: EmbeddingService,
+  ) {}
 
   async getRegistrationSummary(userId: number) {
     const row = await this.db.query.patient.findFirst({
@@ -82,74 +81,31 @@ export class AiService {
   private async embedRegistrationSummary(
     text: string,
   ): Promise<number[] | null> {
-    const model = process.env.OLLAMA_EMBEDDING_MODEL?.trim();
-    if (!model) {
+    const embedding = await this.embeddingService.embed(text.slice(0, 8000));
+
+    if (!embedding) {
       return null;
     }
 
-    const ollamaBaseUrl =
-      process.env.OLLAMA_BASE_URL?.trim() || 'http://127.0.0.1:11434';
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
-
-    try {
-      const response = await fetch(`${ollamaBaseUrl}/api/embed`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model,
-          input: text.slice(0, 8000),
-        }),
-        signal: controller.signal,
+    if (embedding.length !== REGISTRATION_SUMMARY_EMBEDDING_DIM) {
+      console.error('Registration summary embed unexpected dimension', {
+        got: embedding.length,
+        expected: REGISTRATION_SUMMARY_EMBEDDING_DIM,
       });
-
-      if (!response.ok) {
-        const raw = await response.text();
-        console.error('Ollama embed non-200', {
-          status: response.status,
-          body: raw,
-        });
-        return null;
-      }
-
-      const data = (await response.json()) as {
-        embedding?: number[];
-        embeddings?: number[][];
-      };
-
-      const raw =
-        Array.isArray(data.embeddings?.[0]) && data.embeddings[0].length > 0
-          ? data.embeddings[0]
-          : Array.isArray(data.embedding)
-            ? data.embedding
-            : null;
-
-      if (!raw || raw.length !== REGISTRATION_SUMMARY_EMBEDDING_DIM) {
-        console.error('Ollama embed unexpected dimension', {
-          got: raw?.length,
-          expected: REGISTRATION_SUMMARY_EMBEDDING_DIM,
-          model,
-        });
-        return null;
-      }
-
-      return raw;
-    } catch (error) {
-      console.error('Ollama embed failed', error);
       return null;
-    } finally {
-      clearTimeout(timeout);
     }
+
+    return embedding;
   }
 
   async analyzeRegistration(input: RegistrationAnalyzeDto) {
-    const ollamaBaseUrl =
-      process.env.OLLAMA_BASE_URL?.trim() || 'http://127.0.0.1:11434';
-    const ollamaModel = process.env.OLLAMA_MODEL?.trim();
-
-    if (!ollamaModel) {
+    const apiKey = process.env.GROQ_API_KEY?.trim();
+    if (!apiKey) {
       throw new ServiceUnavailableException('AI unavailable');
     }
+
+    const model =
+      process.env.GROQ_ANALYSIS_MODEL?.trim() || 'qwen/qwen3-32b';
 
     const promptPayload = {
       account: {
@@ -176,45 +132,35 @@ export class AiService {
       'This is not a diagnosis.',
     ].join('\n');
 
+    const groq = new Groq({ apiKey });
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 90000);
 
     try {
-      const response = await fetch(`${ollamaBaseUrl}/api/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: ollamaModel,
+      const completion = await groq.chat.completions.create(
+        {
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            {
+              role: 'user',
+              content: `Patient registration JSON:\n${JSON.stringify(promptPayload, null, 2)}`,
+            },
+          ],
+          temperature: 0.3,
+          max_completion_tokens: 1024,
           stream: false,
-          think: false,
-          prompt: [
-            '/no_think',
-            systemPrompt,
-            'Patient registration JSON:',
-            JSON.stringify(promptPayload, null, 2),
-          ].join('\n\n'),
-        }),
-        signal: controller.signal,
-      });
+        },
+        { signal: controller.signal },
+      );
 
-      if (!response.ok) {
-        const rawErrorBody = await response.text();
-        console.error('Ollama non-200 response', {
-          status: response.status,
-          body: rawErrorBody,
-        });
-        throw new ServiceUnavailableException('AI unavailable');
-      }
+      let cleanedContent =
+        completion.choices[0]?.message?.content?.trim() ?? '';
 
-      const data = (await response.json()) as OllamaGenerateResponse;
-      const rawContent = data.response ?? '';
-      let cleanedContent = rawContent
-        .replace(/<think[\s\S]*?<\/think>/g, '')
+      cleanedContent = cleanedContent
+        .replace(/<think[\s\S]*?<\/think>/gi, '')
         .trim();
 
-      // Strip model reasoning/self-talk before actual clinical content starts
       const sentenceStart = cleanedContent.search(
         /^[A-Z][a-z]+.*\b(presents?|reports?|is\s+a|,\s*a)\s/m,
       );
@@ -245,10 +191,7 @@ export class AiService {
       const analysis = cleanedContent;
 
       if (!analysis) {
-        console.error('Ollama returned empty analysis content', {
-          doneReason: data.done_reason,
-          hasThinking: Boolean(data.thinking),
-        });
+        console.error('Groq returned empty registration analysis content');
         throw new ServiceUnavailableException('AI unavailable');
       }
 

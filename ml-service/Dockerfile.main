@@ -10,6 +10,8 @@ ENV PYTHONUNBUFFERED=1 \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libgomp1 \
+        libgl1 \
+        libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /service
@@ -27,7 +29,7 @@ COPY app/__init__.py        ./app/__init__.py
 COPY app/ml_env.py          ./app/ml_env.py
 COPY app/main.py            ./app/main.py
 COPY app/predictor.py       ./app/predictor.py
-COPY app/xray_predictor.py  ./app/xray_predictor.py
+COPY app/xray/              ./app/xray/
 COPY app/schemas.py         ./app/schemas.py
 
 ENV MODEL_PATH=/service/app/CT/coronary_segmentation_model.pth

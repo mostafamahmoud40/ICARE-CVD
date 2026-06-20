@@ -10,6 +10,12 @@ import { PatientAiChatService } from './patient-ai-chat.service';
 import { ChromaService } from './chroma/chroma.service';
 import { ClinicIndexerService } from './chroma/clinic-indexer.service';
 import { EmbeddingService } from './embedding/embedding.service';
+import { AgentRetrievalStage } from './patient-agent/agent-retrieval.stage';
+import { AgentContextStage } from './patient-agent/agent-context.stage';
+import { AgentPromptStage } from './patient-agent/agent-prompt.stage';
+import { PatientAppointmentToolsService } from './patient-agent/langchain/patient-appointment-tools.service';
+import { LangChainRagPipelineService } from './patient-agent/langchain/langchain-rag-pipeline.service';
+import { LangChainCareAgentService } from './patient-agent/langchain/langchain-care-agent.service';
 
 @Module({
   imports: [
@@ -25,6 +31,12 @@ import { EmbeddingService } from './embedding/embedding.service';
     EmbeddingService,
     ChromaService,
     ClinicIndexerService,
+    AgentRetrievalStage,
+    AgentContextStage,
+    AgentPromptStage,
+    PatientAppointmentToolsService,
+    LangChainRagPipelineService,
+    LangChainCareAgentService,
     PatientGuard,
     AuthJwtService,
     AccessTokenGuard,

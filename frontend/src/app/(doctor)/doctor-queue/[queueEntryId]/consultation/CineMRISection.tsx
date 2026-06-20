@@ -6,7 +6,6 @@ import type { LucideIcon } from "lucide-react"
 import {
   ActivityIcon,
   BarChart2Icon,
-  BoxIcon,
   BrainCircuitIcon,
   CheckCircle2Icon,
   ClockIcon,
@@ -21,12 +20,11 @@ import {
   SparklesIcon,
   SplitIcon,
   Trash2Icon,
-  TrendingUpIcon,
   UploadCloudIcon,
   XCircleIcon,
 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import { CineMRIAiChatDialog } from "./CineMRIAiChatDialog"
 import { MriPlotlyChart } from "./MriPlotlyChart"
 
@@ -86,54 +84,53 @@ const MRI_URL =
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
+const SECTION_CARD = "rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm"
+const STAT_CARD =
+  "rounded-xl border border-[#E8E6E0]/60 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+
 const DIAGNOSIS_CONFIG: Record<
   MriDiagnosisClass,
-  { label: string; description: string; badge: string; text: string; bg: string; border: string; dot: string }
+  { label: string; description: string; badge: string; text: string; bg: string; border: string }
 > = {
   NOR: {
     label: "Normal",
     description: "No significant structural or functional cardiac abnormality detected.",
-    badge: "bg-emerald-100 text-emerald-700",
+    badge: "bg-emerald-500 text-white hover:bg-emerald-500",
     text: "text-emerald-800",
     bg: "bg-emerald-50/60",
     border: "border-emerald-200",
-    dot: "bg-emerald-400",
   },
   HCM: {
     label: "Hypertrophic Cardiomyopathy",
     description: "Abnormal thickening of the myocardial wall, typically affecting the interventricular septum.",
-    badge: "bg-amber-100 text-amber-700",
+    badge: "bg-amber-500 text-white hover:bg-amber-500",
     text: "text-amber-800",
     bg: "bg-amber-50/60",
     border: "border-amber-200",
-    dot: "bg-amber-400",
   },
   DCM: {
     label: "Dilated Cardiomyopathy",
     description: "Enlarged, weakened left ventricle with significantly reduced ejection fraction.",
-    badge: "bg-orange-100 text-orange-700",
+    badge: "bg-orange-500 text-white hover:bg-orange-500",
     text: "text-orange-800",
     bg: "bg-orange-50/60",
     border: "border-orange-200",
-    dot: "bg-orange-400",
   },
   MINF: {
     label: "Myocardial Infarction",
     description: "Evidence of regional wall motion abnormality consistent with prior myocardial infarction.",
-    badge: "bg-red-100 text-red-700",
+    badge: "bg-red-500 text-white hover:bg-red-500",
     text: "text-red-800",
     bg: "bg-red-50/60",
     border: "border-red-200",
-    dot: "bg-red-400",
   },
   RV: {
     label: "Right Ventricular Disease",
     description: "Abnormal right ventricular size or function relative to the left ventricle.",
-    badge: "bg-violet-100 text-violet-700",
+    badge: "bg-violet-500 text-white hover:bg-violet-500",
     text: "text-violet-800",
     bg: "bg-violet-50/60",
     border: "border-violet-200",
-    dot: "bg-violet-400",
   },
 }
 
@@ -176,9 +173,11 @@ function MriDropZone({
     [onFileSelected],
   )
 
-  const phaseLabel = phase === "ED" ? "End-Diastolic (ED)" : "End-Systolic (ES)"
-  const phaseColor = phase === "ED" ? "text-blue-600" : "text-violet-600"
-  const phaseBg = phase === "ED" ? "bg-blue-50" : "bg-violet-50"
+  const phaseLabel = phase === "ED" ? "End-diastolic (ED)" : "End-systolic (ES)"
+  const phaseBadge =
+    phase === "ED"
+      ? "bg-blue-500 text-white hover:bg-blue-500"
+      : "bg-violet-500 text-white hover:bg-violet-500"
 
   return (
     <div
@@ -195,28 +194,27 @@ function MriDropZone({
         handleFiles(e.dataTransfer.files)
       }}
       className={cn(
-        "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-6 transition-colors",
+        "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-8 transition-colors",
         isDragging
           ? "border-[#1A5345]/50 bg-[#F0F7F4]"
-          : "border-[#E5EEEA] bg-[#FAFAF8] hover:border-[#1A5345]/30 hover:bg-[#F6FBF9]",
+          : "border-[#E8E6E0] bg-[#FAFAF8] hover:border-[#1A5345]/30 hover:bg-[#F9F8F5]",
       )}
     >
-      <div className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide", phaseBg, phaseColor)}>
+      <Badge
+        variant="default"
+        className={cn("rounded-lg border-0 px-2.5 py-0.5 text-[10px] font-bold shadow-none", phaseBadge)}
+      >
         {phase}
-      </div>
-      <div className={cn(
-        "flex size-9 items-center justify-center rounded-full transition-colors",
-        isDragging ? "bg-[#1A5345]/10" : "bg-[#E8F0EE]",
-      )}>
-        <UploadCloudIcon className={cn("size-4", isDragging ? "text-[#1A5345]" : "text-[#2C6A5B]")} />
-      </div>
+      </Badge>
+      <UploadCloudIcon
+        className={cn("size-8", isDragging ? "text-[#1A5345]" : "text-[#1A5345]/80")}
+        aria-hidden
+      />
       <div className="text-center">
-        <p className="text-[11px] font-medium text-[#102F27]">
-          {phaseLabel}
-        </p>
-        <p className="mt-0.5 text-[10px] text-muted-foreground">
+        <p className="text-[14px] font-medium text-[#1A1F1E]">{phaseLabel}</p>
+        <p className="mt-1 text-[12px] text-muted-foreground">
           Drop or{" "}
-          <span className="text-[#1A5345] underline underline-offset-2">browse</span>
+          <span className="font-semibold text-[#1A5345] underline underline-offset-2">browse</span>
           {" "}· .nii / .nii.gz
         </p>
       </div>
@@ -244,52 +242,63 @@ function MriFileCard({
   elapsed: number
   onRemove: () => void
 }) {
-  const phaseColor = phase === "ED" ? "text-blue-600 bg-blue-50" : "text-violet-600 bg-violet-50"
+  const phaseBadge =
+    phase === "ED"
+      ? "bg-blue-500 text-white hover:bg-blue-500"
+      : "bg-violet-500 text-white hover:bg-violet-500"
 
   const statusMap = {
     idle:       { badge: "",                                icon: null,             label: "" },
-    processing: { badge: "bg-amber-50 text-amber-700",     icon: Loader2Icon,      label: "Analyzing…" },
-    done:       { badge: "bg-emerald-50 text-emerald-700", icon: CheckCircle2Icon, label: "Done" },
-    error:      { badge: "bg-red-50 text-red-600",         icon: XCircleIcon,      label: "Failed" },
+    processing: { badge: "bg-amber-500 text-white hover:bg-amber-500", icon: Loader2Icon, label: "Analyzing" },
+    done:       { badge: "bg-emerald-500 text-white hover:bg-emerald-500", icon: CheckCircle2Icon, label: "Done" },
+    error:      { badge: "bg-rose-500 text-white hover:bg-rose-500", icon: XCircleIcon, label: "Failed" },
   }
   const cfg = statusMap[status]
   const Icon = cfg.icon
 
   return (
-    <div className="rounded-lg border border-[#E5EEEA] bg-white p-3">
-      <div className="flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#EEF5F3]">
-          <FileIcon className="size-4 text-[#1A5345]" />
-        </div>
+    <div className="overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm">
+      <div className="flex items-center gap-3 border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-4 py-3">
+        <FileIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className={cn("rounded px-1.5 py-0.5 text-[9px] font-bold", phaseColor)}>{phase}</span>
-            <p className="truncate text-[12px] font-semibold text-[#102F27]">{file.name}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant="default"
+              className={cn("rounded-lg border-0 px-2 py-0.5 text-[10px] font-bold shadow-none", phaseBadge)}
+            >
+              {phase}
+            </Badge>
+            <p className="truncate text-[14px] font-semibold text-[#1A1F1E]">{file.name}</p>
           </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-2">
-            <span className="text-[10px] text-muted-foreground">{formatBytes(file.size)}</span>
-            {Icon && (
-              <span className={cn("flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium", cfg.badge)}>
-                <Icon className={cn("size-2.5", status === "processing" && "animate-spin")} />
-                {cfg.label}
-              </span>
-            )}
+            <span className="text-[12px] text-muted-foreground">{formatBytes(file.size)}</span>
             {status === "processing" && elapsed > 0 && (
-              <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                <ClockIcon className="size-2.5" />
+              <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
+                <ClockIcon className="size-3" aria-hidden />
                 {formatElapsed(elapsed)}
               </span>
             )}
           </div>
         </div>
+        {Icon && (
+          <Badge
+            variant="default"
+            className={cn("gap-1 rounded-lg border-0 px-2.5 py-1 text-[11px] font-bold shadow-none", cfg.badge)}
+          >
+            <Icon className={cn("size-3", status === "processing" && "animate-spin")} aria-hidden />
+            {cfg.label}
+          </Badge>
+        )}
         <Button
-          size="sm"
+          type="button"
+          size="icon"
           variant="ghost"
           disabled={status === "processing"}
-          className="h-6 w-6 shrink-0 p-0 text-[#6B7870] hover:bg-red-50 hover:text-red-500"
+          className="size-8 shrink-0 border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-rose-600"
           onClick={onRemove}
+          aria-label="Remove file"
         >
-          <Trash2Icon className="size-3.5" />
+          <Trash2Icon className="size-4" />
         </Button>
       </div>
     </div>
@@ -300,21 +309,22 @@ function DiagnosisClassCard({ diagnosisClass }: { diagnosisClass: MriDiagnosisCl
   const cfg = DIAGNOSIS_CONFIG[diagnosisClass]
 
   return (
-    <div className={cn("rounded-xl border-2 p-4", cfg.bg, cfg.border)}>
-      <div className="flex items-center gap-3">
-        <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl border-2", cfg.border, "bg-white")}>
-          <HeartPulseIcon className={cn("size-5", cfg.text)} />
-        </div>
+    <div className={cn("rounded-xl border p-4", cfg.bg, cfg.border)}>
+      <div className="flex items-start gap-3">
+        <HeartPulseIcon className={cn("mt-0.5 size-5 shrink-0", cfg.text)} aria-hidden />
         <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide", cfg.badge)}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant="default"
+              className={cn("rounded-lg border-0 px-2.5 py-0.5 text-[11px] font-bold shadow-none", cfg.badge)}
+            >
               {diagnosisClass}
-            </span>
-            <p className={cn("text-[13px] font-bold", cfg.text)}>{cfg.label}</p>
+            </Badge>
+            <p className={cn("text-[14px] font-bold", cfg.text)}>{cfg.label}</p>
           </div>
-          <p className="mt-1 text-[11px] text-[#102F27]/70">{cfg.description}</p>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-[#374151]">{cfg.description}</p>
         </div>
-        <CheckCircle2Icon className={cn("size-5 shrink-0", cfg.text)} />
+        <CheckCircle2Icon className={cn("size-5 shrink-0", cfg.text)} aria-hidden />
       </div>
     </div>
   )
@@ -353,12 +363,12 @@ function KeyMetricsGrid({ features }: { features: MriClinicalFeatures }) {
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {metrics.map((m) => (
-        <div key={m.label} className={cn("rounded-lg p-2.5", m.bg)}>
-          <p className={cn("text-[14px] font-bold tabular-nums", m.color)}>{m.value}</p>
-          <p className="mt-0.5 text-[10px] font-medium text-[#102F27]/80">{m.label}</p>
-          <p className="text-[9px] text-[#102F27]/50">{m.sub}</p>
+        <div key={m.label} className={cn("space-y-1", STAT_CARD)}>
+          <p className={cn("text-[16px] font-bold tabular-nums", m.color)}>{m.value}</p>
+          <p className="text-[12px] font-semibold text-[#1A1F1E]">{m.label}</p>
+          <p className="text-[11px] text-muted-foreground">{m.sub}</p>
         </div>
       ))}
     </div>
@@ -399,37 +409,37 @@ function ClinicalFeaturesTable({ features }: { features: MriClinicalFeatures }) 
   ]
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[#E5EEEA]">
-      <div className="flex items-center gap-2 border-b border-[#E5EEEA] bg-[#F6FBF9] px-4 py-2.5">
-        <ActivityIcon className="size-3.5 text-[#1A5345]" />
-        <span className="text-[12px] font-semibold text-[#102F27]">Clinical Feature Breakdown</span>
-        <span className="ml-auto text-[11px] text-muted-foreground">20 manual features · ACDC pipeline</span>
+    <div className="overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-4 py-3">
+        <ActivityIcon className="size-4 text-[#1A5345]" aria-hidden />
+        <span className="font-serif text-[14px] font-bold text-[#1A1F1E]">Clinical feature breakdown</span>
+        <span className="ml-auto text-[12px] text-muted-foreground">20 manual features · ACDC pipeline</span>
       </div>
 
-      <table className="w-full text-[12px]">
+      <table className="w-full text-[13px]">
         <thead>
-          <tr className="border-b border-[#E5EEEA] bg-[#FAFAF8]">
-            <th className="py-2 pl-4 text-left font-semibold text-[#102F27]/60">Feature</th>
-            <th className="py-2 text-center font-semibold text-blue-600">ED</th>
-            <th className="py-2 pr-4 text-center font-semibold text-violet-600">ES</th>
+          <tr className="border-b border-[#E8E6E0]/60 bg-[#FAFAF8]">
+            <th className="py-2.5 pl-4 text-left font-semibold text-muted-foreground">Feature</th>
+            <th className="py-2.5 text-center font-semibold text-blue-600">ED</th>
+            <th className="py-2.5 pr-4 text-center font-semibold text-violet-600">ES</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((group) => (
             <>
-              <tr key={group.group} className="border-t border-[#E5EEEA] bg-[#F9F8F5]">
-                <td colSpan={3} className="py-1.5 pl-4 text-[11px] font-bold uppercase tracking-wider text-[#1A5345]/70">
+              <tr key={group.group} className="border-t border-[#E8E6E0]/60 bg-[#F9F8F5]">
+                <td colSpan={3} className="py-2 pl-4 text-[11px] font-bold uppercase tracking-wider text-[#1A5345]">
                   {group.group}
                 </td>
               </tr>
               {group.items.map((item) => (
                 <tr
                   key={item.label}
-                  className="border-t border-[#F0EDE8] transition-colors hover:bg-[#F6FBF9]"
+                  className="border-t border-[#E8E6E0]/40 transition-colors hover:bg-[#F9F8F5]"
                 >
-                  <td className="py-2.5 pl-4 text-[#102F27]/80">{item.label}</td>
-                  <td className="py-2.5 text-center font-medium tabular-nums text-blue-700">{item.ed}</td>
-                  <td className="py-2.5 pr-4 text-center font-medium tabular-nums text-violet-700">{item.es}</td>
+                  <td className="py-2.5 pl-4 text-[#374151]">{item.label}</td>
+                  <td className="py-2.5 text-center font-semibold tabular-nums text-blue-700">{item.ed}</td>
+                  <td className="py-2.5 pr-4 text-center font-semibold tabular-nums text-violet-700">{item.es}</td>
                 </tr>
               ))}
             </>
@@ -440,46 +450,75 @@ function ClinicalFeaturesTable({ features }: { features: MriClinicalFeatures }) 
   )
 }
 
-// ─── dark viz panel (matches CTScanSection SliceGrid style) ──────────────────
+// ─── visualization panels (assistant card chrome, dark image canvas) ───────────
 
-function VizDarkPanel({
+function VizPanel({
   title,
   icon: Icon,
   description,
   imgB64,
   mime = "image/png",
+  children,
+  contentClassName,
 }: {
   title: string
   icon: LucideIcon
   description: string
   imgB64?: string
   mime?: "image/png" | "image/gif"
+  children?: React.ReactNode
+  contentClassName?: string
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-[#1d2b22] bg-[#0d1117]">
-      <div className="flex items-center gap-2 border-b border-[#1d2b22] px-3 py-2">
-        <div className="size-2 rounded-full bg-red-500/70" />
-        <div className="size-2 rounded-full bg-amber-500/70" />
-        <div className="size-2 rounded-full bg-emerald-500/70" />
-        <Icon className="ml-1 size-3 text-[#8b949e]" />
-        <span className="text-[10px] font-medium text-[#8b949e]">{title}</span>
+    <div className="overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm">
+      <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Icon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
+          <h4 className="font-serif text-[14px] font-bold text-[#1A1F1E]">{title}</h4>
+        </div>
+        <p className="mt-0.5 text-[12px] text-muted-foreground">{description}</p>
       </div>
-      <div className="h-72 overflow-y-auto">
-        {imgB64 ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={`data:${mime};base64,${imgB64}`} alt={title} className="w-full" />
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 px-4">
-            <Icon className="size-8 text-[#2a3e32]" />
-            <p className="text-[11px] font-medium text-[#8b949e]">{title}</p>
-            <p className="text-center text-[10px] text-[#4a5a51]">{description}</p>
-            <span className="mt-1 rounded-full border border-[#2a3a30] px-2.5 py-0.5 text-[9px] text-[#5a7a6a]">
-              Generated by ML service · pending connection
-            </span>
-          </div>
+      <div className={cn("overflow-y-auto bg-[#102F27]", contentClassName ?? "max-h-80")}>
+        {children ?? (
+          imgB64 ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={`data:${mime};base64,${imgB64}`} alt={title} className="w-full object-contain" />
+          ) : (
+            <div className="flex h-48 flex-col items-center justify-center gap-2 px-4">
+              <Icon className="size-8 text-[#8b949e]" aria-hidden />
+              <p className="text-[12px] font-medium text-[#8b949e]">Awaiting ML service output</p>
+            </div>
+          )
         )}
       </div>
     </div>
+  )
+}
+
+function VizChartPanel({
+  title,
+  icon: Icon,
+  description,
+  chartJson,
+  contentClassName,
+}: {
+  title: string
+  icon: LucideIcon
+  description: string
+  chartJson?: unknown
+  contentClassName?: string
+}) {
+  return (
+    <VizPanel
+      title={title}
+      icon={Icon}
+      description={description}
+      contentClassName={contentClassName ?? "h-72"}
+    >
+      {chartJson ? (
+        <MriPlotlyChart data={chartJson} className={cn("w-full", contentClassName ?? "h-72")} />
+      ) : undefined}
+    </VizPanel>
   )
 }
 
@@ -489,196 +528,98 @@ function MriResultPanel({ result, elapsedSec }: { result: MriResult; elapsedSec:
   const cfg = DIAGNOSIS_CONFIG[result.diagnosisClass]
 
   return (
-    <div className="space-y-3">
-      <div className={cn("rounded-xl border-2 p-4 space-y-3", cfg.bg, cfg.border)}>
-        <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      <div className={cn("space-y-4 rounded-xl border p-4", cfg.bg, cfg.border)}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className={cn("flex size-7 shrink-0 items-center justify-center rounded-lg border", cfg.border, "bg-white")}>
-              <BrainCircuitIcon className={cn("size-3.5", cfg.text)} />
-            </div>
+            <BrainCircuitIcon className={cn("size-5 shrink-0", cfg.text)} aria-hidden />
             <div>
-              <p className={cn("text-[12px] font-semibold", cfg.text)}>Analysis Complete</p>
-              <p className="text-[10px] text-[#102F27]/60">
-                FCT Segmentation · VAE + Manual Features · Ensemble Classifier · {formatElapsed(elapsedSec)}
+              <p className={cn("font-serif text-[15px] font-bold", cfg.text)}>Analysis complete</p>
+              <p className="text-[12px] text-muted-foreground">
+                FCT segmentation · VAE + manual features · ensemble · {formatElapsed(elapsedSec)}
               </p>
             </div>
           </div>
-          <CheckCircle2Icon className={cn("size-4", cfg.text)} />
+          <Badge
+            variant="default"
+            className="rounded-lg border-0 bg-emerald-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-none hover:bg-emerald-500"
+          >
+            Ready for review
+          </Badge>
         </div>
-
-        <Separator className="bg-[#E5EEEA]" />
 
         <DiagnosisClassCard diagnosisClass={result.diagnosisClass} />
         <KeyMetricsGrid features={result.clinicalFeatures} />
       </div>
 
-      {/* ── Animations ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <VizDarkPanel
-          title="Raw Cine-MRI Loop"
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <VizPanel
+          title="Raw cine-MRI loop"
           icon={FilmIcon}
-          description="Animated loop of all MRI slices (ED + ES concatenated) in grayscale — no segmentation overlay."
+          description="Animated loop of all MRI slices (ED + ES) in grayscale — no segmentation overlay."
           imgB64={result.rawGifB64}
           mime="image/gif"
         />
-        <VizDarkPanel
-          title="Segmentation Animation (ED ↔ ES)"
+        <VizPanel
+          title="Segmentation animation (ED ↔ ES)"
           icon={FilmIcon}
-          description="Animated overlay alternating ED ↔ ES frames. Cyan = LV · Orange = Myocardium · Magenta = RV."
+          description="Overlay alternating ED ↔ ES frames. Cyan = LV · Orange = myocardium · Magenta = RV."
           imgB64={result.segGifB64}
           mime="image/gif"
         />
       </div>
 
-      {/* ── Segmentation grids ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <VizDarkPanel
-          title="Segmentation Grid — ED Phase"
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <VizPanel
+          title="Segmentation grid — ED phase"
           icon={LayoutGridIcon}
-          description="Per-slice segmentation masks overlaid on grayscale frames for the End-Diastolic phase."
+          description="Per-slice segmentation masks on grayscale frames for end-diastolic phase."
           imgB64={result.segGridEdB64}
         />
-        <VizDarkPanel
-          title="Segmentation Grid — ES Phase"
+        <VizPanel
+          title="Segmentation grid — ES phase"
           icon={LayoutGridIcon}
-          description="Per-slice segmentation masks overlaid on grayscale frames for the End-Systolic phase."
+          description="Per-slice segmentation masks on grayscale frames for end-systolic phase."
           imgB64={result.segGridEsB64}
         />
       </div>
 
-      {/* ── Clinical features table ────────────────────────────────────────── */}
       <ClinicalFeaturesTable features={result.clinicalFeatures} />
 
-      {/* ── Mean signal chart ─────────────────────────────────────────────── */}
-      <div className="overflow-hidden rounded-xl border border-[#1d2b22] bg-[#0d1117]">
-        <div className="flex items-center gap-2 border-b border-[#1d2b22] px-3 py-2">
-          <div className="size-2 rounded-full bg-red-500/70" />
-          <div className="size-2 rounded-full bg-amber-500/70" />
-          <div className="size-2 rounded-full bg-emerald-500/70" />
-          <TrendingUpIcon className="ml-1 size-3 text-[#8b949e]" />
-          <span className="text-[10px] font-medium text-[#8b949e]">Mean Signal Intensity per Slice — ED vs ES</span>
-        </div>
-        <div className="h-72">
-          {result.meanSignalChartJson ? (
-            <MriPlotlyChart data={result.meanSignalChartJson} />
-          ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-2 px-4">
-              <TrendingUpIcon className="size-8 text-[#2a3e32]" />
-              <p className="text-[11px] font-medium text-[#8b949e]">Mean Signal Intensity per Slice — ED vs ES</p>
-              <p className="text-center text-[10px] text-[#4a5a51]">Line chart: mean voxel intensity across all slices comparing ED (blue) and ES (red) phases.</p>
-              <span className="mt-1 rounded-full border border-[#2a3a30] px-2.5 py-0.5 text-[9px] text-[#5a7a6a]">
-                Generated by ML service · pending connection
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Overview 4-row grid ────────────────────────────────────────────── */}
-      <VizDarkPanel
+      <VizPanel
         title="Overview: ED vs ES"
         icon={LayersIcon}
-        description="4-row × N-slice grid: (1) ED grayscale · (2) ES grayscale · (3) ED−ES pixel difference (RdBu) · (4) colour overlay R=ED G=ES."
+        description="4-row grid: ED grayscale · ES grayscale · ED−ES difference · colour overlay R=ED G=ES."
         imgB64={result.overviewImgB64}
       />
 
-      {/* ── Intensity histogram ────────────────────────────────────────────── */}
-      <VizDarkPanel
-        title="Intensity Histogram — ED vs ES"
-        icon={BarChart2Icon}
-        description="Side-by-side histogram of voxel intensity distributions: ED (blue) and ES (red)."
-        imgB64={result.histogramImgB64}
-      />
-
-      {/* ── Thickening map + wall motion ───────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="overflow-hidden rounded-xl border border-[#1d2b22] bg-[#0d1117]">
-          <div className="flex items-center gap-2 border-b border-[#1d2b22] px-3 py-2">
-            <div className="size-2 rounded-full bg-red-500/70" />
-            <div className="size-2 rounded-full bg-amber-500/70" />
-            <div className="size-2 rounded-full bg-emerald-500/70" />
-            <BarChart2Icon className="ml-1 size-3 text-[#8b949e]" />
-            <span className="text-[10px] font-medium text-[#8b949e]">Thickening Map — Myocardial Area per Slice</span>
-          </div>
-          <div className="h-72">
-            {result.thickeningChartJson ? (
-              <MriPlotlyChart data={result.thickeningChartJson} />
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center gap-2 px-4">
-                <BarChart2Icon className="size-8 text-[#2a3e32]" />
-                <p className="text-[11px] font-medium text-[#8b949e]">Thickening Map — Myocardial Area per Slice</p>
-                <p className="text-center text-[10px] text-[#4a5a51]">Grouped bar chart: myocardial pixel count per slice in ED vs ES.</p>
-                <span className="mt-1 rounded-full border border-[#2a3a30] px-2.5 py-0.5 text-[9px] text-[#5a7a6a]">
-                  Generated by ML service · pending connection
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="overflow-hidden rounded-xl border border-[#1d2b22] bg-[#0d1117]">
-          <div className="flex items-center gap-2 border-b border-[#1d2b22] px-3 py-2">
-            <div className="size-2 rounded-full bg-red-500/70" />
-            <div className="size-2 rounded-full bg-amber-500/70" />
-            <div className="size-2 rounded-full bg-emerald-500/70" />
-            <MoveIcon className="ml-1 size-3 text-[#8b949e]" />
-            <span className="text-[10px] font-medium text-[#8b949e]">Wall Motion — LV Centroid Displacement</span>
-          </div>
-          <div className="h-72">
-            {result.wallMotionChartJson ? (
-              <MriPlotlyChart data={result.wallMotionChartJson} />
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center gap-2 px-4">
-                <MoveIcon className="size-8 text-[#2a3e32]" />
-                <p className="text-[11px] font-medium text-[#8b949e]">Wall Motion — LV Centroid Displacement</p>
-                <p className="text-center text-[10px] text-[#4a5a51]">LV centroid displacement from ED to ES per slice.</p>
-                <span className="mt-1 rounded-full border border-[#2a3a30] px-2.5 py-0.5 text-[9px] text-[#5a7a6a]">
-                  Generated by ML service · pending connection
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <VizChartPanel
+          title="Thickening map — myocardial area per slice"
+          icon={BarChart2Icon}
+          description="Grouped bar chart: myocardial pixel count per slice in ED vs ES."
+          chartJson={result.thickeningChartJson}
+        />
+        <VizChartPanel
+          title="Wall motion — LV centroid displacement"
+          icon={MoveIcon}
+          description="LV centroid displacement from ED to ES per slice."
+          chartJson={result.wallMotionChartJson}
+        />
       </div>
 
-      {/* ── 3D rendering ───────────────────────────────────────────────────── */}
-      <div className="overflow-hidden rounded-xl border border-[#1d2b22] bg-[#0d1117]">
-        <div className="flex items-center gap-2 border-b border-[#1d2b22] px-3 py-2">
-          <div className="size-2 rounded-full bg-red-500/70" />
-          <div className="size-2 rounded-full bg-amber-500/70" />
-          <div className="size-2 rounded-full bg-emerald-500/70" />
-          <BoxIcon className="ml-1 size-3 text-[#8b949e]" />
-          <span className="text-[10px] font-medium text-[#8b949e]">3D Cardiac Structure Rendering — ED Phase</span>
-        </div>
-        <div className="h-96">
-          {result.rendering3dJson ? (
-            <MriPlotlyChart data={result.rendering3dJson} className="h-96 w-full" />
-          ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-2 px-4">
-              <BoxIcon className="size-8 text-[#2a3e32]" />
-              <p className="text-[11px] font-medium text-[#8b949e]">3D Cardiac Structure Rendering — ED Phase</p>
-              <p className="text-center text-[10px] text-[#4a5a51]">3D point cloud: LV, Myocardium, RV from ED segmentation masks.</p>
-              <span className="mt-1 rounded-full border border-[#2a3a30] px-2.5 py-0.5 text-[9px] text-[#5a7a6a]">
-                Generated by ML service · pending connection
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── MPR ────────────────────────────────────────────────────────────── */}
-      <VizDarkPanel
-        title="Multi-Planar Reformatting (MPR)"
+      <VizPanel
+        title="Multi-planar reformatting (MPR)"
         icon={SplitIcon}
-        description="Axial · Sagittal · Coronal views for ED (top row) and ES (bottom row) phases."
+        description="Axial · sagittal · coronal views for ED (top) and ES (bottom) phases."
         imgB64={result.mprImgB64}
       />
 
-      {/* ── Footer ─────────────────────────────────────────────────────────── */}
-      <div className="rounded-lg border border-[#E5EEEA] bg-[#FAFAF8] px-4 py-3">
-        <p className="text-[10px] text-muted-foreground">
-          <span className="font-semibold text-[#102F27]">Model:</span> FCT segmentation → VAE (32 deep features) + 20 manual clinical
-          features → Voting Classifier (MLP + Random Forest + SVM). Trained on the ACDC dataset — 5 classes, ~92%
-          accuracy. Results are for clinical decision support only and do not replace physician judgement.
+      <div className="rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] px-4 py-3">
+        <p className="text-[12px] leading-relaxed text-muted-foreground">
+          <span className="font-semibold text-[#1A1F1E]">Model:</span> FCT segmentation → VAE (32 deep features) + 20 manual clinical
+          features → voting classifier (MLP + random forest + SVM). Trained on ACDC — 5 classes, ~92% accuracy.
+          Results are for clinical decision support only and do not replace physician judgement.
         </p>
       </div>
     </div>
@@ -687,21 +628,22 @@ function MriResultPanel({ result, elapsedSec }: { result: MriResult; elapsedSec:
 
 function MriErrorPanel({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-      <div className="flex items-start gap-2">
-        <XCircleIcon className="mt-0.5 size-4 shrink-0 text-red-500" />
+    <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-4">
+      <div className="flex items-start gap-3">
+        <XCircleIcon className="mt-0.5 size-4 shrink-0 text-rose-600" aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold text-red-700">Analysis failed</p>
-          <p className="mt-0.5 text-[10px] text-red-600">{message}</p>
-          <p className="mt-1 text-[10px] text-red-500/80">
+          <p className="text-[13px] font-semibold text-rose-800">Analysis failed</p>
+          <p className="mt-1 text-[12px] text-rose-700">{message}</p>
+          <p className="mt-2 text-[12px] text-rose-600/90">
             Make sure both ED and ES NIfTI files are valid cardiac MRI scans.
           </p>
         </div>
         <Button
+          type="button"
           size="sm"
           variant="outline"
           onClick={onRetry}
-          className="shrink-0 border-red-200 text-[11px] text-red-600 hover:bg-red-100 hover:text-red-700"
+          className="shrink-0 rounded-lg border-rose-200 bg-white text-[12px] text-rose-700 hover:bg-rose-50"
         >
           Retry
         </Button>
@@ -808,23 +750,27 @@ export function CineMRISection({ edFile, onEdFileChange, esFile, onEsFileChange 
   const showAnalyzeButton = bothFilesReady && status !== "done" && status !== "error"
 
   return (
-    <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
-            <ScanHeartIcon className="size-4 text-[#1A5345]" />
+    <div className={SECTION_CARD}>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <ScanHeartIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
+            <h3 className="font-serif text-[16px] font-bold text-[#1A1F1E]">Cardiac cine-MRI analysis</h3>
           </div>
-          <h3 className="text-[14px] font-semibold text-[#102F27]">Cardiac Cine-MRI Analysis</h3>
+          <p className="mt-1 pl-7 text-[13px] text-muted-foreground">
+            FCT segmentation, VAE features, and ensemble classification from paired ED/ES NIfTI volumes.
+          </p>
         </div>
-        <span className="rounded-full bg-violet-50 px-2.5 py-0.5 text-[10px] font-medium text-violet-600">
-          AI · FCT + Ensemble
-        </span>
+        <Badge
+          variant="default"
+          className="w-fit rounded-lg border-0 bg-violet-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-none hover:bg-violet-500"
+        >
+          AI · FCT + ensemble
+        </Badge>
       </div>
 
-      <div className="space-y-3">
-        {/* Upload pair */}
-        <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {edFile ? (
             <MriFileCard
               file={edFile}
@@ -851,9 +797,10 @@ export function CineMRISection({ edFile, onEdFileChange, esFile, onEsFileChange 
         </div>
 
         {!bothFilesReady && (
-          <p className="text-center text-[10px] text-muted-foreground">
-            Upload both the <span className="font-semibold text-blue-600">End-Diastolic (ED)</span> and{" "}
-            <span className="font-semibold text-violet-600">End-Systolic (ES)</span> NIfTI scans to run the analysis.
+          <p className="text-center text-[13px] text-muted-foreground">
+            Upload both the{" "}
+            <span className="font-semibold text-blue-600">end-diastolic (ED)</span> and{" "}
+            <span className="font-semibold text-violet-600">end-systolic (ES)</span> NIfTI scans to run the analysis.
           </p>
         )}
 
@@ -861,12 +808,13 @@ export function CineMRISection({ edFile, onEdFileChange, esFile, onEsFileChange 
           <>
             <MriResultPanel result={result} elapsedSec={result.elapsedSec || elapsed} />
             <Button
+              type="button"
               size="sm"
               onClick={() => setAiChatOpen(true)}
-              className="w-full gap-1.5 bg-violet-600 text-[12px] hover:bg-violet-700"
+              className="h-10 w-full gap-2 rounded-lg bg-violet-600 text-[13px] font-semibold hover:bg-violet-700"
             >
-              <SparklesIcon className="size-3.5" />
-              AI Summary &amp; Recommendations
+              <SparklesIcon className="size-4" aria-hidden />
+              AI summary &amp; recommendations
             </Button>
             <CineMRIAiChatDialog
               open={aiChatOpen}
@@ -882,28 +830,29 @@ export function CineMRISection({ edFile, onEdFileChange, esFile, onEsFileChange 
 
         {showAnalyzeButton && (
           <Button
+            type="button"
             size="sm"
             disabled={status === "processing"}
             onClick={handleAnalyze}
-            className="w-full gap-1.5 bg-[#1A5345] text-[12px] hover:bg-[#0F3D32]"
+            className="h-10 w-full gap-2 rounded-lg bg-[#1A5345] text-[13px] font-semibold hover:bg-[#133F34]"
           >
             {status === "processing" ? (
               <>
-                <Loader2Icon className="size-3.5 animate-spin" />
+                <Loader2Icon className="size-4 animate-spin" aria-hidden />
                 Running MRI pipeline…
               </>
             ) : (
               <>
-                <BrainCircuitIcon className="size-3.5" />
-                Run Cardiac MRI Analysis
+                <BrainCircuitIcon className="size-4" aria-hidden />
+                Run cardiac MRI analysis
               </>
             )}
           </Button>
         )}
 
-        <p className="text-center text-[10px] text-muted-foreground">
-          Upload cardiac Cine-MRI scans in NIfTI format (.nii / .nii.gz). Requires separate ED and ES phase files.
-          Pipeline: FCT segmentation → VAE deep features + 20 manual clinical features → Ensemble classification.
+        <p className="text-center text-[12px] leading-relaxed text-muted-foreground">
+          Upload cardiac cine-MRI scans in NIfTI format (.nii / .nii.gz). Requires separate ED and ES phase files.
+          Pipeline: FCT segmentation → VAE deep features + 20 manual clinical features → ensemble classification.
         </p>
       </div>
     </div>

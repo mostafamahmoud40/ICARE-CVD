@@ -239,7 +239,7 @@ export function PatientDetailView({
         )}
 
         {/* Action buttons — Redesigned to be simpler, horizontal and less prominent */}
-        {patient.status !== "completed" && patient.status !== "cancelled" && patient.status !== "in-consultation" && (
+        {patient.status !== "completed" && patient.status !== "cancelled" && patient.status !== "in-consultation" && patient.status !== "report-pending" && (
           <div className="flex flex-col gap-2 pt-2">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Quick Actions</p>
             <div className="flex flex-wrap items-center gap-2">
@@ -292,11 +292,19 @@ export function PatientDetailView({
         )}
         {patient.status === "in-consultation" && (
           <div className="flex flex-col gap-2 pt-2">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Status</p>
-            <div className="flex w-fit items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700 border border-emerald-200/60">
+            <p className="text-[10px] font-bold text-muted-foreground tracking-wide">Status</p>
+            <div className="flex w-fit items-center gap-1.5 rounded-lg bg-[#E8F0EE] px-3 py-1.5 text-[11px] font-bold text-[#1A5345] border border-[#1A5345]/15">
               <StethoscopeIcon className="size-3.5" />
               With {patient.assignedDoctor}
-              <span className="ml-1 inline-block size-1.5 animate-ping rounded-full bg-emerald-600" />
+              <span className="ml-1 inline-block size-1.5 animate-ping rounded-full bg-[#1A5345]" />
+            </div>
+          </div>
+        )}
+        {patient.status === "report-pending" && (
+          <div className="flex flex-col gap-2 pt-2">
+            <p className="text-[10px] font-bold text-muted-foreground tracking-wide">Status</p>
+            <div className="flex w-fit items-center gap-1.5 rounded-lg bg-violet-50 px-3 py-1.5 text-[11px] font-bold text-violet-700 border border-violet-200/60">
+              Visit finished — report and diagnosis still pending with {patient.assignedDoctor}
             </div>
           </div>
         )}

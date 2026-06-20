@@ -1,8 +1,38 @@
+export type CareTimelineItemKind = "follow_up" | "lab_order" | "appointment" | "test_order"
+
+export type CareTimelineTestType =
+  | "blood"
+  | "imaging"
+  | "ecg"
+  | "echocardiogram"
+  | "stress_test"
+  | "cardiac_catheterization"
+  | "pulmonary_function"
+  | "urinalysis"
+  | "other"
+
+export type CareTimelineItemStatus = "pending" | "scheduled" | "completed" | "missing"
+
+export type CareTimelineItem = {
+  id: string
+  kind: CareTimelineItemKind
+  testType?: CareTimelineTestType
+  title: string
+  detail: string
+  dueAt: string
+  status: CareTimelineItemStatus
+  doctorName?: string
+  href?: string
+  urgent?: boolean
+}
+
 export type PatientInfo = {
   id: string
   fullName: string
   age?: number
 }
+
+export type VitalRangeStatus = "normal" | "warning" | "critical"
 
 export type Vital = {
   id: string
@@ -10,6 +40,7 @@ export type Vital = {
   value: string
   unit?: string
   reference?: string
+  status?: VitalRangeStatus
   lastMeasuredAt: string
 }
 
@@ -56,4 +87,5 @@ export type PatientDashboardData = {
     nextFollowUpAt: string
     planNote: string
   }
+  careTimeline: CareTimelineItem[]
 }

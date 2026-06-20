@@ -1,3 +1,17 @@
+export type FamilyHistoryEntry = {
+  id: string
+  relationship: string
+  condition: string
+  details: string
+}
+
+export type PatientAllergyEntry = {
+  id: string
+  category: "drug" | "food" | "other"
+  allergen: string
+  reaction: string
+}
+
 export type DoctorPatientsPagePatient = {
   id: string
   fullName: string
@@ -13,8 +27,8 @@ export type DoctorPatientsPagePatient = {
   lastVisitDate: string | null
   upcomingAppointmentDate: string | null
   riskLevel: "low" | "moderate" | "high"
-  allergies: string[]
-  familyHistory: string[]
+  allergies: PatientAllergyEntry[]
+  familyHistory: FamilyHistoryEntry[]
   smokingStatus: string
   bmi: number | null
   totalVisits: number
@@ -131,8 +145,11 @@ export type DiagnosisRecord = {
   updatedAt: string
 }
 
+export type LabPanelSource = "upload" | "manual" | "order"
+
 export type LabResult = {
   id: string
+  panelId: string
   testName: string
   value: string
   unit: string
@@ -140,6 +157,9 @@ export type LabResult = {
   status: "normal" | "high" | "low" | "critical"
   date: string
   orderedBy: string
+  source: LabPanelSource
+  documentId?: string
+  panelTitle?: string
 }
 
 export type UploadedDocument = {
@@ -162,13 +182,30 @@ export type VisitRecord = {
   durationMin: number
 }
 
+export type PatientClinicalNote = {
+  id: string
+  date: string
+  text: string
+  author: string
+}
+
+export type PatientCareGoal = {
+  id: string
+  metric: string
+  target: string
+  current?: string
+  status: "on-track" | "off-track" | "achieved"
+  createdAt: string
+  updatedAt: string
+}
+
 export type ConsultationVitals = {
-  systolicBP: number
-  diastolicBP: number
-  heartRate: number
-  oxygenSaturation: number
-  temperature: number
-  weight: number
+  systolicBP: number | null
+  diastolicBP: number | null
+  heartRate: number | null
+  oxygenSaturation: number | null
+  temperature: number | null
+  weight: number | null
   bloodSugar: number | null
 }
 
@@ -218,4 +255,6 @@ export type PatientFullRecord = {
   labResults: LabResult[]
   documents: UploadedDocument[]
   visits: VisitRecord[]
+  profileClinicalNotes: PatientClinicalNote[]
+  careGoals: PatientCareGoal[]
 }

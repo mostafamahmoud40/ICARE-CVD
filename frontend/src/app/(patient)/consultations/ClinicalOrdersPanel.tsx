@@ -110,14 +110,19 @@ function StatusBadge({ status, urgent }: { status: ClinicalOrderStatus; urgent?:
 type ClinicalOrdersPanelProps = {
   orders: ClinicalOrder[]
   layout?: "stack" | "grid"
+  emptyMessage?: string
 }
 
-export function ClinicalOrdersPanel({ orders, layout = "stack" }: ClinicalOrdersPanelProps) {
+export function ClinicalOrdersPanel({
+  orders,
+  layout = "stack",
+  emptyMessage = "No pending orders or actions.",
+}: ClinicalOrdersPanelProps) {
   if (orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#E8E6E0] bg-[#F9F8F5] py-8 text-center">
         <CheckCircle2Icon className="size-8 text-[#1A5345]/40 mb-3" />
-        <p className="text-[14px] font-medium text-[#6B7870]">No pending orders or actions.</p>
+        <p className="text-[14px] font-medium text-[#6B7870]">{emptyMessage}</p>
       </div>
     )
   }

@@ -73,6 +73,7 @@ _models: dict = {}
 async def lifespan(app: FastAPI):
     """Load all model weights once at startup; release on shutdown."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"[startup] Device: {device}")
 
     seg_model = torch.load("models/fct.model", map_location=device, weights_only=False)
     seg_model.to(device).eval()
@@ -83,6 +84,11 @@ async def lifespan(app: FastAPI):
     classifier = joblib.load("models/classifier.pkl")
     scaler = joblib.load("transformers/robustscaler.joblib")
 
+    if torch.cuda.is_available():
+        props = torch.cuda.get_device_properties(0)
+        print(f"[startup] GPU: {props.name} — {props.total_memory / (1024**3):.1f} GB VRAM")
+
+    _models["device"] = device
     _models["seg_model"] = seg_model
     _models["vae"] = vae
     _models["classifier"] = classifier
@@ -113,7 +119,13 @@ app.add_middleware(
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "models_loaded": bool(_models)}
+    device = _models.get("device")
+    return {
+        "status": "ok",
+        "models_loaded": bool(_models),
+        "device": str(device) if device else "not initialised",
+        "cuda": torch.cuda.is_available(),
+    }
 
 
 @app.post("/predict")

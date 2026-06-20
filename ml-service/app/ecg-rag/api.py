@@ -223,7 +223,14 @@ app.add_middleware(
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "collection_ready": bool(_state.get("collection"))}
+    import torch
+
+    return {
+        "status": "ok",
+        "collection_ready": bool(_state.get("collection")),
+        "device": "cuda" if torch.cuda.is_available() else "cpu",
+        "cuda": torch.cuda.is_available(),
+    }
 
 
 @app.post("/analyze")

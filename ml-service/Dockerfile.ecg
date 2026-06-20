@@ -2,9 +2,8 @@
 #   - Arrhythmia classifier service      (Flask, :5050)
 #   - ECG LLM + RAG diagnosis service    (FastAPI, :8502)
 #
-# The ECG model is small (~2.5 MB) and the existing app loads it on CPU
-# (`map_location="cpu"`), so we still base on the PyTorch image for binary
-# compatibility but do not require GPU at runtime.
+# The ECG PyTorch model uses GPU when CUDA is available (see app.py).
+# Same image also serves ml-ecg-rag (SentenceTransformer on GPU when available).
 FROM pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime
 
 ENV PYTHONUNBUFFERED=1 \

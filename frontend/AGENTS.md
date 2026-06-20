@@ -43,7 +43,7 @@
 
 **Documented exceptions** (do not copy these patterns elsewhere without good reason):
 
-- **Toasts** — circular icon badge is defined in [Toast Icon Container](#toast-icon-container) below.
+- **Toasts** — circular icon badge; see [Toast notifications (canonical)](#toast-notifications-canonical) at the end of this file.
 - **Empty states** — large centered illustration circle in [Empty States](#empty-states) below.
 - **Stat / snapshot cells** — the whole cell is the surface; the icon sits on white/card bg with **no extra icon-only tile** inside the cell.
 
@@ -241,37 +241,11 @@ The app uses a consistent medical-themed palette. Use these Tailwind values:
 
 ## Toast / Notification Design
 
-All toast notifications across the app must use a **consistent card-style design** via the global `Toaster` (`@/components/ui/sonner`). Do not use `sonner`'s built-in `richColors`.
+All toasts use the **canonical card design** documented at the end of this file: [Toast notifications (canonical)](#toast-notifications-canonical).
 
-### Toast Card Style (applied globally to ALL toast types)
-
-```
-rounded-2xl border border-[#E8E6E0]/80 bg-white px-5 py-4
-shadow-[0_12px_40px_-8px_rgba(26,83,69,0.12)] ring-1 ring-[#1A5345]/5
-w-[min(460px,calc(100vw-2rem))] max-w-[460px]
-flex-row items-start gap-3.5
-```
-
-- **Title:** `text-[14.5px] font-bold tracking-tight text-[#1A1F1E]`
-- **Description:** `text-[13px] font-medium leading-[1.6] text-muted-foreground`
-- **Background:** Always white (`bg-white`) for all variants (success, error, info, warning, loading)
-- **Border:** Always `border-[#E8E6E0]/80`
-
-### Toast Icon Container
-
-All built-in toast icons are rendered inside a circular badge:
-```
-flex size-10 shrink-0 items-center justify-center rounded-full ring-4 mt-0.5
-bg-[#1A5345]/10 text-[#1A5345] ring-[#1A5345]/5
-```
-- Icon size: `size-[18px]` with `strokeWidth={2.5}`
-- **Error variant** uses: `bg-red-50 text-red-600 ring-red-500/10`
-
-### Usage
-
-- Use `toast.success()`, `toast.error()`, `toast.info()`, `toast.warning()`, `toast.loading()` directly — the card style is applied automatically.
-- For custom toasts, use `showIcareToast()` / `showIcareSuccessToast()` / `showIcareErrorToast()` from `@/components/shared/icare-toast`.
-- Do **not** wrap custom toast content in its own card wrapper — render only the inner layout (icon + text) because the `Toaster` root already provides the card.
+- Global shell: `@/components/ui/sonner` (`Toaster` in root layout).
+- Custom copy/layout: `showIcareToast()` / `showIcareSuccessToast()` / `showIcareErrorToast()` from `@/components/shared/icare-toast`.
+- Do **not** use `richColors` or wrap custom toast content in an extra card — the `Toaster` root already provides the panel.
 
 ### Empty States
 
@@ -301,3 +275,69 @@ When rendering Status, Risk, or similar important category badges, **always use 
     High risk
   </span>
   ```
+
+## Toast notifications (canonical)
+
+**This is the only approved toast design.** Every notification — success, error, info, warning, loading — uses the same white card shell and green icon badge. Copy may be one line (title only), two lines (title + description), or a single combined message; choose what fits the situation.
+
+### Where it lives
+
+| Piece | Path |
+|-------|------|
+| Global `Toaster` + built-in `toast.*()` styling | `src/components/ui/sonner.tsx` |
+| Custom toasts (`showIcareToast`, etc.) | `src/components/shared/icare-toast.tsx` |
+| Mount point | `src/app/layout.tsx` — `<Toaster position="top-center" />` |
+
+### Card shell (all variants)
+
+Applied on the Sonner toast root (`toastOptions.classNames.toast`). **Never duplicate** on custom inner content.
+
+```
+group cn-toast flex-row items-start gap-3.5
+rounded-2xl border border-[#E8E6E0]/80 bg-white px-5 py-4
+shadow-[0_12px_40px_-8px_rgba(26,83,69,0.12)] ring-1 ring-[#1A5345]/5
+w-[min(460px,calc(100vw-2rem))] max-w-[460px]
+```
+
+- Background: always `bg-white` (including error).
+- Border: always `border-[#E8E6E0]/80` (including error).
+- Position: `top-center` by default.
+
+### Icon badge (all variants)
+
+Circular green accent ring — **same for success, error, info, warning, and loading**:
+
+```
+flex size-10 shrink-0 items-center justify-center rounded-full ring-4 mt-0.5
+bg-[#1A5345]/10 text-[#1A5345] ring-[#1A5345]/5
+```
+
+| Variant | Lucide icon |
+|---------|-------------|
+| success | `CircleCheckIcon` |
+| error | `OctagonXIcon` |
+| info | `InfoIcon` |
+| warning | `TriangleAlertIcon` |
+| loading | `Loader2Icon` (with `animate-spin`) |
+
+Icon: `size-[18px]`, `strokeWidth={2.5}`.
+
+### Typography
+
+| Role | Classes |
+|------|---------|
+| Title | `text-[14.5px] font-bold tracking-tight text-[#1A1F1E]` |
+| Description (optional) | `text-[13px] font-medium leading-[1.6] text-muted-foreground` |
+
+- **Title-only** — e.g. `toast.error("Authentication failed. Please log in again.")`
+- **Title + description** — e.g. `showIcareSuccessToast("Profile updated", "Patient details were saved.")`
+- **Custom body** — use `showIcareToast({ title, description?, variant })`; it delegates to `toast.success` / `toast.error` / `toast.info` so title + description render with the same icon badge as built-in toasts.
+
+### Usage rules
+
+- ✅ `toast.success()` / `toast.error()` / `toast.info()` / `toast.warning()` / `toast.loading()` — styling is automatic via `Toaster`.
+- ✅ `showIcareToast()` / `showIcareSuccessToast()` / `showIcareErrorToast()` for custom copy or icons.
+- ❌ `richColors` on Sonner.
+- ❌ Extra `rounded-xl border bg-white shadow-*` wrapper inside custom toast content.
+- ❌ `toast.custom()` for standard title/description toasts — use `showIcareToast` or `toast.success` / `toast.error` instead (custom toasts skip Sonner’s icon + title layout).
+- ❌ Red or amber icon rings for errors — semantic meaning comes from icon + copy, not a different badge color.

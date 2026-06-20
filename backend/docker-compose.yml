@@ -44,15 +44,14 @@ services:
       S3_ENDPOINT: ${S3_ENDPOINT:-}
       S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
       S3_PRESIGN_TTL_SECONDS: ${S3_PRESIGN_TTL_SECONDS:-3600}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL_DOCKER:-http://host.docker.internal:11434}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
-      COHERE_API_KEY: ${COHERE_API_KEY:-}
-      COHERE_EMBEDDING_MODEL: ${COHERE_EMBEDDING_MODEL:-embed-multilingual-light-v3.0}
       GROQ_CHAT_MODEL: ${GROQ_CHAT_MODEL:-meta-llama/llama-4-scout-17b-16e-instruct}
       GROQ_CHAT_FALLBACK_MODEL: ${GROQ_CHAT_FALLBACK_MODEL:-openai/gpt-oss-20b}
       GROQ_ANALYSIS_MODEL: ${GROQ_ANALYSIS_MODEL:-qwen/qwen3-32b}
       CHROMA_URL: http://chroma:8000
+      # BGE-M3 local embeddings for Chroma vector search (Groq stays chat-only)
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-bge-m3}
+      BGE_M3_URL: http://embeddings:80
       # MinIO (chat attachments only — S3 above stays for documents)
       MINIO_ENDPOINT: http://minio:9000
       MINIO_PRESIGN_ENDPOINT: http://localhost:9000
@@ -77,8 +76,35 @@ services:
         condition: service_healthy
       chroma:
         condition: service_started
+      embeddings:
+        condition: service_healthy
       minio:
         condition: service_healthy
+
+  embeddings:
+    # GPU: pick image for your card — see .env.example (cuda-1.9, 86-1.9 RTX30, 89-1.9 RTX40, …)
+    image: ${EMBEDDINGS_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:89-1.9}
+    container_name: icare-cvd-embeddings
+    restart: unless-stopped
+    gpus: all
+    ports:
+      - "8091:80"
+    volumes:
+      - embedding_models:/data
+    environment:
+      HF_HUB_ENABLE_HF_TRANSFER: "1"
+      NVIDIA_VISIBLE_DEVICES: all
+    command:
+      - --model-id
+      - BAAI/bge-m3
+      - --port
+      - "80"
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://127.0.0.1:80/health || exit 1" ]
+      interval: 15s
+      timeout: 10s
+      retries: 30
+      start_period: 300s
 
   chroma:
     image: chromadb/chroma:latest
@@ -129,3 +155,4 @@ volumes:
   postgres_data:
   chroma_data:
   minio_data:
+  embedding_models:

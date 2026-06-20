@@ -24,28 +24,28 @@ interface PatientAiChatProps {
 
 const SUGGESTIONS = [
   {
-    title: "Cardiovascular Health",
-    desc: "Tips to improve heart-health & circulation.",
-    query: "How can I improve my cardiovascular health?",
-    emoji: "❤️",
+    title: "My appointments",
+    desc: "Ask the agent what you have booked today or this week.",
+    query: "ما هي مواعيدي القادمة؟",
+    emoji: "📅",
   },
   {
-    title: "Low-Sodium Diet",
-    desc: "Guidelines for reducing daily salt intake.",
-    query: "What are the rules of a low-sodium diet?",
-    emoji: "🧂",
+    title: "Book a visit",
+    desc: "Let the agent find an open slot and book for you.",
+    query: "احجزلي موعد متابعة مع أي دكتور متاح",
+    emoji: "🩺",
   },
   {
-    title: "Medication Doses",
-    desc: "What to do if you miss a scheduled medicine.",
-    query: "What should I do if I miss a medication dose?",
-    emoji: "💊",
+    title: "Cancel appointment",
+    desc: "Cancel your next upcoming visit by confirmation code.",
+    query: "الغِ آخر موعد عندي",
+    emoji: "✖️",
   },
   {
-    title: "App & Reports Help",
-    desc: "How to log vitals or upload documents.",
-    query: "How do I upload medical reports in the app?",
-    emoji: "📋",
+    title: "Reschedule",
+    desc: "Move an existing booking to another day or time.",
+    query: "أعد جدولة موعدي ليوم تاني",
+    emoji: "🔄",
   },
 ]
 
@@ -86,16 +86,23 @@ export function PatientAiChat({
         <div className="flex-1 flex flex-col min-w-0 relative">
           {/* Header */}
           <div className="flex shrink-0 items-center gap-2.5 border-b border-[#E8E6E0]/50 bg-white px-4 py-3 md:px-6 md:py-3.5">
-            <BotMessageSquareIcon className="size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
-            <h2 className="flex-1 text-[15px] font-semibold text-[#1A1F1E]">
-              {isAssistantTyping ? (
-                <span className="text-[#1A5345] animate-pulse">Thinking…</span>
-              ) : (
-                "Ask your AI Agents"
-              )}
-            </h2>
-            <span className="rounded-md border border-[#E8E6E0] bg-white px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-              Beta
+            <BotMessageSquareIcon className="size-[18px] shrink-0 text-[#1A5345]" strokeWidth={1.75} />
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[15px] font-semibold text-[#1A1F1E]">
+                {isAssistantTyping ? (
+                  <span className="text-[#1A5345] animate-pulse">Agent is working…</span>
+                ) : (
+                  "ICARE Care Agent"
+                )}
+              </h2>
+              {!isAssistantTyping ? (
+                <p className="text-[11px] font-medium text-muted-foreground">
+                  Book · Cancel · Reschedule · Answer
+                </p>
+              ) : null}
+            </div>
+            <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+              Agent
             </span>
           </div>
 
@@ -173,7 +180,7 @@ export function PatientAiChat({
               <div className="pt-6 border-t border-[#E8E6E0]/45 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center gap-1.5 text-muted-foreground mb-4">
                   <HelpCircleIcon className="size-3.5 text-[#1A5345]" />
-                  <span className="text-[12px] font-bold uppercase tracking-wider">Suggested Questions</span>
+                  <span className="text-[12px] font-bold uppercase tracking-wider">Try the agent</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {SUGGESTIONS.map((item) => (
@@ -220,7 +227,7 @@ export function PatientAiChat({
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about your health data, symptoms, or records..."
+            placeholder="Ask the agent to book, cancel, or check your appointments…"
             className="custom-scrollbar min-h-[36px] max-h-24 flex-1 resize-none bg-transparent py-2 font-serif text-[15px] leading-snug text-[#1A1F1E] outline-none placeholder:font-serif placeholder:text-[15px] placeholder:text-[#9CA3AF]"
             rows={1}
           />
@@ -266,7 +273,7 @@ export function PatientAiChat({
         <div className="border-l-[3px] border-[#1A5345] pl-3 space-y-0.5">
           <h3 className="font-serif text-[16px] font-bold text-[#1A1F1E] tracking-tight">Health Profile</h3>
           <p className="text-[11px] font-medium text-[#6B7870]">
-            Live EHR data connected with AI Advisor
+            Live EHR data · agent can act on your appointments
           </p>
         </div>
       </div>

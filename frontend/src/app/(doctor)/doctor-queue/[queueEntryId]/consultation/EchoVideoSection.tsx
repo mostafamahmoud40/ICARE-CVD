@@ -19,14 +19,19 @@ import { Button } from "@/components/ui/button"
 import { FFmpeg } from "@ffmpeg/ffmpeg"
 import { fetchFile, toBlobURL } from "@ffmpeg/util"
 import {
-  useEchoAnalyze,
   useEchoChat,
-  useEchoGenerateReport,
   type EchoAnalysisResult,
   type EchoChatMessage,
 } from "./useEchoAnalysis"
+import type { PersistedEchoState } from "./useConsultationEchoAnalysis"
 
 const ACCEPTED = ".avi,.mp4,.mov,.webm,.mkv,video/*"
+
+function mediaSrc(value: string, mime: "gif" | "png"): string {
+  if (!value) return ""
+  if (value.startsWith("http") || value.startsWith("data:")) return value
+  return `data:image/${mime};base64,${value}`
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -114,12 +119,14 @@ function UploadDropZone({ onFileSelected }: { onFileSelected: (file: File) => vo
 // ── VideoPreviewCard ──────────────────────────────────────────────────────────
 
 function VideoPreviewCard({
-  file,
+  fileName,
+  fileSize,
   previewUrl,
   transcodeStatus,
   onRemove,
 }: {
-  file: File
+  fileName: string
+  fileSize: number
   previewUrl: string | null
   transcodeStatus: TranscodeStatus
   onRemove: () => void
@@ -161,9 +168,9 @@ function VideoPreviewCard({
           <FilmIcon className="size-4 text-[#1A5345]" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[12px] font-semibold text-[#102F27]">{file.name}</p>
+          <p className="truncate text-[12px] font-semibold text-[#102F27]">{fileName}</p>
           <div className="mt-0.5 flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground">{formatBytes(file.size)}</span>
+            <span className="text-[10px] text-muted-foreground">{formatBytes(fileSize)}</span>
             {isConverting ? (
               <span className="flex items-center gap-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
                 <Loader2Icon className="size-2.5 animate-spin" />
@@ -613,7 +620,7 @@ function EchoAnalysisResults({
         </div>
         {result.overlay_gif ? (
           <img
-            src={`data:image/gif;base64,${result.overlay_gif}`}
+            src={mediaSrc(result.overlay_gif, "gif")}
             alt="LV segmentation overlay"
             className="w-full bg-[#0d1117]"
           />
@@ -632,7 +639,7 @@ function EchoAnalysisResults({
       {/* Frame viz */}
       {result.frame_viz ? (
         <div className="overflow-hidden rounded-lg border border-[#E5EEEA]">
-          <img src={`data:image/png;base64,${result.frame_viz}`} alt="Echo frame grid" className="w-full" />
+          <img src={mediaSrc(result.frame_viz, "png")} alt="Echo frame grid" className="w-full" />
         </div>
       ) : (
         <div className="flex h-14 items-center justify-center gap-2 rounded-lg border border-dashed border-[#E5EEEA] bg-white">
@@ -671,28 +678,68 @@ function EchoAnalysisResults({
 
 export type EchoVideoSectionProps = {
   echoFile: File | null
-  onEchoFileChange: (file: File | null) => void
+  savedEcho: PersistedEchoState | null
+  analysisResult: EchoAnalysisResult | null
+  report: string | null
+  isLoading?: boolean
+  isAnalyzing: boolean
+  isGeneratingReport: boolean
+  analyzeError: string | null
+  onFileSelected: (file: File) => void
+  onRemove: () => void
+  onAnalyze: () => void
+  onGenerateReport: () => void
 }
 
-export function EchoVideoSection({ echoFile, onEchoFileChange }: EchoVideoSectionProps) {
+export function EchoVideoSection({
+  echoFile,
+  savedEcho,
+  analysisResult,
+  report,
+  isLoading = false,
+  isAnalyzing,
+  isGeneratingReport,
+  analyzeError,
+  onFileSelected,
+  onRemove,
+  onAnalyze,
+  onGenerateReport,
+}: EchoVideoSectionProps) {
   const previewUrlRef = useRef<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [transcodeStatus, setTranscodeStatus] = useState<TranscodeStatus>("idle")
   const ffmpegRef = useRef<FFmpeg | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<EchoAnalysisResult | null>(null)
-  const [report, setReport] = useState<string | null>(null)
 
-  const analyzeMutation = useEchoAnalyze()
-  const reportMutation = useEchoGenerateReport()
+  const displayFile = echoFile
+    ? { name: echoFile.name, size: echoFile.size }
+    : savedEcho
+      ? { name: savedEcho.fileName, size: savedEcho.fileSize }
+      : null
 
   useEffect(() => {
     return () => {
-      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+      if (previewUrlRef.current?.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrlRef.current)
+      }
     }
   }, [])
 
+  useEffect(() => {
+    if (echoFile) return
+    if (!savedEcho?.videoUrl) {
+      setPreviewUrl(null)
+      setTranscodeStatus("idle")
+      return
+    }
+    previewUrlRef.current = savedEcho.videoUrl
+    setPreviewUrl(savedEcho.videoUrl)
+    setTranscodeStatus("done")
+  }, [echoFile, savedEcho])
+
   const revokePreview = () => {
-    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+    if (previewUrlRef.current?.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrlRef.current)
+    }
     previewUrlRef.current = null
     setPreviewUrl(null)
   }
@@ -734,11 +781,10 @@ export function EchoVideoSection({ echoFile, onEchoFileChange }: EchoVideoSectio
 
   const handleFileSelected = (file: File) => {
     revokePreview()
-    onEchoFileChange(file)
-    setAnalysisResult(null)
-    setReport(null)
+    onFileSelected(file)
+    setTranscodeStatus("idle")
     if (needsTranscode(file)) {
-      transcode(file)
+      void transcode(file)
     } else {
       const url = URL.createObjectURL(file)
       previewUrlRef.current = url
@@ -747,28 +793,14 @@ export function EchoVideoSection({ echoFile, onEchoFileChange }: EchoVideoSectio
     }
   }
 
-  const handleAnalyze = async () => {
-    if (!echoFile) return
-    const result = await analyzeMutation.mutateAsync(echoFile)
-    setAnalysisResult(result)
-    setReport(null)
-  }
-
-  const handleGenerateReport = async () => {
-    if (!analysisResult) return
-    const text = await reportMutation.mutateAsync(analysisResult)
-    setReport(text)
-  }
-
   const handleRemove = () => {
     revokePreview()
     setTranscodeStatus("idle")
-    onEchoFileChange(null)
-    setAnalysisResult(null)
-    setReport(null)
-    analyzeMutation.reset()
-    reportMutation.reset()
+    onRemove()
   }
+
+  const showUpload = !echoFile && !savedEcho && !isLoading
+  const showVideoCard = Boolean(displayFile)
 
   return (
     <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
@@ -785,38 +817,39 @@ export function EchoVideoSection({ echoFile, onEchoFileChange }: EchoVideoSectio
       </div>
 
       <div className="space-y-3">
-        {transcodeStatus === "idle" ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center rounded-xl border border-dashed border-[#E5EEEA] bg-[#FAFAF8] py-10">
+            <Loader2Icon className="size-5 animate-spin text-[#1A5345]" aria-hidden />
+            <span className="sr-only">Loading saved echocardiogram…</span>
+          </div>
+        ) : showUpload ? (
           <UploadDropZone onFileSelected={handleFileSelected} />
-        ) : (
+        ) : showVideoCard && displayFile ? (
           <VideoPreviewCard
-            file={echoFile!}
+            fileName={displayFile.name}
+            fileSize={displayFile.size}
             previewUrl={previewUrl}
             transcodeStatus={transcodeStatus}
             onRemove={handleRemove}
           />
-        )}
+        ) : null}
 
-        {analyzeMutation.isError && (
+        {analyzeError ? (
           <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-            <p className="text-[11px] text-red-600">
-              Analysis failed:{" "}
-              {analyzeMutation.error instanceof Error
-                ? analyzeMutation.error.message
-                : "Unknown error"}
-            </p>
+            <p className="text-[11px] text-red-600">Analysis failed: {analyzeError}</p>
           </div>
-        )}
+        ) : null}
 
-        {transcodeStatus === "done" && !analysisResult && (
+        {transcodeStatus === "done" && echoFile && !analysisResult ? (
           <Button
             className="w-full bg-[#1A5345] text-white hover:bg-[#0F3D32] text-[12px] h-9"
-            disabled={analyzeMutation.isPending}
-            onClick={handleAnalyze}
+            disabled={isAnalyzing}
+            onClick={onAnalyze}
           >
-            {analyzeMutation.isPending ? (
+            {isAnalyzing ? (
               <>
                 <Loader2Icon className="mr-2 size-3.5 animate-spin" />
-                Analyzing…
+                Analyzing & saving…
               </>
             ) : (
               <>
@@ -825,23 +858,23 @@ export function EchoVideoSection({ echoFile, onEchoFileChange }: EchoVideoSectio
               </>
             )}
           </Button>
-        )}
+        ) : null}
 
-        {analysisResult && (
+        {analysisResult ? (
           <EchoAnalysisResults
             result={analysisResult}
             report={report}
-            isGeneratingReport={reportMutation.isPending}
-            onGenerateReport={handleGenerateReport}
+            isGeneratingReport={isGeneratingReport}
+            onGenerateReport={onGenerateReport}
           />
-        )}
+        ) : null}
 
-        {!analysisResult && (
+        {!analysisResult && !isLoading ? (
           <p className="text-center text-[10px] text-muted-foreground">
             Attach a 2D echocardiogram clip (e.g. apical 4-chamber view) for ejection
             fraction reference. Supports .avi, .mp4, .mov, .webm, and .mkv.
           </p>
-        )}
+        ) : null}
       </div>
     </div>
   )

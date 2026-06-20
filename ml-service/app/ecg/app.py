@@ -47,8 +47,10 @@ app = Flask(__name__)
 CORS(app)
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 # ── Load model once at startup ───────────────────────────────────────────────
-ckpt = torch.load(CHECKPOINT, map_location="cpu")
+ckpt = torch.load(CHECKPOINT, map_location=DEVICE)
 
 class Cfg:
     pass
@@ -57,8 +59,11 @@ cfg = Cfg()
 cfg.__dict__.update(ckpt["configs"])
 model = ecgTransForm(configs=cfg, hparams=ckpt["hparams"])
 model.load_state_dict(ckpt["model"])
-model.eval()
-print("✓ Model loaded")
+model.to(DEVICE).eval()
+print(f"✓ Model loaded on {DEVICE}")
+if torch.cuda.is_available():
+    props = torch.cuda.get_device_properties(0)
+    print(f"  GPU: {props.name} — {props.total_memory / (1024**3):.1f} GB VRAM")
 
 
 # ── Inference helper ─────────────────────────────────────────────────────────
@@ -96,11 +101,11 @@ def run_inference(hea_path: str):
     if not beats_norm:
         return {"error": "No valid beats found. Check signal quality or lead selection."}
 
-    beats_tensor = torch.tensor(np.array(beats_norm)).unsqueeze(1).float()
+    beats_tensor = torch.tensor(np.array(beats_norm)).unsqueeze(1).float().to(DEVICE)
 
     with torch.no_grad():
         logits = model(beats_tensor)
-        probs = torch.softmax(logits, dim=1).numpy()
+        probs = torch.softmax(logits, dim=1).cpu().numpy()
         preds = probs.argmax(axis=1)
 
     beat_results = []
@@ -163,6 +168,8 @@ def health():
         "status": "ok",
         "service": "ecg",
         "model_loaded": True,
+        "device": str(DEVICE),
+        "cuda": torch.cuda.is_available(),
     })
 
 

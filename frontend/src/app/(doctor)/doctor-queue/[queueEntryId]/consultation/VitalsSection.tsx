@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import type { ConsultationVitalReading, VitalSigns } from "./consultation.types"
-import { ActivityIcon, ChevronRightIcon, HistoryIcon } from "lucide-react"
+import { ActivityIcon, ChevronRightIcon, HistoryIcon, Loader2Icon, SaveIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LastVitalReadingDialog } from "./LastVitalReadingDialog"
@@ -123,6 +124,11 @@ function getVitalStatusColor(status: 'normal' | 'high' | 'low'): string {
   }
 }
 
+const SECTION_CARD = "rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm"
+const FIELD_LABEL = "text-sm font-medium text-[#374151]"
+const INPUT_CLASS =
+  "h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] pr-10 text-[14px] focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+
 const VITAL_FIELDS = [
   { key: "systolicBP" as const, label: "Systolic BP", placeholder: "120", unit: "mmHg" },
   { key: "diastolicBP" as const, label: "Diastolic BP", placeholder: "80", unit: "mmHg" },
@@ -138,8 +144,12 @@ export type VitalsSectionProps = {
   vitals: VitalSigns
   onVitalChange: (key: keyof VitalSigns, value: string) => void
   onApplyLastReading?: (reading: ConsultationVitalReading) => void
+  onSave?: () => void
+  canSave?: boolean
   patientAge: number
   lastVitalReading?: ConsultationVitalReading | null
+  isLoading?: boolean
+  isSaving?: boolean
 }
 
 function lastReadingSourceLabel(source: ConsultationVitalReading["source"]) {
@@ -152,8 +162,12 @@ export function VitalsSection({
   vitals,
   onVitalChange,
   onApplyLastReading,
+  onSave,
+  canSave = false,
   patientAge,
   lastVitalReading,
+  isLoading = false,
+  isSaving = false,
 }: VitalsSectionProps) {
   const [lastReadingOpen, setLastReadingOpen] = useState(false)
   const bmi = calculateBMI(vitals.heightCm, vitals.weightKg)
@@ -169,38 +183,44 @@ export function VitalsSection({
   const bloodPressureStatus = getBloodPressureStatus(vitals.systolicBP, vitals.diastolicBP, patientAge)
 
   return (
-    <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
+    <div className={SECTION_CARD}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
-            <ActivityIcon className="size-4 text-[#1A5345]" />
-          </div>
-          <h3 className="font-serif text-[16px] font-bold text-[#102F27]">Vital Signs</h3>
+        <div className="flex min-w-0 items-center gap-2">
+          <ActivityIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
+          <h3 className="font-serif text-[16px] font-bold text-[#1A1F1E]">Vital signs</h3>
+          {isSaving ? (
+            <span className="flex items-center gap-1.5 text-[12px] font-medium text-[#1A5345]">
+              <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
+              Saving…
+            </span>
+          ) : null}
         </div>
 
-        {lastVitalReading ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {lastVitalReading ? (
           <>
             <Button
               type="button"
               variant="outline"
               onClick={() => setLastReadingOpen(true)}
-              className="h-8 gap-2 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] px-3 text-[12px] font-semibold text-[#1A5345] hover:bg-[#F0F4F2]"
+              className="h-9 gap-2 rounded-lg border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A5345] shadow-sm hover:bg-[#F9F8F5]"
             >
               <HistoryIcon className="size-3.5" aria-hidden />
               Last reading
-              <span
+              <Badge
+                variant="default"
                 className={cn(
-                  "rounded-md px-1.5 py-0.5 text-[10px] font-bold",
+                  "rounded-lg border-0 px-2 py-0.5 text-[10px] font-bold shadow-none",
                   lastVitalReading.source === "home"
-                    ? "bg-blue-50 text-blue-700"
+                    ? "bg-sky-500 text-white hover:bg-sky-500"
                     : lastVitalReading.source === "hospital"
-                      ? "bg-violet-50 text-violet-700"
-                      : "bg-emerald-50 text-emerald-700",
+                      ? "bg-violet-500 text-white hover:bg-violet-500"
+                      : "bg-emerald-500 text-white hover:bg-emerald-500",
                 )}
               >
                 {lastReadingSourceLabel(lastVitalReading.source)}
-              </span>
-              <ChevronRightIcon className="size-3.5 text-[#9CA3AF]" aria-hidden />
+              </Badge>
+              <ChevronRightIcon className="size-3.5 text-muted-foreground" aria-hidden />
             </Button>
             <LastVitalReadingDialog
               open={lastReadingOpen}
@@ -209,9 +229,16 @@ export function VitalsSection({
               onApply={onApplyLastReading ? () => onApplyLastReading(lastVitalReading) : undefined}
             />
           </>
-        ) : null}
+          ) : null}
+        </div>
       </div>
-      <div className="grid grid-cols-4 gap-3">
+      {isLoading ? (
+        <div className="flex items-center justify-center py-10 text-[13px] text-muted-foreground">
+          <Loader2Icon className="mr-2 size-4 animate-spin" aria-hidden />
+          Loading vitals…
+        </div>
+      ) : (
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {VITAL_FIELDS.map((field) => {
           let statusMessage = ''
           let statusColor = 'text-emerald-600'
@@ -256,41 +283,60 @@ export function VitalsSection({
           }
           
           return (
-            <div key={field.key} className="space-y-1">
-              <label className="text-[13px] font-semibold text-muted-foreground">{field.label}</label>
+            <div key={field.key} className="space-y-1.5">
+              <label className={FIELD_LABEL}>{field.label}</label>
               <div className="relative">
                 <Input
                   value={vitals[field.key]}
                   onChange={(e) => onVitalChange(field.key, e.target.value)}
                   placeholder={field.placeholder}
-                  className="h-8 border-[#E8E6E0] bg-[#FAFAF8] pr-10 text-[14px]"
+                  className={INPUT_CLASS}
                   type="text"
                   inputMode="decimal"
                 />
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground">
                   {field.unit}
                 </span>
               </div>
-              {statusMessage && (
-                <div className={`text-[11.5px] ${statusColor} font-semibold`}>
+              {statusMessage ? (
+                <div className={cn("text-[12px] font-semibold", statusColor)}>
                   {statusMessage}
                 </div>
-              )}
+              ) : null}
             </div>
           )
         })}
-        <div className="space-y-1">
-          <label className="text-[13px] font-semibold text-muted-foreground">BMI</label>
-          <div className="relative">
-            <div className="h-8 w-full rounded-lg border-[#E8E6E0] bg-[#FAFAF8] px-2.5 py-1 flex items-center">
-              <span className={`text-[14px] font-bold ${bmiColor}`}>
-                {bmi || "-"}
-              </span>
-              <span className="ml-1 text-[12px] text-muted-foreground">kg/m²</span>
-            </div>
+        <div className="space-y-1.5">
+          <label className={FIELD_LABEL}>BMI</label>
+          <div className="flex h-10 items-center rounded-xl border border-[#E8E6E0] bg-[#FAFAF8] px-3">
+            <span className={cn("text-[14px] font-bold", bmiColor)}>
+              {bmi || "-"}
+            </span>
+            <span className="ml-1.5 text-[12px] text-muted-foreground">kg/m²</span>
           </div>
         </div>
+        {onSave ? (
+          <div className="col-start-2 space-y-1.5 sm:col-start-4">
+            <span className={cn(FIELD_LABEL, "invisible select-none")} aria-hidden>
+              Save
+            </span>
+            <Button
+              type="button"
+              onClick={onSave}
+              disabled={!canSave || isSaving || isLoading}
+              className="h-10 w-full gap-2 rounded-xl bg-[#1A5345] text-[13px] font-bold text-white shadow-sm hover:bg-[#1A5345]/90 disabled:opacity-50"
+            >
+              {isSaving ? (
+                <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <SaveIcon className="size-3.5" aria-hidden />
+              )}
+              Save
+            </Button>
+          </div>
+        ) : null}
       </div>
+      )}
     </div>
   )
 }

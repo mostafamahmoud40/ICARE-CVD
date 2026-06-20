@@ -19,10 +19,10 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
@@ -44,22 +44,27 @@ const TEST_TYPES = [
   { value: "other" as const, label: "Other", icon: BeakerIcon },
 ]
 
+const SECTION_CARD = "rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm"
+const FIELD_LABEL = "text-sm font-medium text-[#374151]"
+const INPUT_CLASS =
+  "h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+
 const URGENCY_CONFIG = {
-  routine: { label: "Routine", style: "bg-[#E8F0EE] text-[#1A5345]" },
-  urgent: { label: "Urgent", style: "bg-amber-50 text-amber-700" },
-  stat: { label: "STAT", style: "bg-red-50 text-red-700" },
+  routine: { label: "Routine", badge: "bg-[#1A5345] text-white hover:bg-[#1A5345]" },
+  urgent: { label: "Urgent", badge: "bg-amber-500 text-white hover:bg-amber-500" },
+  stat: { label: "STAT", badge: "bg-red-500 text-white hover:bg-red-500" },
 }
 
 const TEST_TYPE_BADGES: Record<TestOrder["testType"], string> = {
-  blood: "bg-violet-50 text-violet-700",
-  imaging: "bg-blue-50 text-blue-700",
-  ecg: "bg-emerald-50 text-emerald-700",
-  echocardiogram: "bg-teal-50 text-teal-700",
-  stress_test: "bg-orange-50 text-orange-700",
-  cardiac_catheterization: "bg-rose-50 text-rose-700",
-  pulmonary_function: "bg-cyan-50 text-cyan-700",
-  urinalysis: "bg-amber-50 text-amber-700",
-  other: "bg-gray-50 text-gray-700",
+  blood: "bg-violet-500 text-white hover:bg-violet-500",
+  imaging: "bg-blue-500 text-white hover:bg-blue-500",
+  ecg: "bg-emerald-500 text-white hover:bg-emerald-500",
+  echocardiogram: "bg-teal-500 text-white hover:bg-teal-500",
+  stress_test: "bg-orange-500 text-white hover:bg-orange-500",
+  cardiac_catheterization: "bg-rose-500 text-white hover:bg-rose-500",
+  pulmonary_function: "bg-cyan-500 text-white hover:bg-cyan-500",
+  urinalysis: "bg-amber-500 text-white hover:bg-amber-500",
+  other: "bg-slate-500 text-white hover:bg-slate-500",
 }
 
 const METRIC_OPTIONS = [
@@ -73,13 +78,13 @@ const METRIC_OPTIONS = [
 ]
 
 const METRIC_BADGES: Record<HomeMeasurement["metric"], string> = {
-  blood_pressure: "bg-red-50 text-red-700",
-  heart_rate: "bg-rose-50 text-rose-700",
-  weight: "bg-amber-50 text-amber-700",
-  blood_sugar: "bg-violet-50 text-violet-700",
-  oxygen_saturation: "bg-blue-50 text-blue-700",
-  temperature: "bg-orange-50 text-orange-700",
-  other: "bg-gray-50 text-gray-700",
+  blood_pressure: "bg-red-500 text-white hover:bg-red-500",
+  heart_rate: "bg-rose-500 text-white hover:bg-rose-500",
+  weight: "bg-amber-500 text-white hover:bg-amber-500",
+  blood_sugar: "bg-violet-500 text-white hover:bg-violet-500",
+  oxygen_saturation: "bg-blue-500 text-white hover:bg-blue-500",
+  temperature: "bg-orange-500 text-white hover:bg-orange-500",
+  other: "bg-slate-500 text-white hover:bg-slate-500",
 }
 
 const TIME_OF_DAY_OPTIONS = [
@@ -120,36 +125,45 @@ function TestOrderCard({
   const typeBadge = TEST_TYPE_BADGES[order.testType]
 
   return (
-    <div className="rounded-lg border border-[#E5EEEA] bg-white p-3">
+    <div className="rounded-xl border border-[#E8E6E0]/60 bg-white p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-medium", typeBadge)}>
+            <Badge
+              variant="default"
+              className={cn("rounded-lg border-0 px-2 py-0.5 text-[10px] font-bold shadow-none", typeBadge)}
+            >
               {typeLabel}
-            </span>
-            <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-medium", urgency.style)}>
+            </Badge>
+            <Badge
+              variant="default"
+              className={cn("rounded-lg border-0 px-2 py-0.5 text-[10px] font-bold shadow-none", urgency.badge)}
+            >
               {urgency.label}
-            </span>
+            </Badge>
             {order.fastingRequired && (
-              <span className="rounded-full bg-orange-50 px-1.5 py-0.5 text-[10px] font-medium text-orange-700">
-                Fasting Required
-              </span>
+              <Badge
+                variant="default"
+                className="rounded-lg border-0 bg-orange-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-none hover:bg-orange-500"
+              >
+                Fasting required
+              </Badge>
             )}
           </div>
-          <p className="mt-1.5 text-[13px] font-semibold text-[#102F27]">{order.testName}</p>
+          <p className="mt-2 text-[14px] font-bold text-[#1A1F1E]">{order.testName}</p>
           {order.notes && (
-            <p className="mt-0.5 text-[11px] text-muted-foreground">{order.notes}</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{order.notes}</p>
           )}
-          <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+          <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[13px] text-muted-foreground">
             {order.location && (
               <span className="flex items-center gap-1">
-                <MapPinIcon className="size-3" />
+                <MapPinIcon className="size-3.5" />
                 {order.location}
               </span>
             )}
             {order.scheduledDate && (
               <span className="flex items-center gap-1">
-                <CalendarClockIcon className="size-3" />
+                <CalendarClockIcon className="size-3.5" />
                 {order.scheduledDate}
                 {order.scheduledTime && ` at ${order.scheduledTime}`}
               </span>
@@ -159,10 +173,10 @@ function TestOrderCard({
         <Button
           size="sm"
           variant="ghost"
-          className="h-6 w-6 shrink-0 p-0 text-[#6B7870] hover:text-red-500 hover:bg-red-50"
+          className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-red-50 hover:text-red-500"
           onClick={() => onRemove(order.id)}
         >
-          <Trash2Icon className="size-3.5" />
+          <Trash2Icon className="size-4" />
         </Button>
       </div>
     </div>
@@ -184,10 +198,10 @@ function AddTestOrderForm({ onAdd }: { onAdd: (entry: TestOrder) => void }) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-[#E5EEEA] py-2.5 text-[12px] font-medium text-[#6B7870] transition-colors hover:border-[#1A5345]/30 hover:bg-[#F6FBF9] hover:text-[#1A5345]"
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#E8E6E0] py-3 text-[13px] font-semibold text-[#1A5345] transition-colors hover:border-[#1A5345]/40 hover:bg-[#F9F8F5]"
       >
-        <PlusIcon className="size-3.5" />
-        Order Test
+        <PlusIcon className="size-4" />
+        Order test
       </button>
     )
   }
@@ -217,88 +231,88 @@ function AddTestOrderForm({ onAdd }: { onAdd: (entry: TestOrder) => void }) {
   }
 
   return (
-    <div className="rounded-lg border-2 border-[#1A5345]/20 bg-[#F6FBF9] p-3 space-y-3">
+    <div className="space-y-4 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] p-4">
       <div className="flex items-center justify-between">
-        <span className="text-[12px] font-semibold text-[#1A5345]">New Test Order</span>
-        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setIsOpen(false)}>
-          <XIcon className="size-3.5" />
+        <span className="font-serif text-[15px] font-bold text-[#1A1F1E]">New test order</span>
+        <Button size="sm" variant="ghost" className="size-8 p-0" onClick={() => setIsOpen(false)}>
+          <XIcon className="size-4" />
         </Button>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <label className="text-[10px] font-medium text-muted-foreground">Test Type</label>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <label className={FIELD_LABEL}>Test type</label>
           <Select value={testType} onValueChange={(v) => setTestType(v as TestOrder["testType"])}>
-            <SelectTrigger className="h-8 rounded-lg border-[#cfd9d5] bg-white text-[12px]">
+            <SelectTrigger className={INPUT_CLASS}>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
+            <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
               {TEST_TYPES.map((t) => (
-                <SelectItem key={t.value} value={t.value} className="text-[12px]">{t.label}</SelectItem>
+                <SelectItem key={t.value} value={t.value} className="text-[14px]">{t.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
-          <label className="text-[10px] font-medium text-muted-foreground">Urgency</label>
+        <div className="space-y-1.5">
+          <label className={FIELD_LABEL}>Urgency</label>
           <Select value={urgency} onValueChange={(v) => setUrgency(v as TestOrder["urgency"])}>
-            <SelectTrigger className="h-8 rounded-lg border-[#cfd9d5] bg-white text-[12px]">
+            <SelectTrigger className={INPUT_CLASS}>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
+            <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
               {Object.entries(URGENCY_CONFIG).map(([key, cfg]) => (
-                <SelectItem key={key} value={key} className="text-[12px]">{cfg.label}</SelectItem>
+                <SelectItem key={key} value={key} className="text-[14px]">{cfg.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
       </div>
-      <div className="space-y-1">
-        <label className="text-[10px] font-medium text-muted-foreground">Test Name *</label>
+      <div className="space-y-1.5">
+        <label className={FIELD_LABEL}>Test name *</label>
         <Input
           value={testName}
           onChange={(e) => setTestName(e.target.value)}
           placeholder="e.g. Complete Blood Count, Lipid Panel, Chest X-Ray..."
-          className="h-8 border-[#E8E6E0] bg-white text-[12px]"
+          className={INPUT_CLASS}
         />
       </div>
-      <div className="space-y-1">
-        <label className="text-[10px] font-medium text-muted-foreground">Clinical Notes / Reason</label>
+      <div className="space-y-1.5">
+        <label className={FIELD_LABEL}>Clinical notes / reason</label>
         <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="e.g. Check HbA1c control, Evaluate cardiac enzymes..."
-          className="min-h-[36px] resize-none border-[#E8E6E0] bg-white text-[12px] placeholder:text-[#9CA3AF]"
+          className="min-h-[72px] resize-none rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] placeholder:text-muted-foreground focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
         />
       </div>
-      <div className="space-y-1">
-        <label className="text-[10px] font-medium text-muted-foreground">Facility / Location</label>
+      <div className="space-y-1.5">
+        <label className={FIELD_LABEL}>Facility / location</label>
         <div className="relative">
-          <MapPinIcon className="absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+          <MapPinIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="e.g. Main Lab - Floor 2, Cardiology Imaging Center..."
-            className="h-8 border-[#E8E6E0] bg-white pl-7 text-[12px]"
+            className={cn(INPUT_CLASS, "pl-9")}
           />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <label className="text-[10px] font-medium text-muted-foreground">Preferred Date</label>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <label className={FIELD_LABEL}>Preferred date</label>
           <Input
             type="date"
             value={scheduledDate}
             onChange={(e) => setScheduledDate(e.target.value)}
-            className="h-8 border-[#E8E6E0] bg-white text-[12px]"
+            className={INPUT_CLASS}
           />
         </div>
-        <div className="space-y-1">
-          <label className="text-[10px] font-medium text-muted-foreground">Preferred Time</label>
+        <div className="space-y-1.5">
+          <label className={FIELD_LABEL}>Preferred time</label>
           <Input
             type="time"
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
-            className="h-8 border-[#E8E6E0] bg-white text-[12px]"
+            className={INPUT_CLASS}
           />
         </div>
       </div>
@@ -307,16 +321,16 @@ function AddTestOrderForm({ onAdd }: { onAdd: (entry: TestOrder) => void }) {
           id="fasting"
           checked={fastingRequired}
           onCheckedChange={(checked) => setFastingRequired(checked === true)}
-          className="border-[#cfd9d5]"
+          className="border-[#E8E6E0]"
         />
-        <label htmlFor="fasting" className="text-[11px] font-medium text-muted-foreground">
+        <label htmlFor="fasting" className="text-[13px] font-medium text-muted-foreground">
           Fasting required (8-12 hours)
         </label>
       </div>
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" className="flex-1 text-[11px]" onClick={() => setIsOpen(false)}>Cancel</Button>
-        <Button size="sm" className="flex-1 bg-[#1A5345] hover:bg-[#0F3D32] text-[11px]" disabled={!testName.trim()} onClick={handleSubmit}>
-          Order Test
+        <Button variant="outline" size="sm" className="h-10 flex-1 rounded-lg text-[13px]" onClick={() => setIsOpen(false)}>Cancel</Button>
+        <Button size="sm" className="h-10 flex-1 rounded-lg bg-[#1A5345] text-[13px] hover:bg-[#133F34]" disabled={!testName.trim()} onClick={handleSubmit}>
+          Order test
         </Button>
       </div>
     </div>
@@ -334,49 +348,58 @@ function MeasurementCard({
   const metricBadge = METRIC_BADGES[measurement.metric]
 
   return (
-    <div className="rounded-lg border border-[#E5EEEA] bg-white p-3">
+    <div className="rounded-xl border border-[#E8E6E0]/60 bg-white p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-medium", metricBadge)}>
+            <Badge
+              variant="default"
+              className={cn("rounded-lg border-0 px-2 py-0.5 text-[10px] font-bold shadow-none", metricBadge)}
+            >
               {metricLabel}
-            </span>
-            <span className="flex items-center gap-1 rounded-full bg-[#E8F0EE] px-1.5 py-0.5 text-[10px] font-medium text-[#1A5345]">
-              <ClockIcon className="size-2.5" />
+            </Badge>
+            <Badge
+              variant="default"
+              className="rounded-lg border-0 bg-[#1A5345] px-2 py-0.5 text-[10px] font-bold text-white shadow-none hover:bg-[#1A5345]"
+            >
+              <ClockIcon className="mr-0.5 size-2.5" />
               {measurement.frequency}
-            </span>
+            </Badge>
             {measurement.duration && (
-              <span className="rounded-full bg-[#F5F5F3] px-1.5 py-0.5 text-[10px] text-[#6B7870]">
+              <Badge
+                variant="outline"
+                className="rounded-lg border-[#E8E6E0] bg-[#F9F8F5] px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
+              >
                 {measurement.duration}
-              </span>
+              </Badge>
             )}
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-            <span className="font-medium text-[#102F27]">When:</span>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+            <span className="font-medium text-[#1A1F1E]">When:</span>
             {measurement.timesOfDay.map((tod) => (
-              <span key={tod} className="flex items-center gap-0.5 rounded-full bg-[#F6FBF9] px-2 py-0.5 text-[10px] text-[#2C6A5B] ring-1 ring-[#DCE9E4]">
+              <span key={tod} className="rounded-lg border border-[#E8E6E0] bg-[#F9F8F5] px-2.5 py-0.5 text-[12px] font-medium capitalize text-[#1A5345]">
                 {tod}
               </span>
             ))}
           </div>
           {measurement.targetRange && (
-            <div className="mt-1 flex items-center gap-1.5 text-[11px]">
-              <TargetIcon className="size-3 text-[#1A5345]" />
+            <div className="mt-1.5 flex items-center gap-1.5 text-[13px]">
+              <TargetIcon className="size-3.5 text-[#1A5345]" />
               <span className="text-muted-foreground">Target:</span>
-              <span className="font-medium text-[#102F27]">{measurement.targetRange}</span>
+              <span className="font-semibold text-[#1A1F1E]">{measurement.targetRange}</span>
             </div>
           )}
           {measurement.instructions && (
-            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{measurement.instructions}</p>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{measurement.instructions}</p>
           )}
         </div>
         <Button
           size="sm"
           variant="ghost"
-          className="h-6 w-6 shrink-0 p-0 text-[#6B7870] hover:text-red-500 hover:bg-red-50"
+          className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-red-50 hover:text-red-500"
           onClick={() => onRemove(measurement.id)}
         >
-          <Trash2Icon className="size-3.5" />
+          <Trash2Icon className="size-4" />
         </Button>
       </div>
     </div>
@@ -397,10 +420,10 @@ function AddMeasurementForm({ onAdd }: { onAdd: (entry: HomeMeasurement) => void
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-[#E5EEEA] py-2.5 text-[12px] font-medium text-[#6B7870] transition-colors hover:border-[#1A5345]/30 hover:bg-[#F6FBF9] hover:text-[#1A5345]"
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#E8E6E0] py-3 text-[13px] font-semibold text-[#1A5345] transition-colors hover:border-[#1A5345]/40 hover:bg-[#F9F8F5]"
       >
-        <PlusIcon className="size-3.5" />
-        Add Measurement
+        <PlusIcon className="size-4" />
+        Add measurement
       </button>
     )
   }
@@ -437,50 +460,50 @@ function AddMeasurementForm({ onAdd }: { onAdd: (entry: HomeMeasurement) => void
   const isValid = metric !== "other" || customLabel.trim()
 
   return (
-    <div className="rounded-lg border-2 border-[#1A5345]/20 bg-[#F6FBF9] p-3 space-y-3">
+    <div className="space-y-4 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] p-4">
       <div className="flex items-center justify-between">
-        <span className="text-[12px] font-semibold text-[#1A5345]">New Home Measurement</span>
-        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setIsOpen(false)}>
-          <XIcon className="size-3.5" />
+        <span className="font-serif text-[15px] font-bold text-[#1A1F1E]">New home measurement</span>
+        <Button size="sm" variant="ghost" className="size-8 p-0" onClick={() => setIsOpen(false)}>
+          <XIcon className="size-4" />
         </Button>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <label className="text-[10px] font-medium text-muted-foreground">Metric</label>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <label className={FIELD_LABEL}>Metric</label>
           <Select value={metric} onValueChange={(v) => setMetric(v as HomeMeasurement["metric"])}>
-            <SelectTrigger className="h-8 rounded-lg border-[#cfd9d5] bg-white text-[12px]">
+            <SelectTrigger className={INPUT_CLASS}>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
+            <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
               {METRIC_OPTIONS.map((m) => (
-                <SelectItem key={m.value} value={m.value} className="text-[12px]">{m.label}</SelectItem>
+                <SelectItem key={m.value} value={m.value} className="text-[14px]">{m.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
-          <label className="text-[10px] font-medium text-muted-foreground">Frequency</label>
+        <div className="space-y-1.5">
+          <label className={FIELD_LABEL}>Frequency</label>
           <Select value={frequency} onValueChange={setFrequency}>
-            <SelectTrigger className="h-8 rounded-lg border-[#cfd9d5] bg-white text-[12px]">
+            <SelectTrigger className={INPUT_CLASS}>
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
-            <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
+            <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
               {FREQUENCY_OPTIONS.map((f) => (
-                <SelectItem key={f.value} value={f.value} className="text-[12px]">{f.label}</SelectItem>
+                <SelectItem key={f.value} value={f.value} className="text-[14px]">{f.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
       </div>
       {metric === "other" && (
-        <div className="space-y-1">
-          <label className="text-[10px] font-medium text-muted-foreground">Custom Metric Name *</label>
-          <Input value={customLabel} onChange={(e) => setCustomLabel(e.target.value)} placeholder="e.g. Peak Flow Rate" className="h-8 border-[#E8E6E0] bg-white text-[12px]" />
+        <div className="space-y-1.5">
+          <label className={FIELD_LABEL}>Custom metric name *</label>
+          <Input value={customLabel} onChange={(e) => setCustomLabel(e.target.value)} placeholder="e.g. Peak Flow Rate" className={INPUT_CLASS} />
         </div>
       )}
-      <div className="space-y-1">
-        <label className="text-[10px] font-medium text-muted-foreground">When to Measure</label>
-        <div className="flex gap-1.5">
+      <div className="space-y-1.5">
+        <label className={FIELD_LABEL}>When to measure</label>
+        <div className="flex flex-wrap gap-2">
           {TIME_OF_DAY_OPTIONS.map((opt) => {
             const Icon = opt.icon
             return (
@@ -489,56 +512,56 @@ function AddMeasurementForm({ onAdd }: { onAdd: (entry: HomeMeasurement) => void
                 type="button"
                 onClick={() => toggleTimeOfDay(opt.value)}
                 className={cn(
-                  "flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-medium transition-colors",
+                  "flex items-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors",
                   timesOfDay.includes(opt.value)
                     ? "bg-[#1A5345] text-white"
-                    : "bg-[#E8E6E0]/50 text-[#6B7870] hover:bg-[#E8E6E0]",
+                    : "border border-[#E8E6E0] bg-white text-muted-foreground hover:bg-[#F9F8F5]",
                 )}
               >
-                <Icon className="size-3" />
+                <Icon className="size-3.5" />
                 {opt.label}
               </button>
             )
           })}
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <label className="text-[10px] font-medium text-muted-foreground">Duration</label>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <label className={FIELD_LABEL}>Duration</label>
           <Select value={duration} onValueChange={setDuration}>
-            <SelectTrigger className="h-8 rounded-lg border-[#cfd9d5] bg-white text-[12px]">
+            <SelectTrigger className={INPUT_CLASS}>
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
-            <SelectContent className="rounded-lg border-[#cfd9d5] bg-white">
+            <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
               {DURATION_OPTIONS.map((d) => (
-                <SelectItem key={d.value} value={d.value} className="text-[12px]">{d.label}</SelectItem>
+                <SelectItem key={d.value} value={d.value} className="text-[14px]">{d.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
-          <label className="text-[10px] font-medium text-muted-foreground">Target Range</label>
+        <div className="space-y-1.5">
+          <label className={FIELD_LABEL}>Target range</label>
           <Input
             value={targetRange}
             onChange={(e) => setTargetRange(e.target.value)}
             placeholder="e.g. <130/80 mmHg"
-            className="h-8 border-[#E8E6E0] bg-white text-[12px]"
+            className={INPUT_CLASS}
           />
         </div>
       </div>
-      <div className="space-y-1">
-        <label className="text-[10px] font-medium text-muted-foreground">Instructions</label>
+      <div className="space-y-1.5">
+        <label className={FIELD_LABEL}>Instructions</label>
         <Textarea
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
           placeholder="e.g. Sit for 5 min before measuring. Take 2 readings each time, 1 min apart..."
-          className="min-h-[36px] resize-none border-[#E8E6E0] bg-white text-[12px] placeholder:text-[#9CA3AF]"
+          className="min-h-[72px] resize-none rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] placeholder:text-muted-foreground focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
         />
       </div>
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" className="flex-1 text-[11px]" onClick={() => setIsOpen(false)}>Cancel</Button>
-        <Button size="sm" className="flex-1 bg-[#1A5345] hover:bg-[#0F3D32] text-[11px]" disabled={!isValid} onClick={handleSubmit}>
-          Add Measurement
+        <Button variant="outline" size="sm" className="h-10 flex-1 rounded-lg text-[13px]" onClick={() => setIsOpen(false)}>Cancel</Button>
+        <Button size="sm" className="h-10 flex-1 rounded-lg bg-[#1A5345] text-[13px] hover:bg-[#133F34]" disabled={!isValid} onClick={handleSubmit}>
+          Add measurement
         </Button>
       </div>
     </div>
@@ -565,52 +588,56 @@ export function TestsAndMeasurementsSection({
   const [activeTab, setActiveTab] = useState<Tab>("tests")
 
   return (
-    <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
-      <div className="mb-4 flex items-center justify-between">
+    <div className={SECTION_CARD}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
-            <FlaskConicalIcon className="size-4 text-[#1A5345]" />
-          </div>
-          <h3 className="text-[14px] font-semibold text-[#102F27]">Tests & Measurements</h3>
+          <FlaskConicalIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
+          <h3 className="font-serif text-[16px] font-bold text-[#1A1F1E]">Tests & measurements</h3>
         </div>
-        <div className="inline-flex rounded-full border border-[#D6E6DF] bg-[#F8FCFA] p-0.5">
+        <div className="inline-flex rounded-xl border border-[#E8E6E0] bg-[#F9F8F5] p-1">
           <button
             onClick={() => setActiveTab("tests")}
             className={cn(
-              "rounded-full px-3 py-1 text-[11px] font-medium transition-colors",
-              activeTab === "tests" ? "bg-[#1A5345] text-white" : "text-[#4F6D64] hover:bg-[#E8F0EE]",
+              "rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-colors",
+              activeTab === "tests" ? "bg-[#1A5345] text-white" : "text-[#4F6D64] hover:bg-white",
             )}
           >
             <span className="flex items-center gap-1.5">
-              <FlaskConicalIcon className="size-3" />
-              Lab Orders
+              <FlaskConicalIcon className="size-3.5" />
+              Lab orders
               {testOrders.length > 0 && (
-                <span className={cn(
-                  "ml-0.5 rounded-full px-1.5 py-0.5 text-[9px]",
-                  activeTab === "tests" ? "bg-white/20 text-white" : "bg-[#E8F0EE] text-[#1A5345]",
-                )}>
+                <Badge
+                  variant="default"
+                  className={cn(
+                    "ml-0.5 rounded-md border-0 px-1.5 py-0 text-[9px] font-bold shadow-none",
+                    activeTab === "tests" ? "bg-white/20 text-white hover:bg-white/20" : "bg-[#1A5345] text-white hover:bg-[#1A5345]",
+                  )}
+                >
                   {testOrders.length}
-                </span>
+                </Badge>
               )}
             </span>
           </button>
           <button
             onClick={() => setActiveTab("measurements")}
             className={cn(
-              "rounded-full px-3 py-1 text-[11px] font-medium transition-colors",
-              activeTab === "measurements" ? "bg-[#1A5345] text-white" : "text-[#4F6D64] hover:bg-[#E8F0EE]",
+              "rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-colors",
+              activeTab === "measurements" ? "bg-[#1A5345] text-white" : "text-[#4F6D64] hover:bg-white",
             )}
           >
             <span className="flex items-center gap-1.5">
-              <HomeIcon className="size-3" />
-              Home Monitoring
+              <HomeIcon className="size-3.5" />
+              Home monitoring
               {homeMeasurements.length > 0 && (
-                <span className={cn(
-                  "ml-0.5 rounded-full px-1.5 py-0.5 text-[9px]",
-                  activeTab === "measurements" ? "bg-white/20 text-white" : "bg-[#E8F0EE] text-[#1A5345]",
-                )}>
+                <Badge
+                  variant="default"
+                  className={cn(
+                    "ml-0.5 rounded-md border-0 px-1.5 py-0 text-[9px] font-bold shadow-none",
+                    activeTab === "measurements" ? "bg-white/20 text-white hover:bg-white/20" : "bg-[#1A5345] text-white hover:bg-[#1A5345]",
+                  )}
+                >
                   {homeMeasurements.length}
-                </span>
+                </Badge>
               )}
             </span>
           </button>
@@ -618,9 +645,9 @@ export function TestsAndMeasurementsSection({
       </div>
 
       {activeTab === "tests" ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {testOrders.length === 0 && (
-            <div className="mb-2 rounded-lg bg-[#FAFAF8] px-3 py-2 text-center text-[11px] text-muted-foreground">
+            <div className="mb-1 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] px-4 py-3 text-center text-[13px] text-muted-foreground">
               No tests ordered yet. Order blood work, imaging, ECG, or other investigations.
             </div>
           )}
@@ -630,9 +657,9 @@ export function TestsAndMeasurementsSection({
           <AddTestOrderForm onAdd={onAddTestOrder} />
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {homeMeasurements.length === 0 && (
-            <div className="mb-2 rounded-lg bg-[#FAFAF8] px-3 py-2 text-center text-[11px] text-muted-foreground">
+            <div className="mb-1 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] px-4 py-3 text-center text-[13px] text-muted-foreground">
               No home measurements assigned. Instruct the patient to self-monitor vitals at home.
             </div>
           )}

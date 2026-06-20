@@ -2,6 +2,11 @@
 
 import React from "react"
 import type { ConsultationReport } from "../../../doctorPatients.types"
+import {
+  formatBloodPressure,
+  REPORT_EMPTY_MESSAGES,
+  vitalDisplayValue,
+} from "@/lib/consultation-report.mapper"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import {
@@ -191,32 +196,53 @@ export function ConsultationReportPage({ patientId, patientName, report }: Consu
 
             <Section title="Chief Complaint" icon={FileTextIcon}>
               <div className="relative">
-                <p className="pl-3 border-l-2 border-[#1A5345]/30 text-[14px] font-medium leading-relaxed text-[#1A1F1E] md:text-[15px]">
+                <p className={cn(
+                  "pl-3 border-l-2 border-[#1A5345]/30 text-[14px] font-medium leading-relaxed md:text-[15px]",
+                  report.chiefComplaint === REPORT_EMPTY_MESSAGES.chiefComplaint
+                    ? "text-[#6B7870] italic"
+                    : "text-[#1A1F1E]",
+                )}>
                   {report.chiefComplaint}
                 </p>
               </div>
             </Section>
 
             <Section title="History of Present Illness" icon={ClipboardCheckIcon}>
-              <p className="text-[13px] font-medium leading-relaxed text-[#1A1F1E] md:text-[14px] whitespace-pre-wrap">
+              <p className={cn(
+                "text-[13px] font-medium leading-relaxed md:text-[14px] whitespace-pre-wrap",
+                report.historyOfPresentIllness === REPORT_EMPTY_MESSAGES.historyOfPresentIllness
+                  ? "text-[#6B7870] italic"
+                  : "text-[#1A1F1E]",
+              )}>
                 {report.historyOfPresentIllness}
               </p>
             </Section>
 
             <Section title="Physical Examination" icon={StethoscopeIcon}>
-              <p className="text-[13px] font-medium leading-relaxed text-[#1A1F1E] md:text-[14px] whitespace-pre-wrap">
+              <p className={cn(
+                "text-[13px] font-medium leading-relaxed md:text-[14px] whitespace-pre-wrap",
+                report.physicalExam === REPORT_EMPTY_MESSAGES.physicalExam
+                  ? "text-[#6B7870] italic"
+                  : "text-[#1A1F1E]",
+              )}>
                 {report.physicalExam}
               </p>
             </Section>
 
             <Section title="Plan & Instructions" icon={ClipboardCheckIcon}>
               <div className="space-y-2">
-                {report.plan.split("\n").map((line, i) => (
-                  <p key={i} className="text-[13px] font-medium leading-relaxed text-[#1A1F1E] md:text-[14px] flex items-start gap-2">
-                     <span className="text-[#1A5345] mt-1.5 size-1.5 rounded-full bg-[#1A5345]/40 shrink-0"></span>
-                     <span>{line}</span>
+                {report.plan === REPORT_EMPTY_MESSAGES.plan ? (
+                  <p className="text-[13px] font-medium leading-relaxed text-[#6B7870] italic md:text-[14px]">
+                    {report.plan}
                   </p>
-                ))}
+                ) : (
+                  report.plan.split("\n").map((line, i) => (
+                    <p key={i} className="text-[13px] font-medium leading-relaxed text-[#1A1F1E] md:text-[14px] flex items-start gap-2">
+                      <span className="text-[#1A5345] mt-1.5 size-1.5 rounded-full bg-[#1A5345]/40 shrink-0"></span>
+                      <span>{line}</span>
+                    </p>
+                  ))
+                )}
               </div>
             </Section>
 
@@ -255,35 +281,66 @@ export function ConsultationReportPage({ patientId, patientName, report }: Consu
               </Section>
             )}
 
-            {report.notes && (
+            {report.notes ? (
               <Section title="Additional Clinical Notes" icon={FileTextIcon}>
                 <div className="rounded-xl border border-[#E5EEEA]/60 bg-[#FAFAF8] p-4 shadow-sm">
-                  <p className="text-[13px] font-medium leading-relaxed text-[#6B7870] md:text-[14px] whitespace-pre-wrap">
+                  <p className={cn(
+                    "text-[13px] font-medium leading-relaxed md:text-[14px] whitespace-pre-wrap",
+                    report.notes === REPORT_EMPTY_MESSAGES.additionalNotes
+                      ? "text-[#6B7870] italic"
+                      : "text-[#6B7870]",
+                  )}>
                     {report.notes}
                   </p>
                 </div>
               </Section>
-            )}
+            ) : null}
 
           </div>
 
           {/* Right Column - Context & Stats (1/3) */}
           <div className="flex flex-col gap-6 lg:col-span-4">
             
-            {report.vitals && (
-              <Section title="Vitals at Visit" icon={HeartPulseIcon}>
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <VitalMiniCard icon={HeartPulseIcon} label="Blood Pressure" value={`${report.vitals.systolicBP}/${report.vitals.diastolicBP}`} unit="mmHg" />
-                  <VitalMiniCard icon={ActivityIcon} label="Heart Rate" value={report.vitals.heartRate} unit="bpm" />
-                  <VitalMiniCard icon={ThermometerIcon} label="Temperature" value={report.vitals.temperature} unit="°C" />
-                  <VitalMiniCard icon={WindIcon} label="SpO₂" value={report.vitals.oxygenSaturation} unit="%" />
-                  <VitalMiniCard icon={ScaleIcon} label="Weight" value={report.vitals.weight} unit="kg" />
-                  {report.vitals.bloodSugar !== null && (
-                    <VitalMiniCard icon={DropletIcon} label="Blood Sugar" value={report.vitals.bloodSugar} unit="mg/dL" />
-                  )}
-                </div>
-              </Section>
-            )}
+            <Section title="Vitals at Visit" icon={HeartPulseIcon}>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <VitalMiniCard
+                  icon={HeartPulseIcon}
+                  label="Blood Pressure"
+                  value={formatBloodPressure(report.vitals?.systolicBP, report.vitals?.diastolicBP)}
+                  unit="mmHg"
+                />
+                <VitalMiniCard
+                  icon={ActivityIcon}
+                  label="Heart Rate"
+                  value={vitalDisplayValue(report.vitals?.heartRate)}
+                  unit="bpm"
+                />
+                <VitalMiniCard
+                  icon={ThermometerIcon}
+                  label="Temperature"
+                  value={vitalDisplayValue(report.vitals?.temperature)}
+                  unit="°C"
+                />
+                <VitalMiniCard
+                  icon={WindIcon}
+                  label="SpO₂"
+                  value={vitalDisplayValue(report.vitals?.oxygenSaturation)}
+                  unit="%"
+                />
+                <VitalMiniCard
+                  icon={ScaleIcon}
+                  label="Weight"
+                  value={vitalDisplayValue(report.vitals?.weight)}
+                  unit="kg"
+                />
+                <VitalMiniCard
+                  icon={DropletIcon}
+                  label="Blood Sugar"
+                  value={vitalDisplayValue(report.vitals?.bloodSugar)}
+                  unit="mg/dL"
+                />
+              </div>
+            </Section>
 
             {report.diagnoses.length > 0 && (
               <Section title="Diagnoses Discussed" icon={ClipboardCheckIcon}>

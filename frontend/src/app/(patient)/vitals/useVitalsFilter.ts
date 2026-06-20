@@ -14,7 +14,7 @@ export type TimeRange = "1W" | "1M" | "3M"
 export function useVitalsFilter(
   data: VitalHistoryRecord[],
   range: TimeRange,
-  referenceDate: Date = new Date("2026-04-15")
+  referenceDate: Date = new Date(),
 ): VitalHistoryRecord[] {
   return useMemo(() => {
     const days = range === "1W" ? 7 : range === "1M" ? 30 : 90

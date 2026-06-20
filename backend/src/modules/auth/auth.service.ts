@@ -78,6 +78,15 @@ export class AuthService {
       })
       .where(eq(user.id, userRecord.id));
 
+    let avatarUrl = userRecord.avatarUrl;
+    if (userRecord.role === 'patient') {
+      const patientRecord = await this.db.query.patient.findFirst({
+        where: eq(patient.userId, userRecord.id),
+        columns: { avatarUrl: true },
+      });
+      avatarUrl = patientRecord?.avatarUrl ?? userRecord.avatarUrl;
+    }
+
     return {
       accessToken,
       refreshToken,
@@ -87,6 +96,7 @@ export class AuthService {
         email: userRecord.email,
         phone: userRecord.phone,
         role: userRecord.role,
+        avatarUrl,
       },
     };
   }
