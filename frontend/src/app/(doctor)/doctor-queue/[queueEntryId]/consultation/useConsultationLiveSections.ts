@@ -31,10 +31,14 @@ import {
   linkConsultationDiagnosis,
   linkConsultationPrescription,
   patchConsultation,
+  updateConsultationPrescriptionLink,
+  updateMedication,
+  updatePatientDiagnosis,
 } from "./consultation.api"
 import {
   buildLabOrderPayload,
   mapSessionToLiveFields,
+  mergeSessionLiveFields,
   prescriptionDurationToDays,
 } from "./consultationLive.mapper"
 
@@ -52,6 +56,7 @@ export function useConsultationLiveSections(
   const patientIdRef = useRef<string | null>(null)
   const liveHydratedRef = useRef(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingSaveRef = useRef(false)
   const dataRef = useRef(data)
   dataRef.current = data
 
@@ -67,16 +72,10 @@ export function useConsultationLiveSections(
   }, [queueEntryId])
 
   useEffect(() => {
-    if (!sessionQuery.data || liveHydratedRef.current || !data) return
-
-    liveHydratedRef.current = true
-    consultationIdRef.current = sessionQuery.data.consultation.id
-    patientIdRef.current = data.patientId
-    appointmentIdRef.current = sessionQuery.data.consultation.appointmentId
-
-    const liveFields = mapSessionToLiveFields(sessionQuery.data)
-    setData((prev) => (prev ? { ...prev, ...liveFields } : prev))
-  }, [sessionQuery.data, data, setData])
+    if (data?.patientId) {
+      patientIdRef.current = data.patientId
+    }
+  }, [data?.patientId])
 
   const saveMutation = useMutation({
     mutationFn: async (patch: ReturnType<typeof buildConsultationFieldPatch>) => {
@@ -95,7 +94,11 @@ export function useConsultationLiveSections(
 
   const persistFields = useCallback(
     (next: ConsultationData) => {
-      if (!consultationIdRef.current) return Promise.resolve()
+      if (!consultationIdRef.current) {
+        pendingSaveRef.current = true
+        return Promise.resolve()
+      }
+      pendingSaveRef.current = false
       return saveMutation.mutateAsync(
         buildConsultationFieldPatch({
           chiefComplaint: next.chiefComplaint,
@@ -108,11 +111,41 @@ export function useConsultationLiveSections(
           homeMeasurements: next.homeMeasurements,
           medicalHistory: next.medicalHistory,
           procedureDetails: next.procedureDetails,
+          patientDiagnosisSummary: next.patientDiagnosisSummary,
+          patientLifestyleAdvice: next.patientLifestyleAdvice,
+          patientDangerSigns: next.patientDangerSigns,
         }),
       )
     },
     [saveMutation],
   )
+
+  useEffect(() => {
+    if (!sessionQuery.data || liveHydratedRef.current || !data) return
+
+    liveHydratedRef.current = true
+    consultationIdRef.current = sessionQuery.data.consultation.id
+    patientIdRef.current = data.patientId
+    appointmentIdRef.current = sessionQuery.data.consultation.appointmentId
+
+    const liveFields = mapSessionToLiveFields(sessionQuery.data)
+    setData((prev) => {
+      if (!prev) return prev
+      const next = mergeSessionLiveFields(prev, liveFields)
+      dataRef.current = next
+      return next
+    })
+
+    queueMicrotask(() => {
+      const current = dataRef.current
+      if (!current || !consultationIdRef.current) return
+      if (pendingSaveRef.current) {
+        pendingSaveRef.current = false
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+        void persistFields(current)
+      }
+    })
+  }, [sessionQuery.data, data, persistFields, setData])
 
   const scheduleSave = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
@@ -263,6 +296,45 @@ export function useConsultationLiveSections(
     [scheduleSave, setData],
   )
 
+  const updatePatientDiagnosisSummary = useCallback(
+    (value: string) => {
+      setData((prev) => {
+        if (!prev) return prev
+        const next = { ...prev, patientDiagnosisSummary: value }
+        dataRef.current = next
+        scheduleSave()
+        return next
+      })
+    },
+    [scheduleSave, setData],
+  )
+
+  const updatePatientLifestyleAdvice = useCallback(
+    (value: string) => {
+      setData((prev) => {
+        if (!prev) return prev
+        const next = { ...prev, patientLifestyleAdvice: value }
+        dataRef.current = next
+        scheduleSave()
+        return next
+      })
+    },
+    [scheduleSave, setData],
+  )
+
+  const updatePatientDangerSigns = useCallback(
+    (value: string) => {
+      setData((prev) => {
+        if (!prev) return prev
+        const next = { ...prev, patientDangerSigns: value }
+        dataRef.current = next
+        scheduleSave()
+        return next
+      })
+    },
+    [scheduleSave, setData],
+  )
+
   const addDiagnosis = useCallback(
     async (entry: DiagnosisEntry) => {
       const patientId = patientIdRef.current
@@ -333,6 +405,54 @@ export function useConsultationLiveSections(
     [queueEntryId, queryClient, setData],
   )
 
+  const updateDiagnosis = useCallback(
+    async (id: string, entry: DiagnosisEntry) => {
+      const patientId = patientIdRef.current
+      if (!patientId) return
+
+      const previous = dataRef.current?.diagnoses.find((d) => d.id === id)
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              diagnoses: prev.diagnoses.map((d) =>
+                d.id === id ? { ...entry, id, isAiSuggested: d.isAiSuggested } : d,
+              ),
+            }
+          : prev,
+      )
+
+      try {
+        await updatePatientDiagnosis(patientId, id, {
+          icdCode: entry.icdCode.trim() || "NOS",
+          description: entry.description.trim(),
+          type: entry.type,
+          severity: entry.severity,
+          clinicalNotes: entry.notes.trim() || undefined,
+        })
+        await queryClient.invalidateQueries({
+          queryKey: ["consultation-session", queueEntryId],
+        })
+      } catch {
+        if (previous) {
+          setData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  diagnoses: prev.diagnoses.map((d) => (d.id === id ? previous : d)),
+                }
+              : prev,
+          )
+        }
+        showIcareErrorToast(
+          "Could not update diagnosis",
+          "Your changes were not saved. Please try again.",
+        )
+      }
+    },
+    [queueEntryId, queryClient, setData],
+  )
+
   const addPrescription = useCallback(
     async (entry: PrescriptionEntry) => {
       const patientId = patientIdRef.current
@@ -395,6 +515,58 @@ export function useConsultationLiveSections(
         showIcareErrorToast(
           "Could not remove prescription",
           "The medication may still appear after refresh.",
+        )
+      }
+    },
+    [queueEntryId, queryClient, setData],
+  )
+
+  const updatePrescription = useCallback(
+    async (id: string, entry: PrescriptionEntry) => {
+      const patientId = patientIdRef.current
+      const consultationId = consultationIdRef.current
+      if (!patientId || !consultationId) return
+
+      const previous = dataRef.current?.prescriptions.find((p) => p.id === id)
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              prescriptions: prev.prescriptions.map((p) => (p.id === id ? { ...entry, id } : p)),
+            }
+          : prev,
+      )
+
+      try {
+        await updateMedication(id, {
+          name: entry.name.trim(),
+          dose: entry.dose.trim(),
+          frequency: entry.frequency.trim(),
+          type: entry.type,
+          instructions: entry.instructions.trim() || undefined,
+          durationDays: prescriptionDurationToDays(entry.duration),
+        })
+        await updateConsultationPrescriptionLink(patientId, consultationId, id, {
+          duration: entry.duration || undefined,
+          notes: entry.instructions.trim() || undefined,
+        })
+        await queryClient.invalidateQueries({
+          queryKey: ["consultation-session", queueEntryId],
+        })
+      } catch {
+        if (previous) {
+          setData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  prescriptions: prev.prescriptions.map((p) => (p.id === id ? previous : p)),
+                }
+              : prev,
+          )
+        }
+        showIcareErrorToast(
+          "Could not update prescription",
+          "Your changes were not saved. Please try again.",
         )
       }
     },
@@ -635,8 +807,10 @@ export function useConsultationLiveSections(
     updateExam,
     addDiagnosis,
     removeDiagnosis,
+    updateDiagnosis,
     addPrescription,
     removePrescription,
+    updatePrescription,
     addAllergy,
     removeAllergy,
     addChronicCondition,
@@ -649,6 +823,9 @@ export function useConsultationLiveSections(
     updateAssessmentAndPlan,
     updateFollowUpDate,
     updateFollowUpNotes,
+    updatePatientDiagnosisSummary,
+    updatePatientLifestyleAdvice,
+    updatePatientDangerSigns,
     saveNow,
     isSessionLoading: sessionQuery.isLoading,
     isSaving: saveMutation.isPending,

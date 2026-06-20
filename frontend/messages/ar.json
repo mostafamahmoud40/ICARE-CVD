@@ -1138,6 +1138,8 @@
       "editDialog": {
         "title": "تعديل الملف",
         "avatarSection": "صورة الملف",
+        "avatarHint": "اختر صورة جاهزة أو ارفع صورة من جهازك (JPEG أو PNG أو WebP أو GIF، بحد أقصى 5 ميجابايت).",
+        "uploadPhoto": "رفع صورة",
         "fullName": "الاسم الكامل",
         "email": "البريد الإلكتروني",
         "phone": "الهاتف",

@@ -6,6 +6,11 @@ import type { TokenPayload } from './jwt';
 import { RegisterStep3Dto } from './dto/register-step-3.dto';
 import { RegisterStep4Dto } from './dto/register-step-4.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { VerifyResetOtpDto } from './dto/verify-reset-otp.dto';
+import { VerifyRegistrationOtpDto } from './dto/verify-registration-otp.dto';
+import { ResendRegistrationOtpDto } from './dto/resend-registration-otp.dto';
+import { ResetPasswordWithTokenDto } from './dto/reset-password-with-token.dto';
 import { AccessTokenGuard } from './access-token.guard';
 import { CurrentUser } from './current-user.decorator';
 
@@ -54,5 +59,32 @@ export class AuthController {
     @Body() dto: RegisterStep4Dto,
   ) {
     return this.authService.registerStep4(currentUser.sub, dto);
+  }
+
+  @Post('verify-registration-otp')
+  verifyRegistrationOtp(@Body() dto: VerifyRegistrationOtpDto) {
+    return this.authService.verifyRegistrationOtp(dto);
+  }
+
+  @Post('resend-registration-otp')
+  resendRegistrationOtp(@Body() dto: ResendRegistrationOtpDto) {
+    return this.authService.resendRegistrationOtp(dto);
+  }
+
+  // ─── Password Reset via OTP ───────────────────────────────────────────────
+
+  @Post('forgot-password')
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('verify-reset-otp')
+  verifyResetOtp(@Body() dto: VerifyResetOtpDto) {
+    return this.authService.verifyResetOtp(dto);
+  }
+
+  @Post('reset-password-with-token')
+  resetPasswordWithToken(@Body() dto: ResetPasswordWithTokenDto) {
+    return this.authService.resetPasswordWithToken(dto);
   }
 }

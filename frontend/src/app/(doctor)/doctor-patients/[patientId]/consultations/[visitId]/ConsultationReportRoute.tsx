@@ -60,6 +60,7 @@ export function ConsultationReportRoute({
   return (
     <ConsultationReportPage
       patientId={patientId}
+      visitId={visitId}
       patientName={patientQuery.data.patient.fullName}
       report={reportQuery.data}
     />

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { isAxiosError } from "axios"
 import type { ZodIssue } from "zod"
@@ -8,7 +8,15 @@ import type { ZodIssue } from "zod"
 import { apiClient } from "@/lib/api-client"
 
 import type { StudyKind } from "../assistant-queue/assistantQueue.documents.types"
-import { uploadAssistantPatientDocument } from "./addPatient.upload"
+import { uploadAssistantPatientDocument, uploadPatientAvatar } from "./addPatient.upload"
+import {
+  deleteAddPatientDraft,
+  getAddPatientDraft,
+  isAddPatientDraftEmpty,
+  listAddPatientDrafts,
+  saveAddPatientDraft,
+  type AddPatientDraft,
+} from "./addPatient.drafts"
 import { addPatientSchema } from "./addPatient.schema"
 import type {
   AddPatientApiResponse,
@@ -46,6 +54,7 @@ const defaultValues: AddPatientFormValues = {
   chiefComplaint: "",
   otherChiefComplaint: "",
   medicalHistoryNotes: "",
+  avatarUrl: "",
   medications: [],
   allergies: [],
 }
@@ -65,7 +74,18 @@ export function useAddPatient() {
   const [values, setValues] = useState<AddPatientFormValues>(defaultValues)
   const [fieldErrors, setFieldErrors] = useState<AddPatientFieldErrors>({})
   const [pendingDocuments, setPendingDocuments] = useState<PendingPatientDocument[]>([])
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null)
   const [documentStudyKind, setDocumentStudyKind] = useState<StudyKind>("xray")
+  const [drafts, setDrafts] = useState<AddPatientDraft[]>([])
+  const [activeDraftId, setActiveDraftId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setDrafts(listAddPatientDrafts())
+  }, [])
+
+  const refreshDrafts = () => {
+    setDrafts(listAddPatientDrafts())
+  }
 
   const { data: patientsFromDb, isLoading: isLoadingPatients } = useQuery({
     queryKey: ["assistant-patients"],
@@ -79,10 +99,17 @@ export function useAddPatient() {
     mutationFn: async ({
       formValues,
       documents,
+      avatarFile,
     }: {
       formValues: AddPatientFormValues
       documents: PendingPatientDocument[]
+      avatarFile: File | null
+      draftIdToClear?: string | null
     }) => {
+      const presetAvatarUrl = avatarFile
+        ? undefined
+        : formValues.avatarUrl.trim() || undefined
+
       const payload = {
         fullName: formValues.fullName,
         email: formValues.email,
@@ -92,6 +119,7 @@ export function useAddPatient() {
         nationalId: formValues.nationalId || undefined,
         bloodType: formValues.bloodType || undefined,
         address: formValues.address || undefined,
+        avatarUrl: presetAvatarUrl,
         heightCm: formValues.heightCm ? parseFloat(formValues.heightCm) : undefined,
         weightKg: formValues.weightKg ? parseFloat(formValues.weightKg) : undefined,
         smokingStatus: formValues.smokingStatus || undefined,
@@ -101,10 +129,24 @@ export function useAddPatient() {
         chiefComplaint: formValues.chiefComplaint || undefined,
         otherChiefComplaint: formValues.otherChiefComplaint || undefined,
         medicalHistoryNotes: formValues.medicalHistoryNotes || undefined,
+        maritalStatus: formValues.maritalStatus || undefined,
+        occupation: formValues.occupation || undefined,
         medications: formValues.medications.length > 0 ? formValues.medications : undefined,
         allergies: formValues.allergies.length > 0 ? formValues.allergies : undefined,
       }
       const { data } = await apiClient.post<AddPatientApiResponse>("/assistant/patients", payload)
+
+      if (avatarFile) {
+        try {
+          await uploadPatientAvatar(data.patient.id, avatarFile)
+        } catch (err) {
+          throw new Error(
+            err instanceof Error
+              ? `Patient created but profile photo could not be uploaded. ${err.message}`
+              : "Patient created but profile photo could not be uploaded.",
+          )
+        }
+      }
 
       if (documents.length > 0) {
         const failures: string[] = []
@@ -128,11 +170,17 @@ export function useAddPatient() {
 
       return { ...data, uploadedDocumentsCount: documents.length }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["assistant-patients"] })
+      if (variables.draftIdToClear) {
+        deleteAddPatientDraft(variables.draftIdToClear)
+      }
+      setActiveDraftId(null)
+      refreshDrafts()
       setValues(defaultValues)
       setFieldErrors({})
       setPendingDocuments([])
+      setPendingAvatarFile(null)
       setDocumentStudyKind("xray")
     },
   })
@@ -211,6 +259,23 @@ export function useAddPatient() {
     setFieldErrors((prev) => ({ ...prev, allergies: undefined }))
   }
 
+  const setAvatarFile = (file: File | null) => {
+    setPendingAvatarFile(file)
+    if (file) {
+      setValues((prev) => ({ ...prev, avatarUrl: "" }))
+    }
+  }
+
+  const setAvatarPreset = (url: string) => {
+    setPendingAvatarFile(null)
+    updateField("avatarUrl", url)
+  }
+
+  const clearAvatar = () => {
+    setPendingAvatarFile(null)
+    updateField("avatarUrl", "")
+  }
+
   const addPendingFiles = (fileList: FileList | null) => {
     if (!fileList?.length) return
     const next: PendingPatientDocument[] = []
@@ -235,8 +300,49 @@ export function useAddPatient() {
     setValues(defaultValues)
     setFieldErrors({})
     setPendingDocuments([])
+    setPendingAvatarFile(null)
     setDocumentStudyKind("xray")
+    setActiveDraftId(null)
     createMutation.reset()
+  }
+
+  const saveDraft = () => {
+    if (isAddPatientDraftEmpty(values)) {
+      return { ok: false as const, reason: "empty" as const }
+    }
+
+    const saved = saveAddPatientDraft(
+      { values, documentStudyKind },
+      activeDraftId,
+    )
+    setActiveDraftId(saved.id)
+    refreshDrafts()
+    return { ok: true as const, draft: saved }
+  }
+
+  const restoreDraft = (draftId: string) => {
+    const draft = getAddPatientDraft(draftId)
+    if (!draft) {
+      refreshDrafts()
+      return { ok: false as const, reason: "missing" as const }
+    }
+
+    setValues(draft.snapshot.values)
+    setFieldErrors({})
+    setPendingDocuments([])
+    setPendingAvatarFile(null)
+    setDocumentStudyKind(draft.snapshot.documentStudyKind)
+    setActiveDraftId(draft.id)
+    createMutation.reset()
+    return { ok: true as const, draft }
+  }
+
+  const removeDraft = (draftId: string) => {
+    deleteAddPatientDraft(draftId)
+    if (activeDraftId === draftId) {
+      setActiveDraftId(null)
+    }
+    refreshDrafts()
   }
 
   const submit = () => {
@@ -248,6 +354,8 @@ export function useAddPatient() {
     createMutation.mutate({
       formValues: result.data,
       documents: pendingDocuments,
+      avatarFile: pendingAvatarFile,
+      draftIdToClear: activeDraftId,
     })
   }
 
@@ -267,9 +375,14 @@ export function useAddPatient() {
     isSubmitting: createMutation.isPending,
     isSuccess: createMutation.isSuccess,
     submitError: serverErrorMessage,
+    createResult: createMutation.data,
     pendingDocuments,
+    pendingAvatarFile,
     documentStudyKind,
     setDocumentStudyKind,
+    setAvatarFile,
+    setAvatarPreset,
+    clearAvatar,
     addPendingFiles,
     removePendingDocument,
     updateField,
@@ -280,6 +393,11 @@ export function useAddPatient() {
     updateAllergy,
     removeAllergy,
     reset,
+    saveDraft,
+    restoreDraft,
+    removeDraft,
+    drafts,
+    activeDraftId,
     submit,
   }
 }

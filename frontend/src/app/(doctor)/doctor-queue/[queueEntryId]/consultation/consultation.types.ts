@@ -126,7 +126,23 @@ export type AISuggestion = {
 
 export type TestOrder = {
   id: string
-  testType: "blood" | "imaging" | "ecg" | "echocardiogram" | "stress_test" | "cardiac_catheterization" | "pulmonary_function" | "urinalysis" | "other"
+  testType:
+    | "blood"
+    | "imaging"
+    | "ecg"
+    | "echocardiogram"
+    | "holter_monitor"
+    | "stress_test"
+    | "nuclear_stress_test"
+    | "ct_coronary_angiography"
+    | "cardiac_mri"
+    | "cardiac_catheterization"
+    | "carotid_doppler"
+    | "tilt_table_test"
+    | "pulmonary_function"
+    | "sleep_study"
+    | "urinalysis"
+    | "other"
   testName: string
   urgency: "routine" | "urgent" | "stat"
   notes: string
@@ -138,7 +154,18 @@ export type TestOrder = {
 
 export type HomeMeasurement = {
   id: string
-  metric: "blood_pressure" | "heart_rate" | "weight" | "blood_sugar" | "oxygen_saturation" | "temperature" | "other"
+  metric:
+    | "blood_pressure"
+    | "heart_rate"
+    | "weight"
+    | "blood_sugar"
+    | "oxygen_saturation"
+    | "temperature"
+    | "symptom_log"
+    | "single_lead_ecg"
+    | "physical_activity"
+    | "sleep_quality"
+    | "other"
   metricLabel: string
   frequency: string
   timesOfDay: string[]
@@ -220,6 +247,9 @@ export type ConsultationData = {
   assessmentAndPlan: string
   followUpDate: string
   followUpNotes: string
+  patientDiagnosisSummary: string
+  patientLifestyleAdvice: string
+  patientDangerSigns: string
   aiSuggestions: AISuggestion[]
 }
 

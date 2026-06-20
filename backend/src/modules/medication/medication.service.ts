@@ -17,6 +17,7 @@ import {
   user,
   doctor,
 } from '../../database/schema';
+import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
 import type {
   CreateMedicationDto,
   UpdateMedicationDto,
@@ -24,7 +25,10 @@ import type {
 
 @Injectable()
 export class MedicationService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly avatarUrlResolver: AvatarUrlResolver,
+  ) {}
 
   // ===================== PATIENT ENDPOINTS =====================
 
@@ -156,6 +160,7 @@ export class MedicationService {
         fullName: user.name,
         dateOfBirth: patient.dateOfBirth,
         gender: patient.gender,
+        avatarUrl: patient.avatarUrl,
       })
       .from(patient)
       .innerJoin(user, eq(patient.userId, user.id))
@@ -179,20 +184,23 @@ export class MedicationService {
     const uuidToUserId = new Map(patientUserMap.map((p) => [p.id, p.userId]));
     const countMap = new Map(medCounts.map((c) => [c.userId, c]));
 
-    return patients.map((p) => {
-      const userId = uuidToUserId.get(p.id);
-      const counts = userId
-        ? (countMap.get(userId) ?? { activeCount: 0, poorComplianceCount: 0 })
-        : { activeCount: 0, poorComplianceCount: 0 };
-      return {
-        patientId: p.id,
-        fullName: p.fullName,
-        dateOfBirth: p.dateOfBirth,
-        gender: p.gender,
-        activeMedications: Number(counts.activeCount),
-        poorComplianceCount: Number(counts.poorComplianceCount),
-      };
-    });
+    return Promise.all(
+      patients.map(async (p) => {
+        const userId = uuidToUserId.get(p.id);
+        const counts = userId
+          ? (countMap.get(userId) ?? { activeCount: 0, poorComplianceCount: 0 })
+          : { activeCount: 0, poorComplianceCount: 0 };
+        return {
+          patientId: p.id,
+          fullName: p.fullName,
+          dateOfBirth: p.dateOfBirth,
+          gender: p.gender,
+          avatarUrl: await this.avatarUrlResolver.resolve(p.avatarUrl),
+          activeMedications: Number(counts.activeCount),
+          poorComplianceCount: Number(counts.poorComplianceCount),
+        };
+      }),
+    );
   }
 
   /** List all medications for a specific patient (doctor view). */

@@ -20,6 +20,7 @@ import {
 } from '../../database/schema';
 import type { TokenPayload } from '../auth/jwt';
 import { ChatAttachmentService } from './chat-attachment.service';
+import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
 import type { CreateConversationDto } from './dto/create-conversation.dto';
 import type { ChatUploadIntentDto, SendMessageDto } from './dto/send-message.dto';
 
@@ -49,6 +50,7 @@ export class ChatService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly chatAttachmentService: ChatAttachmentService,
+    private readonly avatarUrlResolver: AvatarUrlResolver,
   ) {}
 
   async listConversations(currentUser: TokenPayload) {
@@ -108,34 +110,38 @@ export class ChatService {
       attachmentTypesByMessageId.set(attachment.messageId, list);
     }
 
-    const result = rows.map((row) => {
-      const latest = latestByConversation.get(row.conversationId);
-      const attachmentTypes = latest
-        ? attachmentTypesByMessageId.get(latest.id)
-        : undefined;
-      return {
-        id: row.conversationId,
-        participant: {
-          userId: row.participantUserId,
-          name: row.participantName,
-          role: row.participantRole,
-          avatarUrl: row.participantAvatarUrl ?? row.participantUserAvatarUrl,
-          email: row.participantEmail ?? null,
-          specialty: row.participantSpecialty ?? null,
-          clinicLocation: row.participantClinicLocation ?? null,
-        },
-        unreadCount: unreadCountByConversation.get(row.conversationId) ?? 0,
-        lastMessage: latest
-          ? {
-              text: this.previewLastMessage(latest.text, attachmentTypes),
-              senderType: latest.senderType,
-              sentAt: latest.sentAt.toISOString(),
-              isRead: latest.isRead,
-            }
-          : null,
-        createdAt: row.createdAt.toISOString(),
-      };
-    });
+    const result = await Promise.all(
+      rows.map(async (row) => {
+        const latest = latestByConversation.get(row.conversationId);
+        const attachmentTypes = latest
+          ? attachmentTypesByMessageId.get(latest.id)
+          : undefined;
+        return {
+          id: row.conversationId,
+          participant: {
+            userId: row.participantUserId,
+            name: row.participantName,
+            role: row.participantRole,
+            avatarUrl: await this.avatarUrlResolver.resolve(
+              row.participantAvatarUrl ?? row.participantUserAvatarUrl,
+            ),
+            email: row.participantEmail ?? null,
+            specialty: row.participantSpecialty ?? null,
+            clinicLocation: row.participantClinicLocation ?? null,
+          },
+          unreadCount: unreadCountByConversation.get(row.conversationId) ?? 0,
+          lastMessage: latest
+            ? {
+                text: this.previewLastMessage(latest.text, attachmentTypes),
+                senderType: latest.senderType,
+                sentAt: latest.sentAt.toISOString(),
+                isRead: latest.isRead,
+              }
+            : null,
+          createdAt: row.createdAt.toISOString(),
+        };
+      }),
+    );
 
     return result.sort((a, b) => {
       const aMs = new Date(a.lastMessage?.sentAt ?? a.createdAt).getTime();
@@ -160,13 +166,17 @@ export class ChatService {
         .from(patient)
         .innerJoin(user, eq(patient.userId, user.id))
         .orderBy(asc(user.name));
-      return rows.map((r) => ({
-        profileId: r.id,
-        name: r.name,
-        role: r.role,
-        avatarUrl: r.avatarUrl ?? r.userAvatarUrl,
-        specialty: null,
-      }));
+      return Promise.all(
+        rows.map(async (r) => ({
+          profileId: r.id,
+          name: r.name,
+          role: r.role,
+          avatarUrl: await this.avatarUrlResolver.resolve(
+            r.avatarUrl ?? r.userAvatarUrl,
+          ),
+          specialty: null,
+        })),
+      );
     }
 
     if (actor.role === 'patient') {
@@ -182,13 +192,15 @@ export class ChatService {
         .from(doctor)
         .innerJoin(user, eq(doctor.userId, user.id))
         .orderBy(asc(user.name));
-      return rows.map((r) => ({
-        profileId: r.id,
-        name: r.name,
-        role: r.role,
-        avatarUrl: r.avatarUrl,
-        specialty: r.specialty,
-      }));
+      return Promise.all(
+        rows.map(async (r) => ({
+          profileId: r.id,
+          name: r.name,
+          role: r.role,
+          avatarUrl: await this.avatarUrlResolver.resolve(r.avatarUrl),
+          specialty: r.specialty,
+        })),
+      );
     }
 
     const doctorRows = await this.db
@@ -215,22 +227,30 @@ export class ChatService {
       .innerJoin(user, eq(patient.userId, user.id))
       .orderBy(asc(user.name));
 
-    return [
-      ...doctorRows.map((r) => ({
-        profileId: r.id,
-        name: r.name,
-        role: r.role,
-        avatarUrl: r.avatarUrl,
-        specialty: r.specialty,
-      })),
-      ...patientRows.map((r) => ({
-        profileId: r.id,
-        name: r.name,
-        role: r.role,
-        avatarUrl: r.avatarUrl ?? r.userAvatarUrl,
-        specialty: null,
-      })),
-    ];
+    const [resolvedDoctors, resolvedPatients] = await Promise.all([
+      Promise.all(
+        doctorRows.map(async (r) => ({
+          profileId: r.id,
+          name: r.name,
+          role: r.role,
+          avatarUrl: await this.avatarUrlResolver.resolve(r.avatarUrl),
+          specialty: r.specialty,
+        })),
+      ),
+      Promise.all(
+        patientRows.map(async (r) => ({
+          profileId: r.id,
+          name: r.name,
+          role: r.role,
+          avatarUrl: await this.avatarUrlResolver.resolve(
+            r.avatarUrl ?? r.userAvatarUrl,
+          ),
+          specialty: null,
+        })),
+      ),
+    ]);
+
+    return [...resolvedDoctors, ...resolvedPatients];
   }
 
   async createConversation(

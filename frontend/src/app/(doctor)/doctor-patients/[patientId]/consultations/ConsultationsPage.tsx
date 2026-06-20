@@ -1,10 +1,14 @@
 "use client"
 
 import React, { useState, useMemo } from "react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { VisitRecord } from "../../doctorPatients.types"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { doctorAvatarUrl, diagnosesScrollbarCss } from "../diagnoses/diagnosis.shared"
+import { deleteConsultationReport } from "../../consultationReport.api"
+import { DeleteConsultationDialog } from "./DeleteConsultationDialog"
+import { showIcareErrorToast, showIcareSuccessToast } from "@/components/shared/icare-toast"
 import {
   CalendarDaysIcon,
   ChevronRightIcon,
@@ -38,8 +42,26 @@ type ConsultationsPageProps = {
 }
 
 export function ConsultationsPage({ patientId, patientName, visits }: ConsultationsPageProps) {
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedType, setSelectedType] = useState<string>("all")
+  const [localVisits, setLocalVisits] = useState(visits)
+
+  React.useEffect(() => {
+    setLocalVisits(visits)
+  }, [visits])
+
+  const deleteMutation = useMutation({
+    mutationFn: (visitId: string) => deleteConsultationReport(patientId, visitId),
+    onSuccess: async (_data, visitId) => {
+      setLocalVisits((prev) => prev.filter((visit) => visit.id !== visitId))
+      await queryClient.invalidateQueries({ queryKey: ["doctor-patient-record", patientId] })
+      showIcareSuccessToast("Consultation deleted", "The visit was removed from the timeline.")
+    },
+    onError: (error: Error) => {
+      showIcareErrorToast("Could not delete consultation", error.message)
+    },
+  })
 
   const typeStyles: Record<string, string> = {
     "follow-up": "bg-[#1A5345] text-white",
@@ -59,7 +81,7 @@ export function ConsultationsPage({ patientId, patientName, visits }: Consultati
 
   // Filter consultations in memory
   const filteredVisits = useMemo(() => {
-    return visits.filter((v) => {
+    return localVisits.filter((v) => {
       const matchType = selectedType === "all" || v.type === selectedType
       const matchSearch =
         searchTerm.trim() === "" ||
@@ -68,15 +90,15 @@ export function ConsultationsPage({ patientId, patientName, visits }: Consultati
         v.doctorName.toLowerCase().includes(searchTerm.toLowerCase())
       return matchType && matchSearch
     })
-  }, [visits, searchTerm, selectedType])
+  }, [localVisits, searchTerm, selectedType])
 
   // Compute stats
   const stats = useMemo(() => {
-    const totalCount = visits.length
-    const totalDuration = visits.reduce((acc, curr) => acc + (curr.durationMin || 0), 0)
-    const latestDate = visits[0]?.date ? fmtFull(visits[0].date) : "N/A"
+    const totalCount = localVisits.length
+    const totalDuration = localVisits.reduce((acc, curr) => acc + (curr.durationMin || 0), 0)
+    const latestDate = localVisits[0]?.date ? fmtFull(localVisits[0].date) : "N/A"
     return { totalCount, totalDuration, latestDate }
-  }, [visits])
+  }, [localVisits])
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
@@ -270,12 +292,12 @@ export function ConsultationsPage({ patientId, patientName, visits }: Consultati
                     </div>
                   </div>
 
-                  <Link
-                    href={`/doctor-patients/${patientId}/consultations/${v.id}`}
-                    className="block overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)] transition-all hover:border-[#1A5345]/25 hover:shadow-md"
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0 flex-1">
+                  <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)] transition-all hover:border-[#1A5345]/25 hover:shadow-md">
+                    <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between">
+                      <Link
+                        href={`/doctor-patients/${patientId}/consultations/${v.id}`}
+                        className="min-w-0 flex-1"
+                      >
                         <div className="flex items-center gap-2">
                           <div className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/80 bg-[#E8F0EE] shadow-sm">
                             <img src={doctorAvatarUrl(v.doctorName)} alt="" className="size-full object-cover" />
@@ -301,15 +323,24 @@ export function ConsultationsPage({ patientId, patientName, visits }: Consultati
                         <p className="mt-1.5 text-[12px] font-medium leading-relaxed text-[#6B7870] sm:text-[13px]">
                           <span className="text-[#1A1F1E] font-bold">Summary:</span> {v.diagnosisSummary}
                         </p>
-                      </div>
+                      </Link>
 
-                      <div className="flex shrink-0 items-center gap-1 self-start text-[11px] font-bold text-[#1A5345] transition-colors group-hover:text-[#133F34] sm:self-center">
-                        <FileTextIcon className="size-3.5" />
-                        <span>Report</span>
-                        <ChevronRightIcon className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                      <div className="flex shrink-0 items-center gap-1 self-start sm:self-center">
+                        <Link
+                          href={`/doctor-patients/${patientId}/consultations/${v.id}`}
+                          className="flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-[#1A5345] transition-colors hover:text-[#133F34]"
+                        >
+                          <FileTextIcon className="size-3.5" />
+                          <span>Report</span>
+                          <ChevronRightIcon className="size-3.5" />
+                        </Link>
+                        <DeleteConsultationDialog
+                          onConfirm={() => deleteMutation.mutate(v.id)}
+                          isDeleting={deleteMutation.isPending}
+                        />
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 </div>
               ))}
             </div>

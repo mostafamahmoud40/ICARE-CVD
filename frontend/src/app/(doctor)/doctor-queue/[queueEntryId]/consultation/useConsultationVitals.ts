@@ -8,12 +8,10 @@ import type { ConsultationVitalReading, VitalSigns } from "./consultation.types"
 import {
   type ApiVitalRow,
   emptyVitalSigns,
-  findTodayClinicReading,
   hasBpPairMismatch,
   hasPersistableVitalValue,
-  mapApiRowToVitalSigns,
   mapConsultationReadingToVitalSigns,
-  pickLastVitalReading,
+  pickMostRecentVitalReading,
   vitalSignsToApiPayload,
 } from "./consultationVitals.utils"
 
@@ -81,6 +79,10 @@ export function useConsultationVitals(queueEntryId: string) {
 
   useEffect(() => {
     hydratedRef.current = false
+    setVitals(emptyVitalSigns())
+    setSessionVitalId(null)
+    setLastVitalReading(null)
+    setIsDirty(false)
   }, [queueEntryId])
 
   useEffect(() => {
@@ -93,20 +95,11 @@ export function useConsultationVitals(queueEntryId: string) {
     if (!vitalsQuery.data || hydratedRef.current) return
 
     hydratedRef.current = true
-    const todayReading = findTodayClinicReading(vitalsQuery.data)
-    if (todayReading) {
-      setSessionVitalId(todayReading.id)
-      setVitals(mapApiRowToVitalSigns(todayReading))
-    } else {
-      setSessionVitalId(null)
-      setVitals(emptyVitalSigns())
-    }
-
-    setLastVitalReading(
-      pickLastVitalReading(vitalsQuery.data, todayReading?.id ?? null),
-    )
+    setSessionVitalId(null)
+    setVitals(emptyVitalSigns())
+    setLastVitalReading(pickMostRecentVitalReading(vitalsQuery.data))
     setIsDirty(false)
-  }, [vitalsQuery.data])
+  }, [vitalsQuery.data, queueEntryId])
 
   const saveMutation = useMutation({
     mutationFn: async ({
@@ -145,7 +138,15 @@ export function useConsultationVitals(queueEntryId: string) {
   })
 
   const persistVitals = useCallback(
-    async (next: VitalSigns, vitalId: string | null, pid: string) => {
+    async (
+      next: VitalSigns,
+      vitalId: string | null,
+      pid: string,
+      opts?: { silentIfEmpty?: boolean },
+    ) => {
+      if (!hasPersistableVitalValue(next)) {
+        if (opts?.silentIfEmpty) return true
+      }
       const validationError = canPersistVitals(next)
       if (validationError) {
         showIcareErrorToast("Cannot save vitals", validationError)
@@ -169,12 +170,15 @@ export function useConsultationVitals(queueEntryId: string) {
     [saveMutation],
   )
 
-  const saveNow = useCallback(async () => {
-    const pid = patientIdRef.current
-    if (!pid) return
+  const saveNow = useCallback(
+    async (opts?: { silentIfEmpty?: boolean }) => {
+      const pid = patientIdRef.current
+      if (!pid) return
 
-    await persistVitals(vitalsRef.current, sessionVitalIdRef.current, pid)
-  }, [persistVitals])
+      await persistVitals(vitalsRef.current, sessionVitalIdRef.current, pid, opts)
+    },
+    [persistVitals],
+  )
 
   const onVitalChange = useCallback((key: keyof VitalSigns, value: string) => {
     setVitals((prev) => ({ ...prev, [key]: value }))

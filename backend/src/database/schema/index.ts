@@ -1,5 +1,6 @@
 /** Re-export all tables so Drizzle gets one schema object. Add `export * from './feature';` per file. */
 export * from './users.schema';
+export * from './pending-registration.schema';
 export * from './patient.schema';
 export * from './patientHistory.schema';
 export * from './familyHistory.schema';
@@ -27,6 +28,9 @@ export * from './labReportPanel.schema';
 export * from './consultationEchoAnalysis.schema';
 export * from './consultationEcgAnalysis.schema';
 export * from './consultationXrayAnalysis.schema';
+export * from './consultationCineMriAnalysis.schema';
+export * from './consultationCtAnalysis.schema';
+export * from './consultationEcgClsAnalysis.schema';
 export * from './diagnosis.schema';
 export * from './consultation.schema';
 export * from './consultationDiagnosis.schema';

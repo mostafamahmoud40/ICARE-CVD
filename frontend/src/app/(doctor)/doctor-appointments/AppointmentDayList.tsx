@@ -4,6 +4,11 @@ import { format, isPast } from "date-fns"
 import { cn } from "@/lib/utils"
 import type { DoctorAppointment } from "./doctorAppointments.types"
 import {
+  DISPLAY_STATUS_LABELS,
+  DISPLAY_STATUS_STYLES,
+  resolveAppointmentDisplayStatus,
+} from "./appointmentDisplayStatus"
+import {
   Building2Icon,
   CalendarDaysIcon,
   ChevronRightIcon,
@@ -11,22 +16,18 @@ import {
   VideoIcon,
 } from "lucide-react"
 
-const STATUS_STYLES: Record<string, string> = {
-  scheduled: "bg-amber-500 text-white",
-  confirmed: "bg-blue-500 text-white",
-  completed: "bg-emerald-500 text-white",
-  cancelled: "bg-rose-500 text-white",
-}
+const STATUS_STYLES = DISPLAY_STATUS_STYLES
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ appointment }: { appointment: DoctorAppointment }) {
+  const displayStatus = resolveAppointmentDisplayStatus(appointment)
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center rounded-lg px-2 py-0.5 text-[10px] font-bold capitalize",
-        STATUS_STYLES[status] ?? STATUS_STYLES.scheduled,
+        "inline-flex shrink-0 items-center rounded-lg px-2 py-0.5 text-[10px] font-bold",
+        STATUS_STYLES[displayStatus] ?? STATUS_STYLES.scheduled,
       )}
     >
-      {status}
+      {DISPLAY_STATUS_LABELS[displayStatus]}
     </span>
   )
 }
@@ -42,8 +43,9 @@ function AppointmentRow({
   appointment: DoctorAppointment
   onSelect: () => void
 }) {
+  const displayStatus = resolveAppointmentDisplayStatus(appointment)
   const isVirtual = appointment.visitType === "virtual"
-  const isCancelled = appointment.status === "cancelled"
+  const isCancelled = displayStatus === "cancelled" || displayStatus === "no-show"
   const slotPast = isPast(new Date(appointment.scheduledAt))
 
   return (
@@ -80,7 +82,7 @@ function AppointmentRow({
         </p>
       </div>
 
-      <StatusBadge status={appointment.status} />
+      <StatusBadge appointment={appointment} />
       <ChevronRightIcon
         className="size-4 shrink-0 text-[#9CA3AF] opacity-0 transition-opacity group-hover:opacity-100"
         aria-hidden

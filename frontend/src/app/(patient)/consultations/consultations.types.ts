@@ -52,6 +52,12 @@ export type ConsultationsViewMode = "table" | "timeline"
 /** How the visit was held — in person at the clinic or online. */
 export type ConsultationVisitType = "clinic" | "virtual"
 
+export type PatientVisitInstructions = {
+  diagnosisSummary: string
+  lifestyleAdvice: string
+  dangerSigns: string
+}
+
 export type VisitSummary = {
   id: string
   scheduledAt: string
@@ -72,6 +78,8 @@ export type VisitSummary = {
   medications: Medication[]
   orders: ClinicalOrder[]
   previousVisits: PreviousVisit[]
+  patientInstructions?: PatientVisitInstructions
+  reasonForVisit: string
   aiNote?: string
 }
 

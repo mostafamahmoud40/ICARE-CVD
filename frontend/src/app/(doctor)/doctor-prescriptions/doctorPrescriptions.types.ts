@@ -20,6 +20,7 @@ export type PatientInfo = {
   gender: "male" | "female"
   activeMedications: number
   poorComplianceCount: number
+  avatarUrl?: string | null
 }
 
 export type PatientPrescription = {

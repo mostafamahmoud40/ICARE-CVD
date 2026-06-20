@@ -112,6 +112,11 @@ export class CreatePatientDto {
   address?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  avatarUrl?: string;
+
+  @IsOptional()
   @IsNumber()
   @Min(30)
   @Max(300)
@@ -161,6 +166,16 @@ export class CreatePatientDto {
   medicalHistoryNotes?: string;
 
   @IsOptional()
+  @IsIn(['single', 'married', 'divorced', 'widowed'])
+  maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  occupation?: string;
+
+  @IsOptional()
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreatePatientMedicationDto)

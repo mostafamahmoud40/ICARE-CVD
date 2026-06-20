@@ -41,8 +41,8 @@ const PREFIX_ALLOWED_ROUTES: Record<string, string[]> = {
     "/login",
     "/register",
     "/register/account",
+    "/register/verify",
     "/register/profile",
-    "/register/medical",
     "/register/documents",
     "/register/review",
     "/forgot-password",
@@ -127,7 +127,7 @@ function mapRegisterStepRewrite(pathname: string): string | null {
   if (!match) return null;
 
   const step = match[1];
-  const allowed = new Set(["account", "profile", "medical", "documents", "review"]);
+  const allowed = new Set(["account", "verify", "profile", "documents", "review"]);
   if (!allowed.has(step)) {
     return "/auth/register/account";
   }
@@ -188,7 +188,10 @@ export function proxy(request: NextRequest) {
   const role = payload?.role ?? null;
   const isAuthenticated = !!token && !!payload;
 
-  if (isAuthRoute(normalizedPathname) && isAuthenticated && role) {
+  const isRegisterFlow =
+    normalizedPathname === "/register" || normalizedPathname.startsWith("/register/");
+
+  if (isAuthRoute(normalizedPathname) && isAuthenticated && role && !isRegisterFlow) {
     const destination = DEFAULT_REDIRECT[role] || "/";
     return NextResponse.redirect(new URL(destination, request.url));
   }

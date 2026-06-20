@@ -1,18 +1,29 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import type { TestOrder, HomeMeasurement } from "./consultation.types"
+import type { ClinicalNotesAiContext } from "./clinicalNotesAiSuggestions"
+import {
+  buildTestOrderSuggestions,
+  type TestOrderSuggestion,
+} from "./testOrdersAiSuggestions"
+import { showIcareToast } from "@/components/shared/icare-toast"
 import { cn } from "@/lib/utils"
 import {
   BeakerIcon,
+  BrainCircuitIcon,
   CalendarClockIcon,
+  CheckIcon,
   ClockIcon,
   FlaskConicalIcon,
   HeartIcon,
   HomeIcon,
+  Loader2Icon,
   MapPinIcon,
   MoonIcon,
+  PencilLineIcon,
   PlusIcon,
+  SparklesIcon,
   SunriseIcon,
   SunIcon,
   TargetIcon,
@@ -24,6 +35,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import {
   Select,
   SelectContent,
@@ -37,9 +53,24 @@ const TEST_TYPES = [
   { value: "imaging" as const, label: "Imaging", icon: BeakerIcon },
   { value: "ecg" as const, label: "ECG", icon: HeartIcon },
   { value: "echocardiogram" as const, label: "Echocardiogram", icon: HeartIcon },
+  { value: "holter_monitor" as const, label: "Holter Monitor (24-48 hr)", icon: HeartIcon },
   { value: "stress_test" as const, label: "Stress Test", icon: HeartIcon },
+  {
+    value: "nuclear_stress_test" as const,
+    label: "Nuclear Stress Test (Perfusion)",
+    icon: HeartIcon,
+  },
+  { value: "ct_coronary_angiography" as const, label: "CT Coronary Angiography", icon: BeakerIcon },
+  { value: "cardiac_mri" as const, label: "Cardiac MRI", icon: BeakerIcon },
   { value: "cardiac_catheterization" as const, label: "Cardiac Catheterization", icon: HeartIcon },
+  {
+    value: "carotid_doppler" as const,
+    label: "Carotid Doppler / Vascular Ultrasound",
+    icon: HeartIcon,
+  },
+  { value: "tilt_table_test" as const, label: "Tilt Table Test", icon: HeartIcon },
   { value: "pulmonary_function" as const, label: "Pulmonary Function", icon: HeartIcon },
+  { value: "sleep_study" as const, label: "Sleep Study (Polysomnography)", icon: MoonIcon },
   { value: "urinalysis" as const, label: "Urinalysis", icon: FlaskConicalIcon },
   { value: "other" as const, label: "Other", icon: BeakerIcon },
 ]
@@ -48,6 +79,7 @@ const SECTION_CARD = "rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow
 const FIELD_LABEL = "text-sm font-medium text-[#374151]"
 const INPUT_CLASS =
   "h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+const SELECT_TRIGGER_CLASS = cn(INPUT_CLASS, "w-full")
 
 const URGENCY_CONFIG = {
   routine: { label: "Routine", badge: "bg-[#1A5345] text-white hover:bg-[#1A5345]" },
@@ -60,9 +92,16 @@ const TEST_TYPE_BADGES: Record<TestOrder["testType"], string> = {
   imaging: "bg-blue-500 text-white hover:bg-blue-500",
   ecg: "bg-emerald-500 text-white hover:bg-emerald-500",
   echocardiogram: "bg-teal-500 text-white hover:bg-teal-500",
+  holter_monitor: "bg-fuchsia-500 text-white hover:bg-fuchsia-500",
   stress_test: "bg-orange-500 text-white hover:bg-orange-500",
+  nuclear_stress_test: "bg-amber-600 text-white hover:bg-amber-600",
+  ct_coronary_angiography: "bg-sky-600 text-white hover:bg-sky-600",
+  cardiac_mri: "bg-indigo-500 text-white hover:bg-indigo-500",
   cardiac_catheterization: "bg-rose-500 text-white hover:bg-rose-500",
+  carotid_doppler: "bg-cyan-600 text-white hover:bg-cyan-600",
+  tilt_table_test: "bg-lime-600 text-white hover:bg-lime-600",
   pulmonary_function: "bg-cyan-500 text-white hover:bg-cyan-500",
+  sleep_study: "bg-violet-600 text-white hover:bg-violet-600",
   urinalysis: "bg-amber-500 text-white hover:bg-amber-500",
   other: "bg-slate-500 text-white hover:bg-slate-500",
 }
@@ -74,6 +113,10 @@ const METRIC_OPTIONS = [
   { value: "blood_sugar" as const, label: "Blood Sugar" },
   { value: "oxygen_saturation" as const, label: "O₂ Saturation" },
   { value: "temperature" as const, label: "Temperature" },
+  { value: "symptom_log" as const, label: "Symptom Log (pain / palpitations)" },
+  { value: "single_lead_ecg" as const, label: "Single-lead ECG / Heart Rhythm" },
+  { value: "physical_activity" as const, label: "Physical Activity (Steps)" },
+  { value: "sleep_quality" as const, label: "Sleep Duration / Quality" },
   { value: "other" as const, label: "Other" },
 ]
 
@@ -84,6 +127,10 @@ const METRIC_BADGES: Record<HomeMeasurement["metric"], string> = {
   blood_sugar: "bg-violet-500 text-white hover:bg-violet-500",
   oxygen_saturation: "bg-blue-500 text-white hover:bg-blue-500",
   temperature: "bg-orange-500 text-white hover:bg-orange-500",
+  symptom_log: "bg-pink-600 text-white hover:bg-pink-600",
+  single_lead_ecg: "bg-emerald-600 text-white hover:bg-emerald-600",
+  physical_activity: "bg-green-600 text-white hover:bg-green-600",
+  sleep_quality: "bg-indigo-500 text-white hover:bg-indigo-500",
   other: "bg-slate-500 text-white hover:bg-slate-500",
 }
 
@@ -183,6 +230,185 @@ function TestOrderCard({
   )
 }
 
+const AI_GENERATE_MS = 700
+
+function TestSuggestionCard({
+  suggestion,
+  onAccept,
+  onDismiss,
+}: {
+  suggestion: TestOrderSuggestion
+  onAccept: (entry: TestOrder) => void
+  onDismiss: (id: string) => void
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [testType, setTestType] = useState<TestOrder["testType"]>(suggestion.testType)
+  const [testName, setTestName] = useState(suggestion.testName)
+  const [urgency, setUrgency] = useState<TestOrder["urgency"]>(suggestion.urgency)
+  const [notes, setNotes] = useState(suggestion.notes)
+  const [fastingRequired, setFastingRequired] = useState(suggestion.fastingRequired)
+
+  const typeLabel = TEST_TYPES.find((t) => t.value === testType)?.label ?? testType
+  const typeBadge = TEST_TYPE_BADGES[testType]
+
+  const handleAccept = () => {
+    if (!testName.trim()) return
+    onAccept({
+      id: `test-ai-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      testType,
+      testName: testName.trim(),
+      urgency,
+      notes: notes.trim(),
+      location: "",
+      scheduledDate: "",
+      scheduledTime: "",
+      fastingRequired,
+    })
+    onDismiss(suggestion.id)
+    showIcareToast({
+      title: "Test order added",
+      description: "Review the ordered test in the list above.",
+    })
+  }
+
+  return (
+    <article className="space-y-3 rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50/50 to-white p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge
+            variant="default"
+            className={cn("rounded-lg border-0 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm", typeBadge)}
+          >
+            {typeLabel}
+          </Badge>
+          <Badge
+            variant="default"
+            className={cn(
+              "rounded-lg border-0 px-2 py-0.5 text-[10px] font-bold text-white shadow-none",
+              URGENCY_CONFIG[urgency].badge,
+            )}
+          >
+            {URGENCY_CONFIG[urgency].label}
+          </Badge>
+          <span className="flex items-center gap-1 text-[10px] font-bold text-violet-600/70">
+            <SparklesIcon className="size-3 text-violet-500" aria-hidden />
+            AI suggested
+          </span>
+        </div>
+        <FlaskConicalIcon className="size-4 shrink-0 text-violet-600/70" aria-hidden />
+      </div>
+
+      <div>
+        <h4 className="text-[14px] font-bold text-[#1A1F1E]">{testName}</h4>
+        {notes ? (
+          <p className="mt-1 text-[12px] leading-relaxed text-[#374151]">{notes}</p>
+        ) : null}
+        <p className="mt-2 text-[12px] leading-relaxed text-violet-900/75">{suggestion.rationale}</p>
+        {suggestion.caution ? (
+          <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2">
+            <TargetIcon className="mt-0.5 size-3.5 shrink-0 text-amber-600" aria-hidden />
+            <p className="text-[11px] leading-relaxed text-amber-800">{suggestion.caution}</p>
+          </div>
+        ) : null}
+      </div>
+
+      {isEditing ? (
+        <div className="space-y-3 rounded-xl border border-[#E8E6E0]/60 bg-white/80 p-3">
+          <p className="text-[12px] font-semibold text-[#1A1F1E]">Adjust before ordering</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-medium text-muted-foreground">Test type</label>
+              <Select value={testType} onValueChange={(v) => setTestType(v as TestOrder["testType"])}>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
+                  {TEST_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value} className="text-[14px]">
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-medium text-muted-foreground">Urgency</label>
+              <Select value={urgency} onValueChange={(v) => setUrgency(v as TestOrder["urgency"])}>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
+                  {Object.entries(URGENCY_CONFIG).map(([key, cfg]) => (
+                    <SelectItem key={key} value={key} className="text-[14px]">
+                      {cfg.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-[11px] font-medium text-muted-foreground">Test name</label>
+              <Input value={testName} onChange={(e) => setTestName(e.target.value)} className={INPUT_CLASS} />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-[11px] font-medium text-muted-foreground">Clinical notes</label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="min-h-[72px] resize-none rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id={`fasting-${suggestion.id}`}
+              checked={fastingRequired}
+              onCheckedChange={(checked) => setFastingRequired(checked === true)}
+              className="border-[#E8E6E0]"
+            />
+            <label htmlFor={`fasting-${suggestion.id}`} className="text-[12px] font-medium text-muted-foreground">
+              Fasting required
+            </label>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => onDismiss(suggestion.id)}
+          className="h-8 rounded-lg border-[#E8E6E0] bg-white px-2.5 text-[11px] font-bold shadow-sm hover:bg-red-50 hover:text-red-600"
+        >
+          <XIcon className="size-3.5" aria-hidden />
+          Dismiss
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => setIsEditing((prev) => !prev)}
+          className="h-8 flex-1 rounded-lg border-[#E8E6E0] bg-white text-[11px] font-bold shadow-sm hover:bg-[#F9F8F5]"
+        >
+          <PencilLineIcon className="size-3.5" aria-hidden />
+          {isEditing ? "Close" : "Edit"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          onClick={handleAccept}
+          disabled={!testName.trim()}
+          className="h-8 flex-1 rounded-lg border-0 bg-[#1A5345] text-[11px] font-bold text-white shadow-sm hover:bg-[#133F34]"
+        >
+          <CheckIcon className="size-3.5" aria-hidden />
+          Order test
+        </Button>
+      </div>
+    </article>
+  )
+}
+
 function AddTestOrderForm({ onAdd }: { onAdd: (entry: TestOrder) => void }) {
   const [testType, setTestType] = useState<TestOrder["testType"]>("blood")
   const [testName, setTestName] = useState("")
@@ -191,6 +417,7 @@ function AddTestOrderForm({ onAdd }: { onAdd: (entry: TestOrder) => void }) {
   const [location, setLocation] = useState("")
   const [scheduledDate, setScheduledDate] = useState("")
   const [scheduledTime, setScheduledTime] = useState("")
+  const [suggestFacilitySchedule, setSuggestFacilitySchedule] = useState(false)
   const [fastingRequired, setFastingRequired] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
 
@@ -214,9 +441,9 @@ function AddTestOrderForm({ onAdd }: { onAdd: (entry: TestOrder) => void }) {
       testName: testName.trim(),
       urgency,
       notes: notes.trim(),
-      location: location.trim(),
-      scheduledDate,
-      scheduledTime,
+      location: suggestFacilitySchedule ? location.trim() : "",
+      scheduledDate: suggestFacilitySchedule ? scheduledDate : "",
+      scheduledTime: suggestFacilitySchedule ? scheduledTime : "",
       fastingRequired,
     })
     setTestType("blood")
@@ -226,6 +453,7 @@ function AddTestOrderForm({ onAdd }: { onAdd: (entry: TestOrder) => void }) {
     setLocation("")
     setScheduledDate("")
     setScheduledTime("")
+    setSuggestFacilitySchedule(false)
     setFastingRequired(false)
     setIsOpen(false)
   }
@@ -242,7 +470,7 @@ function AddTestOrderForm({ onAdd }: { onAdd: (entry: TestOrder) => void }) {
         <div className="space-y-1.5">
           <label className={FIELD_LABEL}>Test type</label>
           <Select value={testType} onValueChange={(v) => setTestType(v as TestOrder["testType"])}>
-            <SelectTrigger className={INPUT_CLASS}>
+            <SelectTrigger className={SELECT_TRIGGER_CLASS}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
@@ -255,7 +483,7 @@ function AddTestOrderForm({ onAdd }: { onAdd: (entry: TestOrder) => void }) {
         <div className="space-y-1.5">
           <label className={FIELD_LABEL}>Urgency</label>
           <Select value={urgency} onValueChange={(v) => setUrgency(v as TestOrder["urgency"])}>
-            <SelectTrigger className={INPUT_CLASS}>
+            <SelectTrigger className={SELECT_TRIGGER_CLASS}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
@@ -284,38 +512,66 @@ function AddTestOrderForm({ onAdd }: { onAdd: (entry: TestOrder) => void }) {
           className="min-h-[72px] resize-none rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] placeholder:text-muted-foreground focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
         />
       </div>
-      <div className="space-y-1.5">
-        <label className={FIELD_LABEL}>Facility / location</label>
-        <div className="relative">
-          <MapPinIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="e.g. Main Lab - Floor 2, Cardiology Imaging Center..."
-            className={cn(INPUT_CLASS, "pl-9")}
-          />
+      <div className="flex items-start gap-2">
+        <Checkbox
+          id="suggest-facility-schedule"
+          checked={suggestFacilitySchedule}
+          onCheckedChange={(checked) => {
+            const enabled = checked === true
+            setSuggestFacilitySchedule(enabled)
+            if (!enabled) {
+              setLocation("")
+              setScheduledDate("")
+              setScheduledTime("")
+            }
+          }}
+          className="mt-0.5 border-[#E8E6E0]"
+        />
+        <div className="space-y-0.5">
+          <label htmlFor="suggest-facility-schedule" className="text-[13px] font-medium text-[#1A1F1E]">
+            Suggest facility & schedule
+          </label>
+          <p className="text-[12px] text-muted-foreground">
+            Optional — patient may choose a different location or time.
+          </p>
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <label className={FIELD_LABEL}>Preferred date</label>
-          <Input
-            type="date"
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
-            className={INPUT_CLASS}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className={FIELD_LABEL}>Preferred time</label>
-          <Input
-            type="time"
-            value={scheduledTime}
-            onChange={(e) => setScheduledTime(e.target.value)}
-            className={INPUT_CLASS}
-          />
-        </div>
-      </div>
+      {suggestFacilitySchedule ? (
+        <>
+          <div className="space-y-1.5">
+            <label className={FIELD_LABEL}>Facility / location</label>
+            <div className="relative">
+              <MapPinIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="e.g. Main Lab - Floor 2, Cardiology Imaging Center..."
+                className={cn(INPUT_CLASS, "pl-9")}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className={FIELD_LABEL}>Preferred date</label>
+              <Input
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                className={INPUT_CLASS}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className={FIELD_LABEL}>Preferred time</label>
+              <Input
+                type="time"
+                value={scheduledTime}
+                onChange={(e) => setScheduledTime(e.target.value)}
+                className={INPUT_CLASS}
+              />
+            </div>
+          </div>
+        </>
+      ) : null}
       <div className="flex items-center gap-2">
         <Checkbox
           id="fasting"
@@ -471,7 +727,7 @@ function AddMeasurementForm({ onAdd }: { onAdd: (entry: HomeMeasurement) => void
         <div className="space-y-1.5">
           <label className={FIELD_LABEL}>Metric</label>
           <Select value={metric} onValueChange={(v) => setMetric(v as HomeMeasurement["metric"])}>
-            <SelectTrigger className={INPUT_CLASS}>
+            <SelectTrigger className={SELECT_TRIGGER_CLASS}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
@@ -484,7 +740,7 @@ function AddMeasurementForm({ onAdd }: { onAdd: (entry: HomeMeasurement) => void
         <div className="space-y-1.5">
           <label className={FIELD_LABEL}>Frequency</label>
           <Select value={frequency} onValueChange={setFrequency}>
-            <SelectTrigger className={INPUT_CLASS}>
+            <SelectTrigger className={SELECT_TRIGGER_CLASS}>
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
@@ -529,7 +785,7 @@ function AddMeasurementForm({ onAdd }: { onAdd: (entry: HomeMeasurement) => void
         <div className="space-y-1.5">
           <label className={FIELD_LABEL}>Duration</label>
           <Select value={duration} onValueChange={setDuration}>
-            <SelectTrigger className={INPUT_CLASS}>
+            <SelectTrigger className={SELECT_TRIGGER_CLASS}>
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
@@ -575,6 +831,7 @@ export type TestsAndMeasurementsSectionProps = {
   homeMeasurements: HomeMeasurement[]
   onAddMeasurement: (entry: HomeMeasurement) => void
   onRemoveMeasurement: (id: string) => void
+  aiContext: ClinicalNotesAiContext
 }
 
 export function TestsAndMeasurementsSection({
@@ -584,8 +841,37 @@ export function TestsAndMeasurementsSection({
   homeMeasurements,
   onAddMeasurement,
   onRemoveMeasurement,
+  aiContext,
 }: TestsAndMeasurementsSectionProps) {
   const [activeTab, setActiveTab] = useState<Tab>("tests")
+  const [showAiSuggestions, setShowAiSuggestions] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<string[]>([])
+
+  const allSuggestions = useMemo(
+    () => buildTestOrderSuggestions(aiContext),
+    [aiContext],
+  )
+  const visibleSuggestions = allSuggestions.filter((s) => !dismissedSuggestionIds.includes(s.id))
+
+  const openAiSuggestions = () => {
+    if (isGenerating) return
+    setShowAiSuggestions(true)
+    setIsGenerating(true)
+    window.setTimeout(() => {
+      setIsGenerating(false)
+      if (buildTestOrderSuggestions(aiContext).filter((s) => !dismissedSuggestionIds.includes(s.id)).length === 0) {
+        showIcareToast({
+          title: "No new test suggestions",
+          description: "Current orders and chart data do not suggest additional investigations right now.",
+        })
+      }
+    }, AI_GENERATE_MS)
+  }
+
+  const dismissSuggestion = (id: string) => {
+    setDismissedSuggestionIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
+  }
 
   return (
     <div className={SECTION_CARD}>
@@ -594,6 +880,41 @@ export function TestsAndMeasurementsSection({
           <FlaskConicalIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
           <h3 className="font-serif text-[16px] font-bold text-[#1A1F1E]">Tests & measurements</h3>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {activeTab === "tests" ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => (showAiSuggestions ? setShowAiSuggestions(false) : openAiSuggestions())}
+                  disabled={isGenerating}
+                  className={cn(
+                    "size-8 border-0 bg-transparent shadow-none hover:bg-transparent",
+                    showAiSuggestions || isGenerating
+                      ? "text-violet-600"
+                      : "text-violet-600 hover:text-violet-800",
+                  )}
+                  aria-label="AI test suggestions"
+                  aria-pressed={showAiSuggestions}
+                >
+                  {isGenerating ? (
+                    <Loader2Icon className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <SparklesIcon className="size-4" aria-hidden />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[220px] text-center">
+                {isGenerating
+                  ? "Reviewing chart context…"
+                  : showAiSuggestions
+                    ? "Hide AI test suggestions"
+                    : "AI test suggestions"}
+              </TooltipContent>
+            </Tooltip>
+          ) : null}
         <div className="inline-flex rounded-xl border border-[#E8E6E0] bg-[#F9F8F5] p-1">
           <button
             onClick={() => setActiveTab("tests")}
@@ -642,7 +963,63 @@ export function TestsAndMeasurementsSection({
             </span>
           </button>
         </div>
+        </div>
       </div>
+
+      {activeTab === "tests" && showAiSuggestions ? (
+        <section className="mb-4 space-y-3 rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50/30 to-[#F9F8F5] p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <BrainCircuitIcon className="size-4 text-violet-600" aria-hidden />
+                <h4 className="font-serif text-[14px] font-bold text-[#1A1F1E]">Suggested investigations</h4>
+                {visibleSuggestions.length > 0 ? (
+                  <Badge
+                    variant="default"
+                    className="rounded-lg border-0 bg-violet-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-none hover:bg-violet-600"
+                  >
+                    {visibleSuggestions.length}
+                  </Badge>
+                ) : null}
+              </div>
+              <p className="mt-1 text-[12px] text-muted-foreground">
+                Based on complaint, exam, diagnoses, and orders already on this visit.
+              </p>
+            </div>
+            <Badge
+              variant="default"
+              className="rounded-lg border-0 bg-violet-600 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-none hover:bg-violet-600"
+            >
+              AI · Rule-based
+            </Badge>
+          </div>
+
+          {isGenerating ? (
+            <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-[#E8E6E0] bg-white/70 px-4 py-8 text-[12px] text-muted-foreground">
+              <Loader2Icon className="size-4 animate-spin text-violet-500" aria-hidden />
+              Reviewing chart context…
+            </div>
+          ) : visibleSuggestions.length > 0 ? (
+            <div className="space-y-3">
+              {visibleSuggestions.map((suggestion) => (
+                <TestSuggestionCard
+                  key={suggestion.id}
+                  suggestion={suggestion}
+                  onAccept={onAddTestOrder}
+                  onDismiss={dismissSuggestion}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-[#E8E6E0] bg-white/70 px-4 py-8 text-center">
+              <SparklesIcon className="mx-auto mb-2 size-5 text-violet-400/50" aria-hidden />
+              <p className="text-[12px] font-medium text-muted-foreground">
+                No additional test suggestions right now — dismissals and existing orders are accounted for.
+              </p>
+            </div>
+          )}
+        </section>
+      ) : null}
 
       {activeTab === "tests" ? (
         <div className="space-y-3">

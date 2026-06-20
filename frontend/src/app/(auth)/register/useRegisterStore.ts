@@ -4,12 +4,10 @@ import { create } from "zustand";
 
 import { REGISTER_VALIDATION_ENABLED, registerSchema } from "./register.schema";
 import {
-  buildRegisterTestingMedicalValues,
   buildRegisterTestingProfileValues,
 } from "./registerTestingData";
 import type {
   RegisterDocumentsValues,
-  RegisterMedicalValues,
   RegisterPayload,
   RegisterProfileValues,
   RegisterResponse,
@@ -27,7 +25,6 @@ import {
 } from "./useRegisterSteps";
 import {
   validateAccountStep,
-  validateMedicalStep,
   validateProfileStep,
 } from "./useRegisterValidation";
 
@@ -46,7 +43,6 @@ type RegisterStoreState = {
   accountFieldErrors: Partial<Record<keyof RegisterValues, string>>;
   stepFieldErrors: Partial<Record<keyof RegisterValues, string>>;
   profileFieldErrors: Partial<Record<keyof RegisterProfileValues, string>>;
-  medicalStepErrors: { chiefComplaint?: string };
 
   /* ── UI toggles ────────────────────────────────────── */
   showPassword: boolean;
@@ -54,13 +50,13 @@ type RegisterStoreState = {
 
   /* ── submission ────────────────────────────────────── */
   isPending: boolean;
-  /** True after `POST /auth/register` succeeds from step 1 */
+  /** Email awaiting OTP before account is created in DB */
+  pendingVerificationEmail: string | null;
+  /** True after email OTP verified and account activated */
   hasRegisteredAccount: boolean;
   /** True after `POST /auth/register/step-2` succeeds from step 2 */
   hasSavedProfileStep: boolean;
-  /** True after `POST /auth/register/step-3` succeeds from step 3 */
-  hasSavedMedicalStep: boolean;
-  /** True after `POST /auth/register/step-4` succeeds from step 4 */
+  /** True after `POST /auth/register/step-4` succeeds from step 3 */
   hasSavedDocumentsStep: boolean;
   isSuccess: boolean;
   successMessage: string;
@@ -79,7 +75,6 @@ type RegisterStoreActions = {
     field: K,
     value: RegisterProfileValues[K]
   ) => void;
-  setMedicalField: (field: string, value: unknown) => void;
   setDocumentsField: <K extends keyof RegisterDocumentsValues>(
     field: K,
     value: RegisterDocumentsValues[K]
@@ -95,6 +90,11 @@ type RegisterStoreActions = {
   /* ── testing helpers ─────────────────────────────── */
   fillTestingData: () => void;
 
+  /** Called after registration OTP is verified */
+  clearPendingVerificationEmail: () => void;
+
+  completeEmailVerification: (data: RegisterResponse) => void;
+
   /* ── submission ────────────────────────────────────── */
   submitForm: () => void;
 };
@@ -108,13 +108,12 @@ function buildInitialRegisterState(): RegisterStoreState {
     accountFieldErrors: {},
     stepFieldErrors: {},
     profileFieldErrors: {},
-    medicalStepErrors: {},
     showPassword: false,
     showConfirmPassword: false,
     isPending: false,
+    pendingVerificationEmail: null,
     hasRegisteredAccount: false,
     hasSavedProfileStep: false,
-    hasSavedMedicalStep: false,
     hasSavedDocumentsStep: false,
     isSuccess: false,
     successMessage: "",
@@ -146,14 +145,6 @@ export const selectProfileProps = (s: RegisterStore) => ({
   isPending: s.isPending,
 });
 
-export const selectMedicalProps = (s: RegisterStore) => ({
-  medicalValues: s.formValues.medical,
-  medicalStepErrors: s.medicalStepErrors,
-  onFieldChange: s.setMedicalField,
-  onPrevious: s.previousStep,
-  onNext: s.nextStep,
-});
-
 export const selectDocumentsProps = (s: RegisterStore) => ({
   documentsValues: s.formValues.documents,
   onFieldChange: s.setDocumentsField,
@@ -163,7 +154,6 @@ export const selectDocumentsProps = (s: RegisterStore) => ({
 export const selectReviewProps = (s: RegisterStore) => ({
   accountValues: s.formValues.account,
   profileValues: s.formValues.profile,
-  medicalValues: s.formValues.medical,
   documentsValues: s.formValues.documents,
   allValues: s.formValues,
 });
@@ -299,102 +289,6 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
     await apiClient.post("/auth/register/step-2", buildProfileStepPayload(values));
   }
 
-  function stringOf(input: unknown): string {
-    return typeof input === "string" ? input : "";
-  }
-
-  function boolOf(input: unknown): boolean {
-    return Boolean(input);
-  }
-
-  function arrOf<T>(input: unknown): T[] {
-    return Array.isArray(input) ? (input as T[]) : [];
-  }
-
-  function buildMedicalStepPayload(values: RegisterMedicalValues) {
-    const chiefComplaint = stringOf(values.chiefComplaint).trim();
-    const chiefComplaintOtherText = stringOf(values.otherComplaint).trim();
-
-    const knownKeys = new Set([
-      "chiefComplaint",
-      "otherComplaint",
-      "noCardiacHistory",
-      "noNonCardiacHistory",
-      "hasFamilyHistory",
-      "familyHistory",
-      "medications",
-      "drugAllergies",
-      "foodAllergies",
-      "otherAllergies",
-      "riskHypertension",
-      "riskDiabetes",
-      "riskDyslipidemia",
-      "riskObesity",
-      "riskSedentary",
-    ]);
-
-    const hpiData: Record<string, unknown> = {};
-    const inputObj = values as Record<string, unknown>;
-    for (const [key, value] of Object.entries(inputObj)) {
-      if (!knownKeys.has(key)) hpiData[key] = value;
-    }
-
-    const pastCardiacHistory = {
-      pastHypertension: values.pastHypertension,
-      pastMI: values.pastMI,
-      pastHeartFailure: values.pastHeartFailure,
-      pastCardiomyopathy: values.pastCardiomyopathy,
-      pastValvular: values.pastValvular,
-      pastArrhythmias: values.pastArrhythmias,
-      pastStroke: values.pastStroke,
-      pastEndocarditis: values.pastEndocarditis,
-      pastRheumatic: values.pastRheumatic,
-      pastPulmonaryHypertension: values.pastPulmonaryHypertension,
-      pastInterventions: values.pastInterventions,
-    };
-
-    const pastNonCardiacHistory = {
-      pastStroke: values.pastStroke,
-      pastCKD: values.pastCKD,
-      pastLungDisease: values.pastLungDisease,
-      pastThyroid: values.pastThyroid,
-      pastLiver: values.pastLiver,
-      pastAnemia: values.pastAnemia,
-      pastAutoimmune: values.pastAutoimmune,
-      pastMalignancy: values.pastMalignancy,
-      pastSleepApnea: values.pastSleepApnea,
-    };
-
-    const cardiovascularRiskFactors = {
-      riskHypertension: values.riskHypertension,
-      riskDiabetes: values.riskDiabetes,
-      riskDyslipidemia: values.riskDyslipidemia,
-      riskObesity: values.riskObesity,
-      riskSedentary: values.riskSedentary,
-    };
-
-    return {
-      chiefComplaint,
-      chiefComplaintOtherText: chiefComplaintOtherText || undefined,
-      hpiData,
-      noCardiacHistory: boolOf(values.noCardiacHistory),
-      pastCardiacHistory,
-      noNonCardiacHistory: boolOf(values.noNonCardiacHistory),
-      pastNonCardiacHistory,
-      cardiovascularRiskFactors,
-      hasFamilyHistory: boolOf(values.hasFamilyHistory),
-      familyHistory: arrOf<Record<string, unknown>>(values.familyHistory),
-      medications: arrOf<Record<string, unknown>>(values.medications),
-      drugAllergies: arrOf<Record<string, unknown>>(values.drugAllergies),
-      foodAllergies: arrOf<Record<string, unknown>>(values.foodAllergies),
-      otherAllergies: arrOf<Record<string, unknown>>(values.otherAllergies),
-    };
-  }
-
-  async function postRegisterStep3(values: RegisterMedicalValues): Promise<void> {
-    const { apiClient } = await import("@/lib/api-client");
-    await apiClient.post("/auth/register/step-3", buildMedicalStepPayload(values));
-  }
 
   async function postRegisterStep4(values: RegisterDocumentsValues): Promise<void> {
     const { apiClient } = await import("@/lib/api-client");
@@ -405,8 +299,8 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
     });
   }
 
-  /** Step 1 Continue: create user row, then go to step 2 */
-  async function registerAccountAndGoToStep2(values: RegisterValues) {
+  /** Step 1 Continue: create pending user and request email OTP */
+  async function registerAccountAndRequestOtp(values: RegisterValues) {
     if (!applyAccountValidationErrors(values)) return;
 
     set({ accountFieldErrors: {}, isPending: true, serverErrorMessage: null });
@@ -420,18 +314,12 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
 
     try {
       const data = await postRegister(payload);
-      setAuthTokens({
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        user: {
-          ...data.user,
-          phone: data.user.phone ?? "",
-          role: data.user.role as any,
-        },
-      });
+      if (!data.requiresEmailVerification || !data.email) {
+        throw new Error("Unexpected registration response.");
+      }
       set({
         isPending: false,
-        hasRegisteredAccount: true,
+        pendingVerificationEmail: data.email,
         step: 2 as RegisterStep,
         serverErrorMessage: null,
       });
@@ -447,44 +335,15 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
   }
 
   async function doSubmit(values: RegisterValues) {
-    if (!applyAccountValidationErrors(values)) return;
-
-    set({ accountFieldErrors: {}, isPending: true, serverErrorMessage: null });
-
-    const payload: RegisterPayload = {
-      fullName: values.fullName,
-      email: values.email,
-      phoneNumber: values.phoneNumber,
-      password: values.password,
-    };
-
-    try {
-      const data = await postRegister(payload);
-      setAuthTokens({
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        user: {
-          ...data.user,
-          phone: data.user.phone ?? "",
-          role: data.user.role as any,
-        },
-      });
+    const { hasRegisteredAccount } = get();
+    if (hasRegisteredAccount) {
       set({
-        isPending: false,
         isSuccess: true,
-        hasRegisteredAccount: true,
-        successMessage:
-          data.message ?? "Your account has been created. You can now sign in.",
+        successMessage: "Registration submitted. Account and profile are saved.",
       });
-    } catch (err: unknown) {
-      const { isAxiosError } = await import("axios");
-      let message = "Something went wrong. Try again.";
-      if (isAxiosError(err)) {
-        message =
-          (err.response?.data as { message?: string } | undefined)?.message ?? err.message;
-      }
-      set({ isPending: false, serverErrorMessage: message });
+      return;
     }
+    void registerAccountAndRequestOtp(values);
   }
 
   /** Step 2 Continue: save profile row, then go to step 3 */
@@ -495,7 +354,7 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
       set({
         isPending: false,
         hasSavedProfileStep: true,
-        step: 3 as RegisterStep,
+        step: 4 as RegisterStep,
         serverErrorMessage: null,
       });
     } catch (err: unknown) {
@@ -521,42 +380,8 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
     }
   }
 
-  /** Step 3 Continue: save medical history, then go to step 4 */
-  async function saveMedicalAndGoToStep4(values: RegisterMedicalValues) {
-    set({ isPending: true, serverErrorMessage: null });
-    try {
-      await postRegisterStep3(values);
-      set({
-        isPending: false,
-        hasSavedMedicalStep: true,
-        step: 4 as RegisterStep,
-        serverErrorMessage: null,
-      });
-    } catch (err: unknown) {
-      const { isAxiosError } = await import("axios");
-      let message = "Failed to save step 3. Try again.";
-      if (isAxiosError(err)) {
-        const data = err.response?.data as { message?: string | string[] } | undefined;
-        if (err.response?.status === 401) {
-          resetExpiredRegistrationSession(
-            Array.isArray(data?.message)
-              ? data.message.join(", ")
-              : data?.message
-          );
-          return;
-        }
-        if (Array.isArray(data?.message)) {
-          message = data.message.join(", ");
-        } else {
-          message = data?.message ?? err.message;
-        }
-      }
-      set({ isPending: false, serverErrorMessage: message });
-    }
-  }
-
-  /** Step 4 Continue: save documents, then go to step 5 */
-  async function saveDocumentsAndGoToStep5(values: RegisterDocumentsValues) {
+  /** Step 3 Continue: save documents, then go to step 4 */
+  async function saveDocumentsAndGoToReview(values: RegisterDocumentsValues) {
     set({ isPending: true, serverErrorMessage: null });
     try {
       await postRegisterStep4(values);
@@ -568,7 +393,7 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
       });
     } catch (err: unknown) {
       const { isAxiosError } = await import("axios");
-      let message = "Failed to save step 4. Try again.";
+      let message = "Failed to save documents. Try again.";
       if (isAxiosError(err)) {
         const data = err.response?.data as { message?: string | string[] } | undefined;
         if (err.response?.status === 401) {
@@ -599,7 +424,6 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
         step,
         hasRegisteredAccount,
         hasSavedProfileStep,
-        hasSavedMedicalStep,
         hasSavedDocumentsStep,
         formValues,
       } = get();
@@ -607,44 +431,35 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
       if (step === 1) {
         if (!get().validateCurrentStep()) return;
         if (hasRegisteredAccount) {
-          set((s) => ({
-            step: (s.step < LAST_STEP ? s.step + 1 : s.step) as RegisterStep,
-          }));
+          set({ step: 3 as RegisterStep });
           return;
         }
-        void registerAccountAndGoToStep2(formValues.account);
+        void registerAccountAndRequestOtp(formValues.account);
         return;
       }
 
       if (step === 2) {
+        return;
+      }
+
+      if (step === 3) {
         if (!get().validateCurrentStep()) return;
         if (!hasRegisteredAccount) return;
         if (hasSavedProfileStep) {
-          set({ step: 3 as RegisterStep });
+          set({ step: 4 as RegisterStep });
           return;
         }
         void saveProfileAndGoToStep3(formValues.profile);
         return;
       }
 
-      if (step === 3) {
-        if (!get().validateCurrentStep()) return;
-        if (!hasRegisteredAccount || !hasSavedProfileStep) return;
-        if (hasSavedMedicalStep) {
-          set({ step: 4 as RegisterStep });
-          return;
-        }
-        void saveMedicalAndGoToStep4(formValues.medical);
-        return;
-      }
-
       if (step === 4) {
-        if (!hasRegisteredAccount || !hasSavedProfileStep || !hasSavedMedicalStep) return;
+        if (!hasRegisteredAccount || !hasSavedProfileStep) return;
         if (hasSavedDocumentsStep) {
           set({ step: 5 as RegisterStep });
           return;
         }
-        void saveDocumentsAndGoToStep5(formValues.documents);
+        void saveDocumentsAndGoToReview(formValues.documents);
         return;
       }
 
@@ -653,10 +468,18 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
     },
 
     previousStep() {
+      const { step, hasRegisteredAccount } = get();
+      if (step === 3 && !hasRegisteredAccount) {
+        set({ step: 2 as RegisterStep });
+        return;
+      }
       set((s) => ({ step: (s.step > FIRST_STEP ? s.step - 1 : s.step) as RegisterStep }));
     },
 
     goToStep(target: number) {
+      const { hasRegisteredAccount, pendingVerificationEmail } = get();
+      if (target >= 3 && !hasRegisteredAccount) return;
+      if (target === 2 && !pendingVerificationEmail && !hasRegisteredAccount) return;
       if (target >= FIRST_STEP && target <= LAST_STEP) {
         set({ step: target as RegisterStep });
       }
@@ -683,19 +506,34 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
       }));
     },
 
-    setMedicalField(field, value) {
-      updateFormValue("medical", field, value);
-
-      set({ hasSavedMedicalStep: false });
-
-      if (field === "chiefComplaint" || field === "otherComplaint") {
-        set({ medicalStepErrors: {} });
-      }
-    },
-
     setDocumentsField(field, value) {
       updateFormValue("documents", field, value);
       set({ hasSavedDocumentsStep: false });
+    },
+
+    completeEmailVerification(data: RegisterResponse) {
+      if (!data.accessToken || !data.refreshToken || !data.user) return;
+
+      setAuthTokens({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        user: {
+          ...data.user,
+          phone: data.user.phone ?? "",
+          role: data.user.role as "patient",
+        },
+      });
+
+      set({
+        pendingVerificationEmail: null,
+        hasRegisteredAccount: true,
+        step: 3 as RegisterStep,
+        serverErrorMessage: null,
+      });
+    },
+
+    clearPendingVerificationEmail() {
+      set({ pendingVerificationEmail: null });
     },
 
     /* ── UI toggles ──────────────────────────────────── */
@@ -713,7 +551,6 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
       const { formValues } = get();
       const acc = formValues.account;
       const prof = formValues.profile;
-      const med = formValues.medical;
       const currentValues = (formValues as Record<string, unknown>)[config.key];
 
       if (config.key === "account") {
@@ -728,16 +565,6 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
         return Object.keys(errors).length === 0;
       }
 
-      if (config.key === "medical") {
-        const errors = validateMedicalStep(med);
-        if (errors) {
-          set({ medicalStepErrors: errors });
-          return false;
-        }
-        set({ medicalStepErrors: {} });
-        return true;
-      }
-
       if (!REGISTER_VALIDATION_ENABLED) {
         set({ stepFieldErrors: {} });
         return true;
@@ -749,20 +576,16 @@ export const useRegisterStore = create<RegisterStore>((set, get) => {
       return result.success;
     },
 
-    /* ── testing helpers ─────────────────────────────── */
     fillTestingData() {
       const { formValues } = get();
       set({
         formValues: {
           ...formValues,
           profile: buildRegisterTestingProfileValues(),
-          medical: buildRegisterTestingMedicalValues(),
         },
         profileFieldErrors: {},
-        medicalStepErrors: {},
         serverErrorMessage: null,
         hasSavedProfileStep: false,
-        hasSavedMedicalStep: false,
       });
     },
 

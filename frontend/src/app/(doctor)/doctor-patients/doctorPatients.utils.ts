@@ -1,13 +1,7 @@
 import type { DoctorPatientsPagePatient } from "./doctorPatients.types"
 
-export function patientDisplayId(patient: Pick<DoctorPatientsPagePatient, "id" | "nationalId">) {
-  const nationalId = patient.nationalId?.trim()
-  if (nationalId) return nationalId
-
-  const id = patient.id.trim()
-  if (/^p-\d+/i.test(id)) return id.toUpperCase()
-
-  return `PT-${id.replace(/-/g, "").slice(0, 6).toUpperCase()}`
+export function patientDisplayId(patient: Pick<DoctorPatientsPagePatient, "id">) {
+  return patient.id.trim()
 }
 
 export function calcPatientAge(dob: string) {

@@ -149,6 +149,15 @@ export class MinioService {
       return `${MINIO_CATEGORY_PREFIX.lab_report}/${input.patientId}`;
     }
 
+    if (input.category === 'patient_avatar') {
+      if (!input.patientId) {
+        throw new InternalServerErrorException(
+          'patientId is required for patient avatar uploads.',
+        );
+      }
+      return `${MINIO_CATEGORY_PREFIX.patient_avatar}/${input.patientId}`;
+    }
+
     if (input.category === 'consultation_xray') {
       if (!input.patientId) {
         throw new InternalServerErrorException(
@@ -174,6 +183,24 @@ export class MinioService {
         );
       }
       return `${MINIO_CATEGORY_PREFIX.consultation_ecg}/${input.patientId}`;
+    }
+
+    if (input.category === 'consultation_cine_mri') {
+      if (!input.patientId) {
+        throw new InternalServerErrorException(
+          'patientId is required for consultation cine-MRI uploads.',
+        );
+      }
+      return `${MINIO_CATEGORY_PREFIX.consultation_cine_mri}/${input.patientId}`;
+    }
+
+    if (input.category === 'consultation_ct') {
+      if (!input.patientId) {
+        throw new InternalServerErrorException(
+          'patientId is required for consultation CT uploads.',
+        );
+      }
+      return `${MINIO_CATEGORY_PREFIX.consultation_ct}/${input.patientId}`;
     }
 
     if (input.conversationId && input.conversationId > 0) {

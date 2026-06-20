@@ -16,10 +16,6 @@ export type ApiVitalRow = {
   createdAt?: string | Date
 }
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
 function toIsoDate(value: string | Date): string {
   if (typeof value === "string") return value.slice(0, 10)
   return value.toISOString().slice(0, 10)
@@ -118,21 +114,12 @@ export function mapConsultationReadingToVitalSigns(reading: ConsultationVitalRea
   }
 }
 
-export function findTodayClinicReading(readings: ApiVitalRow[]): ApiVitalRow | null {
-  const today = todayIso()
-  return (
-    readings.find((row) => toIsoDate(row.date) === today && row.source === "clinic") ?? null
-  )
-}
-
-export function pickLastVitalReading(
+/** Most recent saved reading — for reference only; never auto-fills a new consultation. */
+export function pickMostRecentVitalReading(
   readings: ApiVitalRow[],
-  currentSessionId: string | null,
 ): ConsultationVitalReading | null {
-  const reference =
-    readings.find((row) => row.id !== currentSessionId) ??
-    (currentSessionId ? null : readings[0])
-  return reference ? mapApiRowToConsultationReading(reference) : null
+  if (readings.length === 0) return null
+  return mapApiRowToConsultationReading(readings[0]!)
 }
 
 function parseOptionalInt(value: string): number | undefined {

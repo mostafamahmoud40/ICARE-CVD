@@ -18,7 +18,6 @@ export function Medications() {
     <main className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#F9F8F5]">
       <MedicationList
         medications={data.medications}
-        stats={data.stats}
         onMarkTaken={markAsTaken}
         onMarkSkipped={markAsSkipped}
         onSelectMedication={setSelectedMedication}

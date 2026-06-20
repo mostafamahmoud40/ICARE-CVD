@@ -51,6 +51,8 @@ export type AssistantAppointment = {
   visitSummary?: string | null
   /** External PDF/portal link for the full visit report */
   visitReportUrl?: string | null
+  queueId?: string | null
+  queueStatus?: string | null
 }
 
 export type PatchAssistantAppointmentPayload = {

@@ -56,10 +56,17 @@ const TEST_TYPE_ICON: Partial<
 > = {
   ecg: { Icon: HeartPulseIcon, iconColor: "text-emerald-600" },
   echocardiogram: { Icon: HeartPulseIcon, iconColor: "text-teal-600" },
+  holter_monitor: { Icon: HeartPulseIcon, iconColor: "text-fuchsia-600" },
   stress_test: { Icon: HeartPulseIcon, iconColor: "text-orange-600" },
+  nuclear_stress_test: { Icon: HeartPulseIcon, iconColor: "text-amber-700" },
+  ct_coronary_angiography: { Icon: ScanLineIcon, iconColor: "text-sky-600" },
+  cardiac_mri: { Icon: ScanLineIcon, iconColor: "text-indigo-600" },
   cardiac_catheterization: { Icon: HeartPulseIcon, iconColor: "text-rose-600" },
+  carotid_doppler: { Icon: ScanLineIcon, iconColor: "text-cyan-700" },
+  tilt_table_test: { Icon: HeartPulseIcon, iconColor: "text-lime-700" },
   imaging: { Icon: ScanLineIcon, iconColor: "text-sky-600" },
   pulmonary_function: { Icon: ScanLineIcon, iconColor: "text-cyan-600" },
+  sleep_study: { Icon: ScanLineIcon, iconColor: "text-violet-600" },
 }
 
 function resolveTimelineIcon(item: CareTimelineItem) {

@@ -3,6 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
@@ -11,6 +12,7 @@ import { forgotPasswordSchema } from "./forgot-password.schema";
 import type { ForgotPasswordResponse, ForgotPasswordValues } from "./forgot-password.types";
 
 export function useForgotPassword() {
+  const router = useRouter();
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<keyof ForgotPasswordValues, string>>
   >({});
@@ -35,16 +37,16 @@ export function useForgotPassword() {
         return;
       }
       setFieldErrors({});
-      mutation.mutate(result.data);
+      mutation.mutate(result.data, {
+        onSuccess: () => {
+          toast.success("OTP sent! Check your email.");
+          // Redirect to OTP page with email as a query param
+          router.push(`/auth/otp?email=${encodeURIComponent(result.data.email)}&mode=reset`);
+        },
+      });
     },
-    [mutation]
+    [mutation, router]
   );
-
-  useEffect(() => {
-    if (mutation.isSuccess) {
-      toast.success("Reset link sent to your email");
-    }
-  }, [mutation.isSuccess]);
 
   useEffect(() => {
     if (mutation.isError) {

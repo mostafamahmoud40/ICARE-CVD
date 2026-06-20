@@ -37,7 +37,7 @@ function mockActivityTimestamp(daysAgo: number, hour = 10, minute = 0) {
   return date.toISOString()
 }
 
-export const MOCK_ACTIVITY_LOG: ActivityEntry[] = [
+export const MOCK_ACTIVITY_LOG = ([
   {
     id: "act-1",
     action: "Added new patient",
@@ -220,7 +220,7 @@ export const MOCK_ACTIVITY_LOG: ActivityEntry[] = [
     timestamp: mockActivityTimestamp(320, 16, 15),
     type: "document",
   },
-].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+] satisfies ActivityEntry[]).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
 export const MOCK_SECURITY: SecurityInfo = {
   twoFactorEnabled: false,

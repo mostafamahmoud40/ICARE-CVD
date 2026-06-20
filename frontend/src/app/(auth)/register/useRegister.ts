@@ -62,6 +62,9 @@ export function useRegister() {
     [mutation]
   );
 
+  const requiresEmailVerification =
+    mutation.isSuccess && mutation.data?.requiresEmailVerification === true;
+
   const serverErrorMessage =
     mutation.isError && isAxiosError(mutation.error)
       ? (mutation.error.response?.data as { message?: string } | undefined)?.message ??
@@ -74,7 +77,8 @@ export function useRegister() {
     submit,
     fieldErrors,
     isPending: mutation.isPending,
-    isSuccess: mutation.isSuccess,
+    isSuccess: mutation.isSuccess && !requiresEmailVerification,
+    requiresEmailVerification,
     successMessage:
       mutation.data?.message ?? "Your account has been created. You can now sign in.",
     serverErrorMessage,

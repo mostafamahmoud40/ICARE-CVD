@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Heart, HeartPulse, Sparkles, Stethoscope, Upload } from "lucide-react";
+import { CheckCircle2, Heart, KeyRound, Sparkles, Stethoscope, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -17,16 +17,16 @@ import { useRegistrationAnalysis } from "./useRegistrationAnalysis";
 
 const STEP_BY_KEY = {
   account: 1,
-  profile: 2,
-  medical: 3,
+  verify: 2,
+  profile: 3,
   documents: 4,
   review: 5,
 } as const;
 
 const KEY_BY_STEP: Record<number, keyof typeof STEP_BY_KEY> = {
   1: "account",
-  2: "profile",
-  3: "medical",
+  2: "verify",
+  3: "profile",
   4: "documents",
   5: "review",
 };
@@ -53,7 +53,6 @@ export function RegisterForm() {
     {
       accountValues: formValues.account,
       profileValues: formValues.profile,
-      medicalValues: formValues.medical,
     },
     { persistToPatientRecord: isReviewStep },
   );
@@ -63,9 +62,9 @@ export function RegisterForm() {
     step === 1
       ? Heart
       : step === 2
-        ? Stethoscope
+        ? KeyRound
         : step === 3
-          ? HeartPulse
+          ? Stethoscope
           : step === 4
             ? Upload
             : Sparkles;
@@ -73,9 +72,9 @@ export function RegisterForm() {
     step === 1
       ? "Create Your Account"
       : step === 2
-        ? "Complete Your Health Profile"
+        ? "Verify Your Email"
         : step === 3
-          ? "Medical History"
+          ? "Complete Your Health Profile"
           : step === 4
             ? "Document & Lab Upload"
             : "Final Review";
@@ -83,12 +82,12 @@ export function RegisterForm() {
     step === 1
       ? "Start your journey to better heart health"
       : step === 2
-        ? "Help us provide personalized cardiac care"
+        ? "Enter the code we sent to your email to create your account"
         : step === 3
-          ? "Share your medical background for safer and smarter care"
+          ? "Help us provide personalized cardiac care"
           : step === 4
             ? "Add lab reports, imaging, ECG files, prescriptions, or any additional files"
-            : "Review your information before creating your account";
+            : "Review your information before completing registration";
 
   useEffect(() => {
     const stepFromQuery = searchParams.get("step");
@@ -132,12 +131,11 @@ export function RegisterForm() {
           Step {step} of 5
         </p>
 
-        {/* Step Indicator - Fast Navigation */}
         <div className="flex flex-wrap justify-center gap-2">
           {[
             { num: 1, label: "Account" },
-            { num: 2, label: "Profile" },
-            { num: 3, label: "Medical" },
+            { num: 2, label: "Verify" },
+            { num: 3, label: "Profile" },
             { num: 4, label: "Documents" },
             { num: 5, label: "Review" },
           ].map(({ num, label }) => (
@@ -159,8 +157,8 @@ export function RegisterForm() {
       </CardHeader>
 
       <form
-        onSubmit={(e) => {
-          e.preventDefault();
+        onSubmit={(event) => {
+          event.preventDefault();
         }}
         noValidate
       >

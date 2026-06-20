@@ -238,14 +238,25 @@ function PatientRow({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
-            <Image
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(patient.fullName.replace(/\s+/g, ""))}`}
-              alt=""
-              width={44}
-              height={44}
-              unoptimized
-              className="size-full object-cover"
-            />
+            {patient.avatarUrl ? (
+              <Image
+                src={patient.avatarUrl}
+                alt=""
+                width={44}
+                height={44}
+                unoptimized
+                className="size-full object-cover"
+              />
+            ) : (
+              <Image
+                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(patient.fullName.replace(/\s+/g, ""))}`}
+                alt=""
+                width={44}
+                height={44}
+                unoptimized
+                className="size-full object-cover"
+              />
+            )}
           </div>
           <div className="min-w-0">
             <p className="truncate font-serif text-[15px] font-bold leading-snug text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">

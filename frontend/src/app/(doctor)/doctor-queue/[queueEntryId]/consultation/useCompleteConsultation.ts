@@ -3,11 +3,13 @@
 import { useCallback, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
-import { showIcareErrorToast } from "@/components/shared/icare-toast"
+import { showIcareErrorToast, showIcareSuccessToast } from "@/components/shared/icare-toast"
 import {
   completeConsultationSession,
   completeQueueEntry,
 } from "./consultation.api"
+
+export type CompleteConsultationPhase = "idle" | "saving" | "publishing"
 
 type CompleteConsultationInput = {
   patientId: string
@@ -21,7 +23,7 @@ type CompleteConsultationInput = {
 export function useCompleteConsultation() {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const [isCompleting, setIsCompleting] = useState(false)
+  const [phase, setPhase] = useState<CompleteConsultationPhase>("idle")
 
   const complete = useCallback(
     async ({
@@ -32,10 +34,12 @@ export function useCompleteConsultation() {
       saveSections,
       startedAt,
     }: CompleteConsultationInput) => {
-      setIsCompleting(true)
+      setPhase("saving")
       try {
         await saveVitals()
         await saveSections()
+
+        setPhase("publishing")
 
         let durationMinutes: number | undefined
         if (startedAt) {
@@ -52,20 +56,32 @@ export function useCompleteConsultation() {
           queryClient.invalidateQueries({ queryKey: ["consultation-session", queueEntryId] }),
           queryClient.invalidateQueries({ queryKey: ["doctor-patient-record", patientId] }),
           queryClient.invalidateQueries({ queryKey: ["patient-consultations"] }),
+          queryClient.invalidateQueries({ queryKey: ["patient-consultation", consultationId] }),
         ])
+
+        showIcareSuccessToast(
+          "Report published",
+          "The visit summary is now available in the patient's consultation history.",
+        )
 
         router.push(`/doctor-patients/${patientId}/consultations/${consultationId}`)
       } catch (error) {
         showIcareErrorToast(
-          "Could not complete consultation",
+          "Could not publish report",
           error instanceof Error ? error.message : "Please try again.",
         )
       } finally {
-        setIsCompleting(false)
+        setPhase("idle")
       }
     },
     [queryClient, router],
   )
 
-  return { complete, isCompleting }
+  return {
+    complete,
+    phase,
+    isCompleting: phase !== "idle",
+    completingLabel:
+      phase === "publishing" ? "Preparing report…" : phase === "saving" ? "Saving visit…" : "Complete & Sign",
+  }
 }

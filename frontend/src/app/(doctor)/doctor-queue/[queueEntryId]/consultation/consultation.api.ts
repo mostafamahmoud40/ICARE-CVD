@@ -26,6 +26,9 @@ export type ApiConsultationSession = {
     homeMonitoring: string | null
     consultationMedicalHistory: string | null
     consultationProcedureDetails: string | null
+    patientDiagnosisSummary: string | null
+    patientLifestyleAdvice: string | null
+    patientDangerSigns: string | null
   }
   diagnoses: Array<{
     id: string
@@ -78,8 +81,12 @@ export type ConsultationFieldPatch = {
   homeMonitoring?: string
   consultationMedicalHistory?: string
   consultationProcedureDetails?: string
+  patientDiagnosisSummary?: string
+  patientLifestyleAdvice?: string
+  patientDangerSigns?: string
   status?: "in-progress" | "completed" | "cancelled"
   durationMinutes?: number
+  reportOverrides?: string
 }
 
 export async function fetchConsultationSession(
@@ -162,6 +169,23 @@ export async function deletePatientDiagnosis(
   await apiClient.delete(`/doctor/patients/${patientId}/diagnoses/${diagnosisId}`)
 }
 
+export async function updatePatientDiagnosis(
+  patientId: string,
+  diagnosisId: string,
+  payload: {
+    icdCode?: string
+    description?: string
+    type?: DiagnosisEntry["type"]
+    severity?: DiagnosisEntry["severity"]
+    clinicalNotes?: string
+  },
+): Promise<void> {
+  await apiClient.patch(
+    `/doctor/patients/${patientId}/diagnoses/${diagnosisId}`,
+    payload,
+  )
+}
+
 export async function createLabOrder(
   patientId: string,
   payload: {
@@ -205,6 +229,35 @@ export async function createMedication(
 
 export async function deleteMedication(medicationId: string): Promise<void> {
   await apiClient.delete(`/doctor/medications/${medicationId}`)
+}
+
+export async function updateMedication(
+  medicationId: string,
+  payload: {
+    name?: string
+    dose?: string
+    frequency?: string
+    type?: string
+    instructions?: string
+    durationDays?: number | null
+  },
+): Promise<void> {
+  await apiClient.patch(`/doctor/medications/${medicationId}`, payload)
+}
+
+export async function updateConsultationPrescriptionLink(
+  patientId: string,
+  consultationId: string,
+  medicationId: string,
+  payload: {
+    duration?: string
+    notes?: string
+  },
+): Promise<void> {
+  await apiClient.patch(
+    `/doctor/patients/${patientId}/consultations/${consultationId}/prescriptions/${medicationId}`,
+    payload,
+  )
 }
 
 export async function linkConsultationPrescription(
@@ -251,6 +304,9 @@ export function buildConsultationFieldPatch(input: {
   homeMeasurements: HomeMeasurement[]
   medicalHistory: ConsultationMedicalHistory
   procedureDetails: ProcedureDetails
+  patientDiagnosisSummary: string
+  patientLifestyleAdvice: string
+  patientDangerSigns: string
 }): ConsultationFieldPatch {
   return {
     chiefComplaint: input.chiefComplaint,
@@ -264,5 +320,8 @@ export function buildConsultationFieldPatch(input: {
     homeMonitoring: JSON.stringify(input.homeMeasurements),
     consultationMedicalHistory: JSON.stringify(input.medicalHistory),
     consultationProcedureDetails: JSON.stringify(input.procedureDetails),
+    patientDiagnosisSummary: input.patientDiagnosisSummary,
+    patientLifestyleAdvice: input.patientLifestyleAdvice,
+    patientDangerSigns: input.patientDangerSigns,
   }
 }

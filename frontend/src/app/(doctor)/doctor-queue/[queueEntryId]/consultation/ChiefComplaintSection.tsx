@@ -82,7 +82,7 @@ function ChipToggleGroup({
               type="button"
               onClick={() => onToggle(option)}
               className={cn(
-                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                "rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
                 active
                   ? "border-[#1A5345] bg-[#1A534518] text-[#1A5345]"
                   : "border-[#E8E6E0] bg-white text-[#6B7870] hover:border-[#A8C4BC] hover:bg-[#F9F8F5]",

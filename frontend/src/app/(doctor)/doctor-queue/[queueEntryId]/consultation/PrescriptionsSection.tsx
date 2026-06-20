@@ -294,11 +294,135 @@ function buildMedicationSuggestions(
 
 function PrescriptionCard({
   prescription,
+  onUpdate,
   onRemove,
 }: {
   prescription: PrescriptionEntry
+  onUpdate: (id: string, entry: PrescriptionEntry) => void
   onRemove: (id: string) => void
 }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [name, setName] = useState(prescription.name)
+  const [dose, setDose] = useState(prescription.dose)
+  const [frequency, setFrequency] = useState(prescription.frequency)
+  const [duration, setDuration] = useState(prescription.duration)
+  const [type, setType] = useState(prescription.type)
+  const [instructions, setInstructions] = useState(prescription.instructions)
+
+  const resetForm = () => {
+    setName(prescription.name)
+    setDose(prescription.dose)
+    setFrequency(prescription.frequency)
+    setDuration(prescription.duration)
+    setType(prescription.type)
+    setInstructions(prescription.instructions)
+  }
+
+  const handleSave = () => {
+    if (!name.trim() || !dose.trim()) return
+    onUpdate(prescription.id, {
+      ...prescription,
+      name: name.trim(),
+      dose: dose.trim(),
+      frequency,
+      duration,
+      type,
+      instructions: instructions.trim(),
+    })
+    setIsEditing(false)
+  }
+
+  const handleCancel = () => {
+    resetForm()
+    setIsEditing(false)
+  }
+
+  if (isEditing) {
+    return (
+      <div className="space-y-4 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] p-4">
+        <div className="flex items-center justify-between">
+          <span className="font-serif text-[15px] font-bold text-[#1A1F1E]">Edit prescription</span>
+          <Button size="sm" variant="ghost" className="size-8 p-0" onClick={handleCancel}>
+            <XIcon className="size-4" />
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className={FIELD_LABEL}>Medication name *</label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Lisinopril" className={INPUT_CLASS} />
+          </div>
+          <div className="space-y-1.5">
+            <label className={FIELD_LABEL}>Dose *</label>
+            <Input value={dose} onChange={(e) => setDose(e.target.value)} placeholder="e.g. 10 mg" className={INPUT_CLASS} />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="space-y-1.5">
+            <label className={FIELD_LABEL}>Frequency</label>
+            <Select value={frequency} onValueChange={setFrequency}>
+              <SelectTrigger className={INPUT_CLASS}>
+                <SelectValue placeholder="Select..." />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
+                {FREQUENCY_OPTIONS.map((f) => (
+                  <SelectItem key={f.value} value={f.value} className="text-[14px]">{f.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className={FIELD_LABEL}>Duration</label>
+            <Select value={duration} onValueChange={setDuration}>
+              <SelectTrigger className={INPUT_CLASS}>
+                <SelectValue placeholder="Select..." />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
+                {DURATION_OPTIONS.map((d) => (
+                  <SelectItem key={d.value} value={d.value} className="text-[14px]">{d.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className={FIELD_LABEL}>Type</label>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger className={INPUT_CLASS}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
+                {PRESCRIPTION_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value} className="text-[14px]">{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <label className={FIELD_LABEL}>Instructions</label>
+          <Textarea
+            value={instructions}
+            onChange={(e) => setInstructions(e.target.value)}
+            placeholder="e.g. Take with food in the morning..."
+            className="min-h-[72px] resize-none rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] placeholder:text-muted-foreground focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="h-10 flex-1 rounded-lg text-[13px]" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            className="h-10 flex-1 rounded-lg bg-[#1A5345] text-[13px] hover:bg-[#133F34]"
+            disabled={!name.trim() || !dose.trim()}
+            onClick={handleSave}
+          >
+            Save changes
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="rounded-xl border border-[#E8E6E0]/60 bg-white p-4">
       <div className="flex items-start justify-between gap-2">
@@ -330,14 +454,24 @@ function PrescriptionCard({
             <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{prescription.instructions}</p>
           )}
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-red-50 hover:text-red-500"
-          onClick={() => onRemove(prescription.id)}
-        >
-          <Trash2Icon className="size-4" />
-        </Button>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="size-8 p-0 text-muted-foreground hover:bg-transparent hover:text-[#1A5345]"
+            onClick={() => setIsEditing(true)}
+          >
+            <PencilLineIcon className="size-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="size-8 p-0 text-muted-foreground hover:bg-red-50 hover:text-red-500"
+            onClick={() => onRemove(prescription.id)}
+          >
+            <Trash2Icon className="size-4" />
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -458,6 +592,7 @@ function AddPrescriptionForm({ onAdd }: { onAdd: (entry: PrescriptionEntry) => v
 export type PrescriptionsSectionProps = {
   prescriptions: PrescriptionEntry[]
   onAddPrescription: (entry: PrescriptionEntry) => void
+  onUpdatePrescription: (id: string, entry: PrescriptionEntry) => void
   onRemovePrescription: (id: string) => void
   patientSummary: PatientSummary
   structuredComplaint: string
@@ -466,6 +601,7 @@ export type PrescriptionsSectionProps = {
 export function PrescriptionsSection({
   prescriptions,
   onAddPrescription,
+  onUpdatePrescription,
   onRemovePrescription,
   patientSummary,
   structuredComplaint,
@@ -551,7 +687,12 @@ export function PrescriptionsSection({
 
       <div className="space-y-3">
         {prescriptions.map((rx) => (
-          <PrescriptionCard key={rx.id} prescription={rx} onRemove={onRemovePrescription} />
+          <PrescriptionCard
+            key={rx.id}
+            prescription={rx}
+            onUpdate={onUpdatePrescription}
+            onRemove={onRemovePrescription}
+          />
         ))}
         <AddPrescriptionForm onAdd={onAddPrescription} />
       </div>

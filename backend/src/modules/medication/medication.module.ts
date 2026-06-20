@@ -7,12 +7,14 @@ import { DoctorGuard } from '../doctor/doctor.guard';
 import { MedicationService } from './medication.service';
 import { PatientMedicationController } from './patient-medication.controller';
 import { DoctorMedicationController } from './doctor-medication.controller';
+import { MinioModule } from '../../shared/storage/minio.module';
 
 @Module({
   imports: [
     JwtModule.register({
       secret: process.env.JWT_ACCESS_SECRET,
     }),
+    MinioModule,
   ],
   controllers: [PatientMedicationController, DoctorMedicationController],
   providers: [

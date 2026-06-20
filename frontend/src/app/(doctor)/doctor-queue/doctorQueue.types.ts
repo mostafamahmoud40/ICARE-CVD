@@ -34,6 +34,7 @@ export type QueuePatient = {
   activeMedications: number
   vitalAlerts: number
   phoneNumber: string
+  avatarUrl?: string | null
 }
 
 export type QueueStats = {

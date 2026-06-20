@@ -89,6 +89,18 @@ export class CreateConsultationDto {
   consultationProcedureDetails?: string;
 
   @IsOptional()
+  @IsString()
+  patientDiagnosisSummary?: string;
+
+  @IsOptional()
+  @IsString()
+  patientLifestyleAdvice?: string;
+
+  @IsOptional()
+  @IsString()
+  patientDangerSigns?: string;
+
+  @IsOptional()
   @IsInt()
   @Min(1)
   @Max(480)
@@ -142,6 +154,18 @@ export class UpdateConsultationDto {
   consultationProcedureDetails?: string;
 
   @IsOptional()
+  @IsString()
+  patientDiagnosisSummary?: string;
+
+  @IsOptional()
+  @IsString()
+  patientLifestyleAdvice?: string;
+
+  @IsOptional()
+  @IsString()
+  patientDangerSigns?: string;
+
+  @IsOptional()
   @IsInt()
   @Min(1)
   @Max(480)
@@ -150,6 +174,11 @@ export class UpdateConsultationDto {
   @IsOptional()
   @IsEnum(ConsultationStatus)
   status?: ConsultationStatus;
+
+  /** JSON string — doctor-edited display overrides for derived report sections. */
+  @IsOptional()
+  @IsString()
+  reportOverrides?: string;
 }
 
 export class LinkDiagnosisDto {
@@ -175,6 +204,17 @@ export class LinkPrescriptionDto {
   @IsOptional()
   isNew?: boolean;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  duration?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class UpdateLinkPrescriptionDto {
   @IsOptional()
   @IsString()
   @MaxLength(50)

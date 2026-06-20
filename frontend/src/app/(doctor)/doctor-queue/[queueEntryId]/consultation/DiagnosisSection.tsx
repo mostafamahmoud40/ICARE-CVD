@@ -5,6 +5,7 @@ import type { DiagnosisEntry } from "./consultation.types"
 import { cn } from "@/lib/utils"
 import {
   ClipboardCheckIcon,
+  PencilLineIcon,
   PlusIcon,
   SparklesIcon,
   Trash2Icon,
@@ -55,11 +56,127 @@ const severityBadgeVariant: Record<DiagnosisEntry["severity"], string> = {
 
 function DiagnosisCard({
   diagnosis,
+  onUpdate,
   onRemove,
 }: {
   diagnosis: DiagnosisEntry
+  onUpdate: (id: string, entry: DiagnosisEntry) => void
   onRemove: (id: string) => void
 }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [icdCode, setIcdCode] = useState(diagnosis.icdCode)
+  const [description, setDescription] = useState(diagnosis.description)
+  const [type, setType] = useState(diagnosis.type)
+  const [severity, setSeverity] = useState(diagnosis.severity)
+  const [notes, setNotes] = useState(diagnosis.notes)
+
+  const resetForm = () => {
+    setIcdCode(diagnosis.icdCode)
+    setDescription(diagnosis.description)
+    setType(diagnosis.type)
+    setSeverity(diagnosis.severity)
+    setNotes(diagnosis.notes)
+  }
+
+  const handleSave = () => {
+    if (!description.trim()) return
+    onUpdate(diagnosis.id, {
+      ...diagnosis,
+      icdCode: icdCode.trim(),
+      description: description.trim(),
+      type,
+      severity,
+      notes: notes.trim(),
+    })
+    setIsEditing(false)
+  }
+
+  const handleCancel = () => {
+    resetForm()
+    setIsEditing(false)
+  }
+
+  if (isEditing) {
+    return (
+      <div className="space-y-4 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] p-4">
+        <div className="flex items-center justify-between">
+          <span className="font-serif text-[15px] font-bold text-[#1A1F1E]">Edit diagnosis</span>
+          <Button size="sm" variant="ghost" className="size-8 p-0" onClick={handleCancel}>
+            <XIcon className="size-4" />
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="space-y-1.5">
+            <label className={FIELD_LABEL}>ICD-10 code</label>
+            <Input
+              value={icdCode}
+              onChange={(e) => setIcdCode(e.target.value)}
+              placeholder="e.g. I10"
+              className={cn(INPUT_CLASS, "font-mono")}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className={FIELD_LABEL}>Type</label>
+            <Select value={type} onValueChange={(v) => setType(v as DiagnosisEntry["type"])}>
+              <SelectTrigger className={INPUT_CLASS}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
+                {DIAGNOSIS_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value} className="text-[14px]">{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className={FIELD_LABEL}>Severity</label>
+            <Select value={severity} onValueChange={(v) => setSeverity(v as DiagnosisEntry["severity"])}>
+              <SelectTrigger className={INPUT_CLASS}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
+                {SEVERITY_OPTIONS.map((s) => (
+                  <SelectItem key={s.value} value={s.value} className="text-[14px]">{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <label className={FIELD_LABEL}>Description *</label>
+          <Input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. Essential (Primary) Hypertension"
+            className={INPUT_CLASS}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className={FIELD_LABEL}>Notes</label>
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Additional clinical notes..."
+            className="min-h-[72px] resize-none rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] placeholder:text-muted-foreground focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="h-10 flex-1 rounded-lg text-[13px]" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            className="h-10 flex-1 rounded-lg bg-[#1A5345] text-[13px] hover:bg-[#133F34]"
+            disabled={!description.trim()}
+            onClick={handleSave}
+          >
+            Save changes
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className={cn(
@@ -102,14 +219,24 @@ function DiagnosisCard({
             <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{diagnosis.notes}</p>
           )}
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-red-50 hover:text-red-500"
-          onClick={() => onRemove(diagnosis.id)}
-        >
-          <Trash2Icon className="size-4" />
-        </Button>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="size-8 p-0 text-muted-foreground hover:bg-transparent hover:text-[#1A5345]"
+            onClick={() => setIsEditing(true)}
+          >
+            <PencilLineIcon className="size-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="size-8 p-0 text-muted-foreground hover:bg-red-50 hover:text-red-500"
+            onClick={() => onRemove(diagnosis.id)}
+          >
+            <Trash2Icon className="size-4" />
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -230,10 +357,16 @@ function AddDiagnosisForm({ onAdd }: { onAdd: (entry: DiagnosisEntry) => void })
 export type DiagnosisSectionProps = {
   diagnoses: DiagnosisEntry[]
   onAddDiagnosis: (entry: DiagnosisEntry) => void
+  onUpdateDiagnosis: (id: string, entry: DiagnosisEntry) => void
   onRemoveDiagnosis: (id: string) => void
 }
 
-export function DiagnosisSection({ diagnoses, onAddDiagnosis, onRemoveDiagnosis }: DiagnosisSectionProps) {
+export function DiagnosisSection({
+  diagnoses,
+  onAddDiagnosis,
+  onUpdateDiagnosis,
+  onRemoveDiagnosis,
+}: DiagnosisSectionProps) {
   return (
     <div className={SECTION_CARD}>
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -250,7 +383,12 @@ export function DiagnosisSection({ diagnoses, onAddDiagnosis, onRemoveDiagnosis 
       </div>
       <div className="space-y-3">
         {diagnoses.map((d) => (
-          <DiagnosisCard key={d.id} diagnosis={d} onRemove={onRemoveDiagnosis} />
+          <DiagnosisCard
+            key={d.id}
+            diagnosis={d}
+            onUpdate={onUpdateDiagnosis}
+            onRemove={onRemoveDiagnosis}
+          />
         ))}
         <AddDiagnosisForm onAdd={onAddDiagnosis} />
       </div>

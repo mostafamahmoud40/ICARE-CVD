@@ -2,21 +2,19 @@
 
 import type { z } from "zod";
 
-import { MEDICAL_HPI_EXTENDED_DEFAULTS } from "./medicalHpiDefaults";
 import { registerSchema } from "./register.schema";
 import type {
   RegisterDocumentsValues,
-  RegisterMedicalValues,
   RegisterProfileValues,
   RegisterValues,
 } from "./register.types";
 
-export type StepKey = "account" | "profile" | "medical" | "documents" | "review";
+export type StepKey = "account" | "verify" | "profile" | "documents" | "review";
 
 export type StepValuesMap = {
   account: RegisterValues;
+  verify: Record<string, never>;
   profile: RegisterProfileValues;
-  medical: RegisterMedicalValues;
   documents: RegisterDocumentsValues;
   review: Record<string, never>;
 };
@@ -43,6 +41,11 @@ export const STEP_CONFIGS: Array<StepConfig<StepKey>> = [
   },
   {
     step: 2,
+    key: "verify",
+    initialValues: {},
+  },
+  {
+    step: 3,
     key: "profile",
     initialValues: {
       dateOfBirth: "",
@@ -67,67 +70,6 @@ export const STEP_CONFIGS: Array<StepConfig<StepKey>> = [
       highSaltDiet: false,
       highFatDiet: false,
       stressLevel: "",
-    },
-  },
-  {
-    step: 3,
-    key: "medical",
-    initialValues: {
-      chiefComplaint: "",
-      otherComplaint: "",
-      ...MEDICAL_HPI_EXTENDED_DEFAULTS,
-      chestPainOnsetDate: "",
-      chestPainOnsetType: "",
-      chestPainProvoking: [],
-      chestPainQuality: [],
-      chestPainRadiation: "",
-      chestPainSeverity: "",
-      chestPainTimingPattern: "",
-      chestPainTimingDuration: "",
-      chestPainRelieving: [],
-      chestPainAssociated: [],
-      dyspneaOnsetProgression: "",
-      dyspneaNYHA: "",
-      dyspneaOrthopnea: "",
-      dyspneaOrthopneaPillows: "",
-      dyspneaPND: "",
-      dyspneaWheezing: "",
-      dyspneaCough: "",
-      dyspneaProductiveColor: "",
-      dyspneaProductiveAmount: "",
-      dyspneaHemoptysis: "",
-      dyspneaRelationTo: [],
-      noCardiacHistory: false,
-      noNonCardiacHistory: false,
-      pastHypertension: "",
-      pastMI: "",
-      pastHeartFailure: "",
-      pastStroke: "",
-      pastCKD: "",
-      pastLungDisease: "",
-      riskDiabetes: "",
-      riskDyslipidemia: "",
-      riskObesity: "",
-      riskSedentary: "",
-      drugCompliance: "",
-      drugSideEffects: "",
-      allergyDrug: "",
-      allergyFood: "",
-      allergyOther: "",
-      notes: "",
-      postProcedure: false,
-      abnormalTest: false,
-      medications: [],
-      hasFamilyHistory: false,
-      familyHistory: [],
-      socialRecreationalDrugs: "",
-      socialDietSalt: "",
-      socialDietFat: "",
-      pastInterventions: {
-        selected: [],
-        details: {},
-        otherText: "",
-      },
     },
   },
   {

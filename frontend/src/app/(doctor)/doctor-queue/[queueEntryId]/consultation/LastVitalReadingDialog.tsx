@@ -102,10 +102,10 @@ export function LastVitalReadingDialog({
       <DialogContent className="max-w-lg rounded-2xl border-[#E8E6E0]/60 p-0 gap-0 overflow-hidden">
         <DialogHeader className="space-y-1 border-b border-[#E8E6E0]/60 bg-[#F9F8F5]/60 px-5 py-4 text-left">
           <DialogTitle className="font-serif text-[17px] font-bold text-[#102F27]">
-            Last vital reading
+            Previous visit vitals
           </DialogTitle>
           <DialogDescription className="text-[13px] text-[#6B7870]">
-            Most recent measurement on file for this patient
+            Reference only — today&apos;s visit starts with a blank form unless you choose to copy these values.
           </DialogDescription>
         </DialogHeader>
 

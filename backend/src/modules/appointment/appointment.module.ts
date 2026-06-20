@@ -5,6 +5,7 @@ import { AuthJwtService } from '../auth/jwt';
 import { DoctorGuard } from '../doctor/doctor.guard';
 import { PatientGuard } from '../patient/patient.guard';
 import { DoctorVerifierModule } from '../../shared/doctor/doctor-verifier.module';
+import { MinioModule } from '../../shared/storage/minio.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AppointmentController } from './appointment.controller';
 import { AppointmentService } from './appointment.service';
@@ -19,6 +20,7 @@ import { DoctorAppointmentService } from './doctor-appointment.service';
       secret: process.env.JWT_ACCESS_SECRET,
     }),
     DoctorVerifierModule,
+    MinioModule,
     NotificationsModule,
   ],
   controllers: [AppointmentController, DoctorAppointmentController],

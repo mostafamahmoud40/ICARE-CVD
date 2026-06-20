@@ -158,6 +158,12 @@ function lastReadingSourceLabel(source: ConsultationVitalReading["source"]) {
   return "Clinic"
 }
 
+function formatPreviousReadingDate(date: string) {
+  const parsed = new Date(`${date}T00:00:00`)
+  if (Number.isNaN(parsed.getTime())) return date
+  return parsed.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+}
+
 export function VitalsSection({
   vitals,
   onVitalChange,
@@ -184,6 +190,46 @@ export function VitalsSection({
 
   return (
     <div className={SECTION_CARD}>
+      {lastVitalReading ? (
+        <div className="mb-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setLastReadingOpen(true)}
+            className="h-9 gap-2 rounded-lg border-[#E8E6E0] bg-[#F9F8F5] px-3 text-[12px] font-bold text-[#1A5345] shadow-sm hover:bg-white"
+          >
+            <HistoryIcon className="size-3.5" aria-hidden />
+            Previous visit vitals
+            <Badge
+              variant="outline"
+              className="rounded-lg border-[#E8E6E0] bg-white px-2 py-0.5 text-[10px] font-semibold text-[#6B7870]"
+            >
+              {formatPreviousReadingDate(lastVitalReading.date)}
+            </Badge>
+            <Badge
+              variant="default"
+              className={cn(
+                "rounded-lg border-0 px-2 py-0.5 text-[10px] font-bold shadow-none",
+                lastVitalReading.source === "home"
+                  ? "bg-sky-500 text-white hover:bg-sky-500"
+                  : lastVitalReading.source === "hospital"
+                    ? "bg-violet-500 text-white hover:bg-violet-500"
+                    : "bg-emerald-500 text-white hover:bg-emerald-500",
+              )}
+            >
+              {lastReadingSourceLabel(lastVitalReading.source)}
+            </Badge>
+            <ChevronRightIcon className="size-3.5 text-muted-foreground" aria-hidden />
+          </Button>
+          <LastVitalReadingDialog
+            open={lastReadingOpen}
+            onOpenChange={setLastReadingOpen}
+            reading={lastVitalReading}
+            onApply={onApplyLastReading ? () => onApplyLastReading(lastVitalReading) : undefined}
+          />
+        </div>
+      ) : null}
+
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <ActivityIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
@@ -193,42 +239,6 @@ export function VitalsSection({
               <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
               Saving…
             </span>
-          ) : null}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {lastVitalReading ? (
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setLastReadingOpen(true)}
-              className="h-9 gap-2 rounded-lg border-[#E8E6E0] bg-white px-3 text-[12px] font-bold text-[#1A5345] shadow-sm hover:bg-[#F9F8F5]"
-            >
-              <HistoryIcon className="size-3.5" aria-hidden />
-              Last reading
-              <Badge
-                variant="default"
-                className={cn(
-                  "rounded-lg border-0 px-2 py-0.5 text-[10px] font-bold shadow-none",
-                  lastVitalReading.source === "home"
-                    ? "bg-sky-500 text-white hover:bg-sky-500"
-                    : lastVitalReading.source === "hospital"
-                      ? "bg-violet-500 text-white hover:bg-violet-500"
-                      : "bg-emerald-500 text-white hover:bg-emerald-500",
-                )}
-              >
-                {lastReadingSourceLabel(lastVitalReading.source)}
-              </Badge>
-              <ChevronRightIcon className="size-3.5 text-muted-foreground" aria-hidden />
-            </Button>
-            <LastVitalReadingDialog
-              open={lastReadingOpen}
-              onOpenChange={setLastReadingOpen}
-              reading={lastVitalReading}
-              onApply={onApplyLastReading ? () => onApplyLastReading(lastVitalReading) : undefined}
-            />
-          </>
           ) : null}
         </div>
       </div>

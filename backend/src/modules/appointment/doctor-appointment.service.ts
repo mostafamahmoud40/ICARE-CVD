@@ -2,9 +2,14 @@ import { Inject, Injectable, BadRequestException, NotFoundException } from '@nes
 import { and, count, desc, eq, gte, lt, ne } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
-import { appointment, doctor, patient, user } from '../../database/schema';
+import { appointment, doctor, patient, patientQueue, user } from '../../database/schema';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
-import type { UpdateDoctorAppointmentDto } from './dto/doctor-appointment.dto';
+import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
+import { findPatientByIdentifier } from '../../shared/patient/patient-identifier';
+import type {
+  CreateDoctorAppointmentDto,
+  UpdateDoctorAppointmentDto,
+} from './dto/doctor-appointment.dto';
 import { AppointmentService } from './appointment.service';
 import { AppointmentPatientNotificationService } from './appointment-patient-notification.service';
 
@@ -24,6 +29,7 @@ export class DoctorAppointmentService {
     private readonly doctorVerifier: DoctorVerifierService,
     private readonly appointmentService: AppointmentService,
     private readonly appointmentPatientNotifications: AppointmentPatientNotificationService,
+    private readonly avatarUrlResolver: AvatarUrlResolver,
   ) {}
 
   async getStats(doctorUserId: number) {
@@ -90,6 +96,7 @@ export class DoctorAppointmentService {
     filter: AppointmentFilter = 'all',
   ) {
     const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+    await this.appointmentService.autoMarkStaleNoShows(doctorRow.id);
 
     const conditions = [eq(appointment.doctorId, doctorRow.id)];
 
@@ -121,9 +128,13 @@ export class DoctorAppointmentService {
         notes: appointment.notes,
         cancelledAt: appointment.cancelledAt,
         createdAt: appointment.createdAt,
-        patientId: patient.id,
+        queueId: patientQueue.id,
+        queueStatus: patientQueue.status,
+        patientUuid: patient.id,
+        patientNumber: patient.patientNumber,
         patientName: user.name,
         patientAvatar: patient.avatarUrl,
+        patientUserAvatar: user.avatarUrl,
         patientDateOfBirth: patient.dateOfBirth,
         patientGender: patient.gender,
         department: doctor.specialty,
@@ -132,28 +143,36 @@ export class DoctorAppointmentService {
       .innerJoin(patient, eq(appointment.patientId, patient.id))
       .innerJoin(user, eq(patient.userId, user.id))
       .innerJoin(doctor, eq(appointment.doctorId, doctor.id))
+      .leftJoin(patientQueue, eq(patientQueue.appointmentId, appointment.id))
       .where(and(...conditions))
       .orderBy(desc(appointment.scheduledAt));
 
-    return rows.map((row) => ({
-      id: row.id,
-      confirmationCode: row.confirmationCode,
-      scheduledAt: row.scheduledAt.toISOString(),
-      visitType: row.visitType,
-      status: row.status,
-      reason: row.reason,
-      notes: row.notes,
-      department: row.department ?? 'Cardiology',
+    return Promise.all(
+      rows.map(async (row) => ({
+        id: row.id,
+        confirmationCode: row.confirmationCode,
+        scheduledAt: row.scheduledAt.toISOString(),
+        visitType: row.visitType,
+        status: row.status,
+        reason: row.reason,
+        notes: row.notes,
+        department: row.department ?? 'Cardiology',
       patient: {
-        id: row.patientId,
+        id: row.patientNumber,
         name: row.patientName,
-        avatar: row.patientAvatar,
-        age: this.computeAge(row.patientDateOfBirth),
-        gender: row.patientGender,
-      },
-      cancelledAt: row.cancelledAt?.toISOString() ?? null,
-      createdAt: row.createdAt.toISOString(),
-    }));
+          avatar: await this.resolvePatientAvatar(
+            row.patientAvatar,
+            row.patientUserAvatar,
+          ),
+          age: this.computeAge(row.patientDateOfBirth),
+          gender: row.patientGender,
+        },
+        cancelledAt: row.cancelledAt?.toISOString() ?? null,
+        createdAt: row.createdAt.toISOString(),
+        queueId: row.queueId ?? null,
+        queueStatus: row.queueStatus ?? null,
+      })),
+    );
   }
 
   async getAppointment(doctorUserId: number, appointmentId: string) {
@@ -172,9 +191,13 @@ export class DoctorAppointmentService {
         cancelledAt: appointment.cancelledAt,
         createdAt: appointment.createdAt,
         updatedAt: appointment.updatedAt,
-        patientId: patient.id,
+        queueId: patientQueue.id,
+        queueStatus: patientQueue.status,
+        patientUuid: patient.id,
+        patientNumber: patient.patientNumber,
         patientName: user.name,
         patientAvatar: patient.avatarUrl,
+        patientUserAvatar: user.avatarUrl,
         patientDateOfBirth: patient.dateOfBirth,
         patientGender: patient.gender,
         department: doctor.specialty,
@@ -183,6 +206,7 @@ export class DoctorAppointmentService {
       .innerJoin(patient, eq(appointment.patientId, patient.id))
       .innerJoin(user, eq(patient.userId, user.id))
       .innerJoin(doctor, eq(appointment.doctorId, doctor.id))
+      .leftJoin(patientQueue, eq(patientQueue.appointmentId, appointment.id))
       .where(
         and(
           eq(appointment.id, appointmentId),
@@ -209,10 +233,15 @@ export class DoctorAppointmentService {
       cancelledAt: a.cancelledAt?.toISOString() ?? null,
       createdAt: a.createdAt.toISOString(),
       updatedAt: a.updatedAt.toISOString(),
+      queueId: a.queueId ?? null,
+      queueStatus: a.queueStatus ?? null,
       patient: {
-        id: a.patientId,
+        id: a.patientNumber,
         name: a.patientName,
-        avatar: a.patientAvatar,
+        avatar: await this.resolvePatientAvatar(
+          a.patientAvatar,
+          a.patientUserAvatar,
+        ),
         age: this.computeAge(a.patientDateOfBirth),
         gender: a.patientGender,
       },
@@ -334,15 +363,136 @@ export class DoctorAppointmentService {
   }
 
   async cancelAppointment(doctorUserId: number, appointmentId: string) {
-    return this.updateAppointment(doctorUserId, appointmentId, {
+    const result = await this.updateAppointment(doctorUserId, appointmentId, {
       status: 'cancelled',
     });
+    await this.syncQueueStatusForAppointment(appointmentId, 'cancelled');
+    return result;
   }
 
   async completeAppointment(doctorUserId: number, appointmentId: string) {
-    return this.updateAppointment(doctorUserId, appointmentId, {
+    const result = await this.updateAppointment(doctorUserId, appointmentId, {
       status: 'completed',
     });
+    await this.syncQueueStatusForAppointment(appointmentId, 'completed');
+    return result;
+  }
+
+  async markNoShow(doctorUserId: number, appointmentId: string) {
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+
+    const appt = await this.db.query.appointment.findFirst({
+      where: and(
+        eq(appointment.id, appointmentId),
+        eq(appointment.doctorId, doctorRow.id),
+      ),
+    });
+    if (!appt) throw new NotFoundException('Appointment not found');
+    if (appt.status === 'cancelled' || appt.status === 'completed') {
+      throw new BadRequestException('Cannot mark a closed appointment as no-show');
+    }
+
+    const now = new Date();
+    const existingQueue = await this.db.query.patientQueue.findFirst({
+      where: eq(patientQueue.appointmentId, appointmentId),
+    });
+
+    if (existingQueue) {
+      await this.db
+        .update(patientQueue)
+        .set({ status: 'no-show', updatedAt: now })
+        .where(eq(patientQueue.id, existingQueue.id));
+    } else {
+      await this.db.insert(patientQueue).values({
+        appointmentId,
+        status: 'no-show',
+        priority: 'normal',
+        updatedAt: now,
+      });
+    }
+
+    return this.getAppointment(doctorUserId, appointmentId);
+  }
+
+  async createAppointment(
+    doctorUserId: number,
+    dto: CreateDoctorAppointmentDto,
+  ) {
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+
+    const patientRow = await findPatientByIdentifier(this.db, dto.patientId);
+
+    const requestedAt = new Date(dto.scheduledAt);
+    if (Number.isNaN(requestedAt.getTime())) {
+      throw new BadRequestException('Invalid scheduledAt');
+    }
+    if (requestedAt.getTime() <= Date.now()) {
+      throw new BadRequestException('Cannot book a slot in the past');
+    }
+
+    const requestedDate = this.toDateOnly(requestedAt);
+    const requestedTime = this.toHHMM(requestedAt);
+    const availability = await this.appointmentService.getDoctorAvailability(
+      doctorRow.id,
+      requestedDate,
+      1,
+    );
+    const slotsForDate = availability.timeSlotsByDate[requestedDate] ?? [];
+    const isAvailable = slotsForDate.some(
+      (slot) =>
+        slot.label !== 'Booked' &&
+        this.fromAmPmToHHMM(slot.time) === requestedTime,
+    );
+    if (!isAvailable) {
+      throw new BadRequestException('This slot is not available');
+    }
+
+    const dayStart = new Date(`${requestedDate}T00:00:00`);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+    const queryStart = new Date(dayStart);
+    queryStart.setDate(queryStart.getDate() - 1);
+    const queryEnd = new Date(dayEnd);
+    queryEnd.setDate(queryEnd.getDate() + 1);
+    const sameDayAppointments = await this.db.query.appointment.findMany({
+      where: and(
+        eq(appointment.doctorId, doctorRow.id),
+        gte(appointment.scheduledAt, queryStart),
+        lt(appointment.scheduledAt, queryEnd),
+        ne(appointment.status, 'cancelled'),
+      ),
+    });
+    const hasExactConflict = sameDayAppointments.some(
+      (item) =>
+        this.toDateOnly(item.scheduledAt) === requestedDate &&
+        this.toHHMM(item.scheduledAt) === requestedTime,
+    );
+    if (hasExactConflict) {
+      throw new BadRequestException('This slot is already booked');
+    }
+
+    const code = await this.generateConfirmationCode();
+
+    const [created] = await this.db
+      .insert(appointment)
+      .values({
+        confirmationCode: code,
+        patientId: patientRow.id,
+        doctorId: doctorRow.id,
+        scheduledAt: requestedAt,
+        visitType: dto.visitType,
+        status: 'scheduled',
+        reason: dto.reason,
+        symptoms: dto.symptoms ?? null,
+        notes: dto.notes ?? null,
+      })
+      .returning();
+
+    void this.appointmentPatientNotifications
+      .notifyBooked(created.id, { bookedBy: 'clinic' })
+      .catch(() => undefined);
+
+    return this.getAppointment(doctorUserId, created.id);
   }
 
   async getAvailableSlots(
@@ -388,6 +538,34 @@ export class DoctorAppointmentService {
       }));
 
     return { date, slots };
+  }
+
+  private async syncQueueStatusForAppointment(
+    appointmentId: string,
+    status: 'completed' | 'cancelled',
+  ) {
+    const queue = await this.db.query.patientQueue.findFirst({
+      where: eq(patientQueue.appointmentId, appointmentId),
+    });
+    if (!queue) return;
+
+    const now = new Date();
+    const updates: Record<string, unknown> = { status, updatedAt: now };
+    if (status === 'completed') updates.completedAt = now;
+
+    await this.db
+      .update(patientQueue)
+      .set(updates)
+      .where(eq(patientQueue.id, queue.id));
+  }
+
+  private async resolvePatientAvatar(
+    primary: string | null | undefined,
+    fallback: string | null | undefined,
+  ): Promise<string | null> {
+    const raw = primary?.trim() || fallback?.trim() || null;
+    if (!raw) return null;
+    return this.avatarUrlResolver.resolve(raw);
   }
 
   private startOfDay(date: Date) {
@@ -447,5 +625,17 @@ export class DoctorAppointmentService {
       age -= 1;
     }
     return age;
+  }
+
+  private async generateConfirmationCode() {
+    const { randomInt } = await import('crypto');
+    for (let i = 0; i < 10; i += 1) {
+      const candidate = `ICV-${randomInt(1000, 10000)}`;
+      const exists = await this.db.query.appointment.findFirst({
+        where: eq(appointment.confirmationCode, candidate),
+      });
+      if (!exists) return candidate;
+    }
+    throw new Error('Unable to generate confirmation code');
   }
 }

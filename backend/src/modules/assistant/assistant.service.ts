@@ -5,6 +5,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 
@@ -18,6 +19,16 @@ import {
   patientHistory,
   user,
 } from '../../database/schema';
+import {
+  MINIO_CATEGORY_PREFIX,
+  PATIENT_AVATAR_MAX_BYTES,
+  PATIENT_AVATAR_MIME_TYPES,
+} from '../../shared/storage/minio.constants';
+import { MinioService } from '../../shared/storage/minio.service';
+import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
+import { MailService } from '../../shared/mail/mail.service';
+import { allocatePatientNumber } from '../../shared/patient/patient-number';
+import { findPatientByIdentifier } from '../../shared/patient/patient-identifier';
 import { chiefComplaints } from '../auth/dto/register-step-3.dto';
 import { hashPassword } from '../auth/password';
 
@@ -41,49 +52,64 @@ type PatientDocumentCategory =
 
 @Injectable()
 export class AssistantService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  private readonly logger = new Logger(AssistantService.name);
+
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly minioService: MinioService,
+    private readonly mailService: MailService,
+    private readonly avatarUrlResolver: AvatarUrlResolver,
+  ) {}
 
   async listPatients() {
     const rows = await this.db
       .select({
-        id: user.id,
         fullName: user.name,
         email: user.email,
         phone: user.phone,
         dateOfBirth: patient.dateOfBirth,
         gender: patient.gender,
         nationalId: patient.nationalId,
+        patientNumber: patient.patientNumber,
         bloodType: patient.bloodType,
         address: patient.address,
         heightCm: patient.heightCm,
         weightKg: patient.weightKg,
         smokingStatus: patient.smokingStatus,
         chiefComplaint: patientHistory.chiefComplaint,
+        avatarUrl: patient.avatarUrl,
         createdAt: patient.createdAt,
+        maritalStatus: patient.maritalStatus,
+        occupation: patient.occupation,
       })
       .from(patient)
       .innerJoin(user, eq(patient.userId, user.id))
       .leftJoin(patientHistory, eq(patientHistory.userId, user.id))
       .where(eq(user.role, 'patient'));
 
-    return rows.map((r) => ({
-      id: r.id,
-      fullName: r.fullName,
-      email: r.email,
-      phone: r.phone,
-      dateOfBirth: r.dateOfBirth
-        ? r.dateOfBirth.toISOString().slice(0, 10)
-        : null,
-      gender: r.gender,
-      nationalId: r.nationalId,
-      bloodType: r.bloodType,
-      address: r.address,
-      heightCm: r.heightCm,
-      weightKg: r.weightKg,
-      smokingStatus: r.smokingStatus,
-      chiefComplaint: r.chiefComplaint,
-      createdAt: r.createdAt.toISOString(),
-    }));
+    return Promise.all(
+      rows.map(async (r) => ({
+        id: r.patientNumber,
+        fullName: r.fullName,
+        email: r.email,
+        phone: r.phone,
+        dateOfBirth: r.dateOfBirth
+          ? r.dateOfBirth.toISOString().slice(0, 10)
+          : null,
+        gender: r.gender,
+        nationalId: r.nationalId,
+        bloodType: r.bloodType,
+        address: r.address,
+        heightCm: r.heightCm,
+        weightKg: r.weightKg,
+        smokingStatus: r.smokingStatus,
+        chiefComplaint: r.chiefComplaint,
+        avatarUrl: await this.avatarUrlResolver.resolve(r.avatarUrl),
+        createdAt: r.createdAt.toISOString(),
+        maritalStatus: r.maritalStatus,
+        occupation: r.occupation,
+      })),
+    );
   }
 
   async createPatient(dto: CreatePatientDto) {
@@ -108,6 +134,8 @@ export class AssistantService {
         ? dto.bloodType
         : undefined;
 
+    const avatarUrl = dto.avatarUrl?.trim() ? dto.avatarUrl.trim() : null;
+
     const insertedUser = await this.db
       .insert(user)
       .values({
@@ -116,6 +144,7 @@ export class AssistantService {
         phone: dto.phoneNumber.trim(),
         password: passwordHash,
         role: 'patient',
+        avatarUrl,
       })
       .returning({
         id: user.id,
@@ -131,12 +160,16 @@ export class AssistantService {
 
     const userId = createdUser.id;
 
+    const patientNumber = await allocatePatientNumber(this.db);
+
     await this.db.insert(patient).values({
       userId,
+      patientNumber,
       dateOfBirth: new Date(dto.dateOfBirth),
       gender: dto.gender,
       nationalId: dto.nationalId.trim(),
       bloodType: bloodType as never,
+      avatarUrl,
       address: dto.address?.trim() || null,
       heightCm: dto.heightCm,
       weightKg: dto.weightKg,
@@ -144,6 +177,8 @@ export class AssistantService {
       alcoholConsumption: this.mapAlcohol(dto.alcoholConsumption),
       exerciseFrequency: this.mapExercise(dto.exerciseFrequency),
       stressLevel: this.mapStress(dto.stressLevel),
+      maritalStatus: dto.maritalStatus as never,
+      occupation: dto.occupation?.trim() || null,
     });
 
     await this.db.insert(patientHistory).values({
@@ -191,21 +226,47 @@ export class AssistantService {
       await this.db.insert(allergy).values(allergyRows);
     }
 
+    let credentialsEmailSent = false;
+    let credentialsEmailError: string | null = null;
+    try {
+      await this.mailService.sendPatientAccountCreatedEmail(
+        createdUser.email,
+        createdUser.name,
+        normalizedEmail,
+        tempPassword,
+      );
+      credentialsEmailSent = true;
+      this.logger.log(
+        `Login credentials email sent to patient ${createdUser.id} (${createdUser.email})`,
+      );
+    } catch (err) {
+      credentialsEmailError =
+        err instanceof Error ? err.message : 'Failed to send login credentials email';
+      this.logger.error(
+        `Patient ${createdUser.id} created but credentials email failed: ${credentialsEmailError}`,
+        err,
+      );
+    }
+
     return {
       patient: {
-        id: createdUser.id,
+        id: patientNumber,
         fullName: createdUser.name,
         email: createdUser.email,
         phone: createdUser.phone,
         dateOfBirth: dto.dateOfBirth,
         gender: dto.gender,
         nationalId: dto.nationalId.trim(),
+        maritalStatus: dto.maritalStatus,
+        occupation: dto.occupation?.trim() || null,
       },
+      credentialsEmailSent,
+      credentialsEmailError,
     };
   }
 
   async registerPatientDocument(
-    patientUserId: number,
+    patientIdentifier: string,
     assistantUserId: number,
     dto: {
       fileName: string;
@@ -220,12 +281,7 @@ export class AssistantService {
       throw new BadRequestException('s3Key is required');
     }
 
-    const patientRow = await this.db.query.patient.findFirst({
-      where: eq(patient.userId, patientUserId),
-    });
-    if (!patientRow) {
-      throw new NotFoundException('Patient not found');
-    }
+    const patientRow = await findPatientByIdentifier(this.db, patientIdentifier);
 
     const [doc] = await this.db
       .insert(patientDocument)
@@ -243,6 +299,46 @@ export class AssistantService {
       .returning();
 
     return doc;
+  }
+
+  async createPatientAvatarUploadIntent(
+    patientIdentifier: string,
+    fileName: string,
+    contentType: string,
+  ) {
+    const patientRow = await findPatientByIdentifier(this.db, patientIdentifier);
+    const mimeType = contentType.trim().toLowerCase();
+    if (!PATIENT_AVATAR_MIME_TYPES.has(mimeType)) {
+      throw new BadRequestException('Unsupported profile photo file type');
+    }
+
+    return this.minioService.createUploadIntent({
+      fileName,
+      contentType: mimeType,
+      category: 'patient_avatar',
+      patientId: patientRow.id,
+    });
+  }
+
+  async setPatientAvatar(patientIdentifier: string, s3Key: string) {
+    const patientRow = await findPatientByIdentifier(this.db, patientIdentifier);
+    const key = s3Key.trim();
+    const expectedPrefix = `${MINIO_CATEGORY_PREFIX.patient_avatar}/${patientRow.id}/`;
+    if (!key.startsWith(expectedPrefix)) {
+      throw new BadRequestException('Invalid profile photo storage key');
+    }
+
+    await this.db
+      .update(user)
+      .set({ avatarUrl: key })
+      .where(eq(user.id, patientRow.userId));
+
+    await this.db
+      .update(patient)
+      .set({ avatarUrl: key })
+      .where(eq(patient.id, patientRow.id));
+
+    return { avatarUrl: await this.avatarUrlResolver.resolve(key) };
   }
 
   private mapSmoking(
@@ -276,12 +372,41 @@ export class AssistantService {
     return undefined;
   }
 
-  private mapExercise(raw?: string): 'none' | '1-2' | '3-4' | '5+' | undefined {
+  private mapExercise(
+    raw?: string,
+  ):
+    | 'none'
+    | 'rarely-monthly'
+    | 'occasional-monthly'
+    | '1-week'
+    | '1-2'
+    | '3-4'
+    | '5+'
+    | 'daily'
+    | undefined {
     if (!raw) return undefined;
+
+    const normalized = new Set([
+      'none',
+      'rarely-monthly',
+      'occasional-monthly',
+      '1-week',
+      '1-2',
+      '3-4',
+      '5+',
+      'daily',
+    ] as const);
+
+    if (normalized.has(raw as never)) {
+      return raw as (typeof normalized extends Set<infer T> ? T : never);
+    }
+
+    // Legacy assistant UI values
     if (raw === 'sedentary') return 'none';
     if (raw === 'light') return '1-2';
     if (raw === 'moderate') return '3-4';
     if (raw === 'active') return '5+';
+
     return undefined;
   }
 

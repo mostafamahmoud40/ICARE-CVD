@@ -33,4 +33,11 @@ export const user = pgTable('user', {
   refreshTokenExpiresAt: timestamp('refresh_token_expires_at', {
     withTimezone: true,
   }),
+  // Password-reset OTP flow
+  otpCode: text('otp_code'),
+  otpExpiresAt: timestamp('otp_expires_at', { withTimezone: true }),
+  otpResetToken: text('otp_reset_token'),
+  otpResetTokenExpiresAt: timestamp('otp_reset_token_expires_at', {
+    withTimezone: true,
+  }),
 });

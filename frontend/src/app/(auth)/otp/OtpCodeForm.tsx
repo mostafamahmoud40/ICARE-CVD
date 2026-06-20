@@ -13,6 +13,8 @@ import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/comp
 export type OtpCodeFormProps = {
   submit: (code: string) => void;
   resend: () => void;
+  email?: string;
+  mode?: string | null;
   fieldError: string | null;
   isPending: boolean;
   isSuccess: boolean;
@@ -25,6 +27,8 @@ export type OtpCodeFormProps = {
 export function OtpCodeForm({
   submit,
   resend,
+  email,
+  mode,
   fieldError,
   isPending,
   isSuccess,
@@ -40,85 +44,106 @@ export function OtpCodeForm({
     submit(otp);
   }
 
+  const isResetMode = mode === "reset";
+  const isRegisterMode = mode === "register";
+  const maskedEmail = email
+    ? email.replace(/(.{2}).+(@.+)/, "$1***$2")
+    : "your email address";
+
   return (
-    <Card className="mx-auto w-full max-w-md overflow-hidden rounded-3xl border-border/70 bg-card/95 shadow-xl backdrop-blur-sm">
-      <CardHeader className="space-y-4 pb-0 pt-7 text-center">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-teal-600/10 text-teal-700 dark:text-teal-300">
-          <KeyRound className="size-8" aria-hidden="true" />
+    <Card className="mx-auto w-full max-w-md overflow-hidden rounded-3xl border-0 bg-white shadow-[0_4px_30px_-4px_rgba(26,83,69,0.15)] backdrop-blur-sm">
+      <CardHeader className="space-y-4 pb-0 pt-10 text-center">
+        <div
+          className="mx-auto flex size-16 items-center justify-center rounded-full"
+          style={{ background: "#1A534518" }}
+        >
+          <KeyRound className="size-7 text-[#1A5345]" strokeWidth={1.5} aria-hidden="true" />
         </div>
 
         <div className="space-y-1">
-          <CardTitle className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Verify your login
+          <CardTitle className="text-2xl font-semibold tracking-tight text-[#152A24]">
+            {isResetMode
+              ? "Enter verification code"
+              : isRegisterMode
+                ? "Verify your email"
+                : "Verify your login"}
           </CardTitle>
-          <CardDescription className="text-sm text-zinc-500 dark:text-zinc-400">
-            Enter the verification code we sent to your email address:{" "}
-            <span className="font-medium text-foreground">m@example.com</span>.
+          <CardDescription className="text-sm text-gray-500">
+            {isResetMode
+              ? "We sent a 6-digit code to reset your password."
+              : isRegisterMode
+                ? "We sent a 6-digit code to activate your account."
+                : "Enter the verification code we sent to your email address."}{" "}
+            {email ? (
+              <span className="font-medium text-[#1A5345]">{maskedEmail}</span>
+            ) : null}
           </CardDescription>
         </div>
       </CardHeader>
 
       <form onSubmit={handleSubmit} noValidate>
-        <CardContent className="space-y-5 px-8 pb-0 pt-5">
+        <CardContent className="space-y-5 px-8 pb-0 pt-6">
           <Field>
-          <div className="flex items-center justify-between gap-3">
-            <FieldLabel htmlFor="otp-verification" className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-              Verification code
-            </FieldLabel>
-            <Button
-              type="button"
-              variant="outline"
-              size="xs"
-              className="rounded-lg"
-              onClick={() => resend()}
-              disabled={isResending || isPending}
-            >
-              <RefreshCwIcon />
-              {isResending ? "Sending..." : "Resend Code"}
-            </Button>
-          </div>
+            <div className="flex items-center justify-between gap-3">
+              <FieldLabel htmlFor="otp-verification" className="text-sm font-medium text-[#374151]">
+                Verification code
+              </FieldLabel>
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                className="rounded-lg border-[#E8E6E0] text-xs text-[#1A5345]"
+                onClick={() => resend()}
+                disabled={isResending || isPending}
+              >
+                <RefreshCwIcon className="size-3" />
+                {isResending ? "Sending..." : "Resend Code"}
+              </Button>
+            </div>
 
-          <InputOTP
-            id="otp-verification"
-            maxLength={6}
-            value={otp}
-            onChange={setOtp}
-            required
-            aria-invalid={Boolean(fieldError)}
-            aria-describedby={fieldError ? "otp-code-error" : undefined}
-            containerClassName="justify-center"
-          >
-            <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:border-zinc-200 *:data-[slot=input-otp-slot]:bg-white *:data-[slot=input-otp-slot]:text-xl dark:*:data-[slot=input-otp-slot]:border-zinc-700 dark:*:data-[slot=input-otp-slot]:bg-zinc-950">
-              <InputOTPSlot index={0} />
-              <InputOTPSlot index={1} />
-              <InputOTPSlot index={2} />
-            </InputOTPGroup>
-            <InputOTPSeparator className="mx-2" />
-            <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:border-zinc-200 *:data-[slot=input-otp-slot]:bg-white *:data-[slot=input-otp-slot]:text-xl dark:*:data-[slot=input-otp-slot]:border-zinc-700 dark:*:data-[slot=input-otp-slot]:bg-zinc-950">
-              <InputOTPSlot index={3} />
-              <InputOTPSlot index={4} />
-              <InputOTPSlot index={5} />
-            </InputOTPGroup>
-          </InputOTP>
-
-          <FieldDescription>
-            <Link
-              href="/forgot-password"
-              className="underline underline-offset-4 transition-colors hover:text-primary"
+            <InputOTP
+              id="otp-verification"
+              maxLength={6}
+              value={otp}
+              onChange={setOtp}
+              required
+              aria-invalid={Boolean(fieldError)}
+              aria-describedby={fieldError ? "otp-code-error" : undefined}
+              containerClassName="justify-center mt-2"
             >
-              I no longer have access to this email address.
-            </Link>
-          </FieldDescription>
+              <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:border-gray-200 *:data-[slot=input-otp-slot]:bg-white *:data-[slot=input-otp-slot]:text-xl *:data-[slot=input-otp-slot]:text-[#152A24]">
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+              </InputOTPGroup>
+              <InputOTPSeparator className="mx-2" />
+              <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:border-gray-200 *:data-[slot=input-otp-slot]:bg-white *:data-[slot=input-otp-slot]:text-xl *:data-[slot=input-otp-slot]:text-[#152A24]">
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
+
+            {!isResetMode && !isRegisterMode && (
+              <FieldDescription>
+                <Link
+                  href="/auth/forgot-password"
+                  className="underline underline-offset-4 transition-colors hover:text-[#1A5345]"
+                >
+                  I no longer have access to this email address.
+                </Link>
+              </FieldDescription>
+            )}
           </Field>
 
           {fieldError ? (
-            <p id="otp-code-error" className="text-center text-sm text-destructive" role="alert">
+            <p id="otp-code-error" className="text-center text-sm text-[#E15C5C]" role="alert">
               {fieldError}
             </p>
           ) : null}
 
           {isSuccess ? (
-            <Alert className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+            <Alert className="border-[#1A5345]/40 bg-[#1A5345]/10 text-[#1A5345]">
               <CheckCircle2 className="mt-0.5 size-4" />
               <AlertTitle>Verified</AlertTitle>
               <AlertDescription>{successMessage}</AlertDescription>
@@ -126,7 +151,7 @@ export function OtpCodeForm({
           ) : null}
 
           {resendMessage ? (
-            <Alert className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+            <Alert className="border-[#1A5345]/40 bg-[#1A5345]/10 text-[#1A5345]">
               <CheckCircle2 className="mt-0.5 size-4" />
               <AlertTitle>Code sent</AlertTitle>
               <AlertDescription>{resendMessage}</AlertDescription>
@@ -134,10 +159,7 @@ export function OtpCodeForm({
           ) : null}
 
           {serverErrorMessage ? (
-            <Alert
-              variant="destructive"
-              className="border-red-200 bg-red-50 text-red-700 dark:border-red-400/60 dark:bg-red-950/40 dark:text-red-200"
-            >
+            <Alert className="border-[#E15C5C]/40 bg-[#E15C5C]/10 text-[#E15C5C]">
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{serverErrorMessage}</AlertDescription>
             </Alert>
@@ -148,20 +170,33 @@ export function OtpCodeForm({
           <Field className="w-full">
             <Button
               type="submit"
-              size="lg"
-              className="h-12 w-full rounded-xl bg-teal-700 text-sm font-semibold text-white shadow-none hover:bg-teal-600 focus-visible:ring-teal-400/40 dark:bg-teal-600 dark:hover:bg-teal-500"
+              className="h-11 w-full rounded-xl bg-[#1A5345] text-sm font-semibold text-white shadow-[0_8px_20px_rgba(26,83,69,0.30)] hover:bg-[#1A5345]/90 focus-visible:ring-[#1A5345]/40"
               disabled={otp.length !== 6 || isPending}
             >
-              {isPending ? "Verifying..." : "Verify"}
+              {isPending ? "Verifying..." : isResetMode ? "Verify & Continue" : "Verify"}
             </Button>
-            <div className="text-center text-sm text-muted-foreground">
-              Having trouble signing in?{" "}
-              <Link
-                href="/forgot-password"
-                className="underline underline-offset-4 transition-colors hover:text-teal-700 dark:hover:text-teal-300"
-              >
-                Reset password
-              </Link>
+            <div className="text-center text-sm text-gray-500">
+              {isResetMode ? (
+                <>
+                  Wrong email?{" "}
+                  <Link
+                    href="/auth/forgot-password"
+                    className="font-medium text-[#1A5345] underline underline-offset-4 hover:text-[#1A5345]/80"
+                  >
+                    Go back
+                  </Link>
+                </>
+              ) : (
+                <>
+                  Having trouble?{" "}
+                  <Link
+                    href="/auth/forgot-password"
+                    className="font-medium text-[#1A5345] underline underline-offset-4 hover:text-[#1A5345]/80"
+                  >
+                    Reset password
+                  </Link>
+                </>
+              )}
             </div>
           </Field>
         </CardFooter>

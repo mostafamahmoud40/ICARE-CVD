@@ -18,6 +18,7 @@ import {
   UpdateConsultationDto,
   LinkDiagnosisDto,
   LinkPrescriptionDto,
+  UpdateLinkPrescriptionDto,
   CreateReferralDto,
 } from './dto/consultation.dto';
 
@@ -68,6 +69,19 @@ export class DoctorConsultationController {
     );
   }
 
+  @Delete(':patientId/consultations/:consultationId')
+  deleteConsultation(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Param('consultationId') consultationId: string,
+  ) {
+    return this.consultationService.deleteConsultation(
+      user.sub,
+      patientId,
+      consultationId,
+    );
+  }
+
   @Post(':patientId/consultations/:consultationId/diagnoses')
   linkDiagnosis(
     @CurrentUser() user: TokenPayload,
@@ -103,6 +117,21 @@ export class DoctorConsultationController {
     return this.consultationService.linkPrescription(
       user.sub,
       consultationId,
+      dto,
+    );
+  }
+
+  @Patch(':patientId/consultations/:consultationId/prescriptions/:medicationId')
+  updateLinkedPrescription(
+    @CurrentUser() user: TokenPayload,
+    @Param('consultationId') consultationId: string,
+    @Param('medicationId') medicationId: string,
+    @Body() dto: UpdateLinkPrescriptionDto,
+  ) {
+    return this.consultationService.updateLinkedPrescription(
+      user.sub,
+      consultationId,
+      medicationId,
       dto,
     );
   }

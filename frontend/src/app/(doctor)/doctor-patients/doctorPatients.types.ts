@@ -224,6 +224,30 @@ export type Referral = {
   urgency: "routine" | "urgent"
 }
 
+export type ConsultationReportAiStudy = {
+  id: string
+  modality: string
+  title: string
+  fileName: string | null
+  summary: string
+  details: string | null
+  createdAt: string
+}
+
+export type ConsultationReportSessionTestOrder = {
+  id: string
+  tests: string[]
+  priority: string
+  status: string
+  notes: string | null
+}
+
+export type ConsultationReportHomeMeasurement = {
+  metric: string
+  frequency: string
+  notes: string | null
+}
+
 export type ConsultationReport = {
   visitId: string
   patientId: string
@@ -242,8 +266,20 @@ export type ConsultationReport = {
   labOrders: string[]
   referrals: Referral[]
   plan: string
+  clinicalNotes: string
+  assessmentAndPlan: string
+  medicalHistorySummary: string
+  procedureDetailsSummary: string
+  homeMeasurements: ConsultationReportHomeMeasurement[]
+  sessionTestOrders: ConsultationReportSessionTestOrder[]
+  aiStudies: ConsultationReportAiStudy[]
   followUp: { timeframe: string; instructions: string }
   notes: string
+  patientInstructions: {
+    diagnosisSummary: string
+    lifestyleAdvice: string
+    dangerSigns: string
+  }
 }
 
 export type PatientFullRecord = {

@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { PATIENT_EXERCISE_FREQUENCY_OPTIONS } from "@/lib/patient-exercise-frequency";
 import { cn } from "@/lib/utils";
 
 import type { RegisterProfileValues } from "./register.types";
@@ -328,12 +329,10 @@ export function Step2Profile({ profileValues, profileFieldErrors, onFieldChange,
               value={profileValues.exerciseFrequency}
               onChange={(v) => onFieldChange("exerciseFrequency", v)}
               disabled={isPending}
-              options={[
-                { value: "none", label: "None" },
-                { value: "1-2", label: "1–2 times" },
-                { value: "3-4", label: "3–4 times" },
-                { value: "5+", label: "5+ times" },
-              ]}
+              options={PATIENT_EXERCISE_FREQUENCY_OPTIONS.map((opt) => ({
+                value: opt.value,
+                label: opt.label,
+              }))}
             />
           </ProfileRow>
           <ProfileRow icon={<Clock aria-hidden="true" />} label="Duration (min/session)">

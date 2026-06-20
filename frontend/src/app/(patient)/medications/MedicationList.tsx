@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react"
 import type {
   Medication,
-  MedicationStats,
   MedicationTypeFilter,
 } from "./medications.types"
 import { cn } from "@/lib/utils"
@@ -17,7 +16,6 @@ import {
   EyeIcon,
 } from "lucide-react"
 import { MedicationTypeBadge, TYPE_LABELS } from "./patientMedications.shared"
-import { MedicationDailyProgressCard } from "./MedicationDailyProgressCard"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -271,7 +269,6 @@ function PatientMedicationRow({
 
 type MedicationListProps = {
   medications: Medication[]
-  stats: MedicationStats
   onMarkTaken: (id: string) => void
   onMarkSkipped: (id: string) => void
   onSelectMedication: (medication: Medication) => void
@@ -280,7 +277,6 @@ type MedicationListProps = {
 
 export function MedicationList({
   medications,
-  stats,
   onMarkTaken,
   onMarkSkipped,
   onSelectMedication,
@@ -350,10 +346,6 @@ export function MedicationList({
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="shrink-0 border-b border-[#E8E6E0] bg-[#F9F8F5] p-4 sm:p-5 md:px-8">
-        <MedicationDailyProgressCard stats={stats} medications={medications} />
       </div>
 
       <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-white">
