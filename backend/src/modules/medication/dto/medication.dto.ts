@@ -73,6 +73,11 @@ export class CreateMedicationDto {
 export class UpdateMedicationDto {
   @IsOptional()
   @IsString()
+  @MaxLength(150)
+  name?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(100)
   dose?: string;
 
@@ -105,6 +110,12 @@ export class UpdateMedicationDto {
   @IsOptional()
   @IsEnum(MedicationType)
   compliance?: 'good' | 'poor';
+
+  /** Duration in days. null = ongoing (no end date). */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  durationDays?: number | null;
 }
 
 export class ChangeMedicationStatusDto {

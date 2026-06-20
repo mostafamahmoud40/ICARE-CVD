@@ -3,15 +3,13 @@
 import { CheckCircle2 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CHIEF_COMPLAINT_LABELS } from "./MedicalHpiBlocks";
 import { RegistrationAnalysisCard } from "./RegistrationAnalysisCard";
-import type { RegisterDocumentsValues, RegisterMedicalValues, RegisterProfileValues, RegisterValues } from "./register.types";
+import type { RegisterDocumentsValues, RegisterProfileValues, RegisterValues } from "./register.types";
 import type { StepValuesMap } from "./useRegisterSteps";
 
 type StepReviewProps = {
   accountValues: RegisterValues;
   profileValues: RegisterProfileValues;
-  medicalValues: RegisterMedicalValues;
   documentsValues: RegisterDocumentsValues;
   allValues: StepValuesMap;
   analysis?: string;
@@ -22,13 +20,20 @@ type StepReviewProps = {
   onRefreshAnalysis: () => void;
 };
 
-export function StepReview({ accountValues, profileValues, medicalValues, documentsValues, allValues, analysis, isAnalysisLoading, isAnalysisFetching, isAnalysisError, canRefreshAnalysis, onRefreshAnalysis }: StepReviewProps) {
-  const med = (medicalValues ?? {}) as Record<string, unknown>;
-  const docs = (documentsValues ?? { files: [], notes: "" }) as RegisterDocumentsValues;
+export function StepReview({
+  accountValues,
+  profileValues,
+  documentsValues,
+  allValues,
+  analysis,
+  isAnalysisLoading,
+  isAnalysisFetching,
+  isAnalysisError,
+  canRefreshAnalysis,
+  onRefreshAnalysis,
+}: StepReviewProps) {
+  const docs = documentsValues ?? { files: [], notes: "" };
   const fileCount = Array.isArray(docs.files) ? docs.files.length : 0;
-
-  const cc = String(med.chiefComplaint ?? "");
-  const chiefLabel = CHIEF_COMPLAINT_LABELS[cc] ?? (cc || "—");
 
   const reviewPayload = {
     account: {
@@ -39,7 +44,6 @@ export function StepReview({ accountValues, profileValues, medicalValues, docume
       confirmPassword: "••••••••",
     },
     profile: allValues.profile,
-    medical: allValues.medical,
     documents: allValues.documents,
   };
 
@@ -53,7 +57,7 @@ export function StepReview({ accountValues, profileValues, medicalValues, docume
         </AlertDescription>
       </Alert>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <div className="rounded-xl border border-border/80 bg-card/80 p-4">
           <p className="mb-2 text-sm font-semibold text-foreground">Account</p>
           <p className="text-sm text-muted-foreground">Name: {accountValues.fullName || "—"}</p>
@@ -67,16 +71,7 @@ export function StepReview({ accountValues, profileValues, medicalValues, docume
           <p className="text-sm text-muted-foreground">Sex: {profileValues.gender || "—"}</p>
           <p className="text-sm text-muted-foreground">Blood type: {profileValues.bloodType || "—"}</p>
         </div>
-        <div className="rounded-xl border border-border/80 bg-card/80 p-4">
-          <p className="mb-2 text-sm font-semibold text-foreground">Medical</p>
-          <p className="text-sm text-muted-foreground">Chief complaint: {chiefLabel}</p>
-          <p className="text-sm text-muted-foreground">
-            Cardiac history: {med.noCardiacHistory ? "None reported" : "Details provided"}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Non-cardiac history: {med.noNonCardiacHistory ? "None reported" : "Details provided"}
-          </p>
-        </div>
+
         <div className="rounded-xl border border-border/80 bg-card/80 p-4">
           <p className="mb-2 text-sm font-semibold text-foreground">Documents</p>
           <p className="text-sm text-muted-foreground">Files attached: {fileCount}</p>

@@ -1,10 +1,14 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { useDoctorAvailableSlots } from "@/app/(doctor)/doctor-appointments/useDoctorAppointments"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import { useDoctorAvailableSlots, useDoctorAppointments } from "@/app/(doctor)/doctor-appointments/useDoctorAppointments"
 import type { PatientFullRecord, FamilyHistoryEntry, PatientAllergyEntry, PatientCareGoal, PatientClinicalNote } from "../doctorPatients.types"
 import { formatMaritalStatus, formatSmokingStatus, patientDisplayId } from "../doctorPatients.utils"
-import { useUpdateDoctorPatientProfile } from "../useUpdateDoctorPatientProfile"
+import {
+  uploadDoctorPatientAvatar,
+  validatePatientAvatarFile,
+} from "../doctorPatients.upload"
 import { usePatientProfileExtras } from "../usePatientProfileExtras"
 import {
   PATIENT_AVATAR_OPTIONS,
@@ -13,7 +17,8 @@ import {
   PATIENT_MARITAL_STATUSES,
   PATIENT_SMOKING_STATUSES,
 } from "../patientProfile.constants"
-import { showIcareErrorToast } from "@/components/shared/icare-toast"
+import { useUpdateDoctorPatientProfile } from "../useUpdateDoctorPatientProfile"
+import { showIcareErrorToast, showIcareToast } from "@/components/shared/icare-toast"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import {
@@ -44,6 +49,7 @@ import {
   BriefcaseIcon,
   CalendarIcon,
   CalendarPlusIcon,
+  CameraIcon,
   ChevronRightIcon,
   Loader2Icon,
   MessageSquareIcon,
@@ -328,14 +334,23 @@ function emptyCareGoalForm() {
   }
 }
 
+const APPOINTMENT_TYPE_REASON: Record<string, string> = {
+  "follow-up": "Follow-up visit",
+  new: "New consultation",
+  "post-procedure": "Post-procedure follow-up",
+  urgent: "Urgent consultation",
+}
+
 type PatientProfileProps = {
   record: PatientFullRecord
 }
 
 export function PatientProfile({ record }: PatientProfileProps) {
   const p = record.patient
+  const queryClient = useQueryClient()
   const { updateProfile, isUpdating } = useUpdateDoctorPatientProfile(p.id)
   const profileExtras = usePatientProfileExtras(p.id)
+  const { createAppointment, isCreating: isCreatingAppointment } = useDoctorAppointments()
   const risk = riskConfig[p.riskLevel]
   const age = calcAge(p.dateOfBirth)
   const activeMeds = record.medications.filter((m) => m.status === "active").length
@@ -386,6 +401,9 @@ export function PatientProfile({ record }: PatientProfileProps) {
   const [editDialog, setEditDialog] = useState<
     "contact" | "personal" | "lifestyle" | "demographics" | "allergies" | "family" | null
   >(null)
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null)
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null)
+  const avatarFileInputRef = useRef<HTMLInputElement>(null)
   const [newAllergy, setNewAllergy] = useState<AllergyForm>(emptyAllergyForm())
   const [newFamily, setNewFamily] = useState<FamilyHistoryForm>(emptyFamilyHistoryForm())
 
@@ -395,9 +413,78 @@ export function PatientProfile({ record }: PatientProfileProps) {
     enabled: appointmentDialog && Boolean(appointmentForm.date),
   })
 
+  useEffect(() => {
+    if (!pendingAvatarFile) {
+      setAvatarPreviewUrl(null)
+      return
+    }
+    const objectUrl = URL.createObjectURL(pendingAvatarFile)
+    setAvatarPreviewUrl(objectUrl)
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [pendingAvatarFile])
+
+  function handleDemographicsAvatarFileChange(fileList: FileList | null) {
+    const file = fileList?.item(0)
+    if (!file) return
+    try {
+      validatePatientAvatarFile(file)
+      setPendingAvatarFile(file)
+    } catch (err) {
+      showIcareErrorToast(
+        "Invalid profile photo",
+        err instanceof Error ? err.message : "Could not use this image.",
+      )
+    }
+    if (avatarFileInputRef.current) {
+      avatarFileInputRef.current.value = ""
+    }
+  }
+
+  function openDemographicsDialog() {
+    setPendingAvatarFile(null)
+    setEditDialog("demographics")
+  }
+
+  function closeDemographicsDialog() {
+    setPendingAvatarFile(null)
+    setEditDialog(null)
+  }
+
   function openAppointmentDialog() {
     setAppointmentForm({ date: "", time: "", type: "follow-up", notes: "" })
     setAppointmentDialog(true)
+  }
+
+  async function saveAppointment() {
+    if (!appointmentForm.date || !appointmentForm.time) return
+    try {
+      const [year, month, day] = appointmentForm.date.split("-").map(Number)
+      const [hours, minutes] = appointmentForm.time.split(":").map(Number)
+      const scheduledAt = new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString()
+
+      await createAppointment({
+        patientId: p.id,
+        scheduledAt,
+        visitType: "clinic",
+        reason: APPOINTMENT_TYPE_REASON[appointmentForm.type] ?? appointmentForm.type,
+        notes: appointmentForm.notes.trim() || undefined,
+      })
+
+      showIcareToast({
+        title: "Appointment scheduled",
+        description: `Visit booked for ${fmt(appointmentForm.date)} at ${appointmentSlotsQuery.data?.find((s) => s.value === appointmentForm.time)?.label ?? appointmentForm.time}.`,
+        variant: "success",
+      })
+
+      setAppointmentDialog(false)
+      setAppointmentForm({ date: "", time: "", type: "follow-up", notes: "" })
+      await queryClient.invalidateQueries({ queryKey: ["doctor-patient-record", p.id] })
+    } catch {
+      showIcareErrorToast(
+        "Could not schedule appointment",
+        "The selected slot may no longer be available. Try another time.",
+      )
+    }
   }
 
   function addAllergyEntry() {
@@ -512,13 +599,18 @@ export function PatientProfile({ record }: PatientProfileProps) {
 
   async function saveDemographics() {
     try {
+      let avatarUrl = demographics.profileImageUrl
+      if (pendingAvatarFile) {
+        avatarUrl = await uploadDoctorPatientAvatar(p.id, pendingAvatarFile)
+      }
       await updateProfile({
-        avatarUrl: demographics.profileImageUrl,
+        avatarUrl,
         gender: demographics.gender,
         bloodType: demographics.bloodType
           ? (demographics.bloodType as "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-")
           : null,
       })
+      setPendingAvatarFile(null)
       setEditDialog(null)
     } catch {
       showIcareErrorToast("Could not save", "Profile photo and demographics could not be updated.")
@@ -588,7 +680,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
                 size="sm"
                 variant="secondary"
                 className="absolute bottom-0 right-0 size-8 rounded-full border border-[#E8E6E0] bg-white p-0 shadow-sm hover:bg-slate-50"
-                onClick={() => setEditDialog("demographics")}
+                onClick={openDemographicsDialog}
                 aria-label="Edit profile photo and demographics"
               >
                 <PencilIcon className="size-3.5 text-[#1A5345]" />
@@ -949,7 +1041,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
         </Dialog>
 
         {/* Edit Demographics Dialog */}
-        <Dialog open={editDialog === "demographics"} onOpenChange={(open) => { if (!open) setEditDialog(null) }}>
+        <Dialog open={editDialog === "demographics"} onOpenChange={(open) => { if (!open) closeDemographicsDialog() }}>
           <DialogContent
             aria-describedby={undefined}
             className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[480px]"
@@ -965,13 +1057,31 @@ export function PatientProfile({ record }: PatientProfileProps) {
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <Label className="text-[12px] font-bold text-[#1A1F1E]">Profile photo</Label>
-                  <div className="flex flex-wrap gap-2">
+                  <p className="text-[12px] text-muted-foreground">
+                    Choose a preset avatar or upload a photo (JPEG, PNG, WebP, or GIF, max 5 MB).
+                  </p>
+                  <input
+                    ref={avatarFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="sr-only"
+                    onChange={(e) => handleDemographicsAvatarFileChange(e.target.files)}
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    {avatarPreviewUrl ? (
+                      <div className="size-14 overflow-hidden rounded-full border-2 border-[#1A5345] ring-2 ring-[#1A5345]/20">
+                        <img src={avatarPreviewUrl} alt="" className="size-full object-cover" />
+                      </div>
+                    ) : null}
                     <button
                       type="button"
-                      onClick={() => setDemographics((d) => ({ ...d, profileImageUrl: "" }))}
+                      onClick={() => {
+                        setPendingAvatarFile(null)
+                        setDemographics((d) => ({ ...d, profileImageUrl: "" }))
+                      }}
                       className={cn(
                         "flex size-14 items-center justify-center rounded-full border-2 bg-slate-50 transition-colors",
-                        !demographics.profileImageUrl
+                        !demographics.profileImageUrl && !pendingAvatarFile
                           ? "border-[#1A5345] ring-2 ring-[#1A5345]/20"
                           : "border-[#E8E6E0] hover:border-[#1A5345]/40",
                       )}
@@ -983,10 +1093,13 @@ export function PatientProfile({ record }: PatientProfileProps) {
                       <button
                         key={avatar}
                         type="button"
-                        onClick={() => setDemographics((d) => ({ ...d, profileImageUrl: avatar }))}
+                        onClick={() => {
+                          setPendingAvatarFile(null)
+                          setDemographics((d) => ({ ...d, profileImageUrl: avatar }))
+                        }}
                         className={cn(
                           "size-14 overflow-hidden rounded-full border-2 transition-colors",
-                          demographics.profileImageUrl === avatar
+                          demographics.profileImageUrl === avatar && !pendingAvatarFile
                             ? "border-[#1A5345] ring-2 ring-[#1A5345]/20"
                             : "border-[#E8E6E0] hover:border-[#1A5345]/40",
                         )}
@@ -995,65 +1108,77 @@ export function PatientProfile({ record }: PatientProfileProps) {
                       </button>
                     ))}
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-fit rounded-full border-[#E8E6E0] px-3 text-[12px] font-semibold text-[#1A5345] hover:bg-white"
+                    onClick={() => avatarFileInputRef.current?.click()}
+                  >
+                    <CameraIcon className="mr-1.5 size-3.5" aria-hidden />
+                    Upload photo
+                  </Button>
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="demographics-gender" className="text-[12px] font-bold text-[#1A1F1E]">
-                    Gender
-                  </Label>
-                  <Select
-                    value={demographics.gender}
-                    onValueChange={(value) =>
-                      setDemographics((d) => ({
-                        ...d,
-                        gender: value as typeof d.gender,
-                      }))
-                    }
-                  >
-                    <SelectTrigger
-                      id="demographics-gender"
-                      className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus:ring-[#1A5345]/20"
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="demographics-gender" className="text-[12px] font-bold text-[#1A1F1E]">
+                      Gender
+                    </Label>
+                    <Select
+                      value={demographics.gender}
+                      onValueChange={(value) =>
+                        setDemographics((d) => ({
+                          ...d,
+                          gender: value as typeof d.gender,
+                        }))
+                      }
                     >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-[#E8E6E0]">
-                      {PATIENT_GENDERS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                      <SelectTrigger
+                        id="demographics-gender"
+                        className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus:ring-[#1A5345]/20"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-[#E8E6E0]">
+                        {PATIENT_GENDERS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="demographics-blood-type" className="text-[12px] font-bold text-[#1A1F1E]">
-                    Blood type
-                  </Label>
-                  <Select
-                    value={demographics.bloodType || "unset"}
-                    onValueChange={(value) =>
-                      setDemographics((d) => ({
-                        ...d,
-                        bloodType: value === "unset" ? "" : value,
-                      }))
-                    }
-                  >
-                    <SelectTrigger
-                      id="demographics-blood-type"
-                      className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus:ring-[#1A5345]/20"
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="demographics-blood-type" className="text-[12px] font-bold text-[#1A1F1E]">
+                      Blood type
+                    </Label>
+                    <Select
+                      value={demographics.bloodType || "unset"}
+                      onValueChange={(value) =>
+                        setDemographics((d) => ({
+                          ...d,
+                          bloodType: value === "unset" ? "" : value,
+                        }))
+                      }
                     >
-                      <SelectValue placeholder="Not set" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-[#E8E6E0]">
-                      <SelectItem value="unset">Not set</SelectItem>
-                      {PATIENT_BLOOD_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      <SelectTrigger
+                        id="demographics-blood-type"
+                        className="h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[13px] shadow-sm focus:ring-[#1A5345]/20"
+                      >
+                        <SelectValue placeholder="Not set" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-[#E8E6E0]">
+                        <SelectItem value="unset">Not set</SelectItem>
+                        {PATIENT_BLOOD_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
@@ -1063,7 +1188,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
                   variant="outline"
                   size="sm"
                   className="h-9 rounded-xl border-[#E8E6E0]/80 px-3.5 text-[12px] font-semibold text-[#1A1F1E] shadow-sm hover:bg-[#FAFAF8]"
-                  onClick={() => setEditDialog(null)}
+                  onClick={closeDemographicsDialog}
                 >
                   Cancel
                 </Button>
@@ -1545,18 +1670,18 @@ export function PatientProfile({ record }: PatientProfileProps) {
         >
           <DialogContent
             aria-describedby={undefined}
-            className="w-full max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[480px]"
+            className="flex w-full max-w-[calc(100vw-2rem)] max-h-[min(90vh,620px)] flex-col gap-0 overflow-hidden rounded-2xl border-[#E8E6E0]/60 bg-white p-0 shadow-2xl sm:max-w-[480px]"
           >
-            <div className="flex flex-col gap-4 bg-white p-5 sm:p-6">
-              <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden bg-white p-5 sm:p-6">
+              <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
                 <CalendarPlusIcon className="size-5 shrink-0 text-[#1A5345] sm:size-6" aria-hidden />
                 <DialogTitle className="text-left font-serif text-[17px] font-bold leading-tight text-[#1A1F1E]">
                   Schedule appointment
                 </DialogTitle>
               </div>
 
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
+              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+                <div className="flex shrink-0 flex-col gap-1.5">
                   <Label htmlFor="appointment-date" className="text-[12px] font-bold text-[#1A1F1E]">
                     Date
                   </Label>
@@ -1570,10 +1695,10 @@ export function PatientProfile({ record }: PatientProfileProps) {
                   />
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <Label className="text-[12px] font-bold text-[#1A1F1E]">Available slots</Label>
+                <div className="flex min-h-0 flex-1 flex-col gap-2">
+                  <Label className="shrink-0 text-[12px] font-bold text-[#1A1F1E]">Available slots</Label>
                   {appointmentForm.date ? (
-                    <div className="animate-in fade-in slide-in-from-top-1 duration-300">
+                    <div className="min-h-[88px] max-h-[220px] overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-300">
                       {appointmentSlotsQuery.isLoading ? (
                         <div className="flex h-[88px] items-center justify-center rounded-xl border border-dashed border-[#E8E6E0] bg-[#FAFAF8]">
                           <span className="text-[13px] font-medium text-muted-foreground">Loading slots…</span>
@@ -1583,7 +1708,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
                           <span className="text-[13px] font-medium text-red-600">Could not load slots for this date.</span>
                         </div>
                       ) : (appointmentSlotsQuery.data?.length ?? 0) > 0 ? (
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-3 gap-2 pr-1">
                           {appointmentSlotsQuery.data!.map((slot) => (
                             <button
                               key={slot.value}
@@ -1616,7 +1741,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
                   )}
                 </div>
 
-                <div className="flex flex-col gap-1.5">
+                <div className="flex shrink-0 flex-col gap-1.5">
                   <Label htmlFor="appointment-type" className="text-[12px] font-bold text-[#1A1F1E]">
                     Type
                   </Label>
@@ -1639,7 +1764,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
                   </Select>
                 </div>
 
-                <div className="flex flex-col gap-1.5">
+                <div className="flex shrink-0 flex-col gap-1.5">
                   <Label htmlFor="appointment-notes" className="text-[12px] font-bold text-[#1A1F1E]">
                     Notes <span className="font-medium text-muted-foreground">(optional)</span>
                   </Label>
@@ -1653,7 +1778,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2">
+              <div className="flex shrink-0 justify-end gap-2 border-t border-[#E8E6E0]/60 pt-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -1667,10 +1792,17 @@ export function PatientProfile({ record }: PatientProfileProps) {
                   type="button"
                   size="sm"
                   className="h-9 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34] disabled:opacity-50"
-                  onClick={() => setAppointmentDialog(false)}
-                  disabled={!appointmentForm.date || !appointmentForm.time}
+                  onClick={() => void saveAppointment()}
+                  disabled={!appointmentForm.date || !appointmentForm.time || isCreatingAppointment}
                 >
-                  Schedule
+                  {isCreatingAppointment ? (
+                    <>
+                      <Loader2Icon className="size-4 animate-spin" aria-hidden />
+                      Scheduling…
+                    </>
+                  ) : (
+                    "Schedule"
+                  )}
                 </Button>
               </div>
             </div>

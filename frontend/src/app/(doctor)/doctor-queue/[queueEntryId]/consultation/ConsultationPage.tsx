@@ -24,16 +24,21 @@ import { DiagnosisSection } from "./DiagnosisSection"
 import { PrescriptionsSection } from "./PrescriptionsSection"
 import { ClinicalNotesSection } from "./ClinicalNotesSection"
 import { FollowUpSection } from "./FollowUpSection"
+import { PatientInstructionsSection } from "./PatientInstructionsSection"
 import { TestsAndMeasurementsSection } from "./TestsAndMeasurementsSection"
 import { CTScanSection } from "./CTScanSection"
+import { useConsultationCtAnalysis } from "./useConsultationCtAnalysis"
 import { XrayScanSection } from "./XrayScanSection"
 import { useConsultationXrayAnalysis } from "./useConsultationXrayAnalysis"
 import { useConsultationEchoAnalysis } from "./useConsultationEchoAnalysis"
 import { EchoVideoSection } from "./EchoVideoSection"
 import { CineMRISection } from "./CineMRISection"
+import { useConsultationCineMri } from "./useConsultationCineMri"
 import { EcgSection } from "./EcgSection"
 import { useConsultationEcgAnalysis } from "./useConsultationEcgAnalysis"
 import { EcgRagSection } from "./EcgRagSection"
+import { EcgClassificationSection } from "./EcgClassificationSection"
+import { useConsultationEcgClassification } from "./useConsultationEcgClassification"
 import { LabMaterialsSection } from "./LabMaterialsSection"
 import { useConsultationLabMaterials } from "./useConsultationLabMaterials"
 import { AIAssistantPanel } from "./AIAssistantPanel"
@@ -44,22 +49,29 @@ import { useConsultationDraft } from "./useConsultationDraft"
 import { useConsultationVitals } from "./useConsultationVitals"
 import { useConsultationLiveSections } from "./useConsultationLiveSections"
 import { useCompleteConsultation } from "./useCompleteConsultation"
+import { useQueueEntryId } from "./useQueueEntryId"
 import { isBriefingAcknowledged } from "./briefingStorage"
 import { Button } from "@/components/ui/button"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
   CheckCircle2Icon,
+  Loader2Icon,
   SaveIcon,
   StethoscopeIcon,
 } from "lucide-react"
 
-export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
+export default function ConsultationPage() {
+  const queueEntryId = useQueueEntryId()
   const router = useRouter()
   const { data, setData, hydrated, isLoading, isError } = useConsultationDraft(queueEntryId)
   const consultationVitals = useConsultationVitals(queueEntryId)
   const liveSections = useConsultationLiveSections(queueEntryId, data, setData, hydrated)
-  const { complete, isCompleting } = useCompleteConsultation()
-  const [ctFile, setCtFile] = useState<File | null>(null)
+  const { complete, isCompleting, completingLabel } = useCompleteConsultation()
+  const ctAnalysis = useConsultationCtAnalysis(
+    queueEntryId,
+    data?.patientId,
+    hydrated && Boolean(data),
+  )
   const xrayAnalysis = useConsultationXrayAnalysis(
     queueEntryId,
     data?.patientId,
@@ -75,8 +87,16 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
     data?.patientId,
     hydrated && Boolean(data),
   )
-  const [mriEdFile, setMriEdFile] = useState<File | null>(null)
-  const [mriEsFile, setMriEsFile] = useState<File | null>(null)
+  const ecgClassification = useConsultationEcgClassification(
+    queueEntryId,
+    data?.patientId,
+    hydrated && Boolean(data),
+  )
+  const cineMri = useConsultationCineMri(
+    queueEntryId,
+    data?.patientId,
+    hydrated && Boolean(data),
+  )
   // EcgRagSection manages its own file state independently
   const labMaterials = useConsultationLabMaterials(
     queueEntryId,
@@ -145,9 +165,11 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
 
   const addDiagnosis = liveSections.addDiagnosis
   const removeDiagnosis = liveSections.removeDiagnosis
+  const updateDiagnosis = liveSections.updateDiagnosis
 
   const addPrescription = liveSections.addPrescription
   const removePrescription = liveSections.removePrescription
+  const updatePrescription = liveSections.updatePrescription
 
   const addTestOrder = (entry: TestOrder) => {
     upsertPatientCareTaskFromTestOrder({
@@ -290,12 +312,14 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
             <DiagnosisSection
               diagnoses={data.diagnoses}
               onAddDiagnosis={addDiagnosis}
+              onUpdateDiagnosis={updateDiagnosis}
               onRemoveDiagnosis={removeDiagnosis}
             />
 
             <PrescriptionsSection
               prescriptions={data.prescriptions}
               onAddPrescription={addPrescription}
+              onUpdatePrescription={updatePrescription}
               onRemovePrescription={removePrescription}
               patientSummary={data.patientSummary}
               structuredComplaint={data.structuredComplaint}
@@ -308,6 +332,22 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
               homeMeasurements={data.homeMeasurements}
               onAddMeasurement={addHomeMeasurement}
               onRemoveMeasurement={removeHomeMeasurement}
+              aiContext={{
+                patientName: data.patientSummary.demographics.fullName,
+                age: data.patientSummary.demographics.age,
+                gender: data.patientSummary.demographics.gender,
+                chiefComplaint: data.chiefComplaint,
+                structuredComplaint: data.structuredComplaint,
+                diagnoses: data.diagnoses,
+                prescriptions: data.prescriptions,
+                vitals: data.vitals,
+                physicalExam: data.physicalExam,
+                existingConditions: data.patientSummary.existingConditions,
+                activeMedications: data.patientSummary.activeMedications,
+                familyHistory: data.patientSummary.familyHistory,
+                testOrders: data.testOrders,
+                lifestyleFlags: data.patientSummary.lifestyleFlags,
+              }}
             />
 
             <LabMaterialsSection
@@ -327,7 +367,19 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
               }}
             />
 
-            <CTScanSection ctFile={ctFile} onCtFileChange={setCtFile} />
+            <CTScanSection
+              ctFile={ctAnalysis.ctFile}
+              savedStudy={ctAnalysis.savedStudy}
+              result={ctAnalysis.result}
+              status={ctAnalysis.status}
+              errorMsg={ctAnalysis.errorMsg}
+              elapsed={ctAnalysis.elapsed}
+              isLoading={ctAnalysis.isLoading}
+              onFileSelected={ctAnalysis.onFileSelected}
+              onRemove={ctAnalysis.onRemove}
+              onAnalyze={ctAnalysis.onAnalyze}
+              onRetry={ctAnalysis.onRetry}
+            />
 
             <XrayScanSection
               xrayFile={xrayAnalysis.xrayFile}
@@ -357,10 +409,20 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
             />
 
             <CineMRISection
-              edFile={mriEdFile}
-              onEdFileChange={setMriEdFile}
-              esFile={mriEsFile}
-              onEsFileChange={setMriEsFile}
+              edFile={cineMri.edFile}
+              esFile={cineMri.esFile}
+              savedStudy={cineMri.savedStudy}
+              result={cineMri.result}
+              status={cineMri.status}
+              errorMsg={cineMri.errorMsg}
+              elapsed={cineMri.elapsed}
+              isLoading={cineMri.isLoading}
+              onEdFileSelected={cineMri.onEdFileSelected}
+              onEsFileSelected={cineMri.onEsFileSelected}
+              onRemoveEd={cineMri.onRemoveEd}
+              onRemoveEs={cineMri.onRemoveEs}
+              onAnalyze={cineMri.onAnalyze}
+              onRetry={cineMri.onRetry}
             />
 
             <EcgSection
@@ -383,11 +445,46 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
             {/* EcgRagSection is fully self-contained with its own file upload */}
             <EcgRagSection />
 
+            <EcgClassificationSection
+              mode={ecgClassification.mode}
+              imageFile={ecgClassification.imageFile}
+              heaFile={ecgClassification.heaFile}
+              datFile={ecgClassification.datFile}
+              savedStudy={ecgClassification.savedStudy}
+              result={ecgClassification.result}
+              status={ecgClassification.status}
+              errorMsg={ecgClassification.errorMsg}
+              isLoading={ecgClassification.isLoading}
+              onModeChange={ecgClassification.onModeChange}
+              onImageFile={ecgClassification.onImageFile}
+              onHeaFile={ecgClassification.onHeaFile}
+              onDatFile={ecgClassification.onDatFile}
+              onAnalyze={ecgClassification.onAnalyze}
+              onRetry={ecgClassification.onRetry}
+              onNewRecording={ecgClassification.onNewRecording}
+            />
+
             <ClinicalNotesSection
               clinicalNotes={data.clinicalNotes}
               onClinicalNotesChange={liveSections.updateClinicalNotes}
               assessmentAndPlan={data.assessmentAndPlan}
               onAssessmentAndPlanChange={liveSections.updateAssessmentAndPlan}
+              aiContext={{
+                patientName: data.patientSummary.demographics.fullName,
+                age: data.patientSummary.demographics.age,
+                gender: data.patientSummary.demographics.gender,
+                chiefComplaint: data.chiefComplaint,
+                structuredComplaint: data.structuredComplaint,
+                diagnoses: data.diagnoses,
+                prescriptions: data.prescriptions,
+                vitals: data.vitals,
+                physicalExam: data.physicalExam,
+                existingConditions: data.patientSummary.existingConditions,
+                activeMedications: data.patientSummary.activeMedications,
+                familyHistory: data.patientSummary.familyHistory,
+                testOrders: data.testOrders,
+                lifestyleFlags: data.patientSummary.lifestyleFlags,
+              }}
             />
 
             <FollowUpSection
@@ -395,6 +492,31 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
               onFollowUpDateChange={liveSections.updateFollowUpDate}
               followUpNotes={data.followUpNotes}
               onFollowUpNotesChange={liveSections.updateFollowUpNotes}
+            />
+
+            <PatientInstructionsSection
+              patientDiagnosisSummary={data.patientDiagnosisSummary}
+              onPatientDiagnosisSummaryChange={liveSections.updatePatientDiagnosisSummary}
+              patientLifestyleAdvice={data.patientLifestyleAdvice}
+              onPatientLifestyleAdviceChange={liveSections.updatePatientLifestyleAdvice}
+              patientDangerSigns={data.patientDangerSigns}
+              onPatientDangerSignsChange={liveSections.updatePatientDangerSigns}
+              aiContext={{
+                patientName: data.patientSummary.demographics.fullName,
+                age: data.patientSummary.demographics.age,
+                gender: data.patientSummary.demographics.gender,
+                chiefComplaint: data.chiefComplaint,
+                structuredComplaint: data.structuredComplaint,
+                diagnoses: data.diagnoses,
+                prescriptions: data.prescriptions,
+                vitals: data.vitals,
+                physicalExam: data.physicalExam,
+                existingConditions: data.patientSummary.existingConditions,
+                activeMedications: data.patientSummary.activeMedications,
+                familyHistory: data.patientSummary.familyHistory,
+                testOrders: data.testOrders,
+                lifestyleFlags: data.patientSummary.lifestyleFlags,
+              }}
             />
 
             <ProceduresSection
@@ -429,13 +551,17 @@ export function ConsultationPage({ queueEntryId }: { queueEntryId: string }) {
                     patientId: liveSections.patientId,
                     consultationId: liveSections.consultationId,
                     queueEntryId,
-                    saveVitals: consultationVitals.saveNow,
+                    saveVitals: () => consultationVitals.saveNow({ silentIfEmpty: true }),
                     saveSections: liveSections.saveNow,
                   })
                 }}
               >
-                <CheckCircle2Icon className="size-3.5" />
-                {isCompleting ? "Completing…" : "Complete & Sign"}
+                {isCompleting ? (
+                  <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <CheckCircle2Icon className="size-3.5" />
+                )}
+                {completingLabel}
               </Button>
             </div>
           </div>

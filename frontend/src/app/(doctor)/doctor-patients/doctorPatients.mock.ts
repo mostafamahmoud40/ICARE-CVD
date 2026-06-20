@@ -8,7 +8,7 @@ export const mockDoctorPatientsData: DoctorPatientsPageData = {
   },
   patients: [
     {
-      id: "p-001",
+      id: "P-001",
       fullName: "Ahmed Al-Rashid",
       dateOfBirth: "1968-03-15",
       gender: "male",
@@ -42,7 +42,7 @@ export const mockDoctorPatientsData: DoctorPatientsPageData = {
       nationalId: "29901011234567",
     },
     {
-      id: "p-002",
+      id: "P-002",
       fullName: "Fatima Hassan",
       dateOfBirth: "1975-07-22",
       gender: "female",
@@ -70,7 +70,7 @@ export const mockDoctorPatientsData: DoctorPatientsPageData = {
       nationalId: "28507221234567",
     },
     {
-      id: "p-003",
+      id: "P-003",
       fullName: "Mohamed Youssef",
       dateOfBirth: "1955-11-08",
       gender: "male",
@@ -99,7 +99,7 @@ export const mockDoctorPatientsData: DoctorPatientsPageData = {
       nationalId: "27511081234567",
     },
     {
-      id: "p-004",
+      id: "P-004",
       fullName: "Sara Ibrahim",
       dateOfBirth: "1982-01-30",
       gender: "female",
@@ -125,7 +125,7 @@ export const mockDoctorPatientsData: DoctorPatientsPageData = {
       nationalId: "30201301234567",
     },
     {
-      id: "p-005",
+      id: "P-005",
       fullName: "Omar Abdel-Aziz",
       dateOfBirth: "1960-09-12",
       gender: "male",
@@ -153,7 +153,7 @@ export const mockDoctorPatientsData: DoctorPatientsPageData = {
       nationalId: "26009121234567",
     },
     {
-      id: "p-006",
+      id: "P-006",
       fullName: "Layla Mostafa",
       dateOfBirth: "1990-05-18",
       gender: "female",
@@ -179,7 +179,7 @@ export const mockDoctorPatientsData: DoctorPatientsPageData = {
       nationalId: "29005181234567",
     },
     {
-      id: "p-007",
+      id: "P-007",
       fullName: "Youssef Kamel",
       dateOfBirth: "1948-12-03",
       gender: "male",
@@ -211,7 +211,7 @@ export const mockDoctorPatientsData: DoctorPatientsPageData = {
       nationalId: "24812031234567",
     },
     {
-      id: "p-008",
+      id: "P-008",
       fullName: "Nadia Selim",
       dateOfBirth: "1965-06-25",
       gender: "female",
@@ -239,7 +239,7 @@ export const mockDoctorPatientsData: DoctorPatientsPageData = {
       nationalId: "26506251234567",
     },
     {
-      id: "p-009",
+      id: "P-009",
       fullName: "Hassan Mahmoud",
       dateOfBirth: "1970-04-10",
       gender: "male",
@@ -268,7 +268,7 @@ export const mockDoctorPatientsData: DoctorPatientsPageData = {
       nationalId: "27004101234567",
     },
     {
-      id: "p-010",
+      id: "P-010",
       fullName: "Amira Farouk",
       dateOfBirth: "1958-08-07",
       gender: "female",
@@ -416,8 +416,22 @@ export const mockConsultationReports: Record<string, ConsultationReport> = {
       { specialty: "Ophthalmology", reason: "Annual diabetic retinopathy screening overdue", urgency: "routine" },
     ],
     plan: "1. Increase Amlodipine from 5mg to 10mg daily for better BP control.\n2. Continue current diabetes regimen; reassess after HbA1c results.\n3. Reinforce dietary counseling, especially during Ramadan.\n4. Order follow-up labs in 2 weeks.\n5. Home BP monitoring twice daily, keep log.",
+    clinicalNotes: "Patient was advised on gradual position changes in the morning to reduce dizziness. Counseling provided on importance of medication timing during fasting hours.",
+    assessmentAndPlan: "1. Increase Amlodipine from 5mg to 10mg daily for better BP control.\n2. Continue current diabetes regimen; reassess after HbA1c results.\n3. Reinforce dietary counseling, especially during Ramadan.\n4. Order follow-up labs in 2 weeks.\n5. Home BP monitoring twice daily, keep log.",
+    medicalHistorySummary: "Hypertension and type 2 diabetes on file. No new cardiac events reported.",
+    procedureDetailsSummary: "",
+    homeMeasurements: [{ metric: "blood_pressure", frequency: "twice_daily", notes: "Keep a home log" }],
+    sessionTestOrders: [
+      { id: "lo-1", tests: ["HbA1c", "Lipid Panel", "Fasting Blood Sugar", "Serum Creatinine", "Electrolytes"], priority: "routine", status: "ordered", notes: null },
+    ],
+    aiStudies: [],
     followUp: { timeframe: "2 weeks", instructions: "Return with home BP log and lab results. If dizziness worsens or new symptoms develop, seek urgent care." },
     notes: "Patient was advised on gradual position changes in the morning to reduce dizziness. Counseling provided on importance of medication timing during fasting hours.",
+    patientInstructions: {
+      diagnosisSummary: "Your blood pressure and diabetes need closer control. We are adjusting your medications and will recheck labs soon.",
+      lifestyleAdvice: "• Take medications at the same time each day.\n• Reduce salt and fried foods; choose vegetables and whole grains.\n• Check blood pressure at home twice daily and keep a log.\n• During Ramadan, discuss medication timing with your care team.",
+      dangerSigns: "Go to the emergency department immediately if you have severe chest pain, fainting, sudden confusion, or trouble breathing at rest.",
+    },
   },
   "v-2": {
     visitId: "v-2",
@@ -451,8 +465,22 @@ export const mockConsultationReports: Record<string, ConsultationReport> = {
     labOrders: ["Lipid Panel", "HbA1c", "Complete Blood Count"],
     referrals: [],
     plan: "1. Order comprehensive lab work including lipid panel and HbA1c.\n2. Order echocardiogram to assess cardiac function.\n3. Continue current medications pending lab results.\n4. Follow up in 3 weeks with results.",
+    clinicalNotes: "Echocardiogram ordered. Patient counseled on sodium restriction and weight management.",
+    assessmentAndPlan: "1. Order comprehensive lab work including lipid panel and HbA1c.\n2. Order echocardiogram to assess cardiac function.\n3. Continue current medications pending lab results.\n4. Follow up in 3 weeks with results.",
+    medicalHistorySummary: "Known hypertension and dyslipidemia.",
+    procedureDetailsSummary: "",
+    homeMeasurements: [],
+    sessionTestOrders: [
+      { id: "lo-2", tests: ["Lipid Panel", "HbA1c", "Complete Blood Count"], priority: "routine", status: "ordered", notes: null },
+    ],
+    aiStudies: [],
     followUp: { timeframe: "3 weeks", instructions: "Return with lab results and echocardiogram report." },
     notes: "Echocardiogram ordered. Patient counseled on sodium restriction and weight management.",
+    patientInstructions: {
+      diagnosisSummary: "You have high blood pressure and cholesterol that we are monitoring with labs and an echocardiogram.",
+      lifestyleAdvice: "• Limit added salt and processed foods.\n• Walk regularly if you feel well.\n• Continue all prescribed medications unless told otherwise.",
+      dangerSigns: "Seek emergency care for crushing chest pain, severe breathlessness, or fainting.",
+    },
   },
   "v-3": {
     visitId: "v-3",
@@ -486,8 +514,20 @@ export const mockConsultationReports: Record<string, ConsultationReport> = {
       { specialty: "Ophthalmology", reason: "Annual diabetic retinopathy screening", urgency: "routine" },
     ],
     plan: "1. Continue Metformin 500mg BID.\n2. HbA1c improved from 7.8% to 7.2% \u2014 good progress.\n3. Reinforce diet and exercise counseling.\n4. Aim for HbA1c <7% at next visit.",
+    clinicalNotes: "Patient motivated by improvement. Diet counseling reinforced. Encouraged 30 min daily walking.",
+    assessmentAndPlan: "1. Continue Metformin 500mg BID.\n2. HbA1c improved from 7.8% to 7.2% \u2014 good progress.\n3. Reinforce diet and exercise counseling.\n4. Aim for HbA1c <7% at next visit.",
+    medicalHistorySummary: "Type 2 diabetes mellitus.",
+    procedureDetailsSummary: "",
+    homeMeasurements: [],
+    sessionTestOrders: [{ id: "lo-3", tests: ["HbA1c"], priority: "routine", status: "ordered", notes: null }],
+    aiStudies: [],
     followUp: { timeframe: "3 months", instructions: "Continue home glucose monitoring. Return for routine diabetes follow-up." },
     notes: "Patient motivated by improvement. Diet counseling reinforced. Encouraged 30 min daily walking.",
+    patientInstructions: {
+      diagnosisSummary: "Your diabetes control is improving. Keep up your current plan while we work toward a lower long-term blood sugar target.",
+      lifestyleAdvice: "• Continue Metformin as prescribed.\n• Aim for balanced meals and regular walking.\n• Monitor blood sugar as directed and bring your log to follow-up.",
+      dangerSigns: "Go to emergency care if you have confusion, persistent vomiting, or signs of very low blood sugar that do not improve with sugar intake.",
+    },
   },
   "v-6": {
     visitId: "v-6",
@@ -523,7 +563,19 @@ export const mockConsultationReports: Record<string, ConsultationReport> = {
       { specialty: "Gastroenterology", reason: "Recurrent epigastric discomfort — evaluate for GERD complications, consider endoscopy", urgency: "routine" },
     ],
     plan: "1. ECG normal, cardiac enzymes ordered to rule out ACS.\n2. Likely GERD based on history and epigastric tenderness.\n3. Prescribe Omeprazole 20mg daily for 4 weeks.\n4. GI referral for endoscopy if symptoms persist.\n5. Avoid large meals before lying down.",
+    clinicalNotes: "Cardiac workup negative. Patient reassured. GI referral placed.",
+    assessmentAndPlan: "1. ECG normal, cardiac enzymes ordered to rule out ACS.\n2. Likely GERD based on history and epigastric tenderness.\n3. Prescribe Omeprazole 20mg daily for 4 weeks.\n4. GI referral for endoscopy if symptoms persist.\n5. Avoid large meals before lying down.",
+    medicalHistorySummary: "Episodic epigastric discomfort. Hypertension under assessment.",
+    procedureDetailsSummary: "",
+    homeMeasurements: [],
+    sessionTestOrders: [{ id: "lo-4", tests: ["Troponin I", "CK-MB", "Complete Blood Count"], priority: "urgent", status: "ordered", notes: "Rule out ACS" }],
+    aiStudies: [],
     followUp: { timeframe: "4 weeks", instructions: "Return if symptoms worsen or do not improve. Seek emergency care if severe chest pain, shortness of breath, or sweating develops." },
     notes: "Cardiac workup negative. Patient reassured. GI referral placed.",
+    patientInstructions: {
+      diagnosisSummary: "Today's symptoms are most likely from acid reflux (GERD), not a heart attack. We ordered tests to be safe and started treatment.",
+      lifestyleAdvice: "• Take omeprazole before breakfast daily.\n• Avoid large meals late at night and lying down right after eating.\n• Limit spicy, fatty, and acidic foods if they trigger symptoms.",
+      dangerSigns: "Go to emergency immediately for severe crushing chest pain, pain spreading to jaw or arm, sweating with chest pain, or sudden severe breathlessness.",
+    },
   },
 }

@@ -17,6 +17,16 @@ export const REPORT_EMPTY_MESSAGES = {
   additionalNotes: "No additional clinical notes were recorded for this visit.",
   followUpTimeframe: "Not scheduled",
   followUpInstructions: "No follow-up instructions were provided for this visit.",
+  patientDiagnosisSummary: "No patient-friendly diagnosis summary was recorded for this visit.",
+  patientLifestyleAdvice: "No lifestyle or diet guidance was recorded for this visit.",
+  patientDangerSigns: "No emergency warning signs were documented for this visit.",
+  reasonForVisit: "No reason for visit was recorded for this visit.",
+  assessmentAndPlan: "No assessment or internal plan was recorded for this visit.",
+  medicalHistorySummary: "No consultation medical history snapshot was recorded for this visit.",
+  procedureDetailsSummary: "No procedure details were recorded for this visit.",
+  homeMeasurements: "No home monitoring instructions were recorded for this visit.",
+  testOrders: "No tests or imaging orders were placed during this visit.",
+  aiStudies: "No AI analyses or session uploads were recorded for this visit.",
   vitalNotRecorded: "Not recorded at this visit",
 } as const
 
@@ -38,6 +48,9 @@ export type ApiConsultationReport = {
   plan: string | null
   notes: string | null
   homeMonitoring: string | null
+  patientDiagnosisSummary: string | null
+  patientLifestyleAdvice: string | null
+  patientDangerSigns: string | null
   followUp: {
     timeframe: string | null
     instructions: string | null
@@ -81,6 +94,31 @@ export type ApiConsultationReport = {
     urgency: "routine" | "urgent"
   }>
   recordStatus: ConsultationRecordStatus
+  clinicalNotes?: string | null
+  assessmentAndPlan?: string | null
+  medicalHistorySummary?: string | null
+  procedureDetailsSummary?: string | null
+  homeMeasurements?: Array<{
+    metric: string
+    frequency: string
+    notes: string | null
+  }>
+  testOrders?: Array<{
+    id: string
+    tests: string[]
+    priority: string
+    status: string
+    notes: string | null
+  }>
+  aiStudies?: Array<{
+    id: string
+    modality: string
+    title: string
+    fileName: string | null
+    summary: string
+    details: string | null
+    createdAt: string
+  }>
 }
 
 export type ApiPatientConsultationListItem = {
@@ -125,6 +163,142 @@ function normalizeVisitType(type: string): VisitRecord["type"] {
   return allowed.includes(type as VisitRecord["type"])
     ? (type as VisitRecord["type"])
     : "follow-up"
+}
+
+function buildPatientReasonForVisit(api: ApiConsultationReport): string {
+  if (api.chiefComplaintStructured) {
+    try {
+      const structured = JSON.parse(api.chiefComplaintStructured) as {
+        primaryComplaint?: string
+      }
+      const primary = structured.primaryComplaint?.trim()
+      if (primary) return formatChiefComplaintLabel(primary)
+    } catch {
+      // fall through
+    }
+  }
+
+  if (api.historyOfPresentIllness?.trim()) {
+    return formatChiefComplaintLabel(api.historyOfPresentIllness.trim())
+  }
+
+  if (api.chiefComplaint?.trim()) {
+    const text = api.chiefComplaint.trim()
+    const firstClause = text.split(/\.\s*(?=Onset:|Duration:|Severity:|Character:|Aggravating|Relieving|Associated)/i)[0]?.trim()
+    if (firstClause) {
+      return firstClause.replace(/^Patient presents with\s*/i, "").replace(/\.\s*$/, "").trim() || text
+    }
+    return text
+  }
+
+  return ""
+}
+
+const CHIEF_COMPLAINT_LABELS: Record<string, string> = {
+  chest_pain: "Chest pain",
+  dyspnea: "Shortness of breath",
+  palpitations: "Palpitations",
+  syncope: "Syncope / near-syncope",
+  fatigue: "Fatigue",
+  edema: "Peripheral edema",
+  dizziness: "Dizziness",
+  orthopnea: "Orthopnea",
+  pnd: "Paroxysmal nocturnal dyspnea",
+  claudication: "Claudication",
+  diaphoresis: "Diaphoresis",
+  nausea: "Nausea / vomiting",
+  jaw_pain: "Jaw pain",
+  arm_pain: "Arm pain",
+  back_pain: "Back pain",
+  epigastric_pain: "Epigastric pain",
+  other: "Other concern",
+}
+
+function formatChiefComplaintLabel(value: string): string {
+  const normalized = value.trim().toLowerCase().replace(/\s+/g, "_")
+  if (CHIEF_COMPLAINT_LABELS[normalized]) return CHIEF_COMPLAINT_LABELS[normalized]!
+  if (value.includes("_")) {
+    return value
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+  }
+  return value.trim()
+}
+
+function buildDoctorHistoryOfPresentIllness(api: ApiConsultationReport): string {
+  if (api.chiefComplaint?.trim()) {
+    const text = api.chiefComplaint.trim()
+    if (text.length > 40 || /Onset:|Duration:|Severity:|Character:/i.test(text)) {
+      return text
+    }
+  }
+
+  if (api.chiefComplaintStructured) {
+    try {
+      const structured = JSON.parse(api.chiefComplaintStructured) as {
+        primaryComplaint?: string
+        onset?: string
+        duration?: string
+        severity?: string
+        character?: string
+        aggravating?: string[]
+        relieving?: string[]
+        associatedSymptoms?: string[]
+        otherComplaintDetail?: string
+      }
+      const parts: string[] = []
+      if (structured.primaryComplaint?.trim()) {
+        parts.push(
+          `Patient presents with ${formatChiefComplaintLabel(structured.primaryComplaint.trim()).toLowerCase()}`,
+        )
+      }
+      if (structured.onset?.trim()) parts.push(`Onset: ${structured.onset.trim()}`)
+      if (structured.duration?.trim()) parts.push(`Duration: ${structured.duration.trim()}`)
+      if (structured.severity?.trim()) parts.push(`Severity: ${structured.severity.trim()}`)
+      if (structured.character?.trim()) parts.push(`Character: ${structured.character.trim()}`)
+      if (structured.aggravating?.length) {
+        parts.push(`Aggravating factors: ${structured.aggravating.join(", ")}`)
+      }
+      if (structured.relieving?.length) {
+        parts.push(`Relieving factors: ${structured.relieving.join(", ")}`)
+      }
+      if (structured.associatedSymptoms?.length) {
+        parts.push(`Associated symptoms: ${structured.associatedSymptoms.join(", ")}`)
+      }
+      if (structured.otherComplaintDetail?.trim()) {
+        parts.push(structured.otherComplaintDetail.trim())
+      }
+      if (parts.length > 0) return parts.join(". ")
+    } catch {
+      // fall through
+    }
+  }
+
+  return buildHistoryOfPresentIllness(api)
+}
+
+function buildDoctorChiefComplaint(api: ApiConsultationReport): string {
+  if (api.chiefComplaintStructured) {
+    try {
+      const structured = JSON.parse(api.chiefComplaintStructured) as {
+        primaryComplaint?: string
+      }
+      if (structured.primaryComplaint?.trim()) {
+        return formatChiefComplaintLabel(structured.primaryComplaint.trim())
+      }
+    } catch {
+      // fall through
+    }
+  }
+  if (api.historyOfPresentIllness?.trim()) {
+    return formatChiefComplaintLabel(api.historyOfPresentIllness.trim())
+  }
+  if (api.chiefComplaint?.trim()) {
+    const text = api.chiefComplaint.trim()
+    const firstClause = text.split(/\.\s*(?=Onset:|Duration:|Severity:)/i)[0]?.trim()
+    return firstClause?.replace(/^Patient presents with\s*/i, "").replace(/\.\s*$/, "").trim() || text
+  }
+  return ""
 }
 
 function buildHistoryOfPresentIllness(api: ApiConsultationReport): string {
@@ -346,6 +520,7 @@ function buildDoctorNotes(api: ApiConsultationReport): string {
 }
 
 function buildDiagnosisDescription(api: ApiConsultationReport): string {
+  if (api.patientDiagnosisSummary?.trim()) return api.patientDiagnosisSummary.trim()
   const primary = api.diagnoses.find((d) => d.type === "primary")
   if (primary?.notes?.trim()) return primary.notes.trim()
   if (primary) return `Primary diagnosis: ${primary.description}.`
@@ -355,8 +530,26 @@ function buildDiagnosisDescription(api: ApiConsultationReport): string {
   return "No formal diagnosis was recorded for this visit."
 }
 
+function mapPatientInstructions(api: ApiConsultationReport) {
+  return {
+    diagnosisSummary: reportTextOrEmpty(
+      api.patientDiagnosisSummary,
+      REPORT_EMPTY_MESSAGES.patientDiagnosisSummary,
+    ),
+    lifestyleAdvice: reportTextOrEmpty(
+      api.patientLifestyleAdvice,
+      REPORT_EMPTY_MESSAGES.patientLifestyleAdvice,
+    ),
+    dangerSigns: reportTextOrEmpty(
+      api.patientDangerSigns,
+      REPORT_EMPTY_MESSAGES.patientDangerSigns,
+    ),
+  }
+}
+
 export function mapApiReportToDoctorReport(api: ApiConsultationReport): ConsultationReport {
-  const hpi = buildHistoryOfPresentIllness(api)
+  const hpi = buildDoctorHistoryOfPresentIllness(api)
+  const chiefComplaint = buildDoctorChiefComplaint(api)
 
   return {
     visitId: api.visitId,
@@ -367,7 +560,7 @@ export function mapApiReportToDoctorReport(api: ApiConsultationReport): Consulta
     doctorSpecialty: api.doctorSpecialty,
     type: normalizeVisitType(api.type),
     durationMin: api.durationMin ?? 0,
-    chiefComplaint: reportTextOrEmpty(api.chiefComplaint, REPORT_EMPTY_MESSAGES.chiefComplaint),
+    chiefComplaint: reportTextOrEmpty(chiefComplaint, REPORT_EMPTY_MESSAGES.chiefComplaint),
     historyOfPresentIllness: reportTextOrEmpty(
       hpi,
       REPORT_EMPTY_MESSAGES.historyOfPresentIllness,
@@ -392,6 +585,25 @@ export function mapApiReportToDoctorReport(api: ApiConsultationReport): Consulta
     labOrders: api.labOrders.map((lab) => lab.testName),
     referrals: api.referrals,
     plan: reportTextOrEmpty(api.plan, REPORT_EMPTY_MESSAGES.plan),
+    clinicalNotes: reportTextOrEmpty(
+      api.clinicalNotes ?? api.notes,
+      REPORT_EMPTY_MESSAGES.clinicalNotes,
+    ),
+    assessmentAndPlan: reportTextOrEmpty(
+      api.assessmentAndPlan ?? api.plan,
+      REPORT_EMPTY_MESSAGES.assessmentAndPlan,
+    ),
+    medicalHistorySummary: reportTextOrEmpty(
+      api.medicalHistorySummary,
+      REPORT_EMPTY_MESSAGES.medicalHistorySummary,
+    ),
+    procedureDetailsSummary: reportTextOrEmpty(
+      api.procedureDetailsSummary,
+      REPORT_EMPTY_MESSAGES.procedureDetailsSummary,
+    ),
+    homeMeasurements: api.homeMeasurements ?? [],
+    sessionTestOrders: api.testOrders ?? [],
+    aiStudies: api.aiStudies ?? [],
     followUp: {
       timeframe: reportTextOrEmpty(
         api.followUp.timeframe,
@@ -403,6 +615,7 @@ export function mapApiReportToDoctorReport(api: ApiConsultationReport): Consulta
       ),
     },
     notes: reportTextOrEmpty(api.notes, REPORT_EMPTY_MESSAGES.additionalNotes),
+    patientInstructions: mapPatientInstructions(api),
   }
 }
 
@@ -425,6 +638,7 @@ export function mapApiListItemToVisitSummary(
     medications: [],
     orders: [],
     previousVisits: [],
+    reasonForVisit: "",
   }
 }
 
@@ -443,7 +657,7 @@ export function mapApiReportToVisitSummary(
     },
     recordStatus: api.recordStatus,
     vitals: mapPatientVitals(api),
-    doctorNotes: buildDoctorNotes(api),
+    doctorNotes: "",
     diagnosis: {
       tags: mapDiagnosisTags(api),
       description: buildDiagnosisDescription(api),
@@ -451,5 +665,10 @@ export function mapApiReportToVisitSummary(
     medications: mapMedications(api),
     orders: mapClinicalOrders(api),
     previousVisits,
+    patientInstructions: mapPatientInstructions(api),
+    reasonForVisit: reportTextOrEmpty(
+      buildPatientReasonForVisit(api),
+      REPORT_EMPTY_MESSAGES.reasonForVisit,
+    ),
   }
 }

@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AppointmentModule } from '../appointment/appointment.module';
 import { DoctorScheduleModule } from '../doctor/schedule/doctor-schedule.module';
+import { MinioModule } from '../../shared/storage/minio.module';
+import { MailModule } from '../../shared/mail/mail.module';
 
 import { AccessTokenGuard } from '../auth/access-token.guard';
 import { AuthJwtService } from '../auth/jwt';
@@ -26,6 +28,8 @@ import { AssistantAccountService } from './account/assistant-account.service';
     }),
     AppointmentModule,
     DoctorScheduleModule,
+    MinioModule,
+    MailModule,
   ],
   controllers: [
     AssistantController,

@@ -14,7 +14,8 @@ type StepNavigationProps = {
 };
 
 export function StepNavigation({ step, isPending, isAnalysisPending, onNext, onPrevious, onSubmit }: StepNavigationProps) {
-  if (step === 3) return null;
+  if (step === 2) return null;
+
   const isLastStep = step === 5;
   const canGoBack = step > 1;
   const busy = isPending || (isAnalysisPending ?? false);

@@ -19,6 +19,7 @@ type PatientApiRow = {
   gender: "male" | "female" | "other"
   activeMedications: number
   poorComplianceCount: number
+  avatarUrl?: string | null
 }
 
 type PrescriptionApiRow = {
@@ -57,6 +58,7 @@ function mapPatient(row: PatientApiRow): PatientInfo {
     gender: row.gender === "other" ? "male" : row.gender,
     activeMedications: row.activeMedications,
     poorComplianceCount: row.poorComplianceCount,
+    avatarUrl: row.avatarUrl,
   }
 }
 

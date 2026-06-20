@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -9,11 +10,21 @@ import { eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../../database/drizzle.provider';
 import type { Database } from '../../../database/drizzle.provider';
 import { patient, user } from '../../../database/schema';
+import { AvatarUrlResolver } from '../../../shared/storage/avatar-url.resolver';
+import { MinioService } from '../../../shared/storage/minio.service';
+import {
+  MINIO_CATEGORY_PREFIX,
+  PATIENT_AVATAR_MIME_TYPES,
+} from '../../../shared/storage/minio.constants';
 import { UpdatePatientAccountDto } from './dto/update-patient-account.dto';
 
 @Injectable()
 export class PatientAccountService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly minioService: MinioService,
+    private readonly avatarUrlResolver: AvatarUrlResolver,
+  ) {}
 
   async getAccount(userId: number) {
     const patientRow = await this.findPatientByUserId(userId);
@@ -82,6 +93,46 @@ export class PatientAccountService {
     }
 
     return this.getAccount(userId);
+  }
+
+  async createAvatarUploadIntent(
+    userId: number,
+    fileName: string,
+    contentType: string,
+  ) {
+    const patientRow = await this.findPatientByUserId(userId);
+    const mimeType = contentType.trim().toLowerCase();
+    if (!PATIENT_AVATAR_MIME_TYPES.has(mimeType)) {
+      throw new BadRequestException('Unsupported profile photo file type');
+    }
+
+    return this.minioService.createUploadIntent({
+      fileName,
+      contentType: mimeType,
+      category: 'patient_avatar',
+      patientId: patientRow.id,
+    });
+  }
+
+  async setAvatar(userId: number, s3Key: string) {
+    const patientRow = await this.findPatientByUserId(userId);
+    const key = s3Key.trim();
+    const expectedPrefix = `${MINIO_CATEGORY_PREFIX.patient_avatar}/${patientRow.id}/`;
+    if (!key.startsWith(expectedPrefix)) {
+      throw new BadRequestException('Invalid profile photo storage key');
+    }
+
+    await this.db
+      .update(user)
+      .set({ avatarUrl: key })
+      .where(eq(user.id, userId));
+
+    await this.db
+      .update(patient)
+      .set({ avatarUrl: key })
+      .where(eq(patient.id, patientRow.id));
+
+    return { avatarUrl: await this.avatarUrlResolver.resolve(key) };
   }
 
   private async findPatientByUserId(userId: number) {

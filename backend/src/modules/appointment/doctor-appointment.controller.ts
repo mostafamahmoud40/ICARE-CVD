@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -12,7 +13,10 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { TokenPayload } from '../auth/jwt';
 import { DoctorGuard } from '../doctor/doctor.guard';
 import { DoctorAppointmentService } from './doctor-appointment.service';
-import { UpdateDoctorAppointmentDto } from './dto/doctor-appointment.dto';
+import {
+  CreateDoctorAppointmentDto,
+  UpdateDoctorAppointmentDto,
+} from './dto/doctor-appointment.dto';
 
 @Controller('doctor/appointments')
 @UseGuards(AccessTokenGuard, DoctorGuard)
@@ -43,6 +47,14 @@ export class DoctorAppointmentController {
     @Query('excludeAppointmentId') excludeAppointmentId?: string,
   ) {
     return this.service.getAvailableSlots(user.sub, date, excludeAppointmentId);
+  }
+
+  @Post()
+  createAppointment(
+    @CurrentUser() user: TokenPayload,
+    @Body() dto: CreateDoctorAppointmentDto,
+  ) {
+    return this.service.createAppointment(user.sub, dto);
   }
 
   @Get(':appointmentId')
@@ -76,5 +88,13 @@ export class DoctorAppointmentController {
     @Param('appointmentId') appointmentId: string,
   ) {
     return this.service.completeAppointment(user.sub, appointmentId);
+  }
+
+  @Patch(':appointmentId/no-show')
+  markNoShow(
+    @CurrentUser() user: TokenPayload,
+    @Param('appointmentId') appointmentId: string,
+  ) {
+    return this.service.markNoShow(user.sub, appointmentId);
   }
 }

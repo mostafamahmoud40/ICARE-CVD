@@ -208,14 +208,12 @@ function AppointmentCard({ appt }: { appt: DoctorAppointment }) {
             <span
               className={cn(
                 "rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest",
-                appt.status === "confirmed"
-                  ? "bg-emerald-50 text-emerald-700"
-                  : appt.status === "completed"
-                    ? "bg-blue-50 text-blue-700"
-                    : "bg-amber-50 text-amber-700",
+                appt.status === "completed"
+                  ? "bg-blue-50 text-blue-700"
+                  : "bg-amber-50 text-amber-700",
               )}
             >
-              {appt.status}
+              {appt.status === "confirmed" ? "scheduled" : appt.status}
             </span>
             <span className="flex items-center gap-1 font-bold text-[#1A5345]">
               {isVirtual ? <VideoIcon className="size-3" /> : <StethoscopeIcon className="size-3" />}
@@ -337,7 +335,7 @@ function DoctorDashboardContent({ data }: { data: DoctorDashboardData }) {
               detail={
                 <span className="flex items-center gap-1.5 text-emerald-700">
                   <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-                  {todayAppointments.filter((a) => a.status === "confirmed").length} confirmed
+                  {todayAppointments.filter((a) => a.status === "scheduled" || a.status === "confirmed").length} scheduled
                 </span>
               }
               icon={CalendarClockIcon}

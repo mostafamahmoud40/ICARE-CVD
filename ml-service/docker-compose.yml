@@ -4,6 +4,7 @@
 #   ml-echo     :8080  Echocardiogram EF analyzer       (GPU)
 #   ml-medical  :5000  Lab report OCR + LLM analyzer    (CPU, cloud-only)
 #   ml-ecg-rag  :8502  ECG feature extraction + RAG LLM (GPU embeddings + cloud LLM)
+#   ml-ecg-cls  :8503  ECG image classifier MaxViT 98% (GPU)
 #   ml-mri      :8090  Cardiac Cine-MRI diagnosis       (GPU)
 #
 # Secrets live in `.env` (next to this file). Copy `.env.example` first.
@@ -194,6 +195,31 @@ services:
       <<: *healthcheck-defaults
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8502/health')"]
       start_period: 45s
+
+  # ─── ECG image classification MaxViT (FastAPI :8503, GPU) ───────────────────
+  ml-ecg-classification:
+    build:
+      context: .
+      dockerfile: Dockerfile.ecg-classification
+    image: icare-ml-ecg-classification:latest
+    container_name: icare-ml-ecg-classification
+    gpus: all
+    ports:
+      - "8503:8503"
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - ECG_CLASSIFICATION_MODEL_PATH=/service/models/maxvit_ecg_98.pth
+    volumes:
+      - ./app/Ecg_Classification/best_maxvit_ecg_model 98.pth:/service/models/maxvit_ecg_98.pth:ro
+      - torch-cache:/root/.cache/torch
+    restart: unless-stopped
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8503/health')"]
+      start_period: 120s
 
 volumes:
   torch-cache:

@@ -29,6 +29,18 @@ function isConsultationEcgKey(key: string): boolean {
   return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_ecg}/`);
 }
 
+function isConsultationCineMriKey(key: string): boolean {
+  return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_cine_mri}/`);
+}
+
+function isConsultationCtKey(key: string): boolean {
+  return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_ct}/`);
+}
+
+function isConsultationEcgClsKey(key: string): boolean {
+  return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_ecg_cls}/`);
+}
+
 @Injectable()
 export class DoctorDocumentService {
   constructor(
@@ -119,6 +131,9 @@ export class DoctorDocumentService {
       !isConsultationXrayKey(s3Key) &&
       !isConsultationEchoKey(s3Key) &&
       !isConsultationEcgKey(s3Key) &&
+      !isConsultationCineMriKey(s3Key) &&
+      !isConsultationCtKey(s3Key) &&
+      !isConsultationEcgClsKey(s3Key) &&
       !s3Key.startsWith('documents/')
     ) {
       throw new BadRequestException('Invalid imaging storage key');
@@ -160,7 +175,14 @@ export class DoctorDocumentService {
 
     if (isMinioLabReportKey(doc.s3Key)) {
       await this.minioService.deleteObject(doc.s3Key);
-    } else if (isConsultationXrayKey(doc.s3Key) || isConsultationEchoKey(doc.s3Key) || isConsultationEcgKey(doc.s3Key)) {
+    } else if (
+      isConsultationXrayKey(doc.s3Key) ||
+      isConsultationEchoKey(doc.s3Key) ||
+      isConsultationEcgKey(doc.s3Key) ||
+      isConsultationCineMriKey(doc.s3Key) ||
+      isConsultationCtKey(doc.s3Key) ||
+      isConsultationEcgClsKey(doc.s3Key)
+    ) {
       await this.minioService.deleteObject(doc.s3Key);
     } else {
       await this.s3Service.deleteObject({ key: doc.s3Key });

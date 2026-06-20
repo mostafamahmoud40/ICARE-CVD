@@ -2,6 +2,7 @@ import { pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { patient } from './patient.schema';
 import { patientDocument } from './document.schema';
 import { consultation } from './consultation.schema';
+import { labOrder } from './labOrder.schema';
 
 /** Structured AI output for an uploaded lab report (OCR + LLM). */
 export const labReportPanel = pgTable('lab_report_panel', {
@@ -13,6 +14,9 @@ export const labReportPanel = pgTable('lab_report_panel', {
     onDelete: 'set null',
   }),
   consultationId: uuid('consultation_id').references(() => consultation.id, {
+    onDelete: 'set null',
+  }),
+  labOrderId: uuid('lab_order_id').references(() => labOrder.id, {
     onDelete: 'set null',
   }),
   panelTitle: varchar('panel_title', { length: 255 }),

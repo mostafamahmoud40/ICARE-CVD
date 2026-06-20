@@ -1497,7 +1497,7 @@ function AssistantDoctorScheduleBody({
       to: t("table.to"),
       copyDay: t("table.copyDay"),
       copyDayTitle: t("table.copyDayTitle"),
-      copyDayDescription: t("table.copyDayDescription"),
+      copyDayDescription: t("table.copyDayDescription", { day: "{day}" }),
       copyDaySelectAll: t("table.copyDaySelectAll"),
       copyDayClearAll: t("table.copyDayClearAll"),
       copyDayConfirm: t("table.copyDayConfirm"),

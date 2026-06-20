@@ -12,6 +12,10 @@ import {
 } from './dto/patient-profile-extras.dto';
 import { UpdateDoctorPatientProfileDto } from './dto/update-doctor-patient-profile.dto';
 import { CreatePatientAllergyDto } from './dto/patient-allergy.dto';
+import {
+  PatientAvatarUploadIntentDto,
+  SetPatientAvatarDto,
+} from '../../assistant/dto/patient-avatar.dto';
 
 @Controller('doctor/patients')
 @UseGuards(AccessTokenGuard, DoctorGuard)
@@ -43,6 +47,29 @@ export class DoctorPatientController {
     @Body() dto: UpdateDoctorPatientProfileDto,
   ) {
     return this.service.updatePatientProfile(user.sub, patientId, dto);
+  }
+
+  @Post(':patientId/avatar/upload-intent')
+  createPatientAvatarUploadIntent(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Body() dto: PatientAvatarUploadIntentDto,
+  ) {
+    return this.service.createPatientAvatarUploadIntent(
+      user.sub,
+      patientId,
+      dto.fileName,
+      dto.contentType,
+    );
+  }
+
+  @Patch(':patientId/avatar')
+  setPatientAvatar(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Body() dto: SetPatientAvatarDto,
+  ) {
+    return this.service.setPatientAvatar(user.sub, patientId, dto.s3Key);
   }
 
   @Post(':patientId/assign')

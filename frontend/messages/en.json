@@ -1138,6 +1138,8 @@
       "editDialog": {
         "title": "Edit profile",
         "avatarSection": "Profile photo",
+        "avatarHint": "Choose a preset avatar or upload a photo (JPEG, PNG, WebP, or GIF, max 5 MB).",
+        "uploadPhoto": "Upload photo",
         "fullName": "Full name",
         "email": "Email",
         "phone": "Phone",

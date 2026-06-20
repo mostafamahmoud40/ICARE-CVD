@@ -83,6 +83,35 @@ const PATCHES = [
     "created_at" timestamp with time zone DEFAULT now() NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS "push_subscription_user_id_idx" ON "push_subscription" ("user_id")`,
+  `ALTER TABLE "patient" ADD COLUMN IF NOT EXISTS "patient_number" varchar(20)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "patient_patient_number_unique" ON "patient" ("patient_number")`,
+  `CREATE SEQUENCE IF NOT EXISTS "patient_number_seq"`,
+  `SELECT setval(
+    'patient_number_seq',
+    GREATEST(
+      (
+        SELECT COALESCE(
+          MAX(CAST(SUBSTRING(patient_number FROM 3) AS INTEGER)),
+          0
+        )
+        FROM patient
+        WHERE patient_number ~ '^P-[0-9]+$'
+      ),
+      1
+    ),
+    true
+  )`,
+  `CREATE TABLE IF NOT EXISTS "pending_registration" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "email" text NOT NULL UNIQUE,
+    "name" text NOT NULL,
+    "phone" text,
+    "password" text NOT NULL,
+    "otp_code" text NOT NULL,
+    "otp_expires_at" timestamptz NOT NULL,
+    "created_at" timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS "pending_registration_email_idx" ON "pending_registration" ("email")`,
 ];
 
 async function main() {

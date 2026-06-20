@@ -6,12 +6,14 @@ import { AuthService } from './auth.service';
 import { AuthJwtService } from './jwt';
 import { DocumentService } from './document.service';
 import { MailModule } from '../../shared/mail/mail.module';
+import { MinioModule } from '../../shared/storage/minio.module';
 import { S3Module } from '../../shared/storage/s3.module';
 import { AccessTokenGuard } from './access-token.guard';
 
 @Module({
   imports: [
     MailModule,
+    MinioModule,
     S3Module,
     JwtModule.register({
       secret: process.env.JWT_ACCESS_SECRET,

@@ -16,6 +16,7 @@ import {
   doctor,
   doctorSchedule,
   patient,
+  patientQueue,
   user,
   blockedDates,
   scheduleDayExtra,
@@ -25,6 +26,7 @@ import type { CreateAppointmentDto } from './dto/create-appointment.dto';
 import type { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { AppointmentPatientNotificationService } from './appointment-patient-notification.service';
 import { AppointmentAssistantNotificationService } from './appointment-assistant-notification.service';
+import { allocatePatientNumber } from '../../shared/patient/patient-number';
 
 @Injectable()
 export class AppointmentService {
@@ -117,6 +119,8 @@ export class AppointmentService {
   }
 
   async getDoctorAvailability(doctorId: string, from?: string, days = 14) {
+    await this.autoMarkStaleNoShows(doctorId);
+
     const doctorRow = await this.db.query.doctor.findFirst({
       where: eq(doctor.id, doctorId),
     });
@@ -218,10 +222,13 @@ export class AppointmentService {
       }>
     > = {};
 
+    const clinicNow = this.getClinicNow();
+
     for (let i = 0; i < safeDays; i += 1) {
       const current = new Date(start);
       current.setDate(start.getDate() + i);
       const fullDate = this.toDateOnly(current);
+      const isPastDay = fullDate < clinicNow.today;
       const weekday = this.weekdayId(current);
       const dayConfig = schedule.days.find((d) => d.weekday === weekday);
       const blockedDay = blockedSet.has(fullDate);
@@ -237,10 +244,10 @@ export class AppointmentService {
         day: this.weekdayLabelShort(current),
         date: current.getDate(),
         fullDate,
-        disabled: !enabled || reachedLimit,
+        disabled: !enabled || reachedLimit || isPastDay,
       });
 
-      if (!enabled || reachedLimit) {
+      if (!enabled || reachedLimit || isPastDay) {
         timeSlotsByDate[fullDate] = [];
         continue;
       }
@@ -259,7 +266,11 @@ export class AppointmentService {
         unavailable,
         schedule.slotDurationMinutes,
         schedule.bufferBetweenSlotsMinutes,
-      ).map((slotTime) => {
+      )
+        .filter(
+          (slotTime) => !this.isSlotInPast(fullDate, slotTime, clinicNow),
+        )
+        .map((slotTime) => {
         const booked = bookedSet.has(slotTime);
         return {
           time: this.toAmPm(slotTime),
@@ -288,6 +299,8 @@ export class AppointmentService {
   }
 
   async listPatientAppointments(userId: number) {
+    await this.autoMarkStaleNoShows();
+
     const patientRow = await this.getOrCreatePatientProfile(userId);
 
     let rows: Array<{
@@ -363,6 +376,13 @@ export class AppointmentService {
     }
 
     const scheduledAt = new Date(dto.scheduledAt);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      throw new BadRequestException('Invalid scheduledAt');
+    }
+    if (this.isScheduledAtInPast(scheduledAt)) {
+      throw new BadRequestException('Cannot book a slot in the past');
+    }
+
     const alreadyBooked = await this.db.query.appointment.findFirst({
       where: and(
         eq(appointment.doctorId, dto.doctorId),
@@ -583,16 +603,98 @@ export class AppointmentService {
       throw new ForbiddenException('Patient access required');
     }
 
+    const patientNumber = await allocatePatientNumber(this.db);
+
     const [created] = await this.db
       .insert(patient)
       .values({
         userId,
+        patientNumber,
         dateOfBirth: new Date('2000-01-01'),
         gender: 'other',
       })
       .returning();
 
     return created;
+  }
+
+  async autoMarkStaleNoShows(doctorId?: string): Promise<void> {
+    const now = new Date();
+    const conditions = [
+      lt(appointment.scheduledAt, now),
+      ne(appointment.status, 'cancelled'),
+      ne(appointment.status, 'completed'),
+    ];
+    if (doctorId) {
+      conditions.push(eq(appointment.doctorId, doctorId));
+    }
+
+    const rows = await this.db
+      .select({
+        appointmentId: appointment.id,
+        queueId: patientQueue.id,
+        queueStatus: patientQueue.status,
+      })
+      .from(appointment)
+      .leftJoin(patientQueue, eq(patientQueue.appointmentId, appointment.id))
+      .where(and(...conditions));
+
+    const skipQueueStatuses = new Set([
+      'arrived',
+      'waiting',
+      'in-consultation',
+      'report-pending',
+      'completed',
+      'no-show',
+      'cancelled',
+    ]);
+
+    for (const row of rows) {
+      if (row.queueStatus && skipQueueStatuses.has(row.queueStatus)) {
+        continue;
+      }
+
+      if (row.queueId) {
+        await this.db
+          .update(patientQueue)
+          .set({ status: 'no-show', updatedAt: now })
+          .where(eq(patientQueue.id, row.queueId));
+      } else {
+        await this.db.insert(patientQueue).values({
+          appointmentId: row.appointmentId,
+          status: 'no-show',
+          priority: 'normal',
+          updatedAt: now,
+        });
+      }
+    }
+  }
+
+  private getClinicNow(): { today: string; minutes: number } {
+    const now = new Date();
+    return {
+      today: this.toDateOnly(now),
+      minutes: this.hhmmToMinutes(this.toHHMM(now)),
+    };
+  }
+
+  private isSlotInPast(
+    fullDate: string,
+    slotHHMM: string,
+    clinicNow: { today: string; minutes: number },
+  ): boolean {
+    if (fullDate < clinicNow.today) return true;
+    if (fullDate > clinicNow.today) return false;
+    return this.hhmmToMinutes(slotHHMM) <= clinicNow.minutes;
+  }
+
+  private isScheduledAtInPast(scheduledAt: Date): boolean {
+    const clinicNow = this.getClinicNow();
+    return this.isSlotInPast(
+      this.toDateOnly(scheduledAt),
+      this.toHHMM(scheduledAt),
+      clinicNow,
+    );
   }
 
   private generateSlots(

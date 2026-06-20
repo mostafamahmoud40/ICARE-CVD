@@ -14,6 +14,7 @@ import {
 } from "./briefing.constants"
 import { acknowledgeBriefing } from "./briefingStorage"
 import { usePatientBriefing } from "./usePatientBriefing"
+import { useQueueEntryId } from "./useQueueEntryId"
 import {
   BriefingPreparation,
   PatientBriefingReportContent,
@@ -27,7 +28,8 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
-export function PatientBriefingPage({ queueEntryId }: { queueEntryId: string }) {
+export default function PatientBriefingPage() {
+  const queueEntryId = useQueueEntryId()
   const router = useRouter()
   const queryClient = useQueryClient()
   const summary = mockConsultationData.patientSummary

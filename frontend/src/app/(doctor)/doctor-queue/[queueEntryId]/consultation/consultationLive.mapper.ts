@@ -154,9 +154,16 @@ function mapTestType(value: string | null | undefined): TestOrder["testType"] {
     "imaging",
     "ecg",
     "echocardiogram",
+    "holter_monitor",
     "stress_test",
+    "nuclear_stress_test",
+    "ct_coronary_angiography",
+    "cardiac_mri",
     "cardiac_catheterization",
+    "carotid_doppler",
+    "tilt_table_test",
     "pulmonary_function",
+    "sleep_study",
     "urinalysis",
     "other",
   ]
@@ -184,6 +191,9 @@ export function mapSessionToLiveFields(
   | "assessmentAndPlan"
   | "followUpDate"
   | "followUpNotes"
+  | "patientDiagnosisSummary"
+  | "patientLifestyleAdvice"
+  | "patientDangerSigns"
 > {
   const { consultation, diagnoses, labOrders, prescriptions } = session
 
@@ -251,6 +261,125 @@ export function mapSessionToLiveFields(
     assessmentAndPlan: consultation.plan ?? "",
     followUpDate: consultation.followUpTimeframe ?? "",
     followUpNotes: consultation.followUpInstructions ?? "",
+    patientDiagnosisSummary: consultation.patientDiagnosisSummary ?? "",
+    patientLifestyleAdvice: consultation.patientLifestyleAdvice ?? "",
+    patientDangerSigns: consultation.patientDangerSigns ?? "",
+  }
+}
+
+export type ConsultationLiveFields = ReturnType<typeof mapSessionToLiveFields>
+
+function pickTextField(server: string, local: string): string {
+  const serverValue = server.trim()
+  const localValue = local.trim()
+  if (localValue && !serverValue) return local
+  if (serverValue && !localValue) return server
+  if (localValue && serverValue) return local
+  return local
+}
+
+function pickStringArray(server: string[], local: string[]): string[] {
+  if (local.length > 0 && server.length === 0) return local
+  if (server.length > 0 && local.length === 0) return server
+  if (local.length > 0 && server.length > 0) return local
+  return local
+}
+
+function pickBoolean(server: boolean, local: boolean): boolean {
+  if (local && !server) return true
+  if (!local && server) return server
+  return local
+}
+
+function mergeAnswerRecords(
+  local: Record<string, string>,
+  server: Record<string, string>,
+): Record<string, string> {
+  const keys = new Set([...Object.keys(local), ...Object.keys(server)])
+  const merged: Record<string, string> = {}
+  for (const key of keys) {
+    merged[key] = pickTextField(server[key] ?? "", local[key] ?? "")
+  }
+  return merged
+}
+
+export function mergeMedicalHistory(
+  local: ConsultationMedicalHistory,
+  server: ConsultationMedicalHistory,
+): ConsultationMedicalHistory {
+  return {
+    noCardiacHistory: pickBoolean(server.noCardiacHistory, local.noCardiacHistory),
+    cardiacAnswers: mergeAnswerRecords(local.cardiacAnswers, server.cardiacAnswers),
+    cardiacNotes: pickTextField(server.cardiacNotes, local.cardiacNotes),
+    cardiacReviewed: pickBoolean(server.cardiacReviewed, local.cardiacReviewed),
+    noNonCardiacHistory: pickBoolean(server.noNonCardiacHistory, local.noNonCardiacHistory),
+    nonCardiacAnswers: mergeAnswerRecords(local.nonCardiacAnswers, server.nonCardiacAnswers),
+    nonCardiacNotes: pickTextField(server.nonCardiacNotes, local.nonCardiacNotes),
+    nonCardiacReviewed: pickBoolean(server.nonCardiacReviewed, local.nonCardiacReviewed),
+    noKnownAllergies: pickBoolean(server.noKnownAllergies, local.noKnownAllergies),
+    noChronicConditions: pickBoolean(server.noChronicConditions, local.noChronicConditions),
+  }
+}
+
+export function mergeChiefComplaintStructured(
+  local: ChiefComplaintStructured,
+  server: ChiefComplaintStructured,
+): ChiefComplaintStructured {
+  return {
+    primaryComplaint: pickTextField(server.primaryComplaint, local.primaryComplaint),
+    onset: pickTextField(server.onset, local.onset),
+    duration: pickTextField(server.duration, local.duration),
+    severity: pickTextField(server.severity, local.severity),
+    character: pickTextField(server.character, local.character),
+    aggravating: pickStringArray(server.aggravating, local.aggravating),
+    relieving: pickStringArray(server.relieving, local.relieving),
+    associatedSymptoms: pickStringArray(server.associatedSymptoms, local.associatedSymptoms),
+    otherComplaintDetail: pickTextField(server.otherComplaintDetail, local.otherComplaintDetail),
+  }
+}
+
+export function mergePhysicalExamFields(
+  local: PhysicalExamFindings,
+  server: PhysicalExamFindings,
+): PhysicalExamFindings {
+  return {
+    heartSounds: pickTextField(server.heartSounds, local.heartSounds),
+    murmurs: pickTextField(server.murmurs, local.murmurs),
+    jvp: pickTextField(server.jvp, local.jvp),
+    peripheralEdema: pickTextField(server.peripheralEdema, local.peripheralEdema),
+    lungAuscultation: pickTextField(server.lungAuscultation, local.lungAuscultation),
+    additionalFindings: pickTextField(server.additionalFindings, local.additionalFindings),
+  }
+}
+
+export function mergeSessionLiveFields(
+  prev: ConsultationData,
+  live: ConsultationLiveFields,
+): ConsultationData {
+  const chiefComplaintStructured = mergeChiefComplaintStructured(
+    prev.chiefComplaintStructured,
+    live.chiefComplaintStructured,
+  )
+  const medicalHistory = mergeMedicalHistory(prev.medicalHistory, live.medicalHistory)
+
+  return {
+    ...prev,
+    ...live,
+    chiefComplaint: pickTextField(live.chiefComplaint, prev.chiefComplaint),
+    chiefComplaintStructured,
+    structuredComplaint: pickTextField(
+      live.structuredComplaint,
+      prev.structuredComplaint || chiefComplaintStructured.primaryComplaint,
+    ),
+    medicalHistory,
+    clinicalNotes: pickTextField(live.clinicalNotes, prev.clinicalNotes),
+    assessmentAndPlan: pickTextField(live.assessmentAndPlan, prev.assessmentAndPlan),
+    followUpDate: pickTextField(live.followUpDate, prev.followUpDate),
+    followUpNotes: pickTextField(live.followUpNotes, prev.followUpNotes),
+    patientDiagnosisSummary: pickTextField(live.patientDiagnosisSummary, prev.patientDiagnosisSummary),
+    patientLifestyleAdvice: pickTextField(live.patientLifestyleAdvice, prev.patientLifestyleAdvice),
+    patientDangerSigns: pickTextField(live.patientDangerSigns, prev.patientDangerSigns),
+    physicalExam: mergePhysicalExamFields(prev.physicalExam, live.physicalExam),
   }
 }
 

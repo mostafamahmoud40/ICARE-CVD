@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { resolveAppointmentDisplayStatus } from "./appointmentDisplayStatus"
 import type { DoctorAppointment } from "./doctorAppointments.types"
 import { AppointmentDayList } from "./AppointmentDayList"
 
@@ -285,21 +286,28 @@ export function AppointmentCalendar({
                 </div>
 
                 <div className="flex flex-1 flex-col gap-1 overflow-hidden">
-                  {dayAppointments.slice(0, 2).map((apt) => (
+                  {dayAppointments.slice(0, 2).map((apt) => {
+                    const display = resolveAppointmentDisplayStatus(apt)
+                    return (
                     <span
                       key={apt.id}
                       className={cn(
                         "truncate rounded-md px-1.5 py-0.5 text-[9px] font-bold leading-tight sm:text-[10px]",
-                        apt.status === "cancelled"
+                        display === "cancelled" || display === "no-show"
                           ? "bg-red-50 text-red-600 line-through"
-                          : apt.status === "completed"
+                          : display === "completed"
                             ? "bg-emerald-50 text-emerald-700"
-                            : "bg-[#E8F0EE] text-[#1A5345]",
+                            : display === "overdue"
+                              ? "bg-slate-100 text-slate-700"
+                              : display === "waiting" || display === "arrived"
+                                ? "bg-orange-50 text-orange-700"
+                                : "bg-[#E8F0EE] text-[#1A5345]",
                       )}
                     >
                       {formatTimeShort(apt.scheduledAt)} · {apt.patient.name.split(" ")[0]}
                     </span>
-                  ))}
+                    )
+                  })}
                   {count > 2 ? (
                     <span className="text-[10px] font-bold text-muted-foreground">
                       +{count - 2} more

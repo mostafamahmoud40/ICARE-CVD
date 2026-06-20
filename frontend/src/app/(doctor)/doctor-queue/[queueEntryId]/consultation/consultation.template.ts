@@ -65,6 +65,9 @@ export function createConsultationDataFromPatient(
     assessmentAndPlan: "",
     followUpDate: "",
     followUpNotes: "",
+    patientDiagnosisSummary: "",
+    patientLifestyleAdvice: "",
+    patientDangerSigns: "",
     aiSuggestions: mockAiSuggestions.map((suggestion) => ({ ...suggestion })),
   }
 }

@@ -20,6 +20,7 @@ import {
   XCircleIcon,
   ZapIcon,
 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
@@ -31,6 +32,8 @@ const ECG_RAG_URL =
   typeof window !== "undefined"
     ? (process.env.NEXT_PUBLIC_ECG_RAG_SERVICE_URL ?? "http://localhost:8502")
     : "http://localhost:8502"
+
+const SECTION_CARD = "rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm"
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -111,6 +114,7 @@ interface EcgRagAnalysisResult {
   full_features: EcgFullFeatures
   legacy_features: Record<string, unknown>
   retrieved: string
+  warnings?: string[]
   ecg_plot_b64: string
   /** Standard 12-lead strip layout (fixed mV scale) — most readable in UI. */
   hospital_plot_b64?: string
@@ -131,6 +135,33 @@ function formatBytes(b: number): string {
   if (b < 1024) return `${b} B`
   if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`
   return `${(b / (1024 * 1024)).toFixed(1)} MB`
+}
+
+/** Rough expected .dat size from WFDB header line 1 + format-16 signal lines. */
+function expectedDatBytesFromHea(text: string): number | null {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim() && !l.trim().startsWith("#"))
+  if (lines.length < 2) return null
+  const head = lines[0].trim().split(/\s+/)
+  const nSig = Number(head[1])
+  const nSamples = Number(head[3])
+  if (!Number.isFinite(nSig) || !Number.isFinite(nSamples) || nSig < 1 || nSamples < 1) return null
+  const fmt = lines[1].trim().split(/\s+/)[1]?.split("+")[0] ?? "16"
+  const bytesPerSample = fmt === "16" ? 2 : fmt === "24" ? 3 : fmt === "32" ? 4 : 2
+  return nSamples * nSig * bytesPerSample
+}
+
+async function detectWfdbPairIssue(heaFile: File, datFile: File): Promise<string | null> {
+  const heaText = await heaFile.text()
+  const expected = expectedDatBytesFromHea(heaText)
+  if (!expected) return null
+  const ratio = datFile.size / expected
+  if (ratio > 1.5) {
+    return `ملف .dat كبير جداً (${formatBytes(datFile.size)}) مقارنة بما يتوقعه الـ header (~${formatBytes(expected)}). غالباً ملف غلط — PTB-XL 100 Hz يكون ~24 KB و 500 Hz ~120 KB.`
+  }
+  if (ratio < 0.9) {
+    return `ملف .dat صغير جداً (${formatBytes(datFile.size)}) للـ header (~${formatBytes(expected)}). تأكد إن الـ .hea والـ .dat من نفس التسجيل.`
+  }
+  return null
 }
 
 function formatElapsed(s: number): string {
@@ -973,6 +1004,34 @@ function DiagnosisPanel({
 
 // ─── error panel ──────────────────────────────────────────────────────────────
 
+function EcgRagWarningsPanel({ warnings }: { warnings: string[] }) {
+  if (!warnings.length) return null
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+      <div className="flex items-start gap-2">
+        <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-amber-600" />
+        <div className="min-w-0 space-y-1.5">
+          <p className="text-[11px] font-semibold text-amber-900">
+            Signal quality warning — metrics below may be unreliable
+          </p>
+          <ul className="list-disc space-y-1 pl-4 text-[10px] leading-relaxed text-amber-900/90">
+            {warnings.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+          <p className="text-[10px] text-amber-800/80">
+            For PTB-XL, upload the matching pair from the same folder:{" "}
+            <span className="font-mono">records100/…/05469_lr.hea</span> +{" "}
+            <span className="font-mono">05469_lr.dat</span> (~24 KB), or the 500 Hz{" "}
+            <span className="font-mono">*_hr.*</span> pair (~120 KB). A .dat of ~1–2 MB with a
+            100 Hz header usually means the wrong file was selected.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function EcgRagErrorPanel({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div className="rounded-lg border border-red-200 bg-red-50 p-3">
@@ -1028,46 +1087,53 @@ function EcgRagUploadZone({
 
   return (
     <div
-      className="rounded-xl border-2 border-dashed border-[#C8D8D1] bg-[#F6FBF9] p-4 transition-colors hover:border-[#1A5345]/40"
+      className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#E8E6E0] bg-[#FAFAF8] px-4 py-8 transition-colors hover:border-[#1A5345]/30 hover:bg-[#F9F8F5]"
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >
-      <div className="flex flex-col items-center gap-2 text-center">
-        <UploadCloudIcon className="size-8 text-[#1A5345]/40" />
-        <p className="text-[12px] font-medium text-[#102F27]/70">
-          Drag &amp; drop <span className="font-semibold">.hea</span> and{" "}
-          <span className="font-semibold">.dat</span> files here, or pick them below
+      <UploadCloudIcon className="size-8 text-[#1A5345]/80" aria-hidden />
+      <div className="text-center">
+        <p className="text-[14px] font-medium text-[#1A1F1E]">
+          Drop ECG files here or browse below
         </p>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => heaRef.current?.click()}
-            className={cn(
-              "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-colors",
-              heaFile
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-[#E5EEEA] bg-white text-[#1A5345] hover:bg-[#E8F0EE]",
-            )}
-          >
-            {heaFile ? <CheckCircle2Icon className="size-3" /> : <UploadCloudIcon className="size-3" />}
-            {heaFile ? heaFile.name : "Upload .hea"}
-          </button>
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => datRef.current?.click()}
-            className={cn(
-              "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-colors",
-              datFile
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-[#E5EEEA] bg-white text-[#1A5345] hover:bg-[#E8F0EE]",
-            )}
-          >
-            {datFile ? <CheckCircle2Icon className="size-3" /> : <UploadCloudIcon className="size-3" />}
-            {datFile ? datFile.name : "Upload .dat"}
-          </button>
-        </div>
+        <p className="mt-1 text-[12px] text-muted-foreground">
+          Requires matching <span className="font-medium">.hea</span> +{" "}
+          <span className="font-medium">.dat</span> from the same WFDB record
+        </p>
+        <p className="mx-auto mt-2 max-w-md text-[11px] text-muted-foreground">
+          PTB-XL 100 Hz pairs are ~600 B + ~24 KB; 500 Hz pairs are ~600 B + ~120 KB. Mismatched
+          or oversized .dat files produce corrupted traces and wrong heart-rate detection.
+        </p>
+      </div>
+      <div className="flex flex-wrap justify-center gap-2 pt-1">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => heaRef.current?.click()}
+          className={cn(
+            "flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-semibold transition-colors",
+            heaFile
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-[#E8E6E0] bg-white text-[#1A5345] hover:bg-[#F9F8F5]",
+          )}
+        >
+          {heaFile ? <CheckCircle2Icon className="size-3.5" /> : <UploadCloudIcon className="size-3.5" />}
+          {heaFile ? heaFile.name : "Select .hea"}
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => datRef.current?.click()}
+          className={cn(
+            "flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-semibold transition-colors",
+            datFile
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-[#E8E6E0] bg-white text-[#1A5345] hover:bg-[#F9F8F5]",
+          )}
+        >
+          {datFile ? <CheckCircle2Icon className="size-3.5" /> : <UploadCloudIcon className="size-3.5" />}
+          {datFile ? datFile.name : "Select .dat"}
+        </button>
       </div>
       <input ref={heaRef} type="file" accept=".hea" className="sr-only"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) onHeaFile(f); e.target.value = "" }} />
@@ -1083,6 +1149,19 @@ export function EcgRagSection() {
   // Own file state — independent from EcgSection
   const [heaFile, setHeaFile] = useState<File | null>(null)
   const [datFile, setDatFile] = useState<File | null>(null)
+  const [pairIssue, setPairIssue] = useState<string | null>(null)
+
+  const syncPairIssue = useCallback(async (hea: File | null, dat: File | null) => {
+    if (!hea || !dat) {
+      setPairIssue(null)
+      return
+    }
+    try {
+      setPairIssue(await detectWfdbPairIssue(hea, dat))
+    } catch {
+      setPairIssue(null)
+    }
+  }, [])
 
   const [status, setStatus] = useState<AnalysisStatus>("idle")
   const [result, setResult] = useState<EcgRagAnalysisResult | null>(null)
@@ -1094,6 +1173,7 @@ export function EcgRagSection() {
     setStatus("idle")
     setResult(null)
     setErrorMsg("")
+    setPairIssue(null)
     setElapsed(0)
     if (timerRef.current) clearInterval(timerRef.current)
   }, [])
@@ -1129,34 +1209,62 @@ export function EcgRagSection() {
   }
 
   const bothReady = heaFile !== null && datFile !== null
+  const pairBlocked = pairIssue !== null
   const showAnalyze = bothReady && status !== "done" && status !== "error"
 
   return (
-    <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-violet-100">
-            <BrainCircuitIcon className="size-4 text-violet-600" />
+    <div className={SECTION_CARD}>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <BrainCircuitIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
+            <h3 className="font-serif text-[16px] font-bold text-[#1A1F1E]">
+              ECG diagnosis — LLM + RAG
+            </h3>
           </div>
-          <h3 className="text-[14px] font-semibold text-[#102F27]">ECG Diagnosis — LLM + RAG</h3>
+          <p className="mt-1 pl-7 text-[13px] text-muted-foreground">
+            Comprehensive feature extraction with NeuroKit2, literature RAG, and structured cardiac diagnosis.
+          </p>
         </div>
-        <span className="rounded-full bg-violet-50 px-2.5 py-0.5 text-[10px] font-medium text-violet-600">
-          AI · NeuroKit2 + Groq + ChromaDB
-        </span>
+        <Badge
+          variant="default"
+          className="w-fit rounded-lg border-0 bg-[#1A5345] px-2.5 py-1 text-[11px] font-bold text-white shadow-none hover:bg-[#1A5345]"
+        >
+          AI · NeuroKit2 + RAG
+        </Badge>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {/* File upload — always visible, own state */}
         {status !== "done" && (
           <EcgRagUploadZone
             heaFile={heaFile}
             datFile={datFile}
-            onHeaFile={(f) => { reset(); setHeaFile(f) }}
-            onDatFile={(f) => { reset(); setDatFile(f) }}
+            onHeaFile={(f) => {
+              reset()
+              setHeaFile(f)
+              void syncPairIssue(f, datFile)
+            }}
+            onDatFile={(f) => {
+              reset()
+              setDatFile(f)
+              void syncPairIssue(heaFile, f)
+            }}
             disabled={status === "processing"}
           />
         )}
+
+        {pairIssue && status !== "done" ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] leading-relaxed text-amber-900">
+            <div className="flex items-start gap-2">
+              <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-amber-600" />
+              <div>
+                <p className="font-semibold">ملفات غير متطابقة — الرسم والنتائج هتطلع غلط</p>
+                <p className="mt-1">{pairIssue}</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/* File cards */}
         {heaFile && status !== "idle" && (
@@ -1181,20 +1289,21 @@ export function EcgRagSection() {
         {/* Analyze button */}
         {showAnalyze && (
           <Button
+            type="button"
             size="sm"
-            disabled={status === "processing"}
+            disabled={status === "processing" || pairBlocked}
             onClick={() => void handleAnalyze()}
-            className="w-full gap-1.5 bg-violet-600 text-[12px] hover:bg-violet-700"
+            className="h-10 w-full gap-1.5 rounded-lg border-0 bg-[#1A5345] text-[13px] font-bold text-white shadow-sm hover:bg-[#133F34]"
           >
             {status === "processing" ? (
               <>
-                <Loader2Icon className="size-3.5 animate-spin" />
+                <Loader2Icon className="size-4 animate-spin" aria-hidden />
                 Extracting ECG features… {elapsed > 0 && `(${formatElapsed(elapsed)})`}
               </>
             ) : (
               <>
-                <BrainCircuitIcon className="size-3.5" />
-                Run ECG Feature Analysis + RAG Diagnosis
+                <BrainCircuitIcon className="size-4" aria-hidden />
+                Run feature analysis + RAG diagnosis
               </>
             )}
           </Button>
@@ -1208,6 +1317,9 @@ export function EcgRagSection() {
         {/* Results — mirror the Streamlit layout */}
         {status === "done" && result && (
           <div className="space-y-4">
+            {result.warnings && result.warnings.length > 0 ? (
+              <EcgRagWarningsPanel warnings={result.warnings} />
+            ) : null}
             {/* Signal summary + detail tabs (single card, reference layout) */}
             <div className="overflow-hidden rounded-xl border border-[#E5EEEA] bg-white">
               <TooltipProvider delay={200}>
@@ -1260,18 +1372,17 @@ export function EcgRagSection() {
             <button
               type="button"
               onClick={() => { reset(); setHeaFile(null); setDatFile(null) }}
-              className="w-full rounded-lg border border-dashed border-[#E5EEEA] py-2 text-[10px] text-[#1A5345] hover:border-[#1A5345]/30 hover:bg-[#F6FBF9]"
+              className="w-full rounded-xl border border-dashed border-[#E8E6E0] py-3 text-[13px] font-semibold text-[#1A5345] transition-colors hover:border-[#1A5345]/40 hover:bg-[#F9F8F5]"
             >
               Upload a different recording
             </button>
           </div>
         )}
 
-        <p className="text-center text-[10px] text-muted-foreground">
-          Uses <span className="font-medium">NeuroKit2</span> for comprehensive feature extraction (HRV,
-          intervals, ST analysis, MI localisation, LVH/RVH) ·{" "}
-          <span className="font-medium">ChromaDB</span> RAG from medical literature ·{" "}
-          <span className="font-medium">Groq llama-3.3-70b</span> for structured cardiac diagnosis.
+        <p className="text-center text-[12px] leading-relaxed text-muted-foreground">
+          Uses <span className="font-medium">NeuroKit2</span> for feature extraction (HRV, intervals, ST,
+          MI localisation, LVH/RVH) · <span className="font-medium">ChromaDB</span> RAG ·{" "}
+          <span className="font-medium">Groq llama-3.3-70b</span> for structured diagnosis.
         </p>
       </div>
     </div>

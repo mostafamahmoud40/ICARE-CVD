@@ -79,6 +79,32 @@ import type { CreatedPatient } from "./addPatient.types"
 import { AddPatient } from "./AddPatient"
 import type { useAddPatient } from "./useAddPatient"
 
+function patientAvatarSrc(patient: Pick<CreatedPatient, "id" | "avatarUrl">) {
+  const raw = patient.avatarUrl?.trim()
+  if (!raw) return `https://i.pravatar.cc/150?u=${patient.id}`
+  if (raw.startsWith("/avatars/")) return raw
+  return raw
+}
+
+function PatientListAvatar({
+  patient,
+}: {
+  patient: Pick<CreatedPatient, "id" | "avatarUrl" | "fullName">
+}) {
+  const [imageFailed, setImageFailed] = useState(false)
+  const fallback = `https://i.pravatar.cc/150?u=${patient.id}`
+  const src = imageFailed ? fallback : patientAvatarSrc(patient)
+
+  return (
+    <img
+      src={src}
+      alt={patient.fullName}
+      className="h-full w-full object-cover"
+      onError={() => setImageFailed(true)}
+    />
+  )
+}
+
 type PatientsListProps = {
   patients: CreatedPatient[]
   addPatientState: ReturnType<typeof useAddPatient>
@@ -497,12 +523,12 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                         <td className="py-4 pr-4 pl-4">
                           <div className="flex items-center gap-3">
                             <div className="relative size-11 shrink-0 rounded-full overflow-hidden border border-[#E8E6E0] shadow-sm">
-                              <img src={`https://i.pravatar.cc/150?u=${patient.id}`} alt={patient.fullName} className="w-full h-full object-cover" />
+                              <PatientListAvatar patient={patient} />
                             </div>
                             <div className="min-w-0 flex flex-col justify-center gap-0.5">
                               <div className="text-[15px] font-bold text-[#1A1F1E] truncate group-hover:text-[#1A5345] transition-colors">{patient.fullName}</div>
                               <div className="text-[13px] font-medium text-muted-foreground truncate">
-                                #CVD-{String(patient.id).padStart(4, "0")}
+                                {patient.id}
                               </div>
                             </div>
                           </div>
@@ -713,10 +739,10 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                         {/* Avatar & Name */}
                         <div className="mb-4 flex flex-col items-center gap-2.5">
                           <div className="relative size-16 overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF] shadow-sm">
-                            <img src={`https://i.pravatar.cc/150?u=${patient.id}`} alt={patient.fullName} className="w-full h-full object-cover" />
+                            <PatientListAvatar patient={patient} />
                           </div>
                           <div className="flex flex-col items-center text-center">
-                            <span className="text-[11px] font-bold tracking-wide text-[#1A5345]/70">#PT{String(patient.id).padStart(4, "0")}</span>
+                            <span className="text-[11px] font-bold tracking-wide text-[#1A5345]/70">{patient.id}</span>
                             <span className="mt-0.5 font-serif text-[18px] font-bold leading-tight text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">{patient.fullName}</span>
                           </div>
                         </div>

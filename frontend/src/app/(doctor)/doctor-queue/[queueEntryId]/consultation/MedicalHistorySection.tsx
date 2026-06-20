@@ -81,7 +81,7 @@ function PastHistoryChipGrid({
 
   return (
     <div className="space-y-3">
-      <p className="text-[12px] leading-relaxed text-[#6B7870]">
+      <p className="text-[13px] leading-relaxed text-[#6B7870]">
         Pre-filled from registration — tap only conditions to confirm or add. You do not need to answer every line.
       </p>
 
@@ -97,16 +97,16 @@ function PastHistoryChipGrid({
               title={subtitle}
               onClick={() => toggle(field)}
               className={cn(
-                "rounded-xl border px-3 py-1.5 text-xs font-medium transition-colors",
+                "rounded-xl border px-3 py-1.5 text-[13px] font-medium transition-colors",
                 positive
                   ? "border-[#1A5345]/30 bg-white text-[#1A5345] shadow-sm"
                   : uncertain
                     ? "border-amber-300 bg-white text-amber-800 shadow-sm"
-                    : "border-[#E8E6E0]/60 bg-white text-[#6B7870] hover:border-[#1A5345]/25 hover:bg-[#F9F8F5]",
+                    : "border-[#E8E6E0]/60 bg-white text-[#1A1F1E] hover:border-[#1A5345]/25 hover:bg-[#F9F8F5]",
               )}
             >
               {title}
-              {uncertain ? <span className="ml-1 text-[10px] opacity-80">?</span> : null}
+              {uncertain ? <span className="ml-1 text-[11px] opacity-80">?</span> : null}
             </button>
           )
         })}
@@ -116,7 +116,7 @@ function PastHistoryChipGrid({
         <button
           type="button"
           onClick={() => setShowAll(true)}
-          className="text-[12px] font-semibold text-[#1A5345] hover:underline"
+          className="text-[13px] font-semibold text-[#1A5345] hover:underline"
         >
           Show all conditions ({questions.length})
         </button>
@@ -125,7 +125,7 @@ function PastHistoryChipGrid({
         <button
           type="button"
           onClick={() => setShowAll(false)}
-          className="text-[12px] font-semibold text-[#6B7870] hover:underline"
+          className="text-[13px] font-semibold text-[#6B7870] hover:underline"
         >
           Show chart highlights only
         </button>
@@ -256,7 +256,7 @@ function NoHistoryToggle({
       size="sm"
       onClick={onToggle}
       className={cn(
-        "h-8 rounded-lg text-[11px] font-semibold shadow-sm",
+        "h-9 rounded-lg text-[13px] font-semibold shadow-sm",
         active
           ? "border-[#1A5345]/30 bg-[#E8F0EE] text-[#1A5345] hover:bg-[#E8F0EE]"
           : "border-[#E8E6E0] bg-white text-[#6B7870] hover:bg-[#F9F8F5]",
@@ -366,7 +366,7 @@ export function MedicalHistorySection({
           <ClipboardListIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
           <h3 className="font-serif text-[17px] font-bold tracking-tight text-[#1A1F1E]">Medical background</h3>
         </div>
-        <span className="text-[11px] font-medium text-[#6B7870]">Confirm or update from patient chart</span>
+        <span className="text-[13px] font-medium text-[#6B7870]">Confirm or update from patient chart</span>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] p-1" role="tablist" aria-label="Medical background sections">
@@ -381,7 +381,7 @@ export function MedicalHistorySection({
               aria-selected={active}
               onClick={() => setTab(item.id)}
               className={cn(
-                "inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors sm:flex-none",
+                "inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors sm:flex-none",
                 active
                   ? "bg-white text-[#1A5345] shadow-sm"
                   : "text-[#6B7870] hover:text-[#1A1F1E]",
@@ -390,7 +390,7 @@ export function MedicalHistorySection({
               {item.label}
               <span
                 className={cn(
-                  "tabular-nums text-[10px] font-bold",
+                  "tabular-nums text-[11px] font-bold",
                   active ? "text-[#1A5345]" : "text-muted-foreground",
                 )}
               >

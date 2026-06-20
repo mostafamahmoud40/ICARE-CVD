@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import {
@@ -20,19 +20,32 @@ import {
   vitalReading,
 } from '../../database/schema';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
+import { findPatientByIdentifier } from '../../shared/patient/patient-identifier';
+import { NotificationsService } from '../notifications/notifications.service';
 import type {
   CreateConsultationDto,
   UpdateConsultationDto,
   LinkDiagnosisDto,
   LinkPrescriptionDto,
+  UpdateLinkPrescriptionDto,
   CreateReferralDto,
 } from './dto/consultation.dto';
+import {
+  formatMedicalHistorySummary,
+  formatProcedureDetailsSummary,
+  loadConsultationAiStudies,
+  loadConsultationTestOrders,
+  parseHomeMeasurements,
+  parseReportOverrides,
+  applyReportOverrides,
+} from './consultation-report-session.loader';
 
 @Injectable()
 export class ConsultationService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly doctorVerifier: DoctorVerifierService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async listConsultations(doctorUserId: number, patientId: string) {
@@ -82,6 +95,7 @@ export class ConsultationService {
         and(
           eq(consultation.patientId, patientRow.id),
           eq(consultation.status, 'completed'),
+          isNotNull(consultation.reportPublishedAt),
         ),
       )
       .orderBy(desc(consultation.completedAt), desc(consultation.startedAt));
@@ -108,6 +122,7 @@ export class ConsultationService {
         eq(consultation.id, consultationId),
         eq(consultation.patientId, patientRow.id),
         eq(consultation.status, 'completed'),
+        isNotNull(consultation.reportPublishedAt),
       ),
     });
     if (!cons) throw new NotFoundException('Consultation not found');
@@ -251,6 +266,25 @@ export class ConsultationService {
         })
       : null;
 
+    const [testOrders, aiStudiesRaw] = await Promise.all([
+      loadConsultationTestOrders(this.db, cons.patientId, cons.appointmentId),
+      loadConsultationAiStudies(this.db, consultationId),
+    ]);
+
+    const reportOverrides = parseReportOverrides(cons.reportOverrides);
+    const medicalHistoryComputed = formatMedicalHistorySummary(
+      cons.consultationMedicalHistory,
+    );
+    const procedureDetailsComputed = formatProcedureDetailsSummary(
+      cons.consultationProcedureDetails,
+    );
+    const sessionContent = applyReportOverrides({
+      medicalHistorySummary: medicalHistoryComputed,
+      procedureDetailsSummary: procedureDetailsComputed,
+      aiStudies: aiStudiesRaw,
+      overrides: reportOverrides,
+    });
+
     const visitInstant = cons.completedAt ?? cons.startedAt;
     const timeFormatter = new Intl.DateTimeFormat('en-GB', {
       hour: '2-digit',
@@ -278,7 +312,17 @@ export class ConsultationService {
       physicalExamRaw: cons.physicalExam,
       plan: cons.plan,
       notes: cons.notes,
+      clinicalNotes: cons.notes,
+      assessmentAndPlan: cons.plan,
       homeMonitoring: cons.homeMonitoring,
+      medicalHistorySummary: sessionContent.medicalHistorySummary,
+      procedureDetailsSummary: sessionContent.procedureDetailsSummary,
+      homeMeasurements: parseHomeMeasurements(cons.homeMonitoring),
+      testOrders,
+      aiStudies: sessionContent.aiStudies,
+      patientDiagnosisSummary: cons.patientDiagnosisSummary,
+      patientLifestyleAdvice: cons.patientLifestyleAdvice,
+      patientDangerSigns: cons.patientDangerSigns,
       followUp: {
         timeframe: cons.followUpTimeframe,
         instructions: cons.followUpInstructions,
@@ -382,8 +426,14 @@ export class ConsultationService {
       updatedAt: new Date(),
     };
 
+    const isPublishingReport =
+      String(dto.status) === 'completed' && existing.status !== 'completed';
+
     if (String(dto.status) === 'completed') {
       updates.completedAt = new Date();
+      if (isPublishingReport) {
+        updates.reportPublishedAt = new Date();
+      }
     }
 
     const [updated] = await this.db
@@ -392,7 +442,54 @@ export class ConsultationService {
       .where(eq(consultation.id, consultationId))
       .returning();
 
+    if (isPublishingReport) {
+      await this.notifyPatientReportPublished(consultationId);
+    }
+
     return updated;
+  }
+
+  async deleteConsultation(doctorUserId: number, patientId: string, consultationId: string) {
+    await this.doctorVerifier.verify(doctorUserId);
+
+    const patientRow = await findPatientByIdentifier(this.db, patientId);
+
+    const existing = await this.db.query.consultation.findFirst({
+      where: and(
+        eq(consultation.id, consultationId),
+        eq(consultation.patientId, patientRow.id),
+      ),
+    });
+    if (!existing) throw new NotFoundException('Consultation not found');
+
+    await this.db.delete(consultation).where(eq(consultation.id, consultationId));
+
+    return { success: true };
+  }
+
+  private async notifyPatientReportPublished(consultationId: string) {
+    const [ctx] = await this.db
+      .select({
+        patientUserId: patient.userId,
+        doctorName: user.name,
+      })
+      .from(consultation)
+      .innerJoin(patient, eq(consultation.patientId, patient.id))
+      .innerJoin(doctor, eq(consultation.doctorId, doctor.id))
+      .innerJoin(user, eq(doctor.userId, user.id))
+      .where(eq(consultation.id, consultationId))
+      .limit(1);
+
+    if (!ctx?.patientUserId) return;
+
+    await this.notificationsService.dispatch({
+      userId: ctx.patientUserId,
+      kind: 'consultation',
+      title: 'Visit summary ready',
+      body: `Your consultation report with ${ctx.doctorName} is ready to view.`,
+      href: `/consultations/${consultationId}`,
+      metadata: { consultationId },
+    });
   }
 
   async resolveQueueConsultationSession(doctorUserId: number, queueId: string) {
@@ -618,6 +715,36 @@ export class ConsultationService {
       .returning();
 
     return linked;
+  }
+
+  async updateLinkedPrescription(
+    doctorUserId: number,
+    consultationId: string,
+    medicationId: string,
+    dto: UpdateLinkPrescriptionDto,
+  ) {
+    await this.doctorVerifier.verify(doctorUserId);
+
+    const link = await this.db.query.consultationPrescription.findFirst({
+      where: and(
+        eq(consultationPrescription.consultationId, consultationId),
+        eq(consultationPrescription.medicationId, medicationId),
+      ),
+    });
+    if (!link) {
+      throw new NotFoundException('Consultation prescription not found');
+    }
+
+    const [updated] = await this.db
+      .update(consultationPrescription)
+      .set({
+        ...(dto.duration !== undefined ? { duration: dto.duration } : {}),
+        ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
+      })
+      .where(eq(consultationPrescription.id, link.id))
+      .returning();
+
+    return updated;
   }
 
   async addReferral(

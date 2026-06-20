@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 import {
   ArrowDownToLineIcon,
@@ -16,24 +16,31 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+
+import type { AnalysisStatus, PersistedCtStudy } from "./useConsultationCtAnalysis"
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
-type AnalysisStatus = "idle" | "processing" | "done" | "error"
-
-interface SliceImages {
+export interface SliceImages {
   axial: string
   coronal: string
   sagittal: string
 }
 
-interface SegmentationResult {
+export interface SegmentationResult {
   voxelCount: number
   predShape: [number, number, number]
   volumeMl: number
   elapsedSec: number
   slices: SliceImages
-  maskB64: string
+  maskB64?: string
+  maskUrl?: string
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -128,15 +135,19 @@ function UploadDropZone({ onFileSelected }: { onFileSelected: (file: File) => vo
 
 function FileCard({
   file,
+  fileMeta,
   status,
   elapsed,
   onRemove,
 }: {
-  file: File
+  file?: File
+  fileMeta?: { fileName: string; fileSize: number }
   status: AnalysisStatus
   elapsed: number
   onRemove: () => void
 }) {
+  const fileName = file?.name ?? fileMeta?.fileName ?? "CT scan"
+  const fileSize = file?.size ?? fileMeta?.fileSize ?? 0
   const statusBadge =
     status === "processing"
       ? { cls: "bg-amber-500 text-white", icon: Loader2Icon, label: "Analyzing" }
@@ -151,9 +162,9 @@ function FileCard({
       <div className="flex items-center gap-3 border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-4 py-3">
         <FileIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-semibold text-[#1A1F1E]">{file.name}</p>
+          <p className="truncate text-[14px] font-semibold text-[#1A1F1E]">{fileName}</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-2">
-            <span className="text-[12px] text-muted-foreground">{formatBytes(file.size)}</span>
+            <span className="text-[12px] text-muted-foreground">{formatBytes(fileSize)}</span>
             {status === "processing" && elapsed > 0 ? (
               <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
                 <ClockIcon className="size-3" aria-hidden />
@@ -194,6 +205,8 @@ function FileCard({
 }
 
 function SliceGrid({ slices }: { slices: SliceImages }) {
+  const [preview, setPreview] = useState<{ label: string; src: string } | null>(null)
+
   const views = [
     { key: "axial", label: "Axial" },
     { key: "coronal", label: "Coronal" },
@@ -201,44 +214,88 @@ function SliceGrid({ slices }: { slices: SliceImages }) {
   ] as const
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[#E5EEEA] bg-white">
-      <div className="border-b border-[#E8E6E0] bg-[#FAFAF8] px-4 py-3">
-        <h4 className="font-serif text-[15px] font-bold text-[#1A1F1E]">Coronary segmentation</h4>
-        <p className="mt-0.5 text-[12px] text-muted-foreground">
-          Red overlay marks detected vessels — axial, coronal, and sagittal views.
-        </p>
-      </div>
-      <div className="grid gap-3 p-3 sm:grid-cols-3">
-        {views.map(({ key, label }) => (
-          <div
-            key={key}
-            className="flex flex-col overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]"
-          >
-            <div className="shrink-0 border-b border-[#E8E6E0]/60 bg-white px-3 py-2">
-              <p className="text-[12px] font-bold text-[#102F27]">{label}</p>
+    <>
+      <div className="overflow-hidden rounded-xl border border-[#E5EEEA] bg-white">
+        <div className="border-b border-[#E8E6E0] bg-[#FAFAF8] px-4 py-3">
+          <h4 className="font-serif text-[15px] font-bold text-[#1A1F1E]">Coronary segmentation</h4>
+          <p className="mt-0.5 text-[12px] text-muted-foreground">
+            Red overlay marks detected vessels; amber boxes outline each segmented region. Click a slice to expand.
+          </p>
+        </div>
+        <div className="grid gap-3 p-3 sm:grid-cols-3">
+          {views.map(({ key, label }) => (
+            <div
+              key={key}
+              className="flex flex-col overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]"
+            >
+              <div className="shrink-0 border-b border-[#E8E6E0]/60 bg-white px-3 py-2">
+                <p className="text-[12px] font-bold text-[#102F27]">{label}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreview({ label, src: slices[key] })}
+                className="group relative aspect-square w-full cursor-zoom-in bg-[#102F27] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1A5345]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#102F27]"
+                aria-label={`View full size: ${label} slice`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={slices[key]}
+                  alt={`${label} slice`}
+                  className="absolute inset-0 size-full object-contain p-1"
+                />
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5 text-center text-[10px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                  Click to expand
+                </span>
+              </button>
             </div>
-            <div className="relative aspect-square w-full bg-[#102F27]">
+          ))}
+        </div>
+      </div>
+
+      {preview ? (
+        <Dialog open onOpenChange={(open) => !open && setPreview(null)}>
+          <DialogContent className="w-auto max-w-[calc(100vw-1rem)] gap-0 overflow-hidden p-0 sm:max-w-[calc(100vw-1rem)]">
+            <DialogHeader className="border-b border-[#E8E6E0] px-4 py-2">
+              <DialogTitle className="flex items-center gap-2 text-[14px] font-semibold text-[#102F27]">
+                <ScanIcon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
+                <span className="truncate">{preview.label} slice</span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="bg-[#102F27]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={slices[key]}
-                alt={`${label} slice`}
-                className="absolute inset-0 size-full object-contain p-1"
+                src={preview.src}
+                alt={`${preview.label} slice`}
+                className="block h-auto w-auto max-h-[85vh] max-w-[calc(100vw-2rem)]"
               />
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
+          </DialogContent>
+        </Dialog>
+      ) : null}
+    </>
   )
 }
 
 function ResultPanel({ result, fileName }: { result: SegmentationResult; fileName: string }) {
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    const maskName = `segmentation_${fileName.replace(/\.nii(\.gz)?$/, "")}.nii.gz`
+
+    if (result.maskUrl) {
+      const a = document.createElement("a")
+      a.href = result.maskUrl
+      a.download = maskName
+      a.rel = "noopener noreferrer"
+      a.click()
+      return
+    }
+
+    if (!result.maskB64) return
+
     const blob = b64ToBlob(result.maskB64)
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `segmentation_${fileName.replace(/\.nii(\.gz)?$/, "")}.nii.gz`
+    a.download = maskName
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -332,80 +389,36 @@ function ErrorPanel({ message, onRetry }: { message: string; onRetry: () => void
 
 export type CTScanSectionProps = {
   ctFile: File | null
-  onCtFileChange: (file: File | null) => void
+  savedStudy: PersistedCtStudy | null
+  result: SegmentationResult | null
+  status: AnalysisStatus
+  errorMsg: string
+  elapsed: number
+  isLoading?: boolean
+  onFileSelected: (file: File) => void
+  onRemove: () => void
+  onAnalyze: () => void
+  onRetry: () => void
 }
 
-export function CTScanSection({ ctFile, onCtFileChange }: CTScanSectionProps) {
-  const [status, setStatus] = useState<AnalysisStatus>("idle")
-  const [result, setResult] = useState<SegmentationResult | null>(null)
-  const [errorMsg, setErrorMsg] = useState("")
-  const [elapsed, setElapsed] = useState(0)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  useEffect(() => {
-    if (status === "processing") {
-      setElapsed(0)
-      timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000)
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current)
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
-  }, [status])
-
-  const reset = () => {
-    setStatus("idle")
-    setResult(null)
-    setErrorMsg("")
-    setElapsed(0)
-  }
-
-  const handleFileSelected = (file: File) => {
-    reset()
-    onCtFileChange(file)
-  }
-
-  const handleRemove = () => {
-    reset()
-    onCtFileChange(null)
-  }
-
-  const handleAnalyze = async () => {
-    if (!ctFile) return
-    reset()
-    setStatus("processing")
-
-    try {
-      const formData = new FormData()
-      formData.append("file", ctFile)
-
-      const res = await fetch(`${ML_URL}/api/v1/ct/segment`, {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => `HTTP ${res.status}`)
-        throw new Error(text || `HTTP ${res.status}`)
-      }
-
-      const json = await res.json()
-
-      setResult({
-        voxelCount: json.voxel_count,
-        predShape: json.pred_shape,
-        volumeMl: json.volume_ml,
-        elapsedSec: json.elapsed_sec,
-        slices: json.slices,
-        maskB64: json.mask_b64,
-      })
-      setStatus("done")
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Unknown error")
-      setStatus("error")
-    }
-  }
+export function CTScanSection({
+  ctFile,
+  savedStudy,
+  result,
+  status,
+  errorMsg,
+  elapsed,
+  isLoading = false,
+  onFileSelected,
+  onRemove,
+  onAnalyze,
+  onRetry,
+}: CTScanSectionProps) {
+  const fileMeta = ctFile ? null : savedStudy ?? null
+  const displayFileName =
+    ctFile?.name ?? savedStudy?.fileName ?? "scan"
+  const showAnalyzeButton =
+    ctFile !== null && status !== "done" && status !== "error"
 
   return (
     <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm">
@@ -428,26 +441,39 @@ export function CTScanSection({ ctFile, onCtFileChange }: CTScanSectionProps) {
       </div>
 
       <div className="space-y-4">
-        {!ctFile ? (
-          <UploadDropZone onFileSelected={handleFileSelected} />
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-[#E5EEEA] bg-[#FAFAF8] py-6 text-[13px] text-muted-foreground">
+            <Loader2Icon className="size-4 animate-spin text-[#1A5345]" aria-hidden />
+            Loading saved CT study…
+          </div>
+        ) : null}
+
+        {!ctFile && !fileMeta ? (
+          <UploadDropZone onFileSelected={onFileSelected} />
         ) : (
-          <FileCard file={ctFile} status={status} elapsed={elapsed} onRemove={handleRemove} />
+          <FileCard
+            file={ctFile ?? undefined}
+            fileMeta={fileMeta ? { fileName: fileMeta.fileName, fileSize: fileMeta.fileSize } : undefined}
+            status={status}
+            elapsed={elapsed}
+            onRemove={onRemove}
+          />
         )}
 
         {status === "done" && result ? (
-          <ResultPanel result={result} fileName={ctFile?.name ?? "scan"} />
+          <ResultPanel result={result} fileName={displayFileName} />
         ) : null}
 
         {status === "error" ? (
-          <ErrorPanel message={errorMsg} onRetry={handleAnalyze} />
+          <ErrorPanel message={errorMsg} onRetry={onRetry} />
         ) : null}
 
-        {ctFile && status !== "done" && status !== "error" ? (
+        {showAnalyzeButton && !isLoading ? (
           <Button
             type="button"
             size="sm"
             disabled={status === "processing"}
-            onClick={() => void handleAnalyze()}
+            onClick={onAnalyze}
             className="h-10 w-full gap-1.5 rounded-lg border-0 bg-[#1A5345] text-[13px] font-bold text-white shadow-sm hover:bg-[#133F34]"
           >
             {status === "processing" ? (

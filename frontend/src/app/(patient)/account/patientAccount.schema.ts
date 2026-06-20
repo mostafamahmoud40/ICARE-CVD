@@ -21,10 +21,6 @@ export function profileToEditValues(profile: {
   occupation: string
   avatarUrl: string | null
 }): PatientProfileEditValues {
-  const presetAvatars = Array.from({ length: 6 }, (_, i) => `/avatars/avatar-${i + 1}.svg`)
-  const avatarUrl =
-    profile.avatarUrl && presetAvatars.includes(profile.avatarUrl) ? profile.avatarUrl : undefined
-
   return {
     fullName: profile.fullName,
     email: profile.email,
@@ -32,6 +28,6 @@ export function profileToEditValues(profile: {
     address: profile.address,
     maritalStatus: (profile.maritalStatus ?? "") as PatientProfileEditValues["maritalStatus"],
     occupation: profile.occupation,
-    avatarUrl,
+    avatarUrl: profile.avatarUrl ?? undefined,
   }
 }

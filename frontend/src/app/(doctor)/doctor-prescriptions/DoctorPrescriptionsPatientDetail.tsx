@@ -297,14 +297,25 @@ export function DoctorPrescriptionsPatientDetail({
             <div className="z-10 flex flex-wrap items-center justify-between gap-4 border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-6 py-6 sm:px-8">
               <div className="flex items-center gap-4">
                 <div className="flex size-12 items-center justify-center overflow-hidden rounded-2xl border border-[#E8E6E0]/60 bg-white shadow-sm">
-                  <Image
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(patient.fullName.replace(/\s+/g, ""))}`}
-                    alt=""
-                    width={48}
-                    height={48}
-                    unoptimized
-                    className="size-full object-cover"
-                  />
+                  {patient.avatarUrl ? (
+                    <Image
+                      src={patient.avatarUrl}
+                      alt=""
+                      width={48}
+                      height={48}
+                      unoptimized
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <Image
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(patient.fullName.replace(/\s+/g, ""))}`}
+                      alt=""
+                      width={48}
+                      height={48}
+                      unoptimized
+                      className="size-full object-cover"
+                    />
+                  )}
                 </div>
                 <div>
                   <div className="flex flex-wrap items-center gap-3">

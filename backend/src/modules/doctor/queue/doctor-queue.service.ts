@@ -18,10 +18,14 @@ import type {
   QueuePriority,
   QueueStatus,
 } from './dto/doctor-queue.dto';
+import { AvatarUrlResolver } from '../../../shared/storage/avatar-url.resolver';
 
 @Injectable()
 export class DoctorQueueService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly avatarUrlResolver: AvatarUrlResolver,
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*  Stats                                                              */
@@ -113,6 +117,8 @@ export class DoctorQueueService {
         patientPhone: user.phone,
         patientDateOfBirth: patient.dateOfBirth,
         patientGender: patient.gender,
+        patientAvatarUrl: patient.avatarUrl,
+        patientUserAvatarUrl: user.avatarUrl,
       })
       .from(patientQueue)
       .innerJoin(appointment, eq(patientQueue.appointmentId, appointment.id))
@@ -133,13 +139,20 @@ export class DoctorQueueService {
     const medicationCounts = await this.batchActiveMedicationCounts(patientIds);
     const vitalAlertCounts = await this.batchVitalAlertCounts(patientIds);
 
-    return rows.map((row) =>
-      this.formatQueueEntry(
-        row,
-        allergyCounts,
-        medicationCounts,
-        vitalAlertCounts,
-      ),
+    return Promise.all(
+      rows.map(async (row) => {
+        const avatarUrl = await this.resolveStoredAvatarUrl(
+          row.patientAvatarUrl,
+          row.patientUserAvatarUrl,
+        );
+        return this.formatQueueEntry(
+          row,
+          allergyCounts,
+          medicationCounts,
+          vitalAlertCounts,
+          avatarUrl,
+        );
+      }),
     );
   }
 
@@ -166,6 +179,8 @@ export class DoctorQueueService {
         patientPhone: user.phone,
         patientDateOfBirth: patient.dateOfBirth,
         patientGender: patient.gender,
+        patientAvatarUrl: patient.avatarUrl,
+        patientUserAvatarUrl: user.avatarUrl,
       })
       .from(patientQueue)
       .innerJoin(appointment, eq(patientQueue.appointmentId, appointment.id))
@@ -185,11 +200,17 @@ export class DoctorQueueService {
     ]);
     const vitalAlertCounts = await this.batchVitalAlertCounts([row.patientId]);
 
+    const avatarUrl = await this.resolveStoredAvatarUrl(
+      row.patientAvatarUrl,
+      row.patientUserAvatarUrl,
+    );
+
     return this.formatQueueEntry(
       row,
       allergyCounts,
       medicationCounts,
       vitalAlertCounts,
+      avatarUrl,
     );
   }
 
@@ -199,7 +220,10 @@ export class DoctorQueueService {
 
   async updateStatus(doctorId: string, queueId: string, status: QueueStatus) {
     const existing = await this.db
-      .select({ id: patientQueue.id })
+      .select({
+        id: patientQueue.id,
+        appointmentId: patientQueue.appointmentId,
+      })
       .from(patientQueue)
       .innerJoin(appointment, eq(patientQueue.appointmentId, appointment.id))
       .where(
@@ -208,6 +232,8 @@ export class DoctorQueueService {
       .limit(1);
 
     if (!existing.length) throw new NotFoundException('Queue entry not found');
+
+    const appointmentId = existing[0].appointmentId;
 
     const now = new Date();
     const { todayStart, todayEnd } = this.todayBounds();
@@ -254,6 +280,18 @@ export class DoctorQueueService {
       .update(patientQueue)
       .set(updates)
       .where(eq(patientQueue.id, queueId));
+
+    if (status === 'completed') {
+      await this.db
+        .update(appointment)
+        .set({ status: 'completed', updatedAt: now })
+        .where(eq(appointment.id, appointmentId));
+    } else if (status === 'cancelled') {
+      await this.db
+        .update(appointment)
+        .set({ status: 'cancelled', cancelledAt: now, updatedAt: now })
+        .where(eq(appointment.id, appointmentId));
+    }
 
     return this.getQueueEntry(doctorId, queueId);
   }
@@ -425,10 +463,13 @@ export class DoctorQueueService {
       patientPhone: string | null;
       patientDateOfBirth: Date;
       patientGender: string;
+      patientAvatarUrl: string | null;
+      patientUserAvatarUrl: string | null;
     },
     allergyCounts: Map<string, number>,
     medicationCounts: Map<string, number>,
     vitalAlertCounts: Map<string, number>,
+    avatarUrl: string | null,
   ) {
     return {
       id: row.queueId,
@@ -454,7 +495,17 @@ export class DoctorQueueService {
       activeMedications: medicationCounts.get(row.patientId) ?? 0,
       vitalAlerts: vitalAlertCounts.get(row.patientId) ?? 0,
       phoneNumber: row.patientPhone ?? '',
+      avatarUrl,
     };
+  }
+
+  private async resolveStoredAvatarUrl(
+    primary: string | null | undefined,
+    fallback: string | null | undefined,
+  ): Promise<string | null> {
+    const raw = primary?.trim() || fallback?.trim() || null;
+    if (!raw) return null;
+    return this.avatarUrlResolver.resolve(raw);
   }
 
   private async batchAllergyCounts(

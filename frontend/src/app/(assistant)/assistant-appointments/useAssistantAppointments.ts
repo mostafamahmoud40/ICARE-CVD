@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
 import { appointmentMatchesAdvancedFilters } from "./appointment-filter-helpers"
+import { resolveAppointmentDisplayStatus } from "@/app/(doctor)/doctor-appointments/appointmentDisplayStatus"
 import type {
   AssistantAppointment,
   AssistantAppointmentAdvancedFilters,
@@ -144,7 +145,27 @@ export function useAssistantAppointments() {
   })
 
   const appointments = useMemo(() => appointmentsQuery.data ?? [], [appointmentsQuery.data])
-  const stats = statsQuery.data ?? { total: 0, scheduled: 0, confirmed: 0, completed: 0, cancelled: 0 }
+
+  const stats = useMemo(() => {
+    let total = 0
+    let scheduled = 0
+    let completed = 0
+    let cancelled = 0
+
+    for (const app of appointments) {
+      total++
+      const display = resolveAppointmentDisplayStatus(app)
+      if (display === "completed") {
+        completed++
+      } else if (display === "cancelled" || display === "no-show") {
+        cancelled++
+      } else {
+        scheduled++
+      }
+    }
+
+    return { total, scheduled, completed, cancelled, confirmed: 0 }
+  }, [appointments])
 
   const doctorFilterOptions = useMemo(() => {
     const names = new Set<string>()
@@ -184,7 +205,26 @@ export function useAssistantAppointments() {
   const filteredAppointments = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
     return appointments.filter((appointment) => {
-      const matchesStatus = statusFilter === "all" || appointment.status === statusFilter
+      let matchesStatus = false
+      if (statusFilter === "all") {
+        matchesStatus = true
+      } else {
+        const display = resolveAppointmentDisplayStatus(appointment)
+        if (statusFilter === "completed") {
+          matchesStatus = display === "completed"
+        } else if (statusFilter === "cancelled") {
+          matchesStatus = display === "cancelled" || display === "no-show"
+        } else if (statusFilter === "scheduled") {
+          matchesStatus =
+            display === "scheduled" ||
+            display === "arrived" ||
+            display === "waiting" ||
+            display === "in-consultation" ||
+            display === "report-pending" ||
+            display === "overdue"
+        }
+      }
+
       const matchesSearch =
         normalizedSearch.length === 0 ||
         [

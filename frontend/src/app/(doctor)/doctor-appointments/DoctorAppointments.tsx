@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useState, useMemo } from "react"
 import type { DoctorAppointment, FilterTab, VisitType } from "./doctorAppointments.types"
+import { resolveAppointmentDisplayStatus } from "./appointmentDisplayStatus"
 import { AppointmentList } from "./AppointmentList"
 import { AppointmentDetail } from "./AppointmentDetail"
 import { AppointmentCalendar } from "./AppointmentCalendar"
@@ -73,7 +74,7 @@ function getFilterCount(
 }
 
 export function DoctorAppointments() {
-  const { appointments, stats, isLoading, updateStatus, updateNotes, reschedule, fetchAvailableSlots, isUpdating } = useDoctorAppointments()
+  const { appointments, stats, isLoading, updateStatus, updateNotes, reschedule, markNoShow, fetchAvailableSlots, isUpdating, isMarkingNoShow } = useDoctorAppointments()
   const [selectedAppointment, setSelectedAppointment] = useState<DoctorAppointment | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>("list")
   const [filter, setFilter] = useState<FilterTab>("all")
@@ -95,23 +96,35 @@ export function DoctorAppointments() {
 
     switch (filter) {
       case "today":
-        filtered = appointments.filter(
-          (a) =>
-            new Date(a.scheduledAt) >= todayStart &&
-            new Date(a.scheduledAt) < todayEnd &&
-            a.status !== "cancelled",
-        )
+        filtered = appointments.filter((a) => {
+          const date = new Date(a.scheduledAt)
+          return (
+            date >= todayStart &&
+            date < todayEnd &&
+            resolveAppointmentDisplayStatus(a) !== "cancelled"
+          )
+        })
         break
       case "upcoming":
-        filtered = appointments.filter(
-          (a) => new Date(a.scheduledAt) > now && a.status !== "cancelled" && a.status !== "completed",
-        )
+        filtered = appointments.filter((a) => {
+          const display = resolveAppointmentDisplayStatus(a)
+          return (
+            new Date(a.scheduledAt) > now &&
+            (display === "scheduled")
+          )
+        })
         break
       case "completed":
-        filtered = appointments.filter((a) => a.status === "completed")
+        filtered = appointments.filter((a) => {
+          const display = resolveAppointmentDisplayStatus(a)
+          return display === "completed"
+        })
         break
       case "cancelled":
-        filtered = appointments.filter((a) => a.status === "cancelled")
+        filtered = appointments.filter((a) => {
+          const display = resolveAppointmentDisplayStatus(a)
+          return display === "cancelled" || display === "no-show"
+        })
         break
       default:
         filtered = appointments
@@ -300,8 +313,9 @@ export function DoctorAppointments() {
         onUpdateStatus={(params) => updateStatus(params)}
         onUpdateNotes={(params) => updateNotes(params)}
         onReschedule={(params) => reschedule(params)}
+        onMarkNoShow={(appointmentId) => markNoShow(appointmentId)}
         fetchAvailableSlots={fetchAvailableSlots}
-        isUpdating={isUpdating}
+        isUpdating={isUpdating || isMarkingNoShow}
       />
     </div>
   )
