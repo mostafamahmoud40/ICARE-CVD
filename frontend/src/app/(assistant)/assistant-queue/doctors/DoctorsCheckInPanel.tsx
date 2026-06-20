@@ -4,7 +4,7 @@ import { useState } from "react"
 import { PauseCircleIcon, RotateCcwIcon, SearchIcon, XIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import type { ActivityLog, AttendanceLog, DoctorStatus } from "./doctors.types"
-import { getDoctorQueueState } from "./doctors.helpers"
+import { getDoctorQueueState, parseTimeValueToDate } from "./doctors.helpers"
 import { ActivityLogPanel } from "./ActivityLogPanel"
 import { DoctorAttendanceCard } from "./DoctorAttendanceCard"
 import { DoctorAttendanceHistoryTable } from "./DoctorAttendanceHistoryTable"
@@ -97,9 +97,10 @@ export function DoctorsCheckInPanel() {
       setDoctors((prev) => prev.map((d) => d.id !== id ? d : { ...d, queueStartAt: null }))
       return
     }
-    const [h, m] = timeValue.split(":")
-    const now = new Date()
-    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(h!), parseInt(m!))
+
+    const date = parseTimeValueToDate(timeValue)
+    if (!date) return
+
     setDoctors((prev) => prev.map((d) => d.id !== id ? d : { ...d, queueStartAt: date.toISOString() }))
     addActivity(id, "set-time", timeValue)
   }

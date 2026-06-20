@@ -132,7 +132,7 @@ function PatientLayoutContent({
     },
     {
       href: "/ai-chat",
-      label: "AI assistant",
+      label: "Care Agent",
       icon: BotMessageSquareIcon,
       isActive: pathname.startsWith("/ai-chat"),
     },
@@ -357,7 +357,7 @@ function PatientLayoutContent({
                   : pathname === "/queue"
                     ? "Clinic queue"
                     : pathname === "/ai-chat"
-                    ? "AI assistant"
+                    ? "Care Agent"
                     : pathname === "/chat"
                       ? "Chats"
                       : pathname === "/vitals"

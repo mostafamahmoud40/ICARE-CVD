@@ -336,7 +336,26 @@
           "oneSlotAvailable": "1 slot available",
           "slotsAvailable": "{count} slots available",
           "nextOccurrence": "· next {date}",
-          "noOpenSlots": "No open slots on the next occurrence"
+          "noOpenSlots": "No open slots on the next occurrence",
+          "quickActions": "Quick actions",
+          "messageDoctor": "Message doctor",
+          "bookAppointment": "Book appointment",
+          "viewQueue": "View queue",
+          "scheduleOverview": "Schedule overview",
+          "workingDays": "Working days",
+          "workingDaysValue": "{count} days / week",
+          "openSlots": "Open slots",
+          "openSlotsValue": "{count} this week",
+          "slotSettings": "Slot settings",
+          "slotSettingsValue": "{duration} min · {buffer} min buffer",
+          "nextAvailable": "Next available",
+          "nextAvailableValue": "{day} · {date} · {time}",
+          "noSlotsAvailable": "No open slots",
+          "queueLoad": "Queue load",
+          "loadOptimal": "Optimal",
+          "loadModerate": "Moderate",
+          "loadHigh": "High load",
+          "loadInactive": "Inactive"
         }
       },
       "doctorSchedule": {
@@ -380,7 +399,17 @@
           "addBlock": "Add block",
           "removePeriod": "Remove period",
           "removeBlock": "Remove block",
-          "to": "to"
+          "to": "to",
+          "copyDay": "Copy to other days",
+          "copyDayTitle": "Copy day schedule",
+          "copyDayDescription": "Copy {day}'s working periods, breaks, and settings to other days.",
+          "copyDaySelectAll": "Select all",
+          "copyDayClearAll": "Clear all",
+          "copyDayConfirm": "Copy schedule",
+          "copyDayCancel": "Cancel",
+          "copyDayNoTargets": "Select at least one day.",
+          "copyDaySuccessTitle": "Schedule copied",
+          "copyDaySuccessDescription": "Selected days now match this day's schedule."
         },
         "slotSettings": {
           "title": "Slot settings",

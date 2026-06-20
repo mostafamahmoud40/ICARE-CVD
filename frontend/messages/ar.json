@@ -336,7 +336,26 @@
           "oneSlotAvailable": "موعد واحد متاح",
           "slotsAvailable": "{count} مواعيد متاحة",
           "nextOccurrence": "· التالي {date}",
-          "noOpenSlots": "لا توجد مواعيد مفتوحة في الموعد القادم"
+          "noOpenSlots": "لا توجد مواعيد مفتوحة في الموعد القادم",
+          "quickActions": "إجراءات سريعة",
+          "messageDoctor": "مراسلة الطبيب",
+          "bookAppointment": "حجز موعد",
+          "viewQueue": "عرض الطابور",
+          "scheduleOverview": "ملخص الجدول",
+          "workingDays": "أيام العمل",
+          "workingDaysValue": "{count} أيام / أسبوع",
+          "openSlots": "المواعيد المتاحة",
+          "openSlotsValue": "{count} هذا الأسبوع",
+          "slotSettings": "إعدادات الموعد",
+          "slotSettingsValue": "{duration} د · فاصل {buffer} د",
+          "nextAvailable": "أقرب موعد",
+          "nextAvailableValue": "{day} · {date} · {time}",
+          "noSlotsAvailable": "لا توجد مواعيد",
+          "queueLoad": "ضغط الطابور",
+          "loadOptimal": "مثالي",
+          "loadModerate": "متوسط",
+          "loadHigh": "ضغط عالٍ",
+          "loadInactive": "غير نشط"
         }
       },
       "doctorSchedule": {
@@ -380,7 +399,17 @@
           "addBlock": "إضافة حظر",
           "removePeriod": "حذف الفترة",
           "removeBlock": "حذف الحظر",
-          "to": "إلى"
+          "to": "إلى",
+          "copyDay": "نسخ لأيام أخرى",
+          "copyDayTitle": "نسخ جدول اليوم",
+          "copyDayDescription": "نسخ فترات العمل والاستراحات وإعدادات {day} إلى أيام أخرى.",
+          "copyDaySelectAll": "تحديد الكل",
+          "copyDayClearAll": "مسح التحديد",
+          "copyDayConfirm": "نسخ الجدول",
+          "copyDayCancel": "إلغاء",
+          "copyDayNoTargets": "اختر يوماً واحداً على الأقل.",
+          "copyDaySuccessTitle": "تم نسخ الجدول",
+          "copyDaySuccessDescription": "الأيام المحددة تطابق جدول هذا اليوم الآن."
         },
         "slotSettings": {
           "title": "إعدادات المواعيد",

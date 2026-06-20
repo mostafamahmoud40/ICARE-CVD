@@ -32,7 +32,7 @@ import { ScheduleTable } from "./ScheduleTable"
 import { WeeklyScheduleOverview } from "./WeeklyScheduleOverview"
 import { doctorScheduleSchema } from "./doctorSchedule.schema"
 import type { DayAvailability, DoctorSchedulePayload, WeekdayId } from "./doctorSchedule.types"
-import { createTimeBlock, createEmptySchedule } from "./doctorSchedule.utils"
+import { createTimeBlock, createEmptySchedule, applyDayScheduleCopy } from "./doctorSchedule.utils"
 import { useDoctorSchedule } from "./useDoctorSchedule"
 
 function formatTodayHeading() {
@@ -286,6 +286,13 @@ export function DoctorSchedule() {
               days={draft.days}
               onDayChange={(next) =>
                 setDraft((prev) => (prev ? { ...prev, days: replaceDay(prev.days, next) } : prev))
+              }
+              onCopyDaySchedule={(sourceWeekday, targetWeekdays) =>
+                setDraft((prev) =>
+                  prev
+                    ? { ...prev, days: applyDayScheduleCopy(prev.days, sourceWeekday, targetWeekdays) }
+                    : prev,
+                )
               }
             />
           ) : null}

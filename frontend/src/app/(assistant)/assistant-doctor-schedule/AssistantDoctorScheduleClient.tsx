@@ -45,7 +45,7 @@ import {
 
 import { ScheduleTable } from "@/app/(doctor)/doctor-schedule/ScheduleTable"
 import { timeToMinutes } from "@/app/(doctor)/doctor-schedule/doctorSchedule.schema"
-import { generateTimeBlockId } from "@/app/(doctor)/doctor-schedule/doctorSchedule.utils"
+import { applyDayScheduleCopy, generateTimeBlockId } from "@/app/(doctor)/doctor-schedule/doctorSchedule.utils"
 import {
   WEEKDAY_ORDER,
   type BlockedDate,
@@ -1495,6 +1495,16 @@ function AssistantDoctorScheduleBody({
       removePeriod: t("table.removePeriod"),
       removeBlock: t("table.removeBlock"),
       to: t("table.to"),
+      copyDay: t("table.copyDay"),
+      copyDayTitle: t("table.copyDayTitle"),
+      copyDayDescription: t("table.copyDayDescription"),
+      copyDaySelectAll: t("table.copyDaySelectAll"),
+      copyDayClearAll: t("table.copyDayClearAll"),
+      copyDayConfirm: t("table.copyDayConfirm"),
+      copyDayCancel: t("table.copyDayCancel"),
+      copyDayNoTargets: t("table.copyDayNoTargets"),
+      copyDaySuccessTitle: t("table.copyDaySuccessTitle"),
+      copyDaySuccessDescription: t("table.copyDaySuccessDescription"),
     }),
     [t]
   )
@@ -1544,6 +1554,16 @@ function AssistantDoctorScheduleBody({
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [])
+
+  const handleCopyDaySchedule = React.useCallback(
+    (sourceWeekday: WeekdayId, targetWeekdays: WeekdayId[]) => {
+      setDraft((prev) => ({
+        ...prev,
+        days: applyDayScheduleCopy(prev.days, sourceWeekday, targetWeekdays),
+      }))
+    },
+    [],
+  )
 
   const handleDayChange = React.useCallback((next: DayAvailability) => {
     setDraft((prev) => ({ ...prev, days: replaceDay(prev.days, next) }))
@@ -1957,7 +1977,12 @@ function AssistantDoctorScheduleBody({
             </CardContent>
           </Card>
 
-          <ScheduleTable days={draft.days} onDayChange={handleDayChange} labels={scheduleTableLabels} />
+          <ScheduleTable
+            days={draft.days}
+            onDayChange={handleDayChange}
+            onCopyDaySchedule={handleCopyDaySchedule}
+            labels={scheduleTableLabels}
+          />
         </div>
       ) : null}
 

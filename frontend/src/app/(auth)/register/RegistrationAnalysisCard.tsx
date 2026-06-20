@@ -62,7 +62,7 @@ export function RegistrationAnalysisCard({
         <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-700 dark:border-red-400/60 dark:bg-red-950/40 dark:text-red-200">
           <AlertCircle className="mt-0.5 size-4" />
           <AlertTitle>AI unavailable</AlertTitle>
-          <AlertDescription>The local AI model is not available right now. Please ensure Ollama is running and try again.</AlertDescription>
+          <AlertDescription>The AI service is not available right now. Please try again in a moment.</AlertDescription>
         </Alert>
       ) : null}
 

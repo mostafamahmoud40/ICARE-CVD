@@ -1,5 +1,10 @@
 import { WEEKDAY_ORDER } from "./doctorSchedule.types"
-import type { DayAvailability, DoctorSchedulePayload, TimeBlock } from "./doctorSchedule.types"
+import type {
+  DayAvailability,
+  DoctorSchedulePayload,
+  TimeBlock,
+  WeekdayId,
+} from "./doctorSchedule.types"
 
 export function generateTimeBlockId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -18,6 +23,35 @@ export function createTimeBlock(
     startTime,
     endTime,
   }
+}
+
+export function cloneDayScheduleTo(
+  source: DayAvailability,
+  target: DayAvailability,
+): DayAvailability {
+  return {
+    ...target,
+    enabled: source.enabled,
+    periods: source.periods.map((p) => createTimeBlock(p.startTime, p.endTime)),
+    unavailableBlocks: source.unavailableBlocks.map((b) =>
+      createTimeBlock(b.startTime, b.endTime),
+    ),
+    maxAppointmentsPerDay: source.maxAppointmentsPerDay,
+  }
+}
+
+export function applyDayScheduleCopy(
+  days: DayAvailability[],
+  sourceWeekday: WeekdayId,
+  targetWeekdays: WeekdayId[],
+): DayAvailability[] {
+  const source = days.find((d) => d.weekday === sourceWeekday)
+  if (!source || targetWeekdays.length === 0) return days
+
+  const targetSet = new Set(targetWeekdays)
+  return days.map((day) =>
+    targetSet.has(day.weekday) ? cloneDayScheduleTo(source, day) : day,
+  )
 }
 
 export function createEmptySchedule(): DoctorSchedulePayload {
