@@ -23,9 +23,12 @@ import { DoctorVerifierService } from '../../../shared/doctor/doctor-verifier.se
 import { AvatarUrlResolver } from '../../../shared/storage/avatar-url.resolver';
 import { MinioService } from '../../../shared/storage/minio.service';
 import {
-  MINIO_CATEGORY_PREFIX,
   PATIENT_AVATAR_MIME_TYPES,
 } from '../../../shared/storage/minio.constants';
+import {
+  buildMinioObjectPrefix,
+  isPatientProfileStorageKey,
+} from '../../../shared/storage/minio-patient-path';
 import { findPatientByIdentifier } from '../../../shared/patient/patient-identifier';
 import type { UpdateDoctorPatientProfileDto } from './dto/update-doctor-patient-profile.dto';
 import type {
@@ -34,6 +37,7 @@ import type {
   UpdatePatientCareGoalDto,
 } from './dto/patient-profile-extras.dto';
 import type { CreatePatientAllergyDto } from './dto/patient-allergy.dto';
+import type { CreatePatientFamilyHistoryDto } from './dto/patient-family-history.dto';
 
 function toIsoString(value: Date | string | null | undefined): string | null {
   if (value == null) return null;
@@ -452,19 +456,16 @@ export class DoctorPatientService {
     if (dto.email !== undefined) userUpdate.email = dto.email.toLowerCase().trim();
     if (dto.phone !== undefined) userUpdate.phone = dto.phone.trim() || null;
 
-    if (Object.keys(userUpdate).length > 0) {
-      await this.db
-        .update(user)
-        .set(userUpdate)
-        .where(eq(user.id, patientRow.userId));
-    }
-
     const patientUpdate: Partial<typeof patient.$inferInsert> = {};
     if (dto.address !== undefined) {
       patientUpdate.address = dto.address.trim() || null;
     }
     if (dto.avatarUrl !== undefined) {
-      patientUpdate.avatarUrl = dto.avatarUrl.trim() || null;
+      const normalizedAvatar = this.normalizePatientAvatarStorageValue(
+        dto.avatarUrl,
+      );
+      patientUpdate.avatarUrl = normalizedAvatar;
+      userUpdate.avatarUrl = normalizedAvatar;
     }
     if (dto.gender !== undefined) patientUpdate.gender = dto.gender;
     if (dto.bloodType !== undefined) {
@@ -483,6 +484,13 @@ export class DoctorPatientService {
       patientUpdate.smokingStatus = dto.smokingStatus || null;
     }
 
+    if (Object.keys(userUpdate).length > 0) {
+      await this.db
+        .update(user)
+        .set(userUpdate)
+        .where(eq(user.id, patientRow.userId));
+    }
+
     if (Object.keys(patientUpdate).length > 0) {
       await this.db
         .update(patient)
@@ -491,6 +499,28 @@ export class DoctorPatientService {
     }
 
     return this.getPatientFullRecord(doctorUserId, resolvedPatient.patientNumber);
+  }
+
+  private normalizePatientAvatarStorageValue(
+    avatarUrl: string | null | undefined,
+  ): string | null {
+    const trimmed = avatarUrl?.trim();
+    if (!trimmed) return null;
+
+    if (trimmed.startsWith('/avatars/')) {
+      return trimmed;
+    }
+
+    const extractedKey = this.avatarUrlResolver.extractPatientAvatarKey(trimmed);
+    if (extractedKey && isPatientProfileStorageKey(extractedKey)) {
+      return extractedKey;
+    }
+
+    if (isPatientProfileStorageKey(trimmed)) {
+      return trimmed.split('?')[0] ?? trimmed;
+    }
+
+    throw new BadRequestException('Invalid profile photo reference');
   }
 
   async createPatientAvatarUploadIntent(
@@ -513,6 +543,7 @@ export class DoctorPatientService {
       contentType: mimeType,
       category: 'patient_avatar',
       patientId: resolvedPatient.id,
+      patientNumber: resolvedPatient.patientNumber,
     });
   }
 
@@ -533,8 +564,8 @@ export class DoctorPatientService {
     }
 
     const key = s3Key.trim();
-    const expectedPrefix = `${MINIO_CATEGORY_PREFIX.patient_avatar}/${patientRow.id}/`;
-    if (!key.startsWith(expectedPrefix)) {
+    const expectedPrefix = `${buildMinioObjectPrefix('patient_avatar', patientRow.patientNumber)}/`;
+    if (!key.startsWith(expectedPrefix) && !isPatientProfileStorageKey(key, patientRow.patientNumber)) {
       throw new BadRequestException('Invalid profile photo storage key');
     }
 
@@ -795,6 +826,66 @@ export class DoctorPatientService {
     if (!existing) throw new NotFoundException('Allergy not found');
 
     await this.db.delete(allergy).where(eq(allergy.id, allergyId));
+
+    return { success: true };
+  }
+
+  async createPatientFamilyHistory(
+    doctorUserId: number,
+    patientId: string,
+    dto: CreatePatientFamilyHistoryDto,
+  ) {
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+    const patientUuid = await this.resolvePatientUuid(patientId);
+    await this.verifyDoctorPatientAccess(doctorRow.id, patientUuid);
+
+    const patientRow = await this.db.query.patient.findFirst({
+      where: eq(patient.id, patientUuid),
+    });
+    if (!patientRow) throw new NotFoundException('Patient not found');
+
+    const [created] = await this.db
+      .insert(familyHistory)
+      .values({
+        userId: patientRow.userId,
+        hasFamilyHistory: true,
+        relationship: dto.relationship.trim(),
+        condition: dto.condition.trim(),
+        details: dto.details?.trim() || null,
+      })
+      .returning();
+
+    return {
+      id: created.id,
+      relationship: created.relationship,
+      condition: created.condition,
+      details: created.details ?? '',
+    };
+  }
+
+  async deletePatientFamilyHistory(
+    doctorUserId: number,
+    patientId: string,
+    familyHistoryId: string,
+  ) {
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+    const patientUuid = await this.resolvePatientUuid(patientId);
+    await this.verifyDoctorPatientAccess(doctorRow.id, patientUuid);
+
+    const patientRow = await this.db.query.patient.findFirst({
+      where: eq(patient.id, patientUuid),
+    });
+    if (!patientRow) throw new NotFoundException('Patient not found');
+
+    const existing = await this.db.query.familyHistory.findFirst({
+      where: and(
+        eq(familyHistory.id, familyHistoryId),
+        eq(familyHistory.userId, patientRow.userId),
+      ),
+    });
+    if (!existing) throw new NotFoundException('Family history entry not found');
+
+    await this.db.delete(familyHistory).where(eq(familyHistory.id, familyHistoryId));
 
     return { success: true };
   }

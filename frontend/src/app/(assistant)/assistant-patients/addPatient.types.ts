@@ -73,6 +73,12 @@ export type CreatedPatient = {
   chiefComplaint: string | null
   avatarUrl: string | null
   createdAt: string
+  maritalStatus?: string | null
+  occupation?: string | null
+  riskLevel?: "low" | "moderate" | "high" | null
+  condition?: string | null
+  lastVisitDate?: string | null
+  department?: string | null
 }
 
 export type AddPatientFieldErrors = Partial<Record<keyof AddPatientFormValues, string>>

@@ -7,6 +7,7 @@ import type {
   PhysicalExamFindings,
   PrescriptionEntry,
   ProcedureDetails,
+  ReferralEntry,
   TestOrder,
 } from "./consultation.types"
 import type { ApiConsultationSession } from "./consultation.api"
@@ -235,6 +236,13 @@ export function mapSessionToLiveFields(
     instructions: row.instructions ?? row.notes ?? "",
   }))
 
+  const mappedReferrals: ReferralEntry[] = (session.referrals ?? []).map((row) => ({
+    id: row.id,
+    specialty: row.specialty,
+    reason: row.reason,
+    urgency: row.urgency,
+  }))
+
   const chiefComplaintStructured = parseChiefComplaintStructured(
     consultation.chiefComplaintStructured,
     consultation.historyOfPresentIllness,
@@ -256,6 +264,7 @@ export function mapSessionToLiveFields(
     physicalExam: parsePhysicalExam(consultation.physicalExam),
     diagnoses: mappedDiagnoses,
     testOrders: mappedTestOrders,
+    referrals: mappedReferrals,
     homeMeasurements: parseHomeMeasurements(consultation.homeMonitoring),
     clinicalNotes: consultation.notes ?? "",
     assessmentAndPlan: consultation.plan ?? "",

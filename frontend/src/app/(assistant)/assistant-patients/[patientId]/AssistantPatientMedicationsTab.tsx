@@ -3,22 +3,16 @@
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import { ArrowRightIcon } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
 
 import { Button } from "@/components/ui/button"
 import { MedicationRecordDialog } from "@/app/(assistant)/assistant-medications/MedicationRecordDialog"
-import {
-  mapActiveMedicationToLine,
-  mapPastMedicationToRow,
-} from "@/app/(assistant)/assistant-medications/assistantPatientMedications.mapper"
+import { fetchAssistantMedicationProfile } from "@/app/(assistant)/assistant-medications/assistantMedications.api"
 import {
   PatientMedicationsTableSection,
   type PastMedicationTableRow,
 } from "@/app/(assistant)/assistant-medications/PatientMedicationsTableSection"
 import type { MedicationLine } from "@/app/(assistant)/assistant-medications/assistantMedications.types"
-import {
-  MOCK_ACTIVE_MEDICATIONS_ASSISTANT,
-  MOCK_PAST_MEDICATIONS,
-} from "./assistantPatientProfile.mock"
 
 type AssistantPatientMedicationsTabProps = {
   patientId: string
@@ -28,13 +22,23 @@ export function AssistantPatientMedicationsTab({ patientId }: AssistantPatientMe
   const [medicationsTab, setMedicationsTab] = useState<"active" | "past">("active")
   const [recordMed, setRecordMed] = useState<MedicationLine | null>(null)
 
-  const activeMedications = useMemo(
-    () => MOCK_ACTIVE_MEDICATIONS_ASSISTANT.map(mapActiveMedicationToLine),
-    [],
-  )
+  const { data } = useQuery({
+    queryKey: ["assistant-medication-profile", patientId],
+    queryFn: () => fetchAssistantMedicationProfile(patientId),
+    retry: false,
+  })
+
+  const activeMedications = useMemo(() => data?.medications ?? [], [data])
   const pastMedications = useMemo(
-    () => MOCK_PAST_MEDICATIONS.map(mapPastMedicationToRow),
-    [],
+    () =>
+      (data?.pastMedications ?? []).map((med) => ({
+        id: med.id,
+        name: med.name,
+        strength: med.strength,
+        dosageInstructions: med.dosageInstructions,
+        statusLabel: med.statusLabel,
+      })),
+    [data],
   )
 
   const openRecord = (med: MedicationLine | PastMedicationTableRow) => {
@@ -87,6 +91,7 @@ export function AssistantPatientMedicationsTab({ patientId }: AssistantPatientMe
           onOpenChange={(open) => {
             if (!open) setRecordMed(null)
           }}
+          medicationId={recordMed.id}
           medicationName={recordMed.name}
           strength={recordMed.strength}
           type={recordMed.type}

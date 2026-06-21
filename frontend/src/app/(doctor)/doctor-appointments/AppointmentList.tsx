@@ -141,9 +141,8 @@ export function AppointmentList({
                         <div className="flex items-center gap-3">
                           <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
                             <PatientAvatar
+                              name={appointment.patient.name}
                               avatarUrl={appointment.patient.avatar}
-                              fallbackSeed={appointment.patient.id || appointment.patient.name}
-                              alt={appointment.patient.name}
                             />
                           </div>
                           <div className="min-w-0">

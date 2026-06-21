@@ -1,7 +1,7 @@
 "use client"
 
-import Image from "next/image"
 import Link from "next/link"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import { useParams } from "next/navigation"
 import { useMemo, useState } from "react"
 import {
@@ -297,25 +297,12 @@ export function DoctorPrescriptionsPatientDetail({
             <div className="z-10 flex flex-wrap items-center justify-between gap-4 border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-6 py-6 sm:px-8">
               <div className="flex items-center gap-4">
                 <div className="flex size-12 items-center justify-center overflow-hidden rounded-2xl border border-[#E8E6E0]/60 bg-white shadow-sm">
-                  {patient.avatarUrl ? (
-                    <Image
-                      src={patient.avatarUrl}
-                      alt=""
-                      width={48}
-                      height={48}
-                      unoptimized
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <Image
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(patient.fullName.replace(/\s+/g, ""))}`}
-                      alt=""
-                      width={48}
-                      height={48}
-                      unoptimized
-                      className="size-full object-cover"
-                    />
-                  )}
+                  <PatientAvatar
+                    name={patient.fullName}
+                    avatarUrl={patient.avatarUrl}
+                    sizes="48px"
+                    initialsClassName="text-[14px]"
+                  />
                 </div>
                 <div>
                   <div className="flex flex-wrap items-center gap-3">
@@ -942,11 +929,13 @@ export function DoctorPrescriptionsPatientDetail({
         <MedicationRecordDialog
           open={!!recordRx}
           onOpenChange={(open) => !open && setRecordRx(null)}
+          medicationId={recordRx.id}
           medicationName={recordRx.name}
           strength={recordRx.dose}
           type="pill"
           dosageInstructions={recordRx.instructions ?? `${recordRx.dose} · ${recordRx.frequency}`}
           frequencyLabel={recordRx.frequency}
+          apiPrefix="doctor"
         />
       ) : null}
 

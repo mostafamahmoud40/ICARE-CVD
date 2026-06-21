@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { LucideIcon } from "lucide-react"
 import {
   AwardIcon,
@@ -70,21 +70,38 @@ function formatStatCount(value: number) {
 
 function ProfileAvatar({ profile }: { profile: DoctorProfile }) {
   const [imageFailed, setImageFailed] = useState(false)
-  const hasAvatar = Boolean(profile.avatarUrl?.trim()) && !imageFailed
+  const avatarUrl = profile.avatarUrl?.trim() ?? ""
+  const isPresetAvatar = avatarUrl.startsWith("/avatars/")
+  const isRemoteAvatar = avatarUrl.startsWith("http://") || avatarUrl.startsWith("https://")
+  const hasAvatar = Boolean(avatarUrl) && !imageFailed
+
+  useEffect(() => {
+    setImageFailed(false)
+  }, [avatarUrl])
 
   return (
     <div className="relative shrink-0">
       <div className="relative size-20 overflow-hidden rounded-2xl border border-[#E8E6E0]/60 bg-[#F4F3EF] shadow-sm sm:size-24">
         {hasAvatar ? (
-          <Image
-            src={profile.avatarUrl!}
-            alt={profile.fullName}
-            fill
-            unoptimized
-            sizes="96px"
-            className="object-cover"
-            onError={() => setImageFailed(true)}
-          />
+          isRemoteAvatar && !isPresetAvatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt={profile.fullName}
+              className="size-full object-cover"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <Image
+              src={avatarUrl}
+              alt={profile.fullName}
+              fill
+              unoptimized
+              sizes="96px"
+              className="object-cover"
+              onError={() => setImageFailed(true)}
+            />
+          )
         ) : (
           <div className="flex size-full items-center justify-center text-[#9AA8A0]">
             <User2Icon className="size-10 sm:size-11" strokeWidth={1.5} aria-hidden />

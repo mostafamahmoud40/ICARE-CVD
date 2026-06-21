@@ -101,19 +101,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { showIcareToast } from "@/components/shared/icare-toast"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 
 import { MedicalHistory } from "@/components/patient-profile/MedicalHistory"
 import { Documents } from "@/components/patient-profile/Documents"
 
 import { useAssistantPatientProfilePage } from "./useAssistantPatientProfilePage"
-import {
-  MOCK_APPOINTMENTS,
-  MOCK_LAB_RESULTS,
-  MOCK_PRESCRIPTIONS,
-  MOCK_VISIT_HISTORY,
-  MOCK_VITALS_HISTORY,
-  MOCK_VITALS_TREND,
-} from "./assistantPatientProfile.mock"
 import {
   APPOINTMENT_TABLE_GRID,
   VITALS_TABLE_GRID,
@@ -135,11 +128,36 @@ type AssistantPatientProfilePageProps = {
   patientId: string
 }
 
+function patientRiskBadgeClassName(riskLabel: string): string {
+  const lower = riskLabel.toLowerCase()
+  if (lower.includes("high")) return "rounded-lg bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm border-0"
+  if (lower.includes("moderate")) return "rounded-lg bg-amber-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm border-0"
+  if (lower.includes("low")) return "rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm border-0"
+  return "rounded-lg bg-[#6B7870] px-2.5 py-1 text-[11px] font-bold text-white shadow-sm border-0"
+}
+
+function patientRiskAccentClassName(riskLabel: string): string {
+  const lower = riskLabel.toLowerCase()
+  if (lower.includes("high")) return "text-rose-600"
+  if (lower.includes("moderate")) return "text-amber-600"
+  if (lower.includes("low")) return "text-emerald-600"
+  return "text-muted-foreground"
+}
+
 export function AssistantPatientProfilePage({ patientId: routePatientId }: AssistantPatientProfilePageProps) {
   const {
     patientId,
     patient,
     vitals,
+    appointments,
+    visitHistory,
+    labResults,
+    prescriptions,
+    vitalsHistory,
+    vitalsTrend,
+    medicalHistory,
+    documents,
+    emptyHubMessage,
     tabs,
     patientProfilePath,
     hubNavItems,
@@ -268,15 +286,17 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
             </p>
           </div>
         ) : hubViewParam === "documents" ? (
-          <Documents />
+          <Documents documents={documents} emptyMessage={emptyHubMessage("documents")} />
         ) : hubViewParam === "medical-history" ? (
-          <MedicalHistory />
+          <MedicalHistory {...medicalHistory} emptyMessage={emptyHubMessage("medical history")} />
         ) : hubViewParam === "visit-history" ? (
           <div className="w-full px-4 sm:px-8 py-8 flex flex-col gap-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h2 className="text-[20px] font-bold text-[#1A1F1E] tracking-tight">Visit History</h2>
-                <p className="text-[13px] font-medium text-muted-foreground mt-1">Timeline of 12 clinical encounters</p>
+                <p className="text-[13px] font-medium text-muted-foreground mt-1">
+                  Timeline of {visitHistory.length} clinical encounter{visitHistory.length === 1 ? "" : "s"}
+                </p>
               </div>
               <div className="flex items-center gap-3">
                  <div className="hidden sm:flex items-center bg-white border border-[#E8E6E0] rounded-xl px-1.5 h-10">
@@ -295,7 +315,11 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
               {/* Vertical Timeline Line */}
               <div className="absolute left-[144px] top-12 bottom-0 w-0.5 bg-gradient-to-b from-[#E8E6E0] via-[#E8E6E0] to-transparent hidden md:block"></div>
 
-              {MOCK_VISIT_HISTORY.map((visit, index) => (
+              {visitHistory.length === 0 ? (
+                <p className="rounded-2xl border border-[#E8E6E0]/80 bg-white px-6 py-10 text-center text-[14px] font-medium text-muted-foreground">
+                  {emptyHubMessage("visit history")}
+                </p>
+              ) : visitHistory.map((visit, index) => (
                 <div key={visit.id} className="relative flex flex-col md:flex-row gap-6 md:gap-14 group">
                   {/* Date & Node Panel */}
                   <div className="md:w-[130px] shrink-0 md:text-right pt-1 relative">
@@ -319,7 +343,12 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                         <div className="flex items-center gap-3.5">
                            <div className="size-11 shrink-0 overflow-hidden rounded-2xl border-2 border-white shadow-sm ring-1 ring-[#E8E6E0]/50">
-                              <img src={visit.doctor.avatar} alt="" className="size-full object-cover" />
+                              <PatientAvatar
+                                name={visit.doctor.name}
+                                avatarUrl={visit.doctor.avatar}
+                                sizes="44px"
+                                initialsClassName="text-[12px]"
+                              />
                            </div>
                            <div>
                               <p className="text-[16px] font-bold text-[#1A1F1E] flex items-center gap-1.5 group-hover:text-[#1A5345] transition-colors">
@@ -401,7 +430,11 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
               </div>
 
               <div className="divide-y divide-[#E8E6E0]/60">
-                {MOCK_LAB_RESULTS.map((report) => (
+                {labResults.length === 0 ? (
+                  <div className="rounded-2xl border border-[#E8E6E0]/80 bg-white px-6 py-10 text-center text-[14px] font-medium text-muted-foreground">
+                    {emptyHubMessage("lab results")}
+                  </div>
+                ) : labResults.map((report) => (
                   <div key={report.id} className="group transition-all duration-200">
                     {/* Report Header Row */}
                     <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1.2fr_auto] gap-4 px-6 py-5 items-center hover:bg-[#F9F8F5]/40 transition-colors">
@@ -424,7 +457,12 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
 
                       <div className="hidden md:flex items-center gap-3 min-w-0">
                         <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F3F2F0]">
-                           <img src={report.doctor.avatar} alt="" className="size-full object-cover" />
+                           <PatientAvatar
+                             name={report.doctor.name}
+                             avatarUrl={report.doctor.avatar}
+                             sizes="32px"
+                             initialsClassName="text-[10px]"
+                           />
                         </div>
                         <div className="flex flex-col min-w-0">
                            <p className="font-serif text-[14px] font-bold text-[#1A5345] truncate">
@@ -456,7 +494,9 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
 
             {/* Lab Report Formal Dialog */}
             <LabReportDialog 
-              report={selectedLabReport} 
+              report={selectedLabReport}
+              patientName={patient.name}
+              patientCode={patient.mrn}
               isOpen={!!selectedLabReport} 
               onClose={() => setSelectedLabReport(null)} 
             />
@@ -513,7 +553,11 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                 </div>
 
                 <div className="divide-y divide-[#E8E6E0]/60">
-                  {MOCK_PRESCRIPTIONS.map((pres) => (
+                  {prescriptions.length === 0 ? (
+                    <div className="rounded-2xl border border-[#E8E6E0]/80 bg-white px-6 py-10 text-center text-[14px] font-medium text-muted-foreground">
+                      {emptyHubMessage("prescriptions")}
+                    </div>
+                  ) : prescriptions.map((pres) => (
                     <div key={pres.id} className="group transition-all duration-200">
                       <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto] gap-4 px-6 py-5 items-center hover:bg-[#F9F8F5]/40 transition-colors">
                         {/* Title Column */}
@@ -530,7 +574,12 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                         {/* Prescribed By Column */}
                         <div className="hidden md:flex items-center gap-3 min-w-0">
                           <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F3F2F0]">
-                             <img src={pres.doctor.avatar} alt="" className="size-full object-cover" />
+                             <PatientAvatar
+                               name={pres.doctor.name}
+                               avatarUrl={pres.doctor.avatar}
+                               sizes="32px"
+                               initialsClassName="text-[10px]"
+                             />
                           </div>
                           <p className="font-serif text-[14px] font-bold text-[#1A5345] truncate">
                             {pres.doctor.name}
@@ -581,11 +630,11 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                 <div className="absolute left-[144px] top-12 bottom-0 w-0.5 bg-gradient-to-b from-[#E8E6E0] via-[#E8E6E0] to-transparent hidden md:block"></div>
 
                 {Object.entries(
-                  MOCK_PRESCRIPTIONS.reduce((acc, pres) => {
+                  prescriptions.reduce((acc, pres) => {
                     if (!acc[pres.date]) acc[pres.date] = []
                     acc[pres.date].push(pres)
                     return acc
-                  }, {} as Record<string, typeof MOCK_PRESCRIPTIONS>)
+                  }, {} as Record<string, typeof prescriptions>)
                 ).map(([date, prescriptions]) => (
                   <div key={date} className="relative flex flex-col md:flex-row gap-6 md:gap-14 group">
                     {/* Date & Node Panel */}
@@ -607,7 +656,12 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                             <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
                               <div className="flex items-center gap-3">
                                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] overflow-hidden">
-                                    <img src={pres.doctor.avatar} alt="" className="size-full object-cover" />
+                                    <PatientAvatar
+                                      name={pres.doctor.name}
+                                      avatarUrl={pres.doctor.avatar}
+                                      sizes="40px"
+                                      initialsClassName="text-[11px]"
+                                    />
                                  </div>
                                  <div>
                                     <p className="font-serif text-[15px] font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">
@@ -657,7 +711,9 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
 
             {/* Prescription Formal Dialog */}
             <PrescriptionDialog 
-              prescription={selectedPrescription} 
+              prescription={selectedPrescription}
+              patientName={patient.name}
+              patientCode={patient.mrn}
               isOpen={!!selectedPrescription} 
               onClose={() => setSelectedPrescription(null)} 
             />
@@ -692,7 +748,7 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
 
               <div className="h-[320px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={MOCK_VITALS_TREND} margin={{ top: 5, right: 20, left: -20, bottom: 0 }}>
+                  <LineChart data={vitalsTrend} margin={{ top: 5, right: 20, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E6E0" />
                     <XAxis 
                       dataKey="month" 
@@ -760,7 +816,13 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                     <span className="sr-only">Actions</span>
                   </div>
 
-                  {MOCK_VITALS_HISTORY.map((vh) => (
+                  {vitalsHistory.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-5 py-10 text-center text-[14px] font-medium text-muted-foreground">
+                        {emptyHubMessage("vitals readings")}
+                      </td>
+                    </tr>
+                  ) : vitalsHistory.map((vh) => (
                     <div
                       key={vh.id}
                       role="row"
@@ -1092,7 +1154,13 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                     <span className="sr-only">Actions</span>
                   </div>
 
-                  {MOCK_APPOINTMENTS.map((app) => (
+                  {appointments.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-5 py-10 text-center text-[14px] font-medium text-muted-foreground">
+                        {emptyHubMessage("appointments")}
+                      </td>
+                    </tr>
+                  ) : appointments.map((app) => (
                     <div
                       key={app.id}
                       role="row"
@@ -1122,7 +1190,12 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                       </div>
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F3F2F0]">
-                          <img src={app.doctor.avatar} alt="" className="size-full object-cover" />
+                          <PatientAvatar
+                            name={app.doctor.name}
+                            avatarUrl={app.doctor.avatar}
+                            sizes="36px"
+                            initialsClassName="text-[10px]"
+                          />
                         </div>
                         <p className="min-w-0 truncate text-[14px] font-bold text-[#1A5345] transition-colors group-hover:text-[#1A1F1E]">
                           {app.doctor.name}
@@ -1246,10 +1319,11 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                   <div className="flex flex-col gap-4 text-[13px]">
                     <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/80 bg-[#F9F8F5]/50 p-3">
                       <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-white">
-                        <img
-                          src={appointmentDetail.doctor.avatar}
-                          alt=""
-                          className="size-full object-cover"
+                        <PatientAvatar
+                          name={appointmentDetail.doctor.name}
+                          avatarUrl={appointmentDetail.doctor.avatar}
+                          sizes="44px"
+                          initialsClassName="text-[12px]"
                         />
                       </div>
                       <div className="min-w-0">
@@ -1307,7 +1381,12 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
               </div>
               <div className="px-6 pb-6 pt-0 relative flex flex-col items-center text-center">
                 <div className="relative size-24 rounded-full border-4 border-white shadow-lg bg-slate-100 overflow-hidden -mt-12 mb-4">
-                  <img src={`https://i.pravatar.cc/150?u=${patient.id}`} alt={patient.name} className="size-full object-cover" />
+                  <PatientAvatar
+                    name={patient.name}
+                    avatarUrl={patient.avatarUrl}
+                    sizes="96px"
+                    initialsClassName="text-[22px]"
+                  />
                 </div>
                 <h2 className="text-[22px] font-bold text-[#1A1F1E] font-serif leading-tight">{patient.name}</h2>
                 <div className="mt-1 flex items-center justify-center gap-2 text-[13px] font-medium text-[#6B7870]">
@@ -1317,7 +1396,7 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                 </div>
                 
                 <div className="mt-5 w-full flex items-center justify-center gap-2">
-                  <Badge className="rounded-lg bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm border-0">
+                  <Badge className={patientRiskBadgeClassName(patient.riskLevel)}>
                     <AlertCircleIcon className="mr-1 size-3.5" />
                     {patient.riskLevel}
                   </Badge>
@@ -1707,7 +1786,7 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                       <div className="flex min-h-[168px] flex-col justify-between rounded-xl border border-[#E8E6E0]/80 bg-white p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="flex min-w-0 items-start gap-2.5">
-                            <ShieldAlertIcon className="size-5 text-rose-600 shrink-0" strokeWidth={2.5} aria-hidden />
+                            <ShieldAlertIcon className={cn("size-5 shrink-0", patientRiskAccentClassName(patient.riskLevel))} strokeWidth={2.5} aria-hidden />
                             <div className="min-w-0">
                               <h4 className="text-[14px] font-bold leading-snug text-[#1A1F1E]">CVD risk score</h4>
                               <p className="mt-0.5 text-[11px] font-medium leading-snug text-muted-foreground">
@@ -1715,7 +1794,7 @@ export function AssistantPatientProfilePage({ patientId: routePatientId }: Assis
                               </p>
                             </div>
                           </div>
-                          <Badge className="rounded-lg bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm border-0">
+                          <Badge className={patientRiskBadgeClassName(patient.riskLevel)}>
                             {patient.riskLevel}
                           </Badge>
                         </div>

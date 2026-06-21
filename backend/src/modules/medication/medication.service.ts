@@ -109,6 +109,51 @@ export class MedicationService {
     });
   }
 
+  /** Adherence record for medication detail dialog (last 30 days). */
+  async getMedicationAdherenceRecord(medicationId: string) {
+    const med = await this.db.query.medication.findFirst({
+      where: eq(medication.id, medicationId),
+    });
+
+    if (!med) {
+      throw new NotFoundException('Medication not found');
+    }
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const logs = await this.db.query.doseLog.findMany({
+      where: and(
+        eq(doseLog.medicationId, medicationId),
+        sql`${doseLog.takenAt} >= ${thirtyDaysAgo.toISOString()}`,
+      ),
+      orderBy: desc(doseLog.takenAt),
+    });
+
+    return {
+      medication: {
+        id: med.id,
+        name: med.name,
+        dose: med.dose,
+        frequency: med.frequency,
+        instructions: med.instructions,
+        timeOfDay: med.timeOfDay ?? [],
+        startDate: med.startDate
+          ? String(med.startDate).slice(0, 10)
+          : null,
+        adherencePercent: med.adherencePercent,
+      },
+      doseLogs: logs.map((log) => ({
+        id: log.id,
+        takenAt:
+          log.takenAt instanceof Date
+            ? log.takenAt.toISOString()
+            : String(log.takenAt),
+        skipped: log.skipped,
+      })),
+    };
+  }
+
   /** Patient marks a medication as taken or skipped. */
   async logDose(userId: number, medicationId: string, skipped: boolean) {
     const med = await this.db.query.medication.findFirst({

@@ -9,14 +9,29 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
   buildChatConversationPrefix,
-  MINIO_CATEGORY_PREFIX,
   MINIO_DEFAULT_PRESIGN_TTL_SECONDS,
+  type MinioStorageCategory,
 } from './minio.constants';
+import { buildMinioObjectPrefix } from './minio-patient-path';
+import { buildStaffAvatarPrefix } from './minio-staff-path';
 import type {
   MinioDownloadUrlInput,
   MinioUploadIntentInput,
   MinioUploadIntentResult,
 } from './minio.types';
+
+const PATIENT_SCOPED_CATEGORIES = new Set<MinioStorageCategory>([
+  'lab_report',
+  'patient_avatar',
+  'consultation_xray',
+  'consultation_echo',
+  'consultation_ecg',
+  'consultation_cine_mri',
+  'consultation_ct',
+  'consultation_ecg_cls',
+  'chat_image',
+  'chat_file',
+]);
 
 @Injectable()
 export class MinioService {
@@ -140,67 +155,37 @@ export class MinioService {
   }
 
   private resolveObjectPrefix(input: MinioUploadIntentInput): string {
-    if (input.category === 'lab_report') {
-      if (!input.patientId) {
-        throw new InternalServerErrorException(
-          'patientId is required for lab report uploads.',
-        );
-      }
-      return `${MINIO_CATEGORY_PREFIX.lab_report}/${input.patientId}`;
+    if (
+      (input.category === 'chat_image' || input.category === 'chat_file') &&
+      input.conversationId &&
+      input.conversationId > 0 &&
+      !input.patientNumber?.trim()
+    ) {
+      return buildChatConversationPrefix(
+        input.conversationId,
+        input.category,
+      );
     }
 
-    if (input.category === 'patient_avatar') {
-      if (!input.patientId) {
+    if (PATIENT_SCOPED_CATEGORIES.has(input.category)) {
+      if (!input.patientNumber?.trim()) {
         throw new InternalServerErrorException(
-          'patientId is required for patient avatar uploads.',
+          `patientNumber is required for ${input.category} uploads.`,
         );
       }
-      return `${MINIO_CATEGORY_PREFIX.patient_avatar}/${input.patientId}`;
+      return buildMinioObjectPrefix(input.category, input.patientNumber);
     }
 
-    if (input.category === 'consultation_xray') {
-      if (!input.patientId) {
+    if (input.category === 'staff_avatar') {
+      if (!input.staffId?.trim()) {
         throw new InternalServerErrorException(
-          'patientId is required for consultation X-ray uploads.',
+          'staffId is required for staff avatar uploads.',
         );
       }
-      return `${MINIO_CATEGORY_PREFIX.consultation_xray}/${input.patientId}`;
-    }
-
-    if (input.category === 'consultation_echo') {
-      if (!input.patientId) {
-        throw new InternalServerErrorException(
-          'patientId is required for consultation echo uploads.',
-        );
-      }
-      return `${MINIO_CATEGORY_PREFIX.consultation_echo}/${input.patientId}`;
-    }
-
-    if (input.category === 'consultation_ecg') {
-      if (!input.patientId) {
-        throw new InternalServerErrorException(
-          'patientId is required for consultation ECG uploads.',
-        );
-      }
-      return `${MINIO_CATEGORY_PREFIX.consultation_ecg}/${input.patientId}`;
-    }
-
-    if (input.category === 'consultation_cine_mri') {
-      if (!input.patientId) {
-        throw new InternalServerErrorException(
-          'patientId is required for consultation cine-MRI uploads.',
-        );
-      }
-      return `${MINIO_CATEGORY_PREFIX.consultation_cine_mri}/${input.patientId}`;
-    }
-
-    if (input.category === 'consultation_ct') {
-      if (!input.patientId) {
-        throw new InternalServerErrorException(
-          'patientId is required for consultation CT uploads.',
-        );
-      }
-      return `${MINIO_CATEGORY_PREFIX.consultation_ct}/${input.patientId}`;
+      return buildStaffAvatarPrefix(
+        input.staffRole ?? 'doctor',
+        input.staffId,
+      );
     }
 
     if (input.conversationId && input.conversationId > 0) {
@@ -210,7 +195,9 @@ export class MinioService {
       );
     }
 
-    return MINIO_CATEGORY_PREFIX[input.category];
+    throw new InternalServerErrorException(
+      `Could not resolve MinIO prefix for category ${input.category}.`,
+    );
   }
 
   private buildObjectName(fileName: string, contentType: string): string {

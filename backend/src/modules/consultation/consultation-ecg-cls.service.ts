@@ -12,20 +12,16 @@ import {
   patient,
   patientDocument,
 } from '../../database/schema';
+import { isMinioKeyForCategory } from '../../shared/storage/minio-patient-path';
 import {
   ECG_CLS_IMAGE_MAX_BYTES,
   ECG_FILE_MAX_BYTES,
   ECG_FILE_MIME_TYPES,
-  MINIO_CATEGORY_PREFIX,
   XRAY_IMAGE_MIME_TYPES,
 } from '../../shared/storage/minio.constants';
 import { MinioService } from '../../shared/storage/minio.service';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type { SaveConsultationEcgClsAnalysisDto } from './dto/consultation-ecg-cls.dto';
-
-function isConsultationEcgClsKey(key: string): boolean {
-  return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_ecg_cls}/`);
-}
 
 function isEcgClsImage(fileName: string, contentType: string): boolean {
   const mime = contentType.trim().toLowerCase();
@@ -84,6 +80,7 @@ export class ConsultationEcgClsService {
       contentType: resolvedContentType,
       category: 'consultation_ecg_cls',
       patientId,
+      patientNumber: patientRow.patientNumber,
     });
   }
 
@@ -218,7 +215,7 @@ export class ConsultationEcgClsService {
       const doc = await this.db.query.patientDocument.findFirst({
         where: eq(patientDocument.id, documentId),
       });
-      if (doc && isConsultationEcgClsKey(doc.s3Key)) {
+      if (doc && isMinioKeyForCategory(doc.s3Key, 'consultation_ecg_cls')) {
         await this.minioService.deleteObject(doc.s3Key);
       }
       if (doc) {
@@ -245,7 +242,7 @@ export class ConsultationEcgClsService {
       ),
     });
     if (!doc) throw new NotFoundException('Document not found');
-    if (!isConsultationEcgClsKey(doc.s3Key)) {
+    if (!isMinioKeyForCategory(doc.s3Key, 'consultation_ecg_cls')) {
       throw new BadRequestException('Invalid ECG classification storage key');
     }
 

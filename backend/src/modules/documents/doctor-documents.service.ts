@@ -6,39 +6,26 @@ import { patientDocument, patient } from '../../database/schema';
 import {
   LAB_REPORT_MAX_BYTES,
   LAB_REPORT_MIME_TYPES,
-  MINIO_CATEGORY_PREFIX,
 } from '../../shared/storage/minio.constants';
+import { isMinioKeyForCategory } from '../../shared/storage/minio-patient-path';
 import { MinioService } from '../../shared/storage/minio.service';
 import { S3Service } from '../../shared/storage/s3.service';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type { CreateDocumentDto } from './dto/documents.dto';
 
-function isMinioLabReportKey(key: string): boolean {
-  return key.startsWith(`${MINIO_CATEGORY_PREFIX.lab_report}/`);
+function isMinioLabReportKey(key: string, patientNumber?: string): boolean {
+  return isMinioKeyForCategory(key, 'lab_report', patientNumber);
 }
 
-function isConsultationXrayKey(key: string): boolean {
-  return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_xray}/`);
-}
-
-function isConsultationEchoKey(key: string): boolean {
-  return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_echo}/`);
-}
-
-function isConsultationEcgKey(key: string): boolean {
-  return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_ecg}/`);
-}
-
-function isConsultationCineMriKey(key: string): boolean {
-  return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_cine_mri}/`);
-}
-
-function isConsultationCtKey(key: string): boolean {
-  return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_ct}/`);
-}
-
-function isConsultationEcgClsKey(key: string): boolean {
-  return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_ecg_cls}/`);
+function isConsultationImagingKey(key: string, patientNumber?: string): boolean {
+  return (
+    isMinioKeyForCategory(key, 'consultation_xray', patientNumber) ||
+    isMinioKeyForCategory(key, 'consultation_echo', patientNumber) ||
+    isMinioKeyForCategory(key, 'consultation_ecg', patientNumber) ||
+    isMinioKeyForCategory(key, 'consultation_cine_mri', patientNumber) ||
+    isMinioKeyForCategory(key, 'consultation_ct', patientNumber) ||
+    isMinioKeyForCategory(key, 'consultation_ecg_cls', patientNumber)
+  );
 }
 
 @Injectable()
@@ -87,6 +74,7 @@ export class DoctorDocumentService {
       contentType: mimeType,
       category: 'lab_report',
       patientId,
+      patientNumber: patientRow.patientNumber,
     });
   }
 
@@ -110,6 +98,7 @@ export class DoctorDocumentService {
           fileName: dto.fileName,
           contentType: dto.contentType,
           patientId,
+          patientNumber: patientRow.patientNumber,
         });
         s3Key = intent.key;
       } else {
@@ -122,18 +111,13 @@ export class DoctorDocumentService {
       }
     } else if (
       dto.category === 'lab_report' &&
-      !isMinioLabReportKey(s3Key)
+      !isMinioLabReportKey(s3Key, patientRow.patientNumber)
     ) {
       throw new BadRequestException('Invalid lab report storage key');
     } else if (
       dto.category === 'imaging' &&
       s3Key &&
-      !isConsultationXrayKey(s3Key) &&
-      !isConsultationEchoKey(s3Key) &&
-      !isConsultationEcgKey(s3Key) &&
-      !isConsultationCineMriKey(s3Key) &&
-      !isConsultationCtKey(s3Key) &&
-      !isConsultationEcgClsKey(s3Key) &&
+      !isConsultationImagingKey(s3Key, patientRow.patientNumber) &&
       !s3Key.startsWith('documents/')
     ) {
       throw new BadRequestException('Invalid imaging storage key');
@@ -175,22 +159,12 @@ export class DoctorDocumentService {
 
     if (isMinioLabReportKey(doc.s3Key)) {
       await this.minioService.deleteObject(doc.s3Key);
-    } else if (
-      isConsultationXrayKey(doc.s3Key) ||
-      isConsultationEchoKey(doc.s3Key) ||
-      isConsultationEcgKey(doc.s3Key) ||
-      isConsultationCineMriKey(doc.s3Key) ||
-      isConsultationCtKey(doc.s3Key) ||
-      isConsultationEcgClsKey(doc.s3Key)
-    ) {
+    } else if (isConsultationImagingKey(doc.s3Key)) {
       await this.minioService.deleteObject(doc.s3Key);
     } else {
       await this.s3Service.deleteObject({ key: doc.s3Key });
     }
-    await this.db
-      .delete(patientDocument)
-      .where(eq(patientDocument.id, documentId));
 
-    return { success: true };
+    await this.db.delete(patientDocument).where(eq(patientDocument.id, documentId));
   }
 }

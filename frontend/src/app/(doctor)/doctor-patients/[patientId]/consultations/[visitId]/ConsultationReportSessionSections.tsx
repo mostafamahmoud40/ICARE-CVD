@@ -6,14 +6,17 @@ import { REPORT_EMPTY_MESSAGES } from "@/lib/consultation-report.mapper"
 import { cn } from "@/lib/utils"
 import {
   ActivityIcon,
+  ArrowRightLeftIcon,
   ClipboardCheckIcon,
   ClipboardListIcon,
   FileTextIcon,
   FlaskConicalIcon,
+  PillIcon,
   ScanLineIcon,
   SparklesIcon,
   StethoscopeIcon,
   Trash2Icon,
+  UserRoundIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { EditableReportBlock } from "./EditableReportBlock"
@@ -45,13 +48,20 @@ function SectionShell({
   title,
   icon: Icon,
   children,
+  className,
 }: {
   title: string
   icon: React.ElementType
   children: React.ReactNode
+  className?: string
 }) {
   return (
-    <div className="rounded-2xl border border-[#E8E6E0]/80 bg-white p-5 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.02)] sm:p-6">
+    <div
+      className={cn(
+        "rounded-2xl border border-[#E8E6E0]/80 bg-white p-5 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.02)] sm:p-6",
+        className,
+      )}
+    >
       <div className="mb-4 flex items-center gap-2.5">
         <Icon className="size-5 text-[#1A5345]" aria-hidden />
         <h3 className="text-[15px] font-bold text-[#1A1F1E]">{title}</h3>
@@ -75,6 +85,7 @@ type ConsultationReportSessionSectionsProps = {
   report: ConsultationReport
   draft: ConsultationReportDraft
   isEditing: boolean
+  sectionGroup: "clinical" | "orders"
   onUpdateDraft: (patch: Partial<ConsultationReportDraft>) => void
   onUpdateAiStudy: (
     studyId: string,
@@ -87,6 +98,7 @@ export function ConsultationReportSessionSections({
   report,
   draft,
   isEditing,
+  sectionGroup,
   onUpdateDraft,
   onUpdateAiStudy,
   onRemoveAiStudy,
@@ -94,10 +106,12 @@ export function ConsultationReportSessionSections({
   const visibleAiStudies = draft.aiStudies.filter((study) => !study.hidden)
   const hasTestOrders = report.sessionTestOrders.length > 0
   const hasHomeMeasurements = report.homeMeasurements.length > 0
+  const hasReferrals = report.referrals.length > 0
 
-  return (
-    <>
-      <SectionShell title="Medical history (visit snapshot)" icon={ClipboardListIcon}>
+  if (sectionGroup === "clinical") {
+    return (
+      <>
+        <SectionShell title="Medical history (visit snapshot)" icon={ClipboardListIcon}>
         <EditableReportBlock
           editing={isEditing}
           value={draft.medicalHistorySummary}
@@ -138,6 +152,52 @@ export function ConsultationReportSessionSections({
           rows={6}
         />
       </SectionShell>
+      </>
+    )
+  }
+
+  return (
+    <>
+      {report.prescriptions.length > 0 ? (
+        <SectionShell title="Prescriptions" icon={PillIcon} className="overflow-hidden">
+          <div className="-mx-5 -mb-5 sm:-mx-6 sm:-mb-6 overflow-x-auto custom-scrollbar border-t border-[#E8E6E0]/60 mt-2">
+            <table className="w-full text-left text-[13px]">
+              <thead className="bg-[#F9F8F5] border-b border-[#E8E6E0]/60">
+                <tr>
+                  <th className="px-5 sm:px-6 py-3 font-semibold text-[#1A1F1E]">Medication</th>
+                  <th className="px-4 py-3 font-semibold text-[#1A1F1E]">Dose</th>
+                  <th className="px-4 py-3 font-semibold text-[#1A1F1E]">Frequency</th>
+                  <th className="px-4 py-3 font-semibold text-[#1A1F1E]">Duration</th>
+                  <th className="px-5 sm:px-6 py-3 font-semibold text-[#1A1F1E]">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E8E6E0]/60">
+                {report.prescriptions.map((p) => (
+                  <tr key={p.id} className="transition-colors hover:bg-[#F9F8F5]/50 group">
+                    <td className="px-5 sm:px-6 py-4 font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">
+                      {p.name}
+                    </td>
+                    <td className="px-4 py-4 font-medium text-muted-foreground">{p.dose}</td>
+                    <td className="px-4 py-4 font-medium text-muted-foreground">{p.frequency}</td>
+                    <td className="px-4 py-4 font-medium text-muted-foreground">{p.duration}</td>
+                    <td className="px-5 sm:px-6 py-4">
+                      {p.isNew ? (
+                        <span className="inline-flex items-center rounded-lg bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600 ring-1 ring-inset ring-blue-600/20">
+                          New
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-lg bg-[#F3F2F0] px-2 py-0.5 text-[10px] font-bold text-[#6B7870] ring-1 ring-inset ring-gray-500/10">
+                          Continued
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </SectionShell>
+      ) : null}
 
       <SectionShell title="Tests & orders placed" icon={FlaskConicalIcon}>
         {!hasTestOrders ? (
@@ -195,20 +255,6 @@ export function ConsultationReportSessionSections({
             ))}
           </ul>
         )}
-      </SectionShell>
-
-      <SectionShell title="Procedure planning" icon={StethoscopeIcon}>
-        <EditableReportBlock
-          editing={isEditing}
-          value={draft.procedureDetailsSummary}
-          onChange={(procedureDetailsSummary) => onUpdateDraft({ procedureDetailsSummary })}
-          className={
-            draft.procedureDetailsSummary === REPORT_EMPTY_MESSAGES.procedureDetailsSummary
-              ? "text-[#6B7870] italic"
-              : "text-[#1A1F1E]"
-          }
-          rows={5}
-        />
       </SectionShell>
 
       <SectionShell title="AI analyses & session uploads" icon={SparklesIcon}>
@@ -301,6 +347,57 @@ export function ConsultationReportSessionSections({
             ))}
           </div>
         )}
+      </SectionShell>
+
+      <SectionShell title="Specialist referrals" icon={ArrowRightLeftIcon}>
+        {!hasReferrals ? (
+          <ReportTextBlock
+            value={REPORT_EMPTY_MESSAGES.referrals}
+            emptyMessage={REPORT_EMPTY_MESSAGES.referrals}
+          />
+        ) : (
+          <div className="space-y-3">
+            {report.referrals.map((ref, index) => (
+              <div
+                key={`${ref.specialty}-${index}`}
+                className="rounded-xl border border-[#E8E6E0]/60 bg-[#FAFAF8] p-4"
+              >
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E8F0EE]/80 px-2 py-1 text-[11px] font-bold text-[#1A5345]">
+                    <UserRoundIcon className="size-3" aria-hidden />
+                    {ref.specialty}
+                  </span>
+                  <span
+                    className={cn(
+                      "rounded-lg px-2 py-1 text-[9px] font-bold shadow-sm",
+                      ref.urgency === "urgent" ? "bg-red-600 text-white" : "bg-emerald-600 text-white",
+                    )}
+                  >
+                    {ref.urgency === "urgent" ? "Urgent" : "Routine"}
+                  </span>
+                </div>
+                <p className="text-[13px] leading-relaxed text-[#1A1F1E]">
+                  <span className="font-bold text-[#6B7870]">Reason: </span>
+                  {ref.reason}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionShell>
+
+      <SectionShell title="Procedure planning" icon={StethoscopeIcon}>
+        <EditableReportBlock
+          editing={isEditing}
+          value={draft.procedureDetailsSummary}
+          onChange={(procedureDetailsSummary) => onUpdateDraft({ procedureDetailsSummary })}
+          className={
+            draft.procedureDetailsSummary === REPORT_EMPTY_MESSAGES.procedureDetailsSummary
+              ? "text-[#6B7870] italic"
+              : "text-[#1A1F1E]"
+          }
+          rows={5}
+        />
       </SectionShell>
     </>
   )

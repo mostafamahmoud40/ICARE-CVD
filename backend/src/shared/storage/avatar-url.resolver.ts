@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
-import { MINIO_CATEGORY_PREFIX } from './minio.constants';
+import {
+  isPatientProfileStorageKey,
+  PATIENTS_STORAGE_ROOT,
+} from './minio-patient-path';
+import { isStaffAvatarStorageKey } from './minio-staff-path';
 import { MinioService } from './minio.service';
 
 /**
@@ -16,21 +20,33 @@ export class AvatarUrlResolver {
     const trimmed = avatarUrl.trim();
     if (!trimmed) return null;
 
-    if (trimmed.startsWith(`${MINIO_CATEGORY_PREFIX.patient_avatar}/`)) {
-      return trimmed;
+    if (isPatientProfileStorageKey(trimmed)) {
+      return trimmed.split('?')[0] ?? trimmed;
+    }
+
+    if (isStaffAvatarStorageKey(trimmed)) {
+      return trimmed.split('?')[0] ?? trimmed;
     }
 
     const bucket = process.env.MINIO_BUCKET_NAME?.trim() || 'icare-chat';
     const pathStyle = `/${bucket}/`;
     const pathIndex = trimmed.indexOf(pathStyle);
     if (pathIndex >= 0) {
-      return trimmed.slice(pathIndex + pathStyle.length);
+      const key = trimmed.slice(pathIndex + pathStyle.length).split('?')[0] ?? null;
+      return key &&
+        (isPatientProfileStorageKey(key) || isStaffAvatarStorageKey(key))
+        ? key
+        : null;
     }
 
     const hostMarker = `${bucket}/`;
     const hostIndex = trimmed.indexOf(hostMarker);
     if (hostIndex >= 0) {
-      return trimmed.slice(hostIndex + hostMarker.length);
+      const key = trimmed.slice(hostIndex + hostMarker.length).split('?')[0] ?? null;
+      return key &&
+        (isPatientProfileStorageKey(key) || isStaffAvatarStorageKey(key))
+        ? key
+        : null;
     }
 
     return null;
@@ -39,9 +55,7 @@ export class AvatarUrlResolver {
   isMinioPatientAvatar(avatarUrl: string | null | undefined): boolean {
     if (!avatarUrl?.trim()) return false;
     const key = this.extractPatientAvatarKey(avatarUrl.trim());
-    return Boolean(
-      key?.startsWith(`${MINIO_CATEGORY_PREFIX.patient_avatar}/`),
-    );
+    return Boolean(key?.startsWith(`${PATIENTS_STORAGE_ROOT}/`) || key?.includes('/profile/'));
   }
 
   async resolve(avatarUrl: string | null | undefined): Promise<string | null> {
@@ -54,7 +68,7 @@ export class AvatarUrlResolver {
     }
 
     const key = this.extractPatientAvatarKey(trimmed);
-    if (key?.startsWith(`${MINIO_CATEGORY_PREFIX.patient_avatar}/`)) {
+    if (key) {
       try {
         return await this.minioService.createDownloadUrl({ key });
       } catch {

@@ -13,9 +13,12 @@ import { patient, user } from '../../../database/schema';
 import { AvatarUrlResolver } from '../../../shared/storage/avatar-url.resolver';
 import { MinioService } from '../../../shared/storage/minio.service';
 import {
-  MINIO_CATEGORY_PREFIX,
   PATIENT_AVATAR_MIME_TYPES,
 } from '../../../shared/storage/minio.constants';
+import {
+  buildMinioObjectPrefix,
+  isPatientProfileStorageKey,
+} from '../../../shared/storage/minio-patient-path';
 import { UpdatePatientAccountDto } from './dto/update-patient-account.dto';
 
 @Injectable()
@@ -111,14 +114,15 @@ export class PatientAccountService {
       contentType: mimeType,
       category: 'patient_avatar',
       patientId: patientRow.id,
+      patientNumber: patientRow.patientNumber,
     });
   }
 
   async setAvatar(userId: number, s3Key: string) {
     const patientRow = await this.findPatientByUserId(userId);
     const key = s3Key.trim();
-    const expectedPrefix = `${MINIO_CATEGORY_PREFIX.patient_avatar}/${patientRow.id}/`;
-    if (!key.startsWith(expectedPrefix)) {
+    const expectedPrefix = `${buildMinioObjectPrefix('patient_avatar', patientRow.patientNumber)}/`;
+    if (!key.startsWith(expectedPrefix) && !isPatientProfileStorageKey(key, patientRow.patientNumber)) {
       throw new BadRequestException('Invalid profile photo storage key');
     }
 

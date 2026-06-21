@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api-client"
+import { patchAuthUser } from "@/lib/auth-tokens"
 import { writeDoctorHeaderProfileCache } from "../doctorHeaderProfile.cache"
 import type {
   DoctorPracticeStats,
@@ -15,19 +16,32 @@ export type DoctorAccountApiResponse = {
   weeklySnapshot: DoctorWeeklySnapshot[]
 }
 
+export type DoctorAccountPatch = Partial<DoctorProfileEditValues>
+
+function syncAuthUserFromProfile(profile: DoctorAccountApiProfile) {
+  patchAuthUser({
+    name: profile.fullName,
+    email: profile.email,
+    phone: profile.phone,
+    avatarUrl: profile.avatarUrl ?? null,
+  })
+}
+
 export async function fetchDoctorAccount(): Promise<DoctorAccountApiResponse> {
   const { data } = await apiClient.get<DoctorAccountApiResponse>("/doctor/account")
   writeDoctorHeaderProfileCache(data.profile)
+  syncAuthUserFromProfile(data.profile)
   return data
 }
 
 export async function updateDoctorAccount(
-  values: DoctorProfileEditValues,
+  values: DoctorAccountPatch,
 ): Promise<DoctorAccountApiResponse> {
   const { data } = await apiClient.patch<DoctorAccountApiResponse>(
     "/doctor/account",
     values,
   )
   writeDoctorHeaderProfileCache(data.profile)
+  syncAuthUserFromProfile(data.profile)
   return data
 }

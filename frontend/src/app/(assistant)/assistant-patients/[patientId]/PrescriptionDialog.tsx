@@ -5,6 +5,9 @@ import {
   ClockIcon,
   FileTextIcon,
   HeartPulseIcon,
+  MailIcon,
+  MapPinIcon,
+  PhoneIcon,
   Printer,
   QrCodeIcon,
   SendIcon,
@@ -26,10 +29,14 @@ import type {
 
 export function PrescriptionDialog({
   prescription,
+  patientName,
+  patientCode,
   isOpen,
   onClose,
 }: {
   prescription: AssistantPrescriptionRow | null
+  patientName: string
+  patientCode: string
   isOpen: boolean
   onClose: () => void
 }) {
@@ -37,93 +44,110 @@ export function PrescriptionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="w-full max-w-[calc(100vw-1.5rem)] sm:max-w-[min(96vw,1200px)] p-0 overflow-hidden rounded-[2.5rem] border-0 shadow-2xl bg-white">
+      <DialogContent className="flex w-full max-w-[calc(100vw-1.5rem)] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl sm:max-w-[min(94vw,880px)]">
         <DialogTitle className="sr-only">Prescription {prescription.id}</DialogTitle>
         
         {/* Prescription Header Actions */}
-        <div className="flex items-center justify-between px-10 py-5 bg-[#F9F8F5] border-b border-[#E8E6E0]/60 print:hidden">
-           <div className="flex items-center gap-3">
-              <Badge className="bg-[#1A5345] text-white rounded-lg px-2 py-0.5 text-[10px] font-black">OFFICIAL RX</Badge>
-              <span className="text-[12px] font-bold text-[#1A1F1E]">Date: {prescription.date}</span>
+        <div className="flex items-center justify-between gap-3 px-5 py-3 bg-[#F9F8F5] border-b border-[#E8E6E0]/60 print:hidden">
+           <div className="flex min-w-0 items-center gap-2">
+              <Badge className="shrink-0 bg-[#1A5345] text-white rounded-md px-1.5 py-0 text-[9px] font-black leading-5">OFFICIAL RX</Badge>
+              <span className="truncate text-[11px] font-bold text-[#1A1F1E]">{prescription.date}</span>
            </div>
-           <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="h-9 rounded-xl text-[12px] font-bold gap-2 hover:bg-white border border-[#E8E6E0]/40">
-                 <ShareIcon className="size-4" />
-                 Share
+           <div className="flex shrink-0 items-center gap-1.5">
+              <Button variant="ghost" size="icon" className="size-8 rounded-lg text-[#1A1F1E] hover:bg-white border border-[#E8E6E0]/40 shadow-none" aria-label="Share prescription">
+                 <ShareIcon className="size-3.5" />
               </Button>
-              <Button variant="ghost" size="sm" className="h-9 rounded-xl text-[12px] font-bold gap-2 hover:bg-white border border-[#E8E6E0]/40">
-                 <SendIcon className="size-4" />
-                 Send to Patient
+              <Button variant="ghost" size="icon" className="size-8 rounded-lg text-[#1A1F1E] hover:bg-white border border-[#E8E6E0]/40 shadow-none" aria-label="Send to patient">
+                 <SendIcon className="size-3.5" />
               </Button>
               <Button 
                 onClick={() => window.print()}
-                className="h-9 rounded-xl bg-[#1A1F1E] text-white hover:bg-[#1A5345] text-[12px] font-bold gap-2 shadow-lg"
+                size="icon"
+                className="size-8 rounded-lg bg-[#1A1F1E] text-white hover:bg-[#1A5345] shadow-sm border-0"
+                aria-label="Print prescription"
               >
-                 <Printer className="size-4" />
-                 Print RX
+                 <Printer className="size-3.5" />
               </Button>
            </div>
         </div>
 
-        <div className="p-12 relative overflow-hidden print:p-0 max-h-[85vh] overflow-y-auto custom-scrollbar">
+        <div className="relative max-h-[calc(90vh-3rem)] overflow-y-auto p-5 print:p-0 sm:p-6">
            {/* RX Watermark */}
            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none select-none">
-              <span className="text-[300px] font-black italic text-[#1A5345]">Rx</span>
+              <span className="text-[220px] font-black italic text-[#1A5345]">Rx</span>
            </div>
 
            <div className="relative z-10">
-              {/* Hospital Branding */}
-              <div className="flex justify-between items-start mb-14 border-b-2 border-[#1A1F1E] pb-8">
-                 <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-3">
-                       <div className="bg-[#1A5345] size-12 rounded-2xl flex items-center justify-center text-white shadow-xl">
-                          <HeartPulseIcon className="size-7" />
+              {/* Clinic & physician */}
+              <div className="mb-5 overflow-hidden rounded-xl border border-[#E8E6E0] bg-gradient-to-br from-[#FAFAF8] via-white to-[#F3F7F5]">
+                 <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
+                    <div className="min-w-0 space-y-3">
+                       <div className="flex items-start gap-3">
+                          <HeartPulseIcon className="mt-0.5 size-6 shrink-0 text-[#1A5345]" aria-hidden />
+                          <div>
+                             <h2 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#1A1F1E]">
+                                ICARE-CVD
+                             </h2>
+                             <p className="mt-0.5 text-[13px] font-medium text-[#1A5345]">
+                                Advanced cardiac care
+                             </p>
+                          </div>
                        </div>
-                       <div>
-                          <span className="text-[26px] font-black tracking-tighter text-[#1A1F1E] leading-none">ICARE-CVD</span>
-                          <span className="text-[11px] font-bold text-[#1A5345] uppercase tracking-widest mt-1 block">Advanced Cardiac Care</span>
+                       <div className="space-y-1.5 pl-9 text-[12px] leading-relaxed text-muted-foreground">
+                          <p className="flex items-start gap-2">
+                             <MapPinIcon className="mt-0.5 size-3.5 shrink-0 text-[#1A5345]/70" aria-hidden />
+                             <span>123 Medical Plaza, Health District, Cairo, Egypt</span>
+                          </p>
+                          <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                             <span className="inline-flex items-center gap-1.5">
+                                <PhoneIcon className="size-3.5 shrink-0 text-[#1A5345]/70" aria-hidden />
+                                +20 (02) 1234-5678
+                             </span>
+                             <span className="inline-flex items-center gap-1.5">
+                                <MailIcon className="size-3.5 shrink-0 text-[#1A5345]/70" aria-hidden />
+                                clinic@icare-cvd.com
+                             </span>
+                          </p>
                        </div>
                     </div>
-                    <p className="text-[13px] font-medium text-muted-foreground mt-2 max-w-[300px]">
-                       123 Medical Plaza, Health District, Cairo, Egypt<br />
-                       Phone: +20 (02) 1234-5678 | Email: clinic@icare-cvd.com
-                    </p>
-                 </div>
-                 <div className="text-right">
-                    <h2 className="text-[20px] font-black text-[#1A1F1E] uppercase tracking-widest mb-1">{prescription.doctor.name}</h2>
-                    <p className="text-[14px] font-bold text-[#1A5345]">{prescription.doctor.department} Specialist</p>
-                    <p className="text-[12px] font-medium text-muted-foreground mt-1">Reg No: #MD-9921-X</p>
+
+                    <div className="shrink-0 border-t border-[#E8E6E0]/70 pt-4 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0 sm:text-right">
+                       <p className="text-[11px] font-medium text-muted-foreground">Prescribing physician</p>
+                       <p className="mt-1 text-[17px] font-bold leading-snug text-[#1A1F1E]">
+                          {prescription.doctor.name}
+                       </p>
+                       <p className="mt-0.5 text-[13px] font-medium text-[#1A5345]">
+                          {prescription.doctor.department} specialist
+                       </p>
+                       <p className="mt-2 text-[11px] text-muted-foreground">License no. MD-9921-X</p>
+                    </div>
                  </div>
               </div>
 
-              {/* Patient Details Row */}
-              <div className="grid grid-cols-4 gap-8 mb-14 bg-[#F9F8F5] p-6 rounded-2xl border border-[#E8E6E0]">
+              {/* Patient summary */}
+              <div className="mb-5 grid grid-cols-1 gap-3 rounded-xl border border-[#E8E6E0] bg-[#F9F8F5] p-3.5 sm:grid-cols-3">
                  <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Patient Name</p>
-                    <p className="text-[15px] font-black text-[#1A1F1E]">Ahmed Mohamed</p>
+                    <p className="mb-1 text-[11px] font-medium text-muted-foreground">Patient name</p>
+                    <p className="text-[14px] font-bold text-[#1A1F1E]">{patientName}</p>
                  </div>
                  <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Age / Gender</p>
-                    <p className="text-[15px] font-bold text-[#1A1F1E]">28 Years / Male</p>
+                    <p className="mb-1 text-[11px] font-medium text-muted-foreground">Patient code</p>
+                    <p className="text-[14px] font-bold tabular-nums text-[#1A1F1E]">{patientCode}</p>
                  </div>
                  <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Weight</p>
-                    <p className="text-[15px] font-bold text-[#1A1F1E]">78 Kg</p>
-                 </div>
-                 <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Date</p>
-                    <p className="text-[15px] font-bold text-[#1A1F1E]">{prescription.date}</p>
+                    <p className="mb-1 text-[11px] font-medium text-muted-foreground">Visit date</p>
+                    <p className="text-[14px] font-bold text-[#1A1F1E]">{prescription.date}</p>
                  </div>
               </div>
 
               {/* Prescription List */}
-              <div className="mb-14 min-h-[400px]">
-                 <div className="flex items-center gap-3 mb-8">
-                    <span className="text-[40px] font-black italic text-[#1A5345]">Rx</span>
-                    <div className="h-px flex-1 bg-[#E8E6E0] mt-4" />
+              <div className="mb-5">
+                 <div className="mb-4 flex items-center gap-3">
+                    <span className="text-[28px] font-black italic text-[#1A5345]">Rx</span>
+                    <div className="mt-3 h-px flex-1 bg-[#E8E6E0]" />
                  </div>
 
-                 <div className="flex flex-col gap-10">
+                 <div className="flex flex-col gap-6">
                     {prescription.medications.map((med: AssistantPrescriptionMedRow, idx: number) => (
                        <div key={idx} className="flex flex-col gap-3 group">
                           <div className="flex items-start justify-between">
@@ -132,8 +156,8 @@ export function PrescriptionDialog({
                                 <Badge variant="outline" className="rounded-lg border-[#1A1F1E] bg-white text-[12px] font-black px-3 py-0.5">{med.dosage}</Badge>
                              </div>
                              <div className="text-right">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Quantity</p>
-                                <p className="text-[16px] font-black text-[#1A5345]">{med.quantity}</p>
+                                <p className="text-[11px] font-medium text-muted-foreground">Quantity</p>
+                                <p className="text-[16px] font-bold text-[#1A5345]">{med.quantity}</p>
                              </div>
                           </div>
                           <div className="pl-6 flex flex-wrap gap-x-12 gap-y-2">
@@ -156,19 +180,19 @@ export function PrescriptionDialog({
               </div>
 
               {/* Signature Section */}
-              <div className="flex justify-between items-end pt-12 border-t border-[#E8E6E0]">
-                 <div className="flex flex-col gap-4">
-                    <div className="size-24 border-2 border-[#E8E6E0] rounded-2xl p-2 bg-white flex items-center justify-center opacity-80">
+              <div className="flex items-end justify-between border-t border-[#E8E6E0] pt-6">
+                 <div className="flex flex-col gap-2">
+                    <div className="flex size-20 items-center justify-center rounded-xl border-2 border-[#E8E6E0] bg-white p-2 opacity-80">
                        <QrCodeIcon className="size-full" />
                     </div>
-                    <p className="text-[10px] font-bold text-muted-foreground max-w-[150px]">Scan to verify prescription authenticity</p>
+                    <p className="max-w-[140px] text-[10px] font-medium text-muted-foreground">Scan to verify prescription authenticity</p>
                  </div>
                  <div className="text-center">
-                    <div className="mb-4">
-                       <p className="text-[22px] font-black italic text-[#1A1F1E] font-serif">Sarah Jenkins</p>
-                       <div className="h-0.5 w-48 bg-[#1A1F1E] my-1" />
+                    <div className="mb-3">
+                       <p className="font-serif text-[20px] font-bold italic text-[#1A1F1E]">{prescription.doctor.name}</p>
+                       <div className="my-1 h-0.5 w-40 bg-[#1A1F1E]" />
                     </div>
-                    <p className="text-[12px] font-bold text-[#1A5345] uppercase tracking-widest">Doctor's Signature & Stamp</p>
+                    <p className="text-[12px] font-medium text-[#1A5345]">Doctor&apos;s signature & stamp</p>
                  </div>
               </div>
            </div>

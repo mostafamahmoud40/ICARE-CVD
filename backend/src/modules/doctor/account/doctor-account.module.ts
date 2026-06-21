@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AccessTokenGuard } from '../../auth/access-token.guard';
 import { AuthJwtService } from '../../auth/jwt';
 import { DoctorVerifierModule } from '../../../shared/doctor/doctor-verifier.module';
+import { MinioModule } from '../../../shared/storage/minio.module';
 import { DoctorGuard } from '../doctor.guard';
 import { DoctorAccountController } from './doctor-account.controller';
 import { DoctorAccountService } from './doctor-account.service';
@@ -14,6 +15,7 @@ import { DoctorAccountService } from './doctor-account.service';
       secret: process.env.JWT_ACCESS_SECRET,
     }),
     DoctorVerifierModule,
+    MinioModule,
   ],
   controllers: [DoctorAccountController],
   providers: [

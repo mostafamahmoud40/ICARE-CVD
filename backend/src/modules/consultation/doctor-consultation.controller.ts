@@ -150,4 +150,17 @@ export class DoctorConsultationController {
       dto,
     );
   }
+
+  @Delete(':patientId/consultations/:consultationId/referrals/:referralId')
+  deleteReferral(
+    @CurrentUser() user: TokenPayload,
+    @Param('consultationId') consultationId: string,
+    @Param('referralId') referralId: string,
+  ) {
+    return this.consultationService.deleteReferral(
+      user.sub,
+      consultationId,
+      referralId,
+    );
+  }
 }

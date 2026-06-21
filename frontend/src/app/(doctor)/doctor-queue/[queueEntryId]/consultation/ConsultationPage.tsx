@@ -12,6 +12,8 @@ import { useConsultationPanelWidths } from "./usePanelResize"
 import type {
   Allergy,
   ExistingCondition,
+  FamilyHistoryItem,
+  ReferralEntry,
   TestOrder,
 } from "./consultation.types"
 import { PatientSidebar } from "./PatientSidebar"
@@ -22,6 +24,7 @@ import { ChiefComplaintSection } from "./ChiefComplaintSection"
 import { PhysicalExamSection } from "./PhysicalExamSection"
 import { DiagnosisSection } from "./DiagnosisSection"
 import { PrescriptionsSection } from "./PrescriptionsSection"
+import { ReferralsSection } from "./ReferralsSection"
 import { ClinicalNotesSection } from "./ClinicalNotesSection"
 import { FollowUpSection } from "./FollowUpSection"
 import { PatientInstructionsSection } from "./PatientInstructionsSection"
@@ -159,6 +162,15 @@ export default function ConsultationPage() {
     for (const item of removed) void liveSections.removeChronicCondition(item.id)
   }
 
+  const updateFamilyHistory = (next: FamilyHistoryItem[]) => {
+    const prev = data.patientSummary.familyHistory
+    const added = next.filter((item) => !prev.some((p) => p.id === item.id))
+    const removed = prev.filter((item) => !next.some((n) => n.id === item.id))
+    if (added.length === 0 && removed.length === 0) return
+    for (const item of added) void liveSections.addFamilyHistory(item)
+    for (const item of removed) void liveSections.removeFamilyHistory(item.id)
+  }
+
   const updateExam = liveSections.updateExam
 
   const updateProcedureDetails = liveSections.updateProcedureDetails
@@ -187,6 +199,14 @@ export default function ConsultationPage() {
 
   const addHomeMeasurement = liveSections.addHomeMeasurement
   const removeHomeMeasurement = liveSections.removeHomeMeasurement
+
+  const addReferral = (entry: ReferralEntry) => {
+    void liveSections.addReferral(entry)
+  }
+
+  const removeReferral = (id: string) => {
+    void liveSections.removeReferral(id)
+  }
 
   const addLabMaterials = (files: File[]) => {
     void labMaterials.addFiles(files)
@@ -298,6 +318,8 @@ export default function ConsultationPage() {
               onChronicConditionsChange={updateChronicConditions}
               allergies={data.patientSummary.allergies}
               onAllergiesChange={updateAllergies}
+              familyHistory={data.patientSummary.familyHistory}
+              onFamilyHistoryChange={updateFamilyHistory}
             />
 
             <ChiefComplaintSection
@@ -314,40 +336,6 @@ export default function ConsultationPage() {
               onAddDiagnosis={addDiagnosis}
               onUpdateDiagnosis={updateDiagnosis}
               onRemoveDiagnosis={removeDiagnosis}
-            />
-
-            <PrescriptionsSection
-              prescriptions={data.prescriptions}
-              onAddPrescription={addPrescription}
-              onUpdatePrescription={updatePrescription}
-              onRemovePrescription={removePrescription}
-              patientSummary={data.patientSummary}
-              structuredComplaint={data.structuredComplaint}
-            />
-
-            <TestsAndMeasurementsSection
-              testOrders={data.testOrders}
-              onAddTestOrder={addTestOrder}
-              onRemoveTestOrder={removeTestOrder}
-              homeMeasurements={data.homeMeasurements}
-              onAddMeasurement={addHomeMeasurement}
-              onRemoveMeasurement={removeHomeMeasurement}
-              aiContext={{
-                patientName: data.patientSummary.demographics.fullName,
-                age: data.patientSummary.demographics.age,
-                gender: data.patientSummary.demographics.gender,
-                chiefComplaint: data.chiefComplaint,
-                structuredComplaint: data.structuredComplaint,
-                diagnoses: data.diagnoses,
-                prescriptions: data.prescriptions,
-                vitals: data.vitals,
-                physicalExam: data.physicalExam,
-                existingConditions: data.patientSummary.existingConditions,
-                activeMedications: data.patientSummary.activeMedications,
-                familyHistory: data.patientSummary.familyHistory,
-                testOrders: data.testOrders,
-                lifestyleFlags: data.patientSummary.lifestyleFlags,
-              }}
             />
 
             <LabMaterialsSection
@@ -517,6 +505,46 @@ export default function ConsultationPage() {
                 testOrders: data.testOrders,
                 lifestyleFlags: data.patientSummary.lifestyleFlags,
               }}
+            />
+
+            <PrescriptionsSection
+              prescriptions={data.prescriptions}
+              onAddPrescription={addPrescription}
+              onUpdatePrescription={updatePrescription}
+              onRemovePrescription={removePrescription}
+              patientSummary={data.patientSummary}
+              structuredComplaint={data.structuredComplaint}
+            />
+
+            <TestsAndMeasurementsSection
+              testOrders={data.testOrders}
+              onAddTestOrder={addTestOrder}
+              onRemoveTestOrder={removeTestOrder}
+              homeMeasurements={data.homeMeasurements}
+              onAddMeasurement={addHomeMeasurement}
+              onRemoveMeasurement={removeHomeMeasurement}
+              aiContext={{
+                patientName: data.patientSummary.demographics.fullName,
+                age: data.patientSummary.demographics.age,
+                gender: data.patientSummary.demographics.gender,
+                chiefComplaint: data.chiefComplaint,
+                structuredComplaint: data.structuredComplaint,
+                diagnoses: data.diagnoses,
+                prescriptions: data.prescriptions,
+                vitals: data.vitals,
+                physicalExam: data.physicalExam,
+                existingConditions: data.patientSummary.existingConditions,
+                activeMedications: data.patientSummary.activeMedications,
+                familyHistory: data.patientSummary.familyHistory,
+                testOrders: data.testOrders,
+                lifestyleFlags: data.patientSummary.lifestyleFlags,
+              }}
+            />
+
+            <ReferralsSection
+              referrals={data.referrals}
+              onAddReferral={addReferral}
+              onRemoveReferral={removeReferral}
             />
 
             <ProceduresSection

@@ -60,6 +60,7 @@ export function createConsultationDataFromPatient(
     diagnoses: [],
     prescriptions: [],
     testOrders: [],
+    referrals: [],
     homeMeasurements: [],
     clinicalNotes: "",
     assessmentAndPlan: "",

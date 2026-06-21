@@ -8,15 +8,21 @@ import {
   showIcareToast,
 } from "@/components/shared/icare-toast";
 import type {
-  DoctorEscalation,
   DoctorEscalationPriority,
   FollowUpItem,
-  MedicationFlag,
   MedicationFlagSeverity,
   PatientMedicationProfile,
   MedicationReminderChannel,
 } from "./assistantMedications.types";
-import { MOCK_MEDICATION_PROFILES } from "./assistantMedications.mock";
+import {
+  createAssistantMedicationContact,
+  createAssistantMedicationEscalation,
+  createAssistantMedicationFlag,
+  dismissAssistantMedicationInsight,
+  fetchAssistantMedicationProfiles,
+  resolveAssistantMedicationFlag,
+  updateAssistantMedicationInstructions,
+} from "./assistantMedications.api";
 import {
   DEFAULT_MEDICATION_LIST_FILTERS,
   hasActiveMedicationListFilters,
@@ -31,17 +37,6 @@ function getOpenFlags(profile: PatientMedicationProfile) {
   return profile.flags.filter((flag) => flag.status === "open");
 }
 
-function cloneProfiles(profiles: PatientMedicationProfile[]): PatientMedicationProfile[] {
-  return profiles.map((p) => ({
-    ...p,
-    medications: p.medications.map((m) => ({ ...m })),
-    flags: p.flags.map((f) => ({ ...f })),
-    aiInsights: p.aiInsights.map((i) => ({ ...i })),
-    contactHistory: p.contactHistory.map((event) => ({ ...event })),
-    escalations: p.escalations.map((event) => ({ ...event })),
-  }));
-}
-
 function daysUntil(dateValue: string) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -51,7 +46,7 @@ function daysUntil(dateValue: string) {
 
 function priorityFor(
   profile: PatientMedicationProfile,
-  base: DoctorEscalationPriority
+  base: DoctorEscalationPriority,
 ): DoctorEscalationPriority {
   if (profile.riskTier === "high" && base === "urgent") return "critical";
   if (profile.riskTier === "high" && base === "routine") return "urgent";
@@ -155,13 +150,10 @@ export function useAssistantMedications(opts?: { routePatientId?: string | null 
     DEFAULT_MEDICATION_LIST_FILTERS,
   );
 
-  const { data: profiles = [], isLoading } = useQuery({
+  const { data: profiles = [], isLoading, isError } = useQuery({
     queryKey: QUERY_KEY,
-    queryFn: async (): Promise<PatientMedicationProfile[]> =>
-      new Promise((resolve) =>
-        setTimeout(() => resolve(cloneProfiles(MOCK_MEDICATION_PROFILES)), 280)
-      ),
-    staleTime: 60 * 1000,
+    queryFn: fetchAssistantMedicationProfiles,
+    staleTime: 30_000,
   });
 
   const filteredProfiles = useMemo(() => {
@@ -175,8 +167,12 @@ export function useAssistantMedications(opts?: { routePatientId?: string | null 
       if (listFilters.aiInsightsOnly && p.aiInsights.length === 0) return false;
       if (!term) return true;
       const medsHit = p.medications.some((m) => m.name.toLowerCase().includes(term));
+      const numberHit = p.patientNumber?.toLowerCase().includes(term) ?? false;
       return (
-        p.fullName.toLowerCase().includes(term) || medsHit || (p.phone?.includes(term) ?? false)
+        p.fullName.toLowerCase().includes(term) ||
+        medsHit ||
+        numberHit ||
+        (p.phone?.includes(term) ?? false)
       );
     });
   }, [profiles, searchTerm, listFilters]);
@@ -185,6 +181,12 @@ export function useAssistantMedications(opts?: { routePatientId?: string | null 
 
   const selectedPatientId = useMemo(() => {
     if (routePatientId != null && routePatientId !== "") {
+      const byId = profiles.find((p) => p.id === routePatientId);
+      if (byId) return byId.id;
+      const byNumber = profiles.find(
+        (p) => p.patientNumber?.toLowerCase() === routePatientId.toLowerCase(),
+      );
+      if (byNumber) return byNumber.id;
       return routePatientId;
     }
     if (filteredProfiles.length === 0) return null;
@@ -195,207 +197,126 @@ export function useAssistantMedications(opts?: { routePatientId?: string | null 
       return listSelectedPatientId;
     }
     return null;
-  }, [routePatientId, filteredProfiles, listSelectedPatientId]);
+  }, [routePatientId, filteredProfiles, listSelectedPatientId, profiles]);
 
-  const selectedProfile = profiles.find((p) => p.id === selectedPatientId) ?? null;
+  const selectedProfile =
+    profiles.find(
+      (p) =>
+        p.id === selectedPatientId ||
+        p.patientNumber?.toLowerCase() === selectedPatientId?.toLowerCase(),
+    ) ?? null;
 
   const selectedFollowUpItems = useMemo(
     () => followUpItems.filter((item) => item.patientId === selectedPatientId),
-    [followUpItems, selectedPatientId]
+    [followUpItems, selectedPatientId],
   );
 
+  const invalidateProfiles = () => qc.invalidateQueries({ queryKey: QUERY_KEY });
+
   const flagMedicationMutation = useMutation({
-    mutationFn: async (payload: {
+    mutationFn: (payload: {
       patientId: string;
       medicationLineId: string;
       severity: MedicationFlagSeverity;
       reason: string;
-    }) => {
-      void payload;
-      return new Promise<void>((resolve) => setTimeout(() => resolve(), 220));
-    },
-    onSuccess(_, payload) {
-      qc.setQueryData<PatientMedicationProfile[]>(QUERY_KEY, (old) => {
-        if (!old) return old;
-        const flag: MedicationFlag = {
-          id: `fl_${Date.now()}`,
-          medicationLineId: payload.medicationLineId,
-          patientId: payload.patientId,
-          reason: payload.reason,
-          severity: payload.severity,
-          createdAt: new Date().toISOString(),
-          createdByLabel: "Assistant",
-          status: "open",
-        };
-        return old.map((p) =>
-          p.id === payload.patientId ? { ...p, flags: [...p.flags, flag] } : p
-        );
-      });
+    }) =>
+      createAssistantMedicationFlag({
+        patientId: payload.patientId,
+        medicationId: payload.medicationLineId,
+        severity: payload.severity,
+        reason: payload.reason,
+      }),
+    onSuccess: () => {
+      void invalidateProfiles();
       showIcareSuccessToast("Flag saved on medication chart");
     },
     onError: () => showIcareErrorToast("Could not save flag"),
   });
 
   const resolveFlagMutation = useMutation({
-    mutationFn: async (payload: { patientId: string; flagId: string }) => {
-      void payload;
-      return new Promise<void>((resolve) => setTimeout(() => resolve(), 180));
-    },
-    onSuccess(_, payload) {
-      qc.setQueryData<PatientMedicationProfile[]>(QUERY_KEY, (old) => {
-        if (!old) return old;
-        return old.map((p) =>
-          p.id === payload.patientId
-            ? {
-                ...p,
-                flags: p.flags.map((f) =>
-                  f.id === payload.flagId
-                    ? {
-                        ...f,
-                        status: "resolved",
-                        resolvedAt: new Date().toISOString(),
-                        resolutionNote: "Cleared from assistant workflow.",
-                      }
-                    : f
-                ),
-              }
-            : p
-        );
-      });
+    mutationFn: ({ flagId }: { patientId: string; flagId: string }) =>
+      resolveAssistantMedicationFlag(flagId),
+    onSuccess: () => {
+      void invalidateProfiles();
       showIcareSuccessToast("Flag marked resolved");
     },
     onError: () => showIcareErrorToast("Could not clear flag"),
   });
 
   const updateInstructionsMutation = useMutation({
-    mutationFn: async (payload: {
+    mutationFn: (payload: {
       patientId: string;
       medicationLineId: string;
       dosageInstructions: string;
-    }) => {
-      void payload;
-      return new Promise<void>((resolve) => setTimeout(() => resolve(), 200));
-    },
-    onSuccess(_, payload) {
-      qc.setQueryData<PatientMedicationProfile[]>(QUERY_KEY, (old) => {
-        if (!old) return old;
-        return old.map((p) =>
-          p.id !== payload.patientId
-            ? p
-            : {
-                ...p,
-                medications: p.medications.map((m) =>
-                  m.id === payload.medicationLineId
-                    ? { ...m, dosageInstructions: payload.dosageInstructions }
-                    : m
-                ),
-              }
-        );
-      });
+    }) =>
+      updateAssistantMedicationInstructions(
+        payload.medicationLineId,
+        payload.dosageInstructions,
+      ),
+    onSuccess: () => {
+      void invalidateProfiles();
       showIcareSuccessToast("Care note updated");
     },
     onError: () => showIcareErrorToast("Could not update instructions"),
   });
 
   const sendReminderMutation = useMutation({
-    mutationFn: async (payload: {
+    mutationFn: (payload: {
       patientId: string;
       channel: MedicationReminderChannel;
       message: string;
       medicationSummary?: string | null;
       templateLabel?: string;
-    }) => {
-      void payload;
-      return new Promise<void>((resolve) => setTimeout(() => resolve(), 350));
-    },
-    onSuccess(_, payload) {
-      qc.setQueryData<PatientMedicationProfile[]>(QUERY_KEY, (old) => {
-        if (!old) return old;
-        return old.map((p) =>
-          p.id === payload.patientId
-            ? {
-                ...p,
-                contactHistory: [
-                  {
-                    id: `ch_${Date.now()}`,
-                    patientId: payload.patientId,
-                    channel: payload.channel,
-                    status: "queued",
-                    summary: payload.medicationSummary
-                      ? `Reminder: ${payload.medicationSummary}`
-                      : (payload.templateLabel ?? "Medication reminder"),
-                    messagePreview: payload.message.slice(0, 140),
-                    createdAt: new Date().toISOString(),
-                    createdByLabel: "Assistant",
-                  },
-                  ...p.contactHistory,
-                ],
-              }
-            : p
-        );
-      });
+    }) =>
+      createAssistantMedicationContact({
+        patientId: payload.patientId,
+        channel: payload.channel,
+        summary: payload.medicationSummary
+          ? `Reminder: ${payload.medicationSummary}`
+          : (payload.templateLabel ?? "Medication reminder"),
+        messagePreview: payload.message.slice(0, 140),
+      }),
+    onSuccess: (_, payload) => {
+      void invalidateProfiles();
       if (payload.channel === "sms") {
-        showIcareSuccessToast("SMS queued", "Demo — connects when messaging API is live.");
+        showIcareSuccessToast("SMS queued for delivery");
       } else {
-        showIcareSuccessToast("Push notification queued", "(demo)");
+        showIcareSuccessToast("Push notification queued");
       }
     },
     onError: () => showIcareErrorToast("Could not queue reminder"),
   });
 
   const escalateToDoctorMutation = useMutation({
-    mutationFn: async (payload: {
+    mutationFn: (payload: {
       patientId: string;
       medicationLineId: string | null;
       priority: DoctorEscalationPriority;
       reason: string;
       note: string;
-    }) => {
-      void payload;
-      return new Promise<void>((resolve) => setTimeout(() => resolve(), 280));
-    },
-    onSuccess(_, payload) {
-      qc.setQueryData<PatientMedicationProfile[]>(QUERY_KEY, (old) => {
-        if (!old) return old;
-        const escalation: DoctorEscalation = {
-          id: `esc_${Date.now()}`,
-          patientId: payload.patientId,
-          medicationLineId: payload.medicationLineId,
-          priority: payload.priority,
-          reason: payload.reason,
-          note: payload.note,
-          status: "waiting_review",
-          createdAt: new Date().toISOString(),
-          createdByLabel: "Assistant",
-        };
-        return old.map((p) =>
-          p.id === payload.patientId ? { ...p, escalations: [escalation, ...p.escalations] } : p
-        );
-      });
+    }) =>
+      createAssistantMedicationEscalation({
+        patientId: payload.patientId,
+        medicationId: payload.medicationLineId,
+        priority: payload.priority,
+        reason: payload.reason,
+        note: payload.note,
+      }),
+    onSuccess: () => {
+      void invalidateProfiles();
       showIcareSuccessToast("Doctor escalation queued");
     },
     onError: () => showIcareErrorToast("Could not queue escalation"),
   });
 
   const dismissInsightMutation = useMutation({
-    mutationFn: async (payload: { patientId: string; insightId: string }) => {
-      void payload;
-      return new Promise<void>((resolve) => setTimeout(() => resolve(), 150));
-    },
-    onSuccess(_, payload) {
-      qc.setQueryData<PatientMedicationProfile[]>(QUERY_KEY, (old) => {
-        if (!old) return old;
-        return old.map((p) =>
-          p.id === payload.patientId
-            ? {
-                ...p,
-                aiInsights: p.aiInsights.filter((i) => i.id !== payload.insightId),
-              }
-            : p
-        );
-      });
+    mutationFn: (payload: { patientId: string; insightId: string }) =>
+      dismissAssistantMedicationInsight(payload.patientId, payload.insightId),
+    onSuccess: () => {
+      void invalidateProfiles();
       showIcareToast({ title: "Insight dismissed" });
     },
+    onError: () => showIcareErrorToast("Could not dismiss insight"),
   });
 
   return {
@@ -404,6 +325,7 @@ export function useAssistantMedications(opts?: { routePatientId?: string | null 
     followUpItems,
     selectedFollowUpItems,
     isLoading,
+    isError,
     searchTerm,
     setSearchTerm,
     listFilters,

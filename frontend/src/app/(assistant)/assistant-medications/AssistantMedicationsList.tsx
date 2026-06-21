@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { PatientAvatar } from "@/components/shared/PatientAvatar";
 import { useRouter } from "next/navigation";
 import { FlagIcon, PillIcon, SearchIcon, SparklesIcon } from "lucide-react";
 
@@ -26,9 +26,12 @@ import { useAssistantMedications } from "./useAssistantMedications";
 import { MedicationsListFiltersPopover } from "./MedicationsListFiltersPopover";
 import { countActiveMedicationListFilters } from "./assistantMedications.filters";
 
-function formatPatientRowId(internalId: string) {
-  const raw = internalId.replace(/^#/, "").trim();
-  return `#${raw.toUpperCase()}`;
+function formatPatientRowId(profile: { id: string; patientNumber?: string }) {
+  if (profile.patientNumber?.trim()) {
+    return `#${profile.patientNumber.replace(/^#/, "").toUpperCase()}`;
+  }
+  const raw = profile.id.replace(/^#/, "").trim();
+  return `#${raw.slice(0, 8).toUpperCase()}`;
 }
 
 export function AssistantMedicationsList() {
@@ -173,13 +176,9 @@ export function AssistantMedicationsList() {
                                 <td className="py-4 pl-4 pr-4">
                                   <div className="flex items-start gap-3">
                                     <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
-                                      <Image
-                                        src={`https://i.pravatar.cc/150?u=${encodeURIComponent(p.fullName.replace(/\s+/g, ""))}`}
-                                        alt=""
-                                        width={44}
-                                        height={44}
-                                        unoptimized
-                                        className="size-full object-cover"
+                                      <PatientAvatar
+                                        name={p.fullName}
+                                        avatarUrl={p.avatarUrl}
                                       />
                                     </div>
                                     <div className="min-w-0">
@@ -187,7 +186,7 @@ export function AssistantMedicationsList() {
                                         {p.fullName}
                                       </p>
                                       <p className="mt-0.5 text-[12px] font-medium tabular-nums tracking-wide text-muted-foreground">
-                                        {formatPatientRowId(p.id)}
+                                        {formatPatientRowId(p)}
                                       </p>
                                     </div>
                                   </div>

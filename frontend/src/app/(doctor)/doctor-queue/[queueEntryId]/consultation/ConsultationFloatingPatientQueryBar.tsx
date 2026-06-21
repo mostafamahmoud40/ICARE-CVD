@@ -12,11 +12,15 @@ import { cn } from "@/lib/utils"
 
 type PatientQueryDraftKey = "patientQueryDraft"
 
+/** Set to `true` when the floating patient query bar should be visible. */
+export const CONSULTATION_FLOATING_QUERY_BAR_ENABLED = false
+
 export type ConsultationFloatingPatientQueryBarProps = {
   data: ConsultationData
 }
 
 export function ConsultationFloatingPatientQueryBar({ data }: ConsultationFloatingPatientQueryBarProps) {
+  if (!CONSULTATION_FLOATING_QUERY_BAR_ENABLED) return null
   const [draft, setDraft] = useState("")
   const [lastQuery, setLastQuery] = useState<string | null>(null)
   const [lastReply, setLastReply] = useState<string | null>(null)

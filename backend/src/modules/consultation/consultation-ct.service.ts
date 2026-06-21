@@ -12,20 +12,16 @@ import {
   patient,
   patientDocument,
 } from '../../database/schema';
+import { isMinioKeyForCategory } from '../../shared/storage/minio-patient-path';
 import {
   CINE_MRI_IMAGE_MIME_TYPES,
   CINE_MRI_NIFTI_MIME_TYPES,
   CT_NIFTI_MAX_BYTES,
   CT_SLICE_MAX_BYTES,
-  MINIO_CATEGORY_PREFIX,
 } from '../../shared/storage/minio.constants';
 import { MinioService } from '../../shared/storage/minio.service';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type { SaveConsultationCtAnalysisDto } from './dto/consultation-ct.dto';
-
-function isConsultationCtKey(key: string): boolean {
-  return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_ct}/`);
-}
 
 function isNiftiFile(fileName: string, contentType: string): boolean {
   const mime = contentType.trim().toLowerCase();
@@ -79,6 +75,7 @@ export class ConsultationCtService {
       contentType: resolvedContentType,
       category: 'consultation_ct',
       patientId,
+      patientNumber: patientRow.patientNumber,
     });
   }
 
@@ -227,7 +224,7 @@ export class ConsultationCtService {
       const doc = await this.db.query.patientDocument.findFirst({
         where: eq(patientDocument.id, documentId),
       });
-      if (doc && isConsultationCtKey(doc.s3Key)) {
+      if (doc && isMinioKeyForCategory(doc.s3Key, 'consultation_ct')) {
         await this.minioService.deleteObject(doc.s3Key);
       }
       if (doc) {
@@ -254,7 +251,7 @@ export class ConsultationCtService {
       ),
     });
     if (!doc) throw new NotFoundException('Document not found');
-    if (!isConsultationCtKey(doc.s3Key)) {
+    if (!isMinioKeyForCategory(doc.s3Key, 'consultation_ct')) {
       throw new BadRequestException('Invalid CT storage key');
     }
 

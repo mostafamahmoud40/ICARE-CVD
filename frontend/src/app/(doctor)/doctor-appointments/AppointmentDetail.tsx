@@ -230,9 +230,8 @@ export function AppointmentDetail({
           <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0] bg-[#F9F8F5]/50 p-3.5">
               <div className="relative size-11 shrink-0 overflow-hidden rounded-full border border-[#E8E6E0] bg-white shadow-sm">
                 <PatientAvatar
+                  name={appointment.patient.name}
                   avatarUrl={appointment.patient.avatar}
-                  fallbackSeed={appointment.patient.id || appointment.patient.name}
-                  alt={appointment.patient.name}
                 />
               </div>
               <div className="min-w-0 flex-1">

@@ -8,6 +8,7 @@ export * from './allergy.schema';
 export * from './medication.schema';
 export * from './doseLog.schema';
 export * from './medicationRefill.schema';
+export * from './medicationAdherenceWorkflow.schema';
 export * from './document.schema';
 export * from './doctor.schema';
 export * from './assistant.schema';

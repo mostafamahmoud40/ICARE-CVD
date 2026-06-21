@@ -142,12 +142,18 @@ const getFileFormatColor = (type: PatientDocument["type"]) => {
 const documentFormatChipClass =
   "inline-flex h-[22px] shrink-0 items-center px-1 font-mono text-[10px] font-bold uppercase leading-none tracking-wider tabular-nums bg-transparent border-0 shadow-none"
 
-export function Documents() {
+export function Documents({
+  documents = [],
+  emptyMessage = "No documents uploaded for this patient yet.",
+}: {
+  documents?: PatientDocument[]
+  emptyMessage?: string
+}) {
   const [searchQuery, setSearchQuery] = React.useState("")
   const [activeCategory, setActiveCategory] = React.useState<string>("all")
   const [viewMode, setViewMode] = React.useState<"timeline" | "table">("timeline")
 
-  const filteredDocs = MOCK_DOCUMENTS.filter(doc => {
+  const filteredDocs = documents.filter(doc => {
     const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory = activeCategory === "all" || doc.category === activeCategory
     return matchesSearch && matchesCategory
@@ -261,7 +267,9 @@ export function Documents() {
               <FileIcon className="size-8 text-muted-foreground/40" />
             </div>
             <h3 className="text-[16px] font-bold text-[#1A1F1E]">No documents found</h3>
-            <p className="text-[14px] font-medium text-muted-foreground mt-1">Try adjusting your search or category filter.</p>
+            <p className="text-[14px] font-medium text-muted-foreground mt-1">
+              {documents.length === 0 ? emptyMessage : "Try adjusting your search or category filter."}
+            </p>
           </div>
         ) : viewMode === "timeline" ? (
           /* Timeline View */

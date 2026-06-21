@@ -1,10 +1,11 @@
 "use client"
 
 import Link from "next/link"
+import { useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
-import { mockConsultationData } from "./consultation.mock"
+import { mockBriefingPatientSummary } from "./consultation.mock"
 import {
   DEFAULT_BRIEFING_TREND_DATA,
   DEFAULT_BRIEFING_VISIT_STATS,
@@ -13,6 +14,7 @@ import {
   DEFAULT_MEDICATION_MISSED_BREAKDOWN,
 } from "./briefing.constants"
 import { acknowledgeBriefing } from "./briefingStorage"
+import { useBriefingPatientAvatar } from "./useBriefingPatientAvatar"
 import { usePatientBriefing } from "./usePatientBriefing"
 import { useQueueEntryId } from "./useQueueEntryId"
 import {
@@ -32,8 +34,16 @@ export default function PatientBriefingPage() {
   const queueEntryId = useQueueEntryId()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const summary = mockConsultationData.patientSummary
+  const summary = mockBriefingPatientSummary
+  const { data: patientAvatarUrl } = useBriefingPatientAvatar(queueEntryId)
   const { report, isReady, prepStep } = usePatientBriefing(summary, queueEntryId)
+  const displayReport = useMemo(
+    () =>
+      patientAvatarUrl
+        ? { ...report, avatarUrl: patientAvatarUrl }
+        : report,
+    [report, patientAvatarUrl],
+  )
 
   const handleStartConsultation = async () => {
     acknowledgeBriefing(queueEntryId)
@@ -53,8 +63,8 @@ export default function PatientBriefingPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col bg-[#F9F8F5]">
-      <header className="shrink-0 border-b border-[#E8E6E0]/60 bg-white px-6 py-4 sm:px-8">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3">
+      <header className="shrink-0 border-b border-[#E8E6E0]/60 bg-white px-3 py-4 sm:px-4 lg:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <Button
               asChild
@@ -85,15 +95,15 @@ export default function PatientBriefingPage() {
         </div>
       </header>
 
-      <main className="scrollbar-hide flex-1 overflow-y-auto px-6 py-6 sm:px-8">
-        <div className="mx-auto max-w-4xl">
+      <main className="scrollbar-hide flex-1 overflow-y-auto bg-[#F9F8F5] p-3 sm:p-4 lg:p-5">
+        <div className="space-y-4 sm:space-y-5">
           {!isReady ? (
             <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white shadow-sm">
               <BriefingPreparation prepStep={prepStep} />
             </div>
           ) : (
             <PatientBriefingReportContent
-              report={report}
+              report={displayReport}
               trendData={DEFAULT_BRIEFING_TREND_DATA}
               visitStats={DEFAULT_BRIEFING_VISIT_STATS}
               vitalProgressData={DEFAULT_BRIEFING_VITAL_PROGRESS}
@@ -105,8 +115,8 @@ export default function PatientBriefingPage() {
       </main>
 
       {isReady ? (
-        <footer className="shrink-0 border-t border-[#E8E6E0]/60 bg-white px-6 py-4 sm:px-8">
-          <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3">
+        <footer className="shrink-0 border-t border-[#E8E6E0]/60 bg-white px-3 py-4 sm:px-4 lg:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
               <SparklesIcon className="size-3.5 text-violet-500" aria-hidden />
               <span>Live AI suggestions will appear in the right panel during consultation</span>

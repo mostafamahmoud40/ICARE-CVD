@@ -12,9 +12,9 @@ import {
   patient,
   patientDocument,
 } from '../../database/schema';
+import { isMinioKeyForCategory } from '../../shared/storage/minio-patient-path';
 import {
   ECG_FILE_MAX_BYTES,
-  MINIO_CATEGORY_PREFIX,
 } from '../../shared/storage/minio.constants';
 import { MinioService } from '../../shared/storage/minio.service';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
@@ -22,10 +22,6 @@ import type {
   SaveConsultationEcgAnalysisDto,
   UpdateConsultationEcgReportDto,
 } from './dto/consultation-ecg.dto';
-
-function isConsultationEcgKey(key: string): boolean {
-  return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_ecg}/`);
-}
 
 @Injectable()
 export class ConsultationEcgService {
@@ -61,6 +57,7 @@ export class ConsultationEcgService {
       contentType: resolvedContentType,
       category: 'consultation_ecg',
       patientId,
+      patientNumber: patientRow.patientNumber,
     });
   }
 
@@ -194,7 +191,7 @@ export class ConsultationEcgService {
       const doc = await this.db.query.patientDocument.findFirst({
         where: eq(patientDocument.id, documentId),
       });
-      if (doc && isConsultationEcgKey(doc.s3Key)) {
+      if (doc && isMinioKeyForCategory(doc.s3Key, 'consultation_ecg')) {
         await this.minioService.deleteObject(doc.s3Key);
       }
       if (doc) {
@@ -217,7 +214,7 @@ export class ConsultationEcgService {
       ),
     });
     if (!doc) throw new NotFoundException('Document not found');
-    if (!isConsultationEcgKey(doc.s3Key)) {
+    if (!isMinioKeyForCategory(doc.s3Key, 'consultation_ecg')) {
       throw new BadRequestException('Invalid ECG storage key');
     }
     if (doc.sizeBytes != null && doc.sizeBytes > ECG_FILE_MAX_BYTES) {

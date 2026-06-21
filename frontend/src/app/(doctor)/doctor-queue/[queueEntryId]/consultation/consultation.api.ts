@@ -4,10 +4,12 @@ import type {
   ChiefComplaintStructured,
   ConsultationMedicalHistory,
   DiagnosisEntry,
+  FamilyHistoryItem,
   HomeMeasurement,
   PhysicalExamFindings,
   PrescriptionEntry,
   ProcedureDetails,
+  ReferralEntry,
   TestOrder,
 } from "./consultation.types"
 
@@ -59,6 +61,13 @@ export type ApiConsultationSession = {
     duration: string | null
     notes: string | null
     durationDays: number | null
+  }>
+  referrals: Array<{
+    id: string
+    specialty: string
+    reason: string
+    urgency: ReferralEntry["urgency"]
+    status: string
   }>
   patientHistory: {
     noCardiacHistory: boolean
@@ -291,6 +300,48 @@ export async function deletePatientAllergy(
   allergyId: string,
 ): Promise<void> {
   await apiClient.delete(`/doctor/patients/${patientId}/allergies/${allergyId}`)
+}
+
+export async function createPatientFamilyHistory(
+  patientId: string,
+  payload: Pick<FamilyHistoryItem, "relationship" | "condition" | "details">,
+): Promise<FamilyHistoryItem> {
+  const { data } = await apiClient.post<FamilyHistoryItem>(
+    `/doctor/patients/${patientId}/family-history`,
+    payload,
+  )
+  return data
+}
+
+export async function deletePatientFamilyHistory(
+  patientId: string,
+  familyHistoryId: string,
+): Promise<void> {
+  await apiClient.delete(
+    `/doctor/patients/${patientId}/family-history/${familyHistoryId}`,
+  )
+}
+
+export async function createConsultationReferral(
+  patientId: string,
+  consultationId: string,
+  payload: Pick<ReferralEntry, "specialty" | "reason" | "urgency">,
+): Promise<ReferralEntry> {
+  const { data } = await apiClient.post<ReferralEntry>(
+    `/doctor/patients/${patientId}/consultations/${consultationId}/referrals`,
+    payload,
+  )
+  return data
+}
+
+export async function deleteConsultationReferral(
+  patientId: string,
+  consultationId: string,
+  referralId: string,
+): Promise<void> {
+  await apiClient.delete(
+    `/doctor/patients/${patientId}/consultations/${consultationId}/referrals/${referralId}`,
+  )
 }
 
 export function buildConsultationFieldPatch(input: {

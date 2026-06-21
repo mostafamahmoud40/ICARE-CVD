@@ -12,15 +12,24 @@ import {
   PatientAvatarUploadIntentDto,
   SetPatientAvatarDto,
 } from './dto/patient-avatar.dto';
+import { AssistantPatientRecordService } from './assistant-patient-record.service';
 
 @Controller('assistant')
 @UseGuards(AccessTokenGuard, AssistantGuard)
 export class AssistantController {
-  constructor(private readonly assistantService: AssistantService) {}
+  constructor(
+    private readonly assistantService: AssistantService,
+    private readonly patientRecordService: AssistantPatientRecordService,
+  ) {}
 
   @Get('patients')
   listPatients(@CurrentUser() _user: TokenPayload) {
     return this.assistantService.listPatients();
+  }
+
+  @Get('patients/:patientId')
+  getPatient(@Param('patientId') patientId: string) {
+    return this.patientRecordService.getPatientFullRecord(patientId);
   }
 
   @Post('patients')

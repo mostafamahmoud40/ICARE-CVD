@@ -10,7 +10,7 @@ import type {
   VitalSeverity,
 } from "./doctorDashboard.types"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -152,11 +152,7 @@ function PatientCard({ patient }: { patient: DoctorPatient }) {
       className="group flex items-start gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white p-3.5 transition-all hover:shadow-md"
     >
       <div className="size-9 shrink-0 overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F3F4F6]">
-        <img
-          src={`https://i.pravatar.cc/150?u=${encodeURIComponent(patient.fullName)}`}
-          alt=""
-          className="size-full object-cover"
-        />
+        <PatientAvatar name={patient.fullName} avatarUrl={patient.avatarUrl} sizes="36px" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
@@ -186,10 +182,10 @@ function AppointmentCard({ appt }: { appt: DoctorAppointment }) {
     <div className="group rounded-xl border border-[#E8E6E0]/60 bg-white p-3.5 transition-all hover:shadow-md">
       <div className="flex items-start gap-3">
         <div className="size-9 shrink-0 overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F3F4F6]">
-          <img
-            src={`https://i.pravatar.cc/150?u=${encodeURIComponent(appt.patientName)}`}
-            alt=""
-            className="size-full object-cover"
+          <PatientAvatar
+            name={appt.patientName}
+            avatarUrl={appt.patientAvatarUrl}
+            sizes="36px"
           />
         </div>
         <div className="min-w-0 flex-1">

@@ -7,12 +7,16 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import {
   allergy,
+  appointment,
+  consultation,
+  diagnosis,
+  doctor,
   medication,
   patient,
   patientDocument,
@@ -20,10 +24,13 @@ import {
   user,
 } from '../../database/schema';
 import {
-  MINIO_CATEGORY_PREFIX,
   PATIENT_AVATAR_MAX_BYTES,
   PATIENT_AVATAR_MIME_TYPES,
 } from '../../shared/storage/minio.constants';
+import {
+  buildMinioObjectPrefix,
+  isPatientProfileStorageKey,
+} from '../../shared/storage/minio-patient-path';
 import { MinioService } from '../../shared/storage/minio.service';
 import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
 import { MailService } from '../../shared/mail/mail.service';
@@ -81,6 +88,43 @@ export class AssistantService {
         createdAt: patient.createdAt,
         maritalStatus: patient.maritalStatus,
         occupation: patient.occupation,
+        riskLevel: patient.riskLevel,
+        condition: sql<string | null>`(
+          select ${diagnosis.description}
+          from ${diagnosis}
+          where ${diagnosis.patientId} = ${patient.id}
+          and ${diagnosis.type} = 'primary'
+          order by ${diagnosis.diagnosedAt} desc
+          limit 1
+        )`,
+        lastVisitDate: sql<string | null>`(
+          coalesce(
+            (
+              select ${consultation.completedAt}
+              from ${consultation}
+              where ${consultation.patientId} = ${patient.id}
+              and ${consultation.completedAt} is not null
+              order by ${consultation.completedAt} desc
+              limit 1
+            ),
+            (
+              select ${appointment.scheduledAt}
+              from ${appointment}
+              where ${appointment.patientId} = ${patient.id}
+              and ${appointment.status} != 'cancelled'
+              order by ${appointment.scheduledAt} desc
+              limit 1
+            )
+          )
+        )`,
+        department: sql<string | null>`(
+          select ${doctor.specialty}
+          from ${appointment}
+          inner join ${doctor} on ${appointment.doctorId} = ${doctor.id}
+          where ${appointment.patientId} = ${patient.id}
+          order by ${appointment.scheduledAt} desc
+          limit 1
+        )`,
       })
       .from(patient)
       .innerJoin(user, eq(patient.userId, user.id))
@@ -108,6 +152,10 @@ export class AssistantService {
         createdAt: r.createdAt.toISOString(),
         maritalStatus: r.maritalStatus,
         occupation: r.occupation,
+        riskLevel: r.riskLevel,
+        condition: r.condition,
+        lastVisitDate: r.lastVisitDate ? String(r.lastVisitDate) : null,
+        department: r.department,
       })),
     );
   }
@@ -317,14 +365,15 @@ export class AssistantService {
       contentType: mimeType,
       category: 'patient_avatar',
       patientId: patientRow.id,
+      patientNumber: patientRow.patientNumber,
     });
   }
 
   async setPatientAvatar(patientIdentifier: string, s3Key: string) {
     const patientRow = await findPatientByIdentifier(this.db, patientIdentifier);
     const key = s3Key.trim();
-    const expectedPrefix = `${MINIO_CATEGORY_PREFIX.patient_avatar}/${patientRow.id}/`;
-    if (!key.startsWith(expectedPrefix)) {
+    const expectedPrefix = `${buildMinioObjectPrefix('patient_avatar', patientRow.patientNumber)}/`;
+    if (!key.startsWith(expectedPrefix) && !isPatientProfileStorageKey(key, patientRow.patientNumber)) {
       throw new BadRequestException('Invalid profile photo storage key');
     }
 

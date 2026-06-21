@@ -20,7 +20,6 @@ import {
   FlaskConicalIcon,
   HeartPulseIcon,
   Loader2Icon,
-  PillIcon,
   PencilIcon,
   ScaleIcon,
   StethoscopeIcon,
@@ -316,6 +315,7 @@ export function ConsultationReportPage({
               report={report}
               draft={draft}
               isEditing={isEditing}
+              sectionGroup="clinical"
               onUpdateDraft={updateDraft}
               onUpdateAiStudy={updateAiStudy}
               onRemoveAiStudy={removeAiStudy}
@@ -377,40 +377,15 @@ export function ConsultationReportPage({
               </div>
             </Section>
 
-            {report.prescriptions.length > 0 && (
-              <Section title="Prescriptions" icon={PillIcon} className="overflow-hidden">
-                <div className="-mx-5 -mb-5 sm:-mx-6 sm:-mb-6 overflow-x-auto custom-scrollbar border-t border-[#E8E6E0]/60 mt-2">
-                  <table className="w-full text-left text-[13px]">
-                    <thead className="bg-[#F9F8F5] border-b border-[#E8E6E0]/60">
-                      <tr>
-                        <th className="px-5 sm:px-6 py-3 font-semibold text-[#1A1F1E]">Medication</th>
-                        <th className="px-4 py-3 font-semibold text-[#1A1F1E]">Dose</th>
-                        <th className="px-4 py-3 font-semibold text-[#1A1F1E]">Frequency</th>
-                        <th className="px-4 py-3 font-semibold text-[#1A1F1E]">Duration</th>
-                        <th className="px-5 sm:px-6 py-3 font-semibold text-[#1A1F1E]">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#E8E6E0]/60">
-                      {report.prescriptions.map((p) => (
-                        <tr key={p.id} className="transition-colors hover:bg-[#F9F8F5]/50 group">
-                          <td className="px-5 sm:px-6 py-4 font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">{p.name}</td>
-                          <td className="px-4 py-4 font-medium text-muted-foreground">{p.dose}</td>
-                          <td className="px-4 py-4 font-medium text-muted-foreground">{p.frequency}</td>
-                          <td className="px-4 py-4 font-medium text-muted-foreground">{p.duration}</td>
-                          <td className="px-5 sm:px-6 py-4">
-                            {p.isNew ? (
-                              <span className="inline-flex items-center rounded-lg bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600 ring-1 ring-inset ring-blue-600/20">New</span>
-                            ) : (
-                              <span className="inline-flex items-center rounded-lg bg-[#F3F2F0] px-2 py-0.5 text-[10px] font-bold text-[#6B7870] ring-1 ring-inset ring-gray-500/10">Continued</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Section>
-            )}
+            <ConsultationReportSessionSections
+              report={report}
+              draft={draft}
+              isEditing={isEditing}
+              sectionGroup="orders"
+              onUpdateDraft={updateDraft}
+              onUpdateAiStudy={updateAiStudy}
+              onRemoveAiStudy={removeAiStudy}
+            />
 
           </div>
 
