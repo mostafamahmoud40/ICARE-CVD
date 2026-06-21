@@ -602,6 +602,11 @@ export class ConsultationService {
       .where(eq(consultationPrescription.consultationId, cons.id))
       .orderBy(desc(consultationPrescription.createdAt));
 
+    const referrals = await this.db.query.consultationReferral.findMany({
+      where: eq(consultationReferral.consultationId, cons.id),
+      orderBy: desc(consultationReferral.createdAt),
+    });
+
     const historyRow = await this.db.query.patientHistory.findFirst({
       where: eq(patientHistory.userId, queueRow.patientUserId),
     });
@@ -614,6 +619,7 @@ export class ConsultationService {
         items: itemsByOrder.get(order.id) ?? [],
       })),
       prescriptions: linkedPrescriptions,
+      referrals,
       patientHistory: historyRow
         ? {
             noCardiacHistory: historyRow.noCardiacHistory,
@@ -773,5 +779,25 @@ export class ConsultationService {
       .returning();
 
     return referral;
+  }
+
+  async deleteReferral(
+    doctorUserId: number,
+    consultationId: string,
+    referralId: string,
+  ) {
+    await this.doctorVerifier.verify(doctorUserId);
+
+    const referral = await this.db.query.consultationReferral.findFirst({
+      where: and(
+        eq(consultationReferral.id, referralId),
+        eq(consultationReferral.consultationId, consultationId),
+      ),
+    });
+    if (!referral) throw new NotFoundException('Referral not found');
+
+    await this.db
+      .delete(consultationReferral)
+      .where(eq(consultationReferral.id, referralId));
   }
 }

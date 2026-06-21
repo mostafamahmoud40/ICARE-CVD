@@ -74,33 +74,24 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { showIcareToast } from "@/components/shared/icare-toast"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 
 import type { CreatedPatient } from "./addPatient.types"
+import { mapListPatientDisplay } from "./assistantPatientProfile.mapper"
 import { AddPatient } from "./AddPatient"
 import type { useAddPatient } from "./useAddPatient"
-
-function patientAvatarSrc(patient: Pick<CreatedPatient, "id" | "avatarUrl">) {
-  const raw = patient.avatarUrl?.trim()
-  if (!raw) return `https://i.pravatar.cc/150?u=${patient.id}`
-  if (raw.startsWith("/avatars/")) return raw
-  return raw
-}
 
 function PatientListAvatar({
   patient,
 }: {
-  patient: Pick<CreatedPatient, "id" | "avatarUrl" | "fullName">
+  patient: Pick<CreatedPatient, "avatarUrl" | "fullName">
 }) {
-  const [imageFailed, setImageFailed] = useState(false)
-  const fallback = `https://i.pravatar.cc/150?u=${patient.id}`
-  const src = imageFailed ? fallback : patientAvatarSrc(patient)
-
   return (
-    <img
-      src={src}
-      alt={patient.fullName}
-      className="h-full w-full object-cover"
-      onError={() => setImageFailed(true)}
+    <PatientAvatar
+      name={patient.fullName?.trim() || "Patient"}
+      avatarUrl={patient.avatarUrl}
+      sizes="40px"
+      initialsClassName="text-[13px]"
     />
   )
 }
@@ -115,25 +106,6 @@ type PatientsListProps = {
 type SortOption = "lastVisit" | "riskLevel" | "name"
 type StatusFilter = "all" | "in-treatment" | "discharged" | "monitoring"
 type RiskFilter = "all" | "high" | "moderate" | "stable"
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("")
-}
-
-function getAvatarColor(id: number): string {
-  const colors = [
-    { bg: "#E89042", text: "#fff" },
-    { bg: "#1A5345", text: "#fff" },
-    { bg: "#5a6d66", text: "#fff" },
-    { bg: "#E15C5C", text: "#fff" },
-  ]
-  return colors[id % colors.length].bg
-}
 
 function formatDate(dateString: string | null): string {
   if (!dateString) return "—"
@@ -198,6 +170,10 @@ function DepartmentBadge({ department }: { department: DepartmentConfig }) {
       {department.name}
     </span>
   )
+}
+
+function departmentFromName(name: string): DepartmentConfig {
+  return { name, icon: StethoscopeIcon, color: "#1A5345" }
 }
 
 export function PatientsList({ patients, addPatientState, initialSearchQuery = "", initialSheetOpen = false }: PatientsListProps) {
@@ -483,33 +459,13 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                     </td>
                   </tr>
                 ) : (
-                  paginatedPatients.map((patient, index) => {
-                    const mockStatuses = ["in-treatment", "discharged", "monitoring", "in-treatment"]
-                    const mockRisks = ["high", "moderate", "stable", "high"]
-                    const mockConditions = [
-                      "Hypertension Stage II",
-                      "Post-MI Recovery",
-                      "Atrial Fibrillation",
-                      "Coronary Artery Disease",
-                    ]
-                    const mockLastVisits = [
-                      "2023-10-12",
-                      "2023-10-09",
-                      "2023-10-14",
-                      "2023-10-15",
-                    ]
-                    const mockDepartments: DepartmentConfig[] = [
-                      { name: "Cardiology", emoji: "🫀", color: "#E15C5C" },
-                      { name: "Neurology", icon: BrainIcon, color: "#7C3AED" },
-                      { name: "General Surgery", icon: StethoscopeIcon, color: "#1A5345" },
-                      { name: "Pediatrics", icon: BabyIcon, color: "#0891B2" },
-                    ]
-
-                    const status = mockStatuses[index % mockStatuses.length]
-                    const risk = mockRisks[index % mockRisks.length]
-                    const condition = mockConditions[index % mockConditions.length]
-                    const lastVisit = mockLastVisits[index % mockLastVisits.length]
-                    const department = mockDepartments[index % mockDepartments.length]
+                  paginatedPatients.map((patient) => {
+                    const display = mapListPatientDisplay(patient)
+                    const condition = display.condition
+                    const lastVisit = display.lastVisit
+                    const status = display.status
+                    const risk = display.risk
+                    const department = departmentFromName(display.departmentName)
 
                     const age = patient.dateOfBirth
                       ? Math.floor(
@@ -547,7 +503,7 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                           </span>
                         </td>
                         <td className="py-4 px-4">
-                          <div className="text-[14px] font-semibold text-[#1A1F1E]">{formatDate(lastVisit)}</div>
+                          <div className="text-[14px] font-semibold text-[#1A1F1E]">{formatDate(lastVisit ?? null)}</div>
                         </td>
                         <td className="py-4 px-4">
                           <StatusBadge status={status} />
@@ -650,26 +606,11 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                   </div>
                 </div>
               ) : (
-                paginatedPatients.map((patient, index) => {
-                  const mockStatuses = ["in-treatment", "discharged", "monitoring", "in-treatment"]
-                  const mockRisks = ["high", "moderate", "stable", "high"]
-                  const mockConditions = [
-                    "Hypertension Stage II",
-                    "Post-MI Recovery",
-                    "Atrial Fibrillation",
-                    "Coronary Artery Disease",
-                  ]
-                  const mockLastVisits = [
-                    "2023-10-12",
-                    "2023-10-09",
-                    "2023-10-14",
-                    "2023-10-15",
-                  ]
-
-                  const status = mockStatuses[index % mockStatuses.length]
-                  const risk = mockRisks[index % mockRisks.length]
-                  const condition = mockConditions[index % mockConditions.length]
-                  const lastVisit = mockLastVisits[index % mockLastVisits.length]
+                paginatedPatients.map((patient) => {
+                  const display = mapListPatientDisplay(patient)
+                  const condition = display.condition
+                  const lastVisit = display.lastVisit
+                  const status = display.status
 
                   const age = patient.dateOfBirth
                     ? Math.floor(
@@ -751,7 +692,7 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                         <div className="mb-4 flex w-full items-center rounded-2xl border border-[#E8E6E0]/40 bg-[#F9F8F5] p-2.5">
                           <div className="flex flex-1 flex-col items-center justify-center gap-0.5">
                             <span className="text-[10px] font-semibold text-muted-foreground">Last visit</span>
-                            <span className="text-[12px] font-bold text-[#1A1F1E]">{formatDate(lastVisit)}</span>
+                            <span className="text-[12px] font-bold text-[#1A1F1E]">{formatDate(lastVisit ?? null)}</span>
                           </div>
                           <div className="h-7 w-px bg-[#E8E6E0]/80" />
                           <div className="flex-1 flex flex-col items-center justify-center gap-1">

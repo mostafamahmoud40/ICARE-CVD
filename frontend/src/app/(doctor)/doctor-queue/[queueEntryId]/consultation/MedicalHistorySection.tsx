@@ -9,6 +9,7 @@ import {
   PlusIcon,
   ShieldAlertIcon,
   Trash2Icon,
+  UsersIcon,
   XIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -23,9 +24,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { Allergy, ConsultationMedicalHistory, ExistingCondition } from "./consultation.types"
+import type {
+  Allergy,
+  ConsultationMedicalHistory,
+  ExistingCondition,
+  FamilyHistoryItem,
+} from "./consultation.types"
 import {
   CARDIAC_HISTORY_QUESTIONS,
+  FAMILY_RELATIONSHIP_OPTIONS,
   NON_CARDIAC_HISTORY_QUESTIONS,
 } from "./medicalHistory.constants"
 
@@ -36,7 +43,7 @@ const FIELD_LABEL = "text-sm font-medium text-[#374151]"
 const INPUT_CLASS =
   "h-10 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
 
-type TabId = "cardiac" | "non-cardiac" | "chronic" | "allergies"
+type TabId = "cardiac" | "non-cardiac" | "chronic" | "allergies" | "family"
 
 function countPositives(
   questions: readonly (readonly [string, string, string])[],
@@ -275,6 +282,8 @@ export type MedicalHistorySectionProps = {
   onChronicConditionsChange: (next: ExistingCondition[]) => void
   allergies: Allergy[]
   onAllergiesChange: (next: Allergy[]) => void
+  familyHistory: FamilyHistoryItem[]
+  onFamilyHistoryChange: (next: FamilyHistoryItem[]) => void
 }
 
 export function MedicalHistorySection({
@@ -284,6 +293,8 @@ export function MedicalHistorySection({
   onChronicConditionsChange,
   allergies,
   onAllergiesChange,
+  familyHistory,
+  onFamilyHistoryChange,
 }: MedicalHistorySectionProps) {
   const [tab, setTab] = useState<TabId>("cardiac")
   const [newCondition, setNewCondition] = useState({ name: "", details: "", diagnosedAt: "" })
@@ -292,12 +303,18 @@ export function MedicalHistorySection({
     allergen: string
     reaction: string
   }>({ category: "drug", allergen: "", reaction: "" })
+  const [newFamily, setNewFamily] = useState<{
+    relationship: string
+    condition: string
+    details: string
+  }>({ relationship: "", condition: "", details: "" })
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "cardiac", label: "Cardiac" },
     { id: "non-cardiac", label: "Non-cardiac" },
     { id: "chronic", label: "Chronic" },
     { id: "allergies", label: "Allergies" },
+    { id: "family", label: "Family history" },
   ]
 
   const cardiacPositives = countPositives(CARDIAC_HISTORY_QUESTIONS, medicalHistory.cardiacAnswers)
@@ -311,6 +328,7 @@ export function MedicalHistorySection({
     "non-cardiac": medicalHistory.nonCardiacReviewed ? "✓" : nonCardiacPositives || "—",
     chronic: chronicConditions.length,
     allergies: allergies.length,
+    family: familyHistory.length,
   }
 
   function patchHistory(patch: Partial<ConsultationMedicalHistory>) {
@@ -357,6 +375,20 @@ export function MedicalHistorySection({
       },
     ])
     setNewAllergy({ category: "drug", allergen: "", reaction: "" })
+  }
+
+  function addFamilyHistoryEntry() {
+    if (!newFamily.relationship.trim() || !newFamily.condition.trim()) return
+    onFamilyHistoryChange([
+      ...familyHistory,
+      {
+        id: crypto.randomUUID(),
+        relationship: newFamily.relationship.trim(),
+        condition: newFamily.condition.trim(),
+        details: newFamily.details.trim(),
+      },
+    ])
+    setNewFamily({ relationship: "", condition: "", details: "" })
   }
 
   return (
@@ -667,6 +699,111 @@ export function MedicalHistorySection({
               </div>
             </>
           )}
+        </div>
+      ) : null}
+
+      {tab === "family" ? (
+        <div role="tabpanel" className={cn(INNER_PANEL, "space-y-4")}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <UsersIcon className="size-4 text-[#1A5345]" aria-hidden />
+              <p className="font-serif text-[14px] font-bold text-[#1A1F1E]">Family history</p>
+              {familyHistory.length > 0 ? (
+                <Badge
+                  variant="default"
+                  className="rounded-lg border-0 bg-[#1A5345] px-2 py-0.5 text-[10px] font-bold text-white shadow-none hover:bg-[#1A5345]"
+                >
+                  {familyHistory.length}
+                </Badge>
+              ) : null}
+            </div>
+          </div>
+
+          {familyHistory.length > 0 ? (
+            <div className="space-y-2">
+              {familyHistory.map((entry) => (
+                <div key={entry.id} className={cn(ITEM_CARD, "flex items-start justify-between gap-2")}>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge className="rounded-lg border-0 bg-[#1A5345] px-2 py-0.5 text-[10px] font-bold text-white shadow-sm hover:bg-[#1A5345]">
+                        {entry.relationship}
+                      </Badge>
+                      <span className="text-[13px] font-semibold text-[#1A1F1E]">{entry.condition}</span>
+                    </div>
+                    {entry.details ? (
+                      <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{entry.details}</p>
+                    ) : null}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 shrink-0 border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-rose-600"
+                    onClick={() =>
+                      onFamilyHistoryChange(familyHistory.filter((f) => f.id !== entry.id))
+                    }
+                    aria-label={`Remove family history ${entry.relationship} — ${entry.condition}`}
+                  >
+                    <XIcon className="size-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[12px] text-muted-foreground">No family history documented yet.</p>
+          )}
+
+          <div className={cn(ITEM_CARD, "space-y-3")}>
+            <p className="text-[13px] font-semibold text-[#1A1F1E]">Add family member</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-muted-foreground">Relationship</label>
+                <Select
+                  value={newFamily.relationship}
+                  onValueChange={(v) => setNewFamily((p) => ({ ...p, relationship: v }))}
+                >
+                  <SelectTrigger className={INPUT_CLASS}>
+                    <SelectValue placeholder="Select relationship" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-[#E8E6E0] bg-white">
+                    {FAMILY_RELATIONSHIP_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-muted-foreground">Condition</label>
+                <Input
+                  value={newFamily.condition}
+                  onChange={(e) => setNewFamily((p) => ({ ...p, condition: e.target.value }))}
+                  placeholder="e.g. Diabetes, MI"
+                  className={INPUT_CLASS}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-medium text-muted-foreground">Details (optional)</label>
+              <Textarea
+                value={newFamily.details}
+                onChange={(e) => setNewFamily((p) => ({ ...p, details: e.target.value }))}
+                placeholder="Age at diagnosis, treatment notes…"
+                className="min-h-[72px] rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
+              />
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={addFamilyHistoryEntry}
+              disabled={!newFamily.relationship.trim() || !newFamily.condition.trim()}
+              className="h-9 gap-1.5 rounded-lg border-0 bg-[#1A5345] text-[12px] font-semibold hover:bg-[#133F34]"
+            >
+              <PlusIcon className="size-3.5" aria-hidden />
+              Add family history
+            </Button>
+          </div>
         </div>
       ) : null}
     </div>

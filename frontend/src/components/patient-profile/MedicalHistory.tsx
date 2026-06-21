@@ -127,7 +127,19 @@ const MOCK_FAMILY_HISTORY: FamilyHistory[] = [
   { relation: "Brother", condition: "Hypertension", ageOfOnset: "45" },
 ]
 
-export function MedicalHistory() {
+export function MedicalHistory({
+  conditions = [],
+  surgeries = [],
+  allergies = [],
+  familyHistory = [],
+  emptyMessage = "No medical history recorded for this patient yet.",
+}: {
+  conditions?: Condition[]
+  surgeries?: Surgery[]
+  allergies?: Allergy[]
+  familyHistory?: FamilyHistory[]
+  emptyMessage?: string
+}) {
   return (
     <div className="w-full px-4 sm:px-8 py-8 flex flex-col gap-10 animate-in fade-in duration-700">
       {/* Header Section */}
@@ -159,10 +171,12 @@ export function MedicalHistory() {
                 <ActivityIcon className="size-5 text-[#1A5345]" strokeWidth={2.5} />
                 <h3 className="text-[17px] font-bold text-[#1A1F1E]">Chronic Conditions</h3>
               </div>
-              <Badge className="bg-[#1A5345] hover:bg-[#1A5345] rounded-lg px-2.5 py-1 text-[11px] font-bold">{MOCK_CONDITIONS.length} Active</Badge>
+              <Badge className="bg-[#1A5345] hover:bg-[#1A5345] rounded-lg px-2.5 py-1 text-[11px] font-bold">{conditions.length} Active</Badge>
             </div>
             <div className="divide-y divide-[#E8E6E0]/60">
-              {MOCK_CONDITIONS.map((condition) => (
+              {conditions.length === 0 ? (
+                <p className="p-6 text-[14px] font-medium text-muted-foreground">{emptyMessage}</p>
+              ) : conditions.map((condition) => (
                 <div key={condition.id} className="p-6 hover:bg-[#F9F8F5]/30 transition-colors group">
                   <div className="flex items-start justify-between mb-3">
                     <div className="space-y-1">
@@ -206,7 +220,9 @@ export function MedicalHistory() {
             </div>
             <div className="p-6">
               <div className="flex flex-col gap-4">
-                {MOCK_SURGERIES.map((surgery) => (
+                {surgeries.length === 0 ? (
+                  <p className="p-6 text-[14px] font-medium text-muted-foreground">No surgical history recorded.</p>
+                ) : surgeries.map((surgery) => (
                   <div 
                     key={surgery.id} 
                     className="flex flex-col sm:flex-row gap-0 overflow-hidden rounded-2xl border border-[#E8E6E0]/80 bg-white shadow-sm transition-all hover:shadow-md hover:border-[#1A5345]/20 group"
@@ -267,7 +283,9 @@ export function MedicalHistory() {
               </div>
             </div>
             <div className="p-4 space-y-3">
-              {MOCK_ALLERGIES.map((allergy) => (
+              {allergies.length === 0 ? (
+                <p className="p-6 text-[14px] font-medium text-muted-foreground">No allergies recorded.</p>
+              ) : allergies.map((allergy) => (
                 <div key={allergy.id} className="p-3 rounded-xl bg-red-50/20 border border-red-100/50 flex items-start gap-3">
                   <div className="size-2 rounded-full bg-red-500 mt-2 shrink-0" />
                   <div className="space-y-0.5">
@@ -288,7 +306,9 @@ export function MedicalHistory() {
               </div>
             </div>
             <div className="p-4 space-y-4">
-              {MOCK_FAMILY_HISTORY.map((item, idx) => (
+              {familyHistory.length === 0 ? (
+                <p className="p-6 text-[14px] font-medium text-muted-foreground">No family history recorded.</p>
+              ) : familyHistory.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between group">
                   <div className="flex items-center gap-3">
                     <div className="size-8 rounded-full bg-slate-50 flex items-center justify-center text-[11px] font-bold text-[#1A5345]">

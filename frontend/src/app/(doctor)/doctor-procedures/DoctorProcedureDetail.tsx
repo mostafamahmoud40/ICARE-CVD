@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Image from "next/image"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import Link from "next/link"
 import type { LucideIcon } from "lucide-react"
 import {
@@ -146,13 +146,11 @@ export function DoctorProcedureDetail({ procedureId }: DoctorProcedureDetailProp
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex min-w-0 items-start gap-3 sm:gap-4">
               <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF] sm:size-14">
-                <Image
-                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(order.patientId)}`}
-                  alt=""
-                  width={56}
-                  height={56}
-                  unoptimized
-                  className="size-full object-cover"
+                <PatientAvatar
+                  name={order.patientName}
+                  avatarUrl={null}
+                  sizes="56px"
+                  initialsClassName="text-[14px]"
                 />
               </div>
               <div className="min-w-0 space-y-1">

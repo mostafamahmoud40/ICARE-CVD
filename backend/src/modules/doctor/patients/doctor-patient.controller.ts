@@ -12,6 +12,7 @@ import {
 } from './dto/patient-profile-extras.dto';
 import { UpdateDoctorPatientProfileDto } from './dto/update-doctor-patient-profile.dto';
 import { CreatePatientAllergyDto } from './dto/patient-allergy.dto';
+import { CreatePatientFamilyHistoryDto } from './dto/patient-family-history.dto';
 import {
   PatientAvatarUploadIntentDto,
   SetPatientAvatarDto,
@@ -143,5 +144,27 @@ export class DoctorPatientController {
     @Param('allergyId') allergyId: string,
   ) {
     return this.service.deletePatientAllergy(user.sub, patientId, allergyId);
+  }
+
+  @Post(':patientId/family-history')
+  createFamilyHistory(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Body() dto: CreatePatientFamilyHistoryDto,
+  ) {
+    return this.service.createPatientFamilyHistory(user.sub, patientId, dto);
+  }
+
+  @Delete(':patientId/family-history/:familyHistoryId')
+  deleteFamilyHistory(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Param('familyHistoryId') familyHistoryId: string,
+  ) {
+    return this.service.deletePatientFamilyHistory(
+      user.sub,
+      patientId,
+      familyHistoryId,
+    );
   }
 }

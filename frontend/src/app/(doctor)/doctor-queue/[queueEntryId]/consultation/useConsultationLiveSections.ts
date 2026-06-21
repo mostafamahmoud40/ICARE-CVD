@@ -11,22 +11,28 @@ import type {
   ConsultationMedicalHistory,
   DiagnosisEntry,
   ExistingCondition,
+  FamilyHistoryItem,
   HomeMeasurement,
   PhysicalExamFindings,
   PrescriptionEntry,
   ProcedureDetails,
+  ReferralEntry,
   TestOrder,
 } from "./consultation.types"
 import {
   buildConsultationFieldPatch,
   cancelLabOrder,
+  createConsultationReferral,
   createLabOrder,
   createMedication,
   createPatientAllergy,
   createPatientDiagnosis,
+  createPatientFamilyHistory,
+  deleteConsultationReferral,
   deleteMedication,
   deletePatientAllergy,
   deletePatientDiagnosis,
+  deletePatientFamilyHistory,
   fetchConsultationSession,
   linkConsultationDiagnosis,
   linkConsultationPrescription,
@@ -709,6 +715,67 @@ export function useConsultationLiveSections(
     [setData],
   )
 
+  const addFamilyHistory = useCallback(
+    async (entry: FamilyHistoryItem) => {
+      const patientId = patientIdRef.current
+      if (!patientId) return
+
+      try {
+        const created = await createPatientFamilyHistory(patientId, {
+          relationship: entry.relationship,
+          condition: entry.condition,
+          details: entry.details,
+        })
+        setData((prev) =>
+          prev
+            ? {
+                ...prev,
+                patientSummary: {
+                  ...prev.patientSummary,
+                  familyHistory: [...prev.patientSummary.familyHistory, created],
+                },
+              }
+            : prev,
+        )
+      } catch {
+        showIcareErrorToast(
+          "Could not add family history",
+          "The entry was not saved. Please try again.",
+        )
+      }
+    },
+    [setData],
+  )
+
+  const removeFamilyHistory = useCallback(
+    async (id: string) => {
+      const patientId = patientIdRef.current
+      if (!patientId) return
+
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              patientSummary: {
+                ...prev.patientSummary,
+                familyHistory: prev.patientSummary.familyHistory.filter((f) => f.id !== id),
+              },
+            }
+          : prev,
+      )
+
+      try {
+        await deletePatientFamilyHistory(patientId, id)
+      } catch {
+        showIcareErrorToast(
+          "Could not remove family history",
+          "The entry may still appear after refresh.",
+        )
+      }
+    },
+    [setData],
+  )
+
   const addTestOrder = useCallback(
     async (entry: TestOrder) => {
       const patientId = patientIdRef.current
@@ -799,6 +866,66 @@ export function useConsultationLiveSections(
     [scheduleSave, setData],
   )
 
+  const addReferral = useCallback(
+    async (entry: ReferralEntry) => {
+      const patientId = patientIdRef.current
+      const consultationId = consultationIdRef.current
+      if (!patientId || !consultationId) return
+
+      try {
+        const created = await createConsultationReferral(patientId, consultationId, {
+          specialty: entry.specialty,
+          reason: entry.reason,
+          urgency: entry.urgency,
+        })
+        setData((prev) =>
+          prev
+            ? {
+                ...prev,
+                referrals: [...prev.referrals, { ...entry, id: created.id }],
+              }
+            : prev,
+        )
+        await queryClient.invalidateQueries({
+          queryKey: ["consultation-session", queueEntryId],
+        })
+      } catch {
+        showIcareErrorToast(
+          "Could not add referral",
+          "The specialist referral was not saved. Please try again.",
+        )
+      }
+    },
+    [queueEntryId, queryClient, setData],
+  )
+
+  const removeReferral = useCallback(
+    async (id: string) => {
+      const patientId = patientIdRef.current
+      const consultationId = consultationIdRef.current
+      if (!patientId || !consultationId) return
+
+      setData((prev) =>
+        prev
+          ? { ...prev, referrals: prev.referrals.filter((r) => r.id !== id) }
+          : prev,
+      )
+
+      try {
+        await deleteConsultationReferral(patientId, consultationId, id)
+        await queryClient.invalidateQueries({
+          queryKey: ["consultation-session", queueEntryId],
+        })
+      } catch {
+        showIcareErrorToast(
+          "Could not remove referral",
+          "The referral may still appear after refresh.",
+        )
+      }
+    },
+    [queueEntryId, queryClient, setData],
+  )
+
   return {
     updateChiefComplaint,
     updateChiefComplaintStructured,
@@ -813,12 +940,16 @@ export function useConsultationLiveSections(
     updatePrescription,
     addAllergy,
     removeAllergy,
+    addFamilyHistory,
+    removeFamilyHistory,
     addChronicCondition,
     removeChronicCondition,
     addTestOrder,
     removeTestOrder,
     addHomeMeasurement,
     removeHomeMeasurement,
+    addReferral,
+    removeReferral,
     updateClinicalNotes,
     updateAssessmentAndPlan,
     updateFollowUpDate,

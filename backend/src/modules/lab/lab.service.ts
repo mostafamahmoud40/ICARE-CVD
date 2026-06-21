@@ -15,8 +15,8 @@ import {
 import {
   LAB_REPORT_MAX_BYTES,
   LAB_REPORT_MIME_TYPES,
-  MINIO_CATEGORY_PREFIX,
 } from '../../shared/storage/minio.constants';
+import { isMinioKeyForCategory } from '../../shared/storage/minio-patient-path';
 import { MinioService } from '../../shared/storage/minio.service';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type {
@@ -242,6 +242,7 @@ export class LabService {
       contentType: mimeType,
       category: 'lab_report',
       patientId: patientRow.id,
+      patientNumber: patientRow.patientNumber,
     });
   }
 
@@ -256,7 +257,7 @@ export class LabService {
     );
     this.assertLabOrderAcceptsUpload(order);
 
-    if (!dto.s3Key.startsWith(`${MINIO_CATEGORY_PREFIX.lab_report}/`)) {
+    if (!isMinioKeyForCategory(dto.s3Key, 'lab_report', patientRow.patientNumber)) {
       throw new BadRequestException('Invalid lab report storage key');
     }
 
@@ -468,7 +469,7 @@ export class LabService {
         where: eq(patientDocument.id, panel.documentId),
       });
       if (doc) {
-        if (doc.s3Key.startsWith(`${MINIO_CATEGORY_PREFIX.lab_report}/`)) {
+        if (isMinioKeyForCategory(doc.s3Key, 'lab_report')) {
           await this.minioService.deleteObject(doc.s3Key);
         }
         await this.db

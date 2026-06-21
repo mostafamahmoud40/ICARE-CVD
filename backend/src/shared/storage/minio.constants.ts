@@ -10,22 +10,13 @@ export type MinioStorageCategory =
   | 'consultation_ecg'
   | 'consultation_cine_mri'
   | 'consultation_ct'
-  | 'consultation_ecg_cls';
+  | 'consultation_ecg_cls'
+  | 'staff_avatar';
 
-export const MINIO_CATEGORY_PREFIX: Record<MinioStorageCategory, string> = {
-  chat_image: 'chat/images',
-  chat_file: 'chat/files',
-  lab_report: 'documents/lab-reports',
-  patient_avatar: 'documents/patient-avatars',
-  consultation_xray: 'documents/consultation-xray',
-  consultation_echo: 'documents/consultation-echo',
-  consultation_ecg: 'documents/consultation-ecg',
-  consultation_cine_mri: 'documents/consultation-cine-mri',
-  consultation_ct: 'documents/consultation-ct',
-  consultation_ecg_cls: 'documents/consultation-ecg-cls',
-};
+/** @deprecated Use `buildMinioObjectPrefix` from `./minio-patient-path` for new uploads. */
+export { LEGACY_MINIO_CATEGORY_PREFIX as MINIO_CATEGORY_PREFIX } from './minio-patient-path';
 
-/** Per-conversation object key prefix inside the chat bucket. */
+/** Non-patient chat fallback (e.g. assistant ↔ doctor). */
 export function buildChatConversationPrefix(
   conversationId: number,
   category: MinioStorageCategory,

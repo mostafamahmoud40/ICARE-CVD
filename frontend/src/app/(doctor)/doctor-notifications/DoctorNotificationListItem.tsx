@@ -1,10 +1,9 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { ClockIcon } from "lucide-react"
 
-import { toast } from "sonner"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import { cn } from "@/lib/utils"
 
 import type {
@@ -54,20 +53,10 @@ function NotificationPersonAvatar({
   avatarUrl?: string | null
   unread?: boolean
 }) {
-  const [imageFailed, setImageFailed] = useState(false)
-  const fallbackSrc = `https://i.pravatar.cc/150?u=${encodeURIComponent(name)}`
-  const src = avatarUrl?.trim() && !imageFailed ? avatarUrl.trim() : fallbackSrc
-
   return (
     <div className="relative shrink-0">
       <div className="size-10 overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={src}
-          alt={name}
-          className="size-full object-cover"
-          onError={() => setImageFailed(true)}
-        />
+        <PatientAvatar name={name} avatarUrl={avatarUrl} sizes="40px" />
       </div>
       {unread ? (
         <span

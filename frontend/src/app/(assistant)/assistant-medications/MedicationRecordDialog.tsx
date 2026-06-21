@@ -5,24 +5,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { 
-  PillIcon, 
-  CheckCircle2Icon, 
-  XCircleIcon, 
-  CalendarIcon, 
-  SunIcon, 
+import {
+  CheckCircle2Icon,
+  XCircleIcon,
+  CalendarIcon,
+  SunIcon,
   MoonIcon,
   ActivityIcon,
   ClockIcon,
   SyringeIcon,
-  BeakerIcon
+  BeakerIcon,
+  Loader2Icon,
 } from "lucide-react";
 import { type MedicationType } from "./assistantMedications.types";
 import {
-  buildDoseTimesFromFrequency,
+  buildMedicationAdherenceTimeline,
+  buildDoseSchedule,
   isHighFrequencySchedule,
-  mockDoseStatus,
+  type DoseSlotStatus,
 } from "./medicationDoseSchedule";
+import { useMedicationAdherenceRecord } from "./useMedicationAdherenceRecord";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -30,59 +32,83 @@ import { cn } from "@/lib/utils";
 type MedicationRecordDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  medicationName: string;
+  medicationId: string;
+  /** Fallback display while loading or if API metadata is unavailable. */
+  medicationName?: string;
   strength?: string;
   type?: MedicationType;
   dosageInstructions?: string;
   frequencyLabel?: string;
+  apiPrefix?: "assistant" | "doctor";
 };
+
+function doseStatusBadge(status: DoseSlotStatus) {
+  if (status === "taken") {
+    return (
+      <Badge className="w-fit rounded-lg border-0 bg-emerald-500 px-2 py-0.5 text-[10px] leading-none text-white shadow-none hover:bg-emerald-500">
+        Taken
+      </Badge>
+    );
+  }
+  if (status === "skipped") {
+    return (
+      <Badge className="w-fit rounded-lg border-0 bg-amber-500 px-2 py-0.5 text-[10px] leading-none text-white shadow-none hover:bg-amber-500">
+        Skipped
+      </Badge>
+    );
+  }
+  if (status === "pending") {
+    return (
+      <Badge className="w-fit rounded-lg border-0 bg-slate-300 px-2 py-0.5 text-[10px] leading-none text-slate-700 shadow-none hover:bg-slate-300">
+        Pending
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="w-fit rounded-lg border-0 bg-rose-500 px-2 py-0.5 text-[10px] leading-none text-white shadow-none hover:bg-rose-500">
+      Missed
+    </Badge>
+  );
+}
 
 export function MedicationRecordDialog({
   open,
   onOpenChange,
-  medicationName,
-  strength = "10 mg",
+  medicationId,
+  medicationName: fallbackName = "Medication",
+  strength: fallbackStrength = "",
   type = "pill",
-  dosageInstructions = "1 tablet twice daily with meals",
-  frequencyLabel = "BID",
+  dosageInstructions: fallbackInstructions = "",
+  frequencyLabel: fallbackFrequency = "",
+  apiPrefix = "assistant",
 }: MedicationRecordDialogProps) {
-  // Mock Data for the record
-  const adherenceStats = {
-    adheredDays: 24,
-    missedDays: 4,
-    partialDays: 2,
-    totalDays: 30,
-  };
+  const { data, isLoading, isError } = useMedicationAdherenceRecord(medicationId, {
+    enabled: open && Boolean(medicationId),
+    apiPrefix,
+  });
 
-  // Generate dose times from frequency (Q3H = every 3 hours, BID = twice daily, etc.)
-  const doseTimes = buildDoseTimesFromFrequency(frequencyLabel);
+  const medication = data?.medication;
+  const medicationName = medication?.name ?? fallbackName;
+  const strength = medication?.dose ?? fallbackStrength;
+  const frequencyLabel = medication?.frequency ?? fallbackFrequency;
+  const dosageInstructions =
+    medication?.instructions?.trim() ||
+    fallbackInstructions ||
+    `${strength}${strength && frequencyLabel ? " · " : ""}${frequencyLabel}`;
+
+  const doseTimes = buildDoseSchedule({
+    frequency: frequencyLabel,
+    timeOfDay: medication?.timeOfDay,
+  });
   const highFrequency = isHighFrequencySchedule(doseTimes);
 
-  // Generate mock timeline
-  const generateMockTimeline = () => {
-    const today = new Date("2026-05-10");
-    const arr = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      const dateStr = d.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-
-      const dayDoses = doseTimes.map((dt, doseIndex) => ({
-        time: dt.time,
-        label: dt.label,
-        status: mockDoseStatus(i, doseIndex, frequencyLabel),
-      }));
-
-      arr.push({ date: dateStr, doses: dayDoses });
-    }
-    return arr;
-  };
-
-  const timeline = generateMockTimeline();
+  const { timeline, stats } = buildMedicationAdherenceTimeline({
+    frequency: frequencyLabel,
+    timeOfDay: medication?.timeOfDay,
+    startDate: medication?.startDate,
+    doseLogs: data?.doseLogs ?? [],
+    days: 30,
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,10 +120,10 @@ export function MedicationRecordDialog({
             ) : type === "solution" ? (
               <BeakerIcon className="size-8 text-purple-500 drop-shadow-sm shrink-0" />
             ) : (
-              <svg 
-                className="size-10 shrink-0 drop-shadow-sm" 
-                viewBox="0 0 24 24" 
-                fill="none" 
+              <svg
+                className="size-10 shrink-0 drop-shadow-sm"
+                viewBox="0 0 24 24"
+                fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <g transform="rotate(-45 12 12)">
@@ -109,7 +135,12 @@ export function MedicationRecordDialog({
             )}
             <div>
               <DialogTitle className="text-[24px] font-bold text-[#1A1F1E] font-serif tracking-tight flex items-center gap-2">
-                {medicationName} <span className="text-muted-foreground font-sans text-[16px] font-medium tracking-normal">{strength}</span>
+                {medicationName}
+                {strength ? (
+                  <span className="text-muted-foreground font-sans text-[16px] font-medium tracking-normal">
+                    {strength}
+                  </span>
+                ) : null}
               </DialogTitle>
               <DialogDescription className="text-[13px] font-medium text-muted-foreground mt-1 flex items-center gap-1.5">
                 <ClockIcon className="size-3.5" /> {dosageInstructions}
@@ -120,79 +151,116 @@ export function MedicationRecordDialog({
 
         <ScrollArea className="max-h-[60vh]">
           <div className="p-6 sm:p-8 space-y-8">
-            
-            {/* Overview Stats */}
-            <div className="grid grid-cols-3 gap-4">
-               <div className="flex items-center gap-3 rounded-2xl border border-[#E8E6E0]/80 bg-white p-4 shadow-sm transition-shadow hover:shadow-md cursor-default">
-                  <div className="flex shrink-0 items-center justify-center">
-                     <CheckCircle2Icon className="size-5 text-[#1A5345]" />
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+                <Loader2Icon className="size-8 animate-spin text-[#1A5345]" />
+                <p className="text-[13px] font-medium">Loading adherence record…</p>
+              </div>
+            ) : isError ? (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center text-[13px] font-medium text-rose-700">
+                Could not load adherence record. Please try again.
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="flex items-center gap-3 rounded-2xl border border-[#E8E6E0]/80 bg-white p-4 shadow-sm transition-shadow hover:shadow-md cursor-default">
+                    <div className="flex shrink-0 items-center justify-center">
+                      <CheckCircle2Icon className="size-5 text-[#1A5345]" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[20px] font-bold leading-none text-[#1A1F1E] tracking-tight">
+                        {stats.adheredDays}{" "}
+                        <span className="text-[12px] font-bold text-muted-foreground tracking-normal">days</span>
+                      </div>
+                      <div className="mt-1 truncate text-[11px] font-medium text-[#6B7870] uppercase tracking-wider">
+                        Full adherence
+                      </div>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                     <div className="text-[20px] font-bold leading-none text-[#1A1F1E] tracking-tight">{adherenceStats.adheredDays} <span className="text-[12px] font-bold text-muted-foreground tracking-normal">days</span></div>
-                     <div className="mt-1 truncate text-[11px] font-medium text-[#6B7870] uppercase tracking-wider">Full adherence</div>
-                  </div>
-               </div>
-               
-               <div className="flex items-center gap-3 rounded-2xl border border-[#E8E6E0]/80 bg-white p-4 shadow-sm transition-shadow hover:shadow-md cursor-default">
-                  <div className="flex shrink-0 items-center justify-center">
-                     <ActivityIcon className="size-5 text-amber-600" />
-                  </div>
-                  <div className="min-w-0">
-                     <div className="text-[20px] font-bold leading-none text-[#1A1F1E] tracking-tight">{adherenceStats.partialDays} <span className="text-[12px] font-bold text-muted-foreground tracking-normal">days</span></div>
-                     <div className="mt-1 truncate text-[11px] font-medium text-[#6B7870] uppercase tracking-wider">Partial days</div>
-                  </div>
-               </div>
-               
-               <div className="flex items-center gap-3 rounded-2xl border border-[#E8E6E0]/80 bg-white p-4 shadow-sm transition-shadow hover:shadow-md cursor-default">
-                  <div className="flex shrink-0 items-center justify-center">
-                     <XCircleIcon className="size-5 text-rose-600" />
-                  </div>
-                  <div className="min-w-0">
-                     <div className="text-[20px] font-bold leading-none text-[#1A1F1E] tracking-tight">{adherenceStats.missedDays} <span className="text-[12px] font-bold text-muted-foreground tracking-normal">days</span></div>
-                     <div className="mt-1 truncate text-[11px] font-medium text-[#6B7870] uppercase tracking-wider">Missed days</div>
-                  </div>
-               </div>
-            </div>
 
-            {/* Detailed Timeline */}
-            <div>
-               <h4 className="text-[15px] font-bold text-[#1A1F1E] mb-4 flex items-center gap-2">
-                 <CalendarIcon className="size-4 text-[#1A5345]" />
-                 30-Day Timeline
-               </h4>
-               <div className="bg-white rounded-2xl border border-[#E8E6E0] overflow-hidden shadow-sm">
-                  <div className="divide-y divide-[#E8E6E0]/60">
-                     {timeline.map((day, i) => (
-                       <div
-                         key={i}
-                         className={cn(
-                           "border-b border-[#E8E6E0]/60 p-4 transition-colors last:border-0 hover:bg-[#F9F8F5]/50",
-                           highFrequency
-                             ? "flex flex-col gap-3"
-                             : "flex flex-col justify-between gap-3 sm:flex-row sm:items-center sm:gap-0",
-                         )}
-                       >
-                          <span className="text-[13px] font-bold text-[#1A1F1E] sm:w-[120px]">{day.date}</span>
+                  <div className="flex items-center gap-3 rounded-2xl border border-[#E8E6E0]/80 bg-white p-4 shadow-sm transition-shadow hover:shadow-md cursor-default">
+                    <div className="flex shrink-0 items-center justify-center">
+                      <ActivityIcon className="size-5 text-amber-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[20px] font-bold leading-none text-[#1A1F1E] tracking-tight">
+                        {stats.partialDays}{" "}
+                        <span className="text-[12px] font-bold text-muted-foreground tracking-normal">days</span>
+                      </div>
+                      <div className="mt-1 truncate text-[11px] font-medium text-[#6B7870] uppercase tracking-wider">
+                        Partial days
+                      </div>
+                    </div>
+                  </div>
 
+                  <div className="flex items-center gap-3 rounded-2xl border border-[#E8E6E0]/80 bg-white p-4 shadow-sm transition-shadow hover:shadow-md cursor-default">
+                    <div className="flex shrink-0 items-center justify-center">
+                      <XCircleIcon className="size-5 text-rose-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[20px] font-bold leading-none text-[#1A1F1E] tracking-tight">
+                        {stats.missedDays}{" "}
+                        <span className="text-[12px] font-bold text-muted-foreground tracking-normal">days</span>
+                      </div>
+                      <div className="mt-1 truncate text-[11px] font-medium text-[#6B7870] uppercase tracking-wider">
+                        Missed days
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-[15px] font-bold text-[#1A1F1E] mb-4 flex items-center gap-2">
+                    <CalendarIcon className="size-4 text-[#1A5345]" />
+                    30-Day Timeline
+                    {stats.totalDays > 0 ? (
+                      <span className="text-[11px] font-medium text-muted-foreground">
+                        ({doseTimes.length} dose{doseTimes.length === 1 ? "" : "s"}/day)
+                      </span>
+                    ) : null}
+                  </h4>
+                  {timeline.length === 0 ? (
+                    <div className="rounded-2xl border border-[#E8E6E0] bg-white p-8 text-center text-[13px] font-medium text-muted-foreground">
+                      No dose history in the last 30 days.
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-2xl border border-[#E8E6E0] overflow-hidden shadow-sm">
+                      <div className="divide-y divide-[#E8E6E0]/60">
+                        {timeline.map((day) => (
                           <div
+                            key={day.dateKey}
                             className={cn(
-                              "flex flex-1 gap-3",
+                              "border-b border-[#E8E6E0]/60 p-4 transition-colors last:border-0 hover:bg-[#F9F8F5]/50",
                               highFrequency
-                                ? "grid grid-cols-2 sm:grid-cols-4"
-                                : "flex-wrap items-center justify-start sm:justify-end gap-x-6 gap-y-3",
+                                ? "flex flex-col gap-3"
+                                : "flex flex-col justify-between gap-3 sm:flex-row sm:items-center sm:gap-0",
                             )}
                           >
-                             {day.doses.map((dose, idx) => (
-                               <div
-                                 key={idx}
-                                 className={cn(
-                                   "flex items-center gap-2",
-                                   highFrequency ? "min-w-0 rounded-lg border border-[#E8E6E0]/50 bg-[#FAFAF8] px-2.5 py-2" : "min-w-[90px]",
-                                 )}
-                               >
+                            <span className="text-[13px] font-bold text-[#1A1F1E] sm:w-[120px]">{day.date}</span>
+
+                            <div
+                              className={cn(
+                                "flex flex-1 gap-3",
+                                highFrequency
+                                  ? "grid grid-cols-2 sm:grid-cols-4"
+                                  : "flex-wrap items-center justify-start sm:justify-end gap-x-6 gap-y-3",
+                              )}
+                            >
+                              {day.doses.map((dose, idx) => (
+                                <div
+                                  key={`${day.dateKey}-${idx}`}
+                                  className={cn(
+                                    "flex items-center gap-2",
+                                    highFrequency
+                                      ? "min-w-0 rounded-lg border border-[#E8E6E0]/50 bg-[#FAFAF8] px-2.5 py-2"
+                                      : "min-w-[90px]",
+                                  )}
+                                >
                                   {highFrequency ? (
                                     <ClockIcon className="size-4 shrink-0 text-[#1A5345]" aria-hidden />
-                                  ) : dose.label === "Night" || dose.label === "Evening" || dose.label === "Bedtime" ? (
+                                  ) : dose.label === "Night" ||
+                                    dose.label === "Evening" ||
+                                    dose.label === "Bedtime" ? (
                                     <MoonIcon className="size-4 text-indigo-500" aria-hidden />
                                   ) : (
                                     <SunIcon className="size-4 text-amber-500" aria-hidden />
@@ -201,21 +269,19 @@ export function MedicationRecordDialog({
                                     <span className="mb-0.5 text-[10px] font-bold leading-none text-muted-foreground">
                                       {dose.time}
                                     </span>
-                                    {dose.status === "taken" ? (
-                                      <Badge className="w-fit rounded-lg border-0 bg-emerald-500 px-2 py-0.5 text-[10px] leading-none text-white shadow-none hover:bg-emerald-500">Taken</Badge>
-                                    ) : (
-                                      <Badge className="w-fit rounded-lg border-0 bg-rose-500 px-2 py-0.5 text-[10px] leading-none text-white shadow-none hover:bg-rose-500">Missed</Badge>
-                                    )}
+                                    {doseStatusBadge(dose.status)}
                                   </div>
-                               </div>
-                             ))}
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                       </div>
-                     ))}
-                  </div>
-               </div>
-            </div>
-
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </ScrollArea>
       </DialogContent>

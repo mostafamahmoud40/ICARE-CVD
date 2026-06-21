@@ -18,6 +18,7 @@ import {
   PATIENT_SMOKING_STATUSES,
 } from "../patientProfile.constants"
 import { useUpdateDoctorPatientProfile } from "../useUpdateDoctorPatientProfile"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import { showIcareErrorToast, showIcareToast } from "@/components/shared/icare-toast"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -599,17 +600,53 @@ export function PatientProfile({ record }: PatientProfileProps) {
 
   async function saveDemographics() {
     try {
-      let avatarUrl = demographics.profileImageUrl
-      if (pendingAvatarFile) {
-        avatarUrl = await uploadDoctorPatientAvatar(p.id, pendingAvatarFile)
-      }
-      await updateProfile({
-        avatarUrl,
+      const profilePayload: Parameters<typeof updateProfile>[0] = {
         gender: demographics.gender,
         bloodType: demographics.bloodType
           ? (demographics.bloodType as "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-")
           : null,
+      }
+
+      let uploadedAvatarUrl: string | undefined
+
+      if (pendingAvatarFile) {
+        uploadedAvatarUrl = await uploadDoctorPatientAvatar(p.id, pendingAvatarFile)
+      } else {
+        const initialAvatar = p.profileImageUrl ?? ""
+        const nextAvatar = demographics.profileImageUrl
+        if (nextAvatar !== initialAvatar) {
+          profilePayload.avatarUrl = nextAvatar || undefined
+        }
+      }
+
+      const updated = await updateProfile(profilePayload)
+      const nextProfileImageUrl =
+        uploadedAvatarUrl ??
+        updated.patient.profileImageUrl ??
+        demographics.profileImageUrl ??
+        ""
+
+      setDemographics({
+        profileImageUrl: nextProfileImageUrl,
+        gender: updated.patient.gender,
+        bloodType:
+          updated.patient.bloodType && updated.patient.bloodType !== "—"
+            ? updated.patient.bloodType
+            : "",
       })
+
+      queryClient.setQueryData<PatientFullRecord>(["doctor-patient-record", p.id], (current) =>
+        current
+          ? {
+              ...current,
+              patient: {
+                ...current.patient,
+                profileImageUrl: nextProfileImageUrl,
+              },
+            }
+          : current,
+      )
+
       setPendingAvatarFile(null)
       setEditDialog(null)
     } catch {
@@ -640,6 +677,7 @@ export function PatientProfile({ record }: PatientProfileProps) {
   }
 
   const smokingDisplay = formatSmokingStatus(lifestyle.smokingStatus)
+  const profileAvatarUrl = demographics.profileImageUrl || p.profileImageUrl || null
 
   return (
     <main className="flex-1 overflow-y-auto bg-[#F9F8F5] p-3 sm:p-4 lg:p-5 animate-in fade-in duration-700">
@@ -665,15 +703,13 @@ export function PatientProfile({ record }: PatientProfileProps) {
             {/* Avatar */}
             <div className="relative shrink-0">
               <div className="flex size-20 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-4 ring-white shadow-sm sm:size-24 lg:size-28">
-                {demographics.profileImageUrl ? (
-                  <img
-                    src={demographics.profileImageUrl}
-                    alt={p.fullName}
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  <UserRoundIcon className="size-10 text-slate-400 sm:size-12" aria-hidden />
-                )}
+                <PatientAvatar
+                  key={profileAvatarUrl ?? "no-avatar"}
+                  name={p.fullName}
+                  avatarUrl={profileAvatarUrl}
+                  sizes="112px"
+                  initialsClassName="text-[22px] sm:text-[26px]"
+                />
               </div>
               <Button
                 type="button"

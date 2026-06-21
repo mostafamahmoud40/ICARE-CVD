@@ -169,9 +169,8 @@ function QueuePatientCard({
           <QueuePositionBadge index={position} status={patient.status} />
           <div className="size-11 rounded-full bg-[#F3F4F6] border border-[#E8E6E0]/60 overflow-hidden shrink-0 mt-1">
             <PatientAvatar
+              name={patient.fullName}
               avatarUrl={patient.avatarUrl}
-              fallbackSeed={patient.id}
-              alt={patient.fullName}
             />
           </div>
         </div>

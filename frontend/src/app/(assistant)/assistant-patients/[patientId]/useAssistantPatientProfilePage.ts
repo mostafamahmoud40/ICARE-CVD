@@ -4,15 +4,10 @@ import { useEffect, useMemo, useState } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 import {
   ActivityIcon,
-  DropletsIcon,
   FileTextIcon,
-  GaugeIcon,
   HeartPulseIcon,
   PillIcon,
-  ScaleIcon,
   SyringeIcon,
-  ThermometerIcon,
-  WindIcon,
 } from "lucide-react"
 
 import type {
@@ -24,6 +19,8 @@ import type {
   AssistantVitalsHistoryRow,
   VitalSummaryCard,
 } from "./assistantPatientProfile.types"
+import { useAssistantPatientRecord } from "../useAssistantPatientRecord"
+import { emptyHubMessage } from "../assistantPatientProfile.mapper"
 
 const PROFILE_TAB_IDS = [
   "overview",
@@ -33,96 +30,6 @@ const PROFILE_TAB_IDS = [
   "medications",
 ] as const satisfies readonly AssistantPatientProfileTabId[]
 
-function buildMockPatient(patientId: string): AssistantPatientSummary {
-  return {
-    id: patientId,
-    name: "Ahmed Mohammed",
-    age: 58,
-    gender: "Male",
-    mrn: `MRN-${String(patientId).padStart(6, "0")}`,
-    phone: "+20 123 456 7890",
-    email: "ahmed.m@example.com",
-    address: "Maadi, Cairo, Egypt",
-    maritalStatus: "Married",
-    occupation: "Civil Engineer",
-    dateAdded: "Jan 15, 2024",
-    condition: "Coronary Artery Disease",
-    status: "In Treatment",
-    riskLevel: "High Risk",
-    bloodType: "O+",
-    lastVisitDate: "May 02, 2026",
-    lastVisitType: "Echocardiogram",
-    primaryDoctor: "Dr. Sarah Jenkins",
-    emergencyContact: { name: "Fatima Ali", relation: "Spouse", phone: "+20 100 234 5678" },
-    insurance: { provider: "Allianz Egypt", policyNumber: "ALZ-987654321" },
-    height: "175 cm",
-    weight: "86.5 kg",
-    bmi: "28.2",
-    allergies: ["Penicillin", "Peanuts"],
-    lifestyle: {
-      smoking: { status: "Ex-smoker", detail: "Quit 2019", color: "text-[#8C3B3B]" },
-      exercise: { status: "Low", detail: "Physical activity", color: "text-[#926020]" },
-      diet: { status: "Moderate", detail: "Diet quality", color: "text-[#926020]" },
-      alcohol: { status: "None", detail: "Alcohol", color: "text-[#1A5345]" },
-      sleep: { status: "5-6 hrs", detail: "Sleep/night", color: "text-[#926020]" },
-      stress: { status: "High", detail: "Stress level", color: "text-[#8C3B3B]" },
-    },
-    adherence: 85,
-    riskScore: 78,
-  }
-}
-
-const VITAL_SUMMARY_CARDS: VitalSummaryCard[] = [
-  {
-    label: "Blood pressure",
-    value: "100/67",
-    unit: "mmHg",
-    icon: GaugeIcon,
-    iconClass: "text-blue-600",
-    status: "normal",
-  },
-  {
-    label: "Heart rate",
-    value: "89",
-    unit: "bpm",
-    icon: HeartPulseIcon,
-    iconClass: "text-red-600",
-    status: "normal",
-  },
-  {
-    label: "SpO₂",
-    value: "98",
-    unit: "%",
-    icon: DropletsIcon,
-    iconClass: "text-emerald-600",
-    status: "normal",
-  },
-  {
-    label: "Temperature",
-    value: "101.2",
-    unit: "°F",
-    icon: ThermometerIcon,
-    iconClass: "text-red-600",
-    status: "critical",
-  },
-  {
-    label: "Respiratory rate",
-    value: "24",
-    unit: "rpm",
-    icon: WindIcon,
-    iconClass: "text-sky-600",
-    status: "warning",
-  },
-  {
-    label: "Weight",
-    value: "100",
-    unit: "kg",
-    icon: ScaleIcon,
-    iconClass: "text-orange-600",
-    status: "normal",
-  },
-]
-
 const PROFILE_TABS = [
   { id: "overview" as const, label: "Overview", icon: ActivityIcon },
   { id: "clinical-notes" as const, label: "Clinical Notes", icon: FileTextIcon },
@@ -131,15 +38,54 @@ const PROFILE_TABS = [
   { id: "medications" as const, label: "Medications", icon: PillIcon },
 ]
 
+const FALLBACK_PATIENT: AssistantPatientSummary = {
+  id: "",
+  avatarUrl: null,
+  name: "Loading…",
+  age: 0,
+  gender: "—",
+  mrn: "—",
+  phone: "—",
+  email: "—",
+  address: "—",
+  maritalStatus: "—",
+  occupation: "—",
+  dateAdded: "—",
+  condition: "—",
+  status: "—",
+  riskLevel: "—",
+  bloodType: "—",
+  lastVisitDate: "—",
+  lastVisitType: "—",
+  primaryDoctor: "—",
+  emergencyContact: { name: "—", relation: "—", phone: "—" },
+  insurance: { provider: "—", policyNumber: "—" },
+  height: "—",
+  weight: "—",
+  bmi: "—",
+  allergies: [],
+  lifestyle: {
+    smoking: { status: "—", detail: "Smoking status", color: "text-[#6B7870]" },
+    exercise: { status: "—", detail: "Physical activity", color: "text-[#6B7870]" },
+    diet: { status: "—", detail: "Diet quality", color: "text-[#6B7870]" },
+    alcohol: { status: "—", detail: "Alcohol", color: "text-[#6B7870]" },
+    sleep: { status: "—", detail: "Sleep/night", color: "text-[#6B7870]" },
+    stress: { status: "—", detail: "Stress level", color: "text-[#6B7870]" },
+  },
+  adherence: 0,
+  riskScore: 0,
+}
+
 type UseAssistantPatientProfilePageOpts = {
-  /** From server `page.tsx` after `await params` (Next.js 16+). */
   routePatientId: string
 }
 
 export function useAssistantPatientProfilePage({ routePatientId }: UseAssistantPatientProfilePageOpts) {
-  const patientId = routePatientId.trim() || "1"
+  const patientId = routePatientId.trim()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+
+  const record = useAssistantPatientRecord(patientId)
 
   const [activeTab, setActiveTab] = useState<string>("overview")
   const [isAddVitalsOpen, setIsAddVitalsOpen] = useState(false)
@@ -148,8 +94,6 @@ export function useAssistantPatientProfilePage({ routePatientId }: UseAssistantP
   const [selectedPrescription, setSelectedPrescription] = useState<AssistantPrescriptionRow | null>(null)
   const [vitalReadingDetail, setVitalReadingDetail] = useState<AssistantVitalsHistoryRow | null>(null)
   const [appointmentDetail, setAppointmentDetail] = useState<AssistantAppointmentRow | null>(null)
-
-  const patient = useMemo(() => buildMockPatient(patientId), [patientId])
 
   useEffect(() => {
     const t = searchParams.get("tab")
@@ -186,7 +130,7 @@ export function useAssistantPatientProfilePage({ routePatientId }: UseAssistantP
         { key: "documents", label: "Documents", href: `${patientProfilePath}?view=documents` },
         { key: "insurance", label: "Insurance", href: `${patientProfilePath}?view=insurance` },
       ] as const,
-    [patientProfilePath]
+    [patientProfilePath],
   )
 
   const hubViewParam = searchParams.get("view")
@@ -200,12 +144,39 @@ export function useAssistantPatientProfilePage({ routePatientId }: UseAssistantP
     return hubViewParam === key
   }
 
+  const patient = record.patient ?? FALLBACK_PATIENT
+  const vitals: VitalSummaryCard[] = record.vitals ?? []
+  const appointments = record.appointments ?? []
+  const visitHistory = record.visitHistory ?? []
+  const labResults = record.labResults ?? []
+  const prescriptions = record.prescriptions ?? []
+  const vitalsHistory = record.vitalsHistory ?? []
+  const vitalsTrend = record.vitalsTrend ?? []
+  const medicalHistory = record.medicalHistory ?? {
+    conditions: [],
+    surgeries: [],
+    allergies: [],
+    familyHistory: [],
+  }
+  const documents = record.documents ?? []
+
   return {
     patientId,
     pathname,
     searchParams,
     patient,
-    vitals: VITAL_SUMMARY_CARDS,
+    vitals,
+    appointments,
+    visitHistory,
+    labResults,
+    prescriptions,
+    vitalsHistory,
+    vitalsTrend,
+    medicalHistory,
+    documents,
+    emptyHubMessage,
+    isRecordLoading: record.isLoading,
+    isRecordError: record.isError,
     tabs: PROFILE_TABS,
     patientProfilePath,
     hubNavItems,

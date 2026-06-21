@@ -413,8 +413,13 @@ export class ChatService {
     dto: ChatUploadIntentDto,
   ) {
     const actor = await this.resolveActor(currentUser);
-    await this.assertConversationAccess(conversationId, actor);
-    return this.chatAttachmentService.createUploadIntent(conversationId, dto);
+    const row = await this.assertConversationAccess(conversationId, actor);
+    const patientNumber = await this.resolveConversationPatientNumber(row);
+    return this.chatAttachmentService.createUploadIntent(
+      conversationId,
+      dto,
+      patientNumber,
+    );
   }
 
   async sendMessage(
@@ -423,7 +428,8 @@ export class ChatService {
     dto: SendMessageDto,
   ) {
     const actor = await this.resolveActor(currentUser);
-    await this.assertConversationAccess(conversationId, actor);
+    const row = await this.assertConversationAccess(conversationId, actor);
+    const patientNumber = await this.resolveConversationPatientNumber(row);
 
     const text = dto.message?.trim() ?? '';
     const attachments = dto.attachments ?? [];
@@ -436,6 +442,7 @@ export class ChatService {
       this.chatAttachmentService.validateUploadedAttachment(
         conversationId,
         attachment,
+        patientNumber,
       );
     }
 
@@ -966,6 +973,18 @@ export class ChatService {
     }
 
     throw new ForbiddenException('No access to this conversation');
+  }
+
+  private async resolveConversationPatientNumber(row: {
+    patientId: string | null;
+  }): Promise<string | undefined> {
+    if (!row.patientId) return undefined;
+
+    const patientRow = await this.db.query.patient.findFirst({
+      where: eq(patient.id, row.patientId),
+      columns: { patientNumber: true },
+    });
+    return patientRow?.patientNumber;
   }
 
   private async getConversationParticipantUserIds(conversationId: number) {

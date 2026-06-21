@@ -7,6 +7,9 @@ import { DoctorGuard } from '../doctor/doctor.guard';
 import { MedicationService } from './medication.service';
 import { PatientMedicationController } from './patient-medication.controller';
 import { DoctorMedicationController } from './doctor-medication.controller';
+import { AssistantMedicationController } from './assistant-medication.controller';
+import { AssistantMedicationService } from './assistant-medication.service';
+import { AssistantGuard } from '../assistant/assistant.guard';
 import { MinioModule } from '../../shared/storage/minio.module';
 
 @Module({
@@ -16,11 +19,17 @@ import { MinioModule } from '../../shared/storage/minio.module';
     }),
     MinioModule,
   ],
-  controllers: [PatientMedicationController, DoctorMedicationController],
+  controllers: [
+    PatientMedicationController,
+    DoctorMedicationController,
+    AssistantMedicationController,
+  ],
   providers: [
     MedicationService,
+    AssistantMedicationService,
     PatientGuard,
     DoctorGuard,
+    AssistantGuard,
     AuthJwtService,
     AccessTokenGuard,
   ],

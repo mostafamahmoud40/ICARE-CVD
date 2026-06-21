@@ -12,8 +12,8 @@ import {
   patient,
   patientDocument,
 } from '../../database/schema';
+import { isMinioKeyForCategory } from '../../shared/storage/minio-patient-path';
 import {
-  MINIO_CATEGORY_PREFIX,
   XRAY_IMAGE_MAX_BYTES,
   XRAY_IMAGE_MIME_TYPES,
 } from '../../shared/storage/minio.constants';
@@ -23,10 +23,6 @@ import type {
   SaveConsultationXrayAnalysisDto,
   XrayRiskLevel,
 } from './dto/consultation-xray.dto';
-
-function isConsultationXrayKey(key: string): boolean {
-  return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_xray}/`);
-}
 
 @Injectable()
 export class ConsultationXrayService {
@@ -59,6 +55,7 @@ export class ConsultationXrayService {
       contentType: mimeType,
       category: 'consultation_xray',
       patientId,
+      patientNumber: patientRow.patientNumber,
     });
   }
 
@@ -181,7 +178,7 @@ export class ConsultationXrayService {
       const doc = await this.db.query.patientDocument.findFirst({
         where: eq(patientDocument.id, documentId),
       });
-      if (doc && isConsultationXrayKey(doc.s3Key)) {
+      if (doc && isMinioKeyForCategory(doc.s3Key, 'consultation_xray')) {
         await this.minioService.deleteObject(doc.s3Key);
       }
       if (doc) {
@@ -204,7 +201,7 @@ export class ConsultationXrayService {
       ),
     });
     if (!doc) throw new NotFoundException('Document not found');
-    if (!isConsultationXrayKey(doc.s3Key)) {
+    if (!isMinioKeyForCategory(doc.s3Key, 'consultation_xray')) {
       throw new BadRequestException('Invalid X-ray storage key');
     }
     if (doc.sizeBytes != null && doc.sizeBytes > XRAY_IMAGE_MAX_BYTES) {

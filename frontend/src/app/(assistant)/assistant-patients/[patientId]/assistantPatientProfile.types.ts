@@ -13,6 +13,7 @@ export type VitalSummaryCard = {
 
 export type AssistantPatientSummary = {
   id: string
+  avatarUrl?: string | null
   name: string
   age: number
   gender: string

@@ -26,6 +26,7 @@ export const REPORT_EMPTY_MESSAGES = {
   procedureDetailsSummary: "No procedure details were recorded for this visit.",
   homeMeasurements: "No home monitoring instructions were recorded for this visit.",
   testOrders: "No tests or imaging orders were placed during this visit.",
+  referrals: "No specialist referrals were issued during this visit.",
   aiStudies: "No AI analyses or session uploads were recorded for this visit.",
   vitalNotRecorded: "Not recorded at this visit",
 } as const

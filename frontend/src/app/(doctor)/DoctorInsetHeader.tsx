@@ -18,6 +18,7 @@ import {
   LogOutIcon,
   MessageCircleIcon,
   PillIcon,
+  PencilLineIcon,
   ScissorsIcon,
   SparklesIcon,
   User2Icon,
@@ -29,6 +30,8 @@ import { LanguageSwitcher } from "@/components/shared/language-switcher"
 import { DoctorHeaderSearch } from "./DoctorHeaderSearch"
 import { DoctorNotificationsDropdown } from "./doctor-notifications/DoctorNotificationsDropdown"
 import { fetchDoctorAccount } from "./doctor-account/doctorAccount.api"
+import { EditDoctorDisplayNameDialog } from "./doctor-account/EditDoctorDisplayNameDialog"
+import { useDoctorDisplayNameEdit } from "./doctor-account/useDoctorDisplayNameEdit"
 import {
   getDoctorHeaderProfileSnapshot,
   subscribeDoctorHeaderProfile,
@@ -264,6 +267,7 @@ export function DoctorInsetHeader({ user, logout }: DoctorInsetHeaderProps) {
   const displayName = profile?.fullName ?? user?.name ?? "Doctor"
   const displayEmail = profile?.email ?? user?.email ?? ""
   const avatarUrl = profile?.avatarUrl ?? null
+  const nameEdit = useDoctorDisplayNameEdit(displayName)
 
   return (
     <header className="sticky top-0 z-20 flex min-h-[4.5rem] shrink-0 items-center justify-between gap-3 border-b border-[#E8E6E0]/80 bg-white px-4 py-3 sm:gap-4 sm:px-6">
@@ -336,6 +340,17 @@ export function DoctorInsetHeader({ user, logout }: DoctorInsetHeaderProps) {
 
             <DropdownMenuSeparator className="m-0 bg-[#E8E6E0]/60" />
 
+            <DropdownMenuItem
+              className="cursor-pointer rounded-none px-4 py-3 text-[14px] font-medium text-[#6B7870] focus:bg-[#F9F8F5] focus:text-[#1A1F1E]"
+              onSelect={(event) => {
+                event.preventDefault()
+                nameEdit.setOpen(true)
+              }}
+            >
+              <PencilLineIcon className="size-4" />
+              Edit display name
+            </DropdownMenuItem>
+
             <DropdownMenuItem asChild className="cursor-pointer rounded-none px-4 py-3 text-[14px] font-medium text-[#6B7870] focus:bg-[#F9F8F5] focus:text-[#1A1F1E]">
               <Link href="/doctor-account" className="flex items-center gap-3">
                 <User2Icon className="size-4" />
@@ -370,6 +385,14 @@ export function DoctorInsetHeader({ user, logout }: DoctorInsetHeaderProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <EditDoctorDisplayNameDialog
+        open={nameEdit.open}
+        onOpenChange={nameEdit.setOpen}
+        initialName={displayName}
+        onSubmit={nameEdit.saveName}
+        isPending={nameEdit.isSaving}
+      />
     </header>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import Image from "next/image"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import { cn } from "@/lib/utils"
 import type {
   BriefingMedicationAdherenceTrendPoint,
@@ -288,15 +288,14 @@ export function PatientBriefingReportContent({
 }: PatientBriefingReportContentProps) {
   return (
     <div className="space-y-4">
-              <div className={cn(SNAPSHOT_CARD, "flex items-start gap-3")}>
-                <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#E8E6E0]/60 bg-white shadow-sm">
-                  <Image
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(report.patientName.replace(/\s+/g, ""))}`}
-                    alt=""
-                    width={48}
-                    height={48}
-                    unoptimized
-                    className="size-full object-cover"
+              <div className={cn(SNAPSHOT_CARD, "flex items-start gap-4 sm:gap-5")}>
+                <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-4 ring-white shadow-sm sm:size-20">
+                  <PatientAvatar
+                    key={report.avatarUrl ?? "no-avatar"}
+                    name={report.patientName}
+                    avatarUrl={report.avatarUrl}
+                    sizes="80px"
+                    initialsClassName="text-[18px] sm:text-[20px]"
                   />
                 </div>
                 <div className="min-w-0 flex-1">

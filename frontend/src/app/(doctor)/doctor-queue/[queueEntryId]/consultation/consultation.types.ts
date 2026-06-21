@@ -10,6 +10,7 @@ export type PatientDemographics = {
   address: string
   occupation: string
   maritalStatus: string
+  avatarUrl: string | null
 }
 
 export type Allergy = {
@@ -152,6 +153,13 @@ export type TestOrder = {
   fastingRequired: boolean
 }
 
+export type ReferralEntry = {
+  id: string
+  specialty: string
+  reason: string
+  urgency: "routine" | "urgent"
+}
+
 export type HomeMeasurement = {
   id: string
   metric:
@@ -242,6 +250,7 @@ export type ConsultationData = {
   diagnoses: DiagnosisEntry[]
   prescriptions: PrescriptionEntry[]
   testOrders: TestOrder[]
+  referrals: ReferralEntry[]
   homeMeasurements: HomeMeasurement[]
   clinicalNotes: string
   assessmentAndPlan: string

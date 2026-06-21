@@ -49,6 +49,7 @@ export function mapPatientFullRecordToSummary(record: PatientFullRecord): Patien
       address: p.address ?? "",
       occupation: p.occupation ?? "",
       maritalStatus: p.maritalStatus ?? "",
+      avatarUrl: p.profileImageUrl ?? null,
     },
     allergies: p.allergies.map((entry) => ({
       id: entry.id,

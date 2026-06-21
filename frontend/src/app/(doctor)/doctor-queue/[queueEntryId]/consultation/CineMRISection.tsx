@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useRef, useState } from "react"
+import { Fragment, useCallback, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 import type { LucideIcon } from "lucide-react"
 import {
@@ -419,15 +419,15 @@ function ClinicalFeaturesTable({ features }: { features: MriClinicalFeatures }) 
         </thead>
         <tbody>
           {rows.map((group) => (
-            <>
-              <tr key={group.group} className="border-t border-[#E8E6E0]/60 bg-[#F9F8F5]">
+            <Fragment key={group.group}>
+              <tr className="border-t border-[#E8E6E0]/60 bg-[#F9F8F5]">
                 <td colSpan={3} className="py-2 pl-4 text-[11px] font-bold uppercase tracking-wider text-[#1A5345]">
                   {group.group}
                 </td>
               </tr>
               {group.items.map((item) => (
                 <tr
-                  key={item.label}
+                  key={`${group.group}-${item.label}`}
                   className="border-t border-[#E8E6E0]/40 transition-colors hover:bg-[#F9F8F5]"
                 >
                   <td className="py-2.5 pl-4 text-[#374151]">{item.label}</td>
@@ -435,7 +435,7 @@ function ClinicalFeaturesTable({ features }: { features: MriClinicalFeatures }) 
                   <td className="py-2.5 pr-4 text-center font-semibold tabular-nums text-violet-700">{item.es}</td>
                 </tr>
               ))}
-            </>
+            </Fragment>
           ))}
         </tbody>
       </table>

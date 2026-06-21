@@ -51,9 +51,11 @@ export type AiInsight = {
 
 export type PatientMedicationProfile = {
   id: string;
+  patientNumber?: string;
   fullName: string;
   age: number;
   phone: string | null;
+  avatarUrl?: string | null;
   riskTier: RiskTier;
   overallAdherencePct: number;
   medications: MedicationLine[];
@@ -61,6 +63,13 @@ export type PatientMedicationProfile = {
   aiInsights: AiInsight[];
   contactHistory: ContactHistoryEvent[];
   escalations: DoctorEscalation[];
+  pastMedications?: {
+    id: string;
+    name: string;
+    strength: string;
+    dosageInstructions: string;
+    statusLabel: string;
+  }[];
 };
 
 export type ContactHistoryEvent = {

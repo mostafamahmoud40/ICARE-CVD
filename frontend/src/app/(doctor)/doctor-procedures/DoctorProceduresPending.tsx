@@ -1,6 +1,6 @@
 "use client"
 
-import Image from "next/image"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import {
@@ -125,14 +125,7 @@ function PendingReviewCard({ order }: { order: ProcedureOrder }) {
       <div className="border-b border-[#E8E6E0]/50 p-4">
         <div className="flex items-start gap-3">
           <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
-            <Image
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(order.patientId)}`}
-              alt=""
-              width={44}
-              height={44}
-              unoptimized
-              className="size-full object-cover"
-            />
+            <PatientAvatar name={order.patientName} avatarUrl={null} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">

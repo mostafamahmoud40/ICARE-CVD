@@ -12,10 +12,10 @@ import {
   patient,
   patientDocument,
 } from '../../database/schema';
+import { isMinioKeyForCategory } from '../../shared/storage/minio-patient-path';
 import {
   ECHO_VIDEO_MAX_BYTES,
   ECHO_VIDEO_MIME_TYPES,
-  MINIO_CATEGORY_PREFIX,
 } from '../../shared/storage/minio.constants';
 import { MinioService } from '../../shared/storage/minio.service';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
@@ -23,10 +23,6 @@ import type {
   SaveConsultationEchoAnalysisDto,
   UpdateConsultationEchoReportDto,
 } from './dto/consultation-echo.dto';
-
-function isConsultationEchoKey(key: string): boolean {
-  return key.startsWith(`${MINIO_CATEGORY_PREFIX.consultation_echo}/`);
-}
 
 @Injectable()
 export class ConsultationEchoService {
@@ -73,6 +69,7 @@ export class ConsultationEchoService {
       contentType: resolvedContentType,
       category: 'consultation_echo',
       patientId,
+      patientNumber: patientRow.patientNumber,
     });
   }
 
@@ -232,7 +229,7 @@ export class ConsultationEchoService {
       const doc = await this.db.query.patientDocument.findFirst({
         where: eq(patientDocument.id, documentId),
       });
-      if (doc && isConsultationEchoKey(doc.s3Key)) {
+      if (doc && isMinioKeyForCategory(doc.s3Key, 'consultation_echo')) {
         await this.minioService.deleteObject(doc.s3Key);
       }
       if (doc) {
@@ -255,7 +252,7 @@ export class ConsultationEchoService {
       ),
     });
     if (!doc) throw new NotFoundException('Document not found');
-    if (!isConsultationEchoKey(doc.s3Key)) {
+    if (!isMinioKeyForCategory(doc.s3Key, 'consultation_echo')) {
       throw new BadRequestException('Invalid echo storage key');
     }
     if (doc.sizeBytes != null && doc.sizeBytes > ECHO_VIDEO_MAX_BYTES) {

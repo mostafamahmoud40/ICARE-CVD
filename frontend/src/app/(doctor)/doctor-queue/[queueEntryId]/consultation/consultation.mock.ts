@@ -16,6 +16,7 @@ export const mockBriefingPatientSummary: PatientSummary = {
     address: "12 Nasr City, Cairo, Egypt",
     occupation: "Retired Engineer",
     maritalStatus: "Married",
+    avatarUrl: null,
   },
   allergies: [
     { id: "a1", category: "drug", allergen: "Penicillin", reaction: "Anaphylaxis" },
