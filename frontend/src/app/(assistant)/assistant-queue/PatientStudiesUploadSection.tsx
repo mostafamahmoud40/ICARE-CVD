@@ -127,7 +127,7 @@ export function PatientStudiesUploadSection({ queueEntryId }: PatientStudiesUplo
       </div>
 
       <p className="mt-2 text-[8px] text-muted-foreground sm:text-[9px]">
-        PDF or images (DICOM single-file where supported). Requires S3 to be configured on the server.
+        PDF or images (DICOM single-file where supported). Requires MinIO on the server.
       </p>
 
       <div className="mt-3 border-t border-[#E8E6E0] pt-2">

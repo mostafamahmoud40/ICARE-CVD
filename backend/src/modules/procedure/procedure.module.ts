@@ -2,11 +2,15 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AccessTokenGuard } from '../auth/access-token.guard';
 import { AuthJwtService } from '../auth/jwt';
+import { AssistantGuard } from '../assistant/assistant.guard';
 import { DoctorGuard } from '../doctor/doctor.guard';
 import { MinioModule } from '../../shared/storage/minio.module';
-import { DoctorVerifierModule } from '../../shared/doctor/doctor-verifier.module';
-import { DoctorDocumentService } from './doctor-documents.service';
-import { DoctorDocumentsController } from './doctor-documents.controller';
+import { NotificationsModule } from '../notifications/notifications.module';
+import {
+  AssistantProcedureController,
+  DoctorProcedureController,
+} from './assistant-procedure.controller';
+import { ProcedureService } from './procedure.service';
 
 @Module({
   imports: [
@@ -14,14 +18,16 @@ import { DoctorDocumentsController } from './doctor-documents.controller';
       secret: process.env.JWT_ACCESS_SECRET,
     }),
     MinioModule,
-    DoctorVerifierModule,
+    NotificationsModule,
   ],
-  controllers: [DoctorDocumentsController],
+  controllers: [AssistantProcedureController, DoctorProcedureController],
   providers: [
-    DoctorDocumentService,
+    ProcedureService,
+    AssistantGuard,
     DoctorGuard,
     AuthJwtService,
     AccessTokenGuard,
   ],
+  exports: [ProcedureService],
 })
-export class DocumentsModule {}
+export class ProcedureModule {}

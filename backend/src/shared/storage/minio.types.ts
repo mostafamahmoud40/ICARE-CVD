@@ -1,4 +1,5 @@
 import type { MinioStorageCategory } from './minio.constants';
+import type { PatientDocumentCategory } from './minio-patient-path';
 
 export type MinioUploadIntentInput = {
   fileName: string;
@@ -24,4 +25,12 @@ export type MinioUploadIntentResult = {
 
 export type MinioDownloadUrlInput = {
   key: string;
+};
+
+export type MinioDocumentUploadIntentInput = {
+  fileName: string;
+  contentType: string;
+  category: PatientDocumentCategory;
+  /** When omitted, files go under `registration/documents/` (e.g. signup flow). */
+  patientNumber?: string;
 };

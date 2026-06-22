@@ -3,15 +3,12 @@
 import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 
+import { fetchDoctorProcedureOrders } from "@/app/(assistant)/assistant-procedures/assistantProcedures.api"
 import type {
   ProcedureFilter,
   ProcedureOrder,
   ProcedureStats,
 } from "@/app/(assistant)/assistant-procedures/assistantProcedures.types"
-import {
-  mockProcedureOrders,
-  mockProcedureStats,
-} from "@/app/(assistant)/assistant-procedures/assistantProcedures.mock"
 import { getProcedureReadiness } from "./doctorProcedures.shared"
 
 export type DoctorProcedureStats = ProcedureStats & {
@@ -19,13 +16,7 @@ export type DoctorProcedureStats = ProcedureStats & {
   pendingClearance: number
 }
 
-async function fetchDoctorProcedureOrders(): Promise<ProcedureOrder[]> {
-  await new Promise((resolve) => setTimeout(resolve, 350))
-  return mockProcedureOrders
-}
-
 function computeDoctorStats(orders: ProcedureOrder[]): DoctorProcedureStats {
-  const base = mockProcedureStats
   const urgentCount = orders.filter(
     (o) => o.priority === "urgent" || o.priority === "emergency",
   ).length
@@ -36,7 +27,10 @@ function computeDoctorStats(orders: ProcedureOrder[]): DoctorProcedureStats {
   }).length
 
   return {
-    ...base,
+    total: orders.length,
+    pending: orders.filter((o) => o.status === "pending").length,
+    inProgress: orders.filter((o) => o.status === "in-progress").length,
+    completed: orders.filter((o) => o.status === "completed").length,
     urgentCount,
     pendingClearance,
   }

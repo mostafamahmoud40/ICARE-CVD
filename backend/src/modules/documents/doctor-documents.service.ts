@@ -7,9 +7,12 @@ import {
   LAB_REPORT_MAX_BYTES,
   LAB_REPORT_MIME_TYPES,
 } from '../../shared/storage/minio.constants';
-import { isMinioKeyForCategory } from '../../shared/storage/minio-patient-path';
+import {
+  isMinioKeyForCategory,
+  isMinioObjectKey,
+  type PatientDocumentCategory,
+} from '../../shared/storage/minio-patient-path';
 import { MinioService } from '../../shared/storage/minio.service';
-import { S3Service } from '../../shared/storage/s3.service';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type { CreateDocumentDto } from './dto/documents.dto';
 
@@ -32,7 +35,6 @@ function isConsultationImagingKey(key: string, patientNumber?: string): boolean 
 export class DoctorDocumentService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
-    private readonly s3Service: S3Service,
     private readonly minioService: MinioService,
     private readonly doctorVerifier: DoctorVerifierService,
   ) {}
@@ -69,11 +71,10 @@ export class DoctorDocumentService {
       throw new BadRequestException('Unsupported lab report file type');
     }
 
-    return this.minioService.createUploadIntent({
+    return this.minioService.createDocumentUploadIntent({
       fileName,
       contentType: mimeType,
       category: 'lab_report',
-      patientId,
       patientNumber: patientRow.patientNumber,
     });
   }
@@ -90,37 +91,28 @@ export class DoctorDocumentService {
     });
     if (!patientRow) throw new NotFoundException('Patient not found');
 
-    let s3Key: string | undefined = dto.s3Key;
-    if (!s3Key) {
-      if (dto.category === 'lab_report') {
-        const intent = await this.minioService.createUploadIntent({
-          category: 'lab_report',
-          fileName: dto.fileName,
-          contentType: dto.contentType,
-          patientId,
-          patientNumber: patientRow.patientNumber,
-        });
-        s3Key = intent.key;
-      } else {
-        const intent = await this.s3Service.createUploadIntent({
-          category: dto.category as never,
-          fileName: dto.fileName,
-          contentType: dto.contentType,
-        });
-        s3Key = intent.key;
-      }
+    let storageKey: string | undefined = dto.s3Key;
+    if (!storageKey) {
+      const intent = await this.minioService.createDocumentUploadIntent({
+        category: dto.category as PatientDocumentCategory,
+        fileName: dto.fileName,
+        contentType: dto.contentType,
+        patientNumber: patientRow.patientNumber,
+      });
+      storageKey = intent.key;
     } else if (
       dto.category === 'lab_report' &&
-      !isMinioLabReportKey(s3Key, patientRow.patientNumber)
+      !isMinioLabReportKey(storageKey, patientRow.patientNumber)
     ) {
       throw new BadRequestException('Invalid lab report storage key');
     } else if (
       dto.category === 'imaging' &&
-      s3Key &&
-      !isConsultationImagingKey(s3Key, patientRow.patientNumber) &&
-      !s3Key.startsWith('documents/')
+      !isConsultationImagingKey(storageKey, patientRow.patientNumber) &&
+      !isMinioObjectKey(storageKey, patientRow.patientNumber)
     ) {
       throw new BadRequestException('Invalid imaging storage key');
+    } else if (!isMinioObjectKey(storageKey, patientRow.patientNumber)) {
+      throw new BadRequestException('Invalid document storage key');
     }
 
     if (
@@ -142,7 +134,7 @@ export class DoctorDocumentService {
         category: dto.category,
         title: dto.title,
         uploadedByUserId: doctorRow.userId,
-        s3Key,
+        s3Key: storageKey,
       })
       .returning();
 
@@ -157,13 +149,7 @@ export class DoctorDocumentService {
     });
     if (!doc) throw new NotFoundException('Document not found');
 
-    if (isMinioLabReportKey(doc.s3Key)) {
-      await this.minioService.deleteObject(doc.s3Key);
-    } else if (isConsultationImagingKey(doc.s3Key)) {
-      await this.minioService.deleteObject(doc.s3Key);
-    } else {
-      await this.s3Service.deleteObject({ key: doc.s3Key });
-    }
+    await this.minioService.deleteObject(doc.s3Key);
 
     await this.db.delete(patientDocument).where(eq(patientDocument.id, documentId));
   }

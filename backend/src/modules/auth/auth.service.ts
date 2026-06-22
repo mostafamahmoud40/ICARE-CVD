@@ -636,7 +636,7 @@ export class AuthService {
 
   async registerStep4(userId: number, dto: RegisterStep4Dto) {
     // Step 4: Save document metadata to database and documents notes
-    // Frontend uploads files to S3 first, then sends metadata here
+    // Frontend uploads files to MinIO first, then sends metadata here
     // SOLID: Data persistence separated from business logic
 
     const files = dto.files ?? [];

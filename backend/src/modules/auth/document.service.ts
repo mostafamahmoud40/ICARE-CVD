@@ -4,25 +4,16 @@ import { eq, and } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import { patientDocument } from '../../database/schema';
-import { S3Service } from '../../shared/storage/s3.service';
-import type { S3UploadIntentInput } from '../../shared/storage/s3.types';
+import { MinioService } from '../../shared/storage/minio.service';
+import type { PatientDocumentCategory } from '../../shared/storage/minio-patient-path';
 
-/**
- * DocumentService handles document-related business logic
- * Responsibility: Document metadata management and orchestration with S3
- * SOLID: Single Responsibility - focused on document operations
- */
 @Injectable()
 export class DocumentService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
-    private readonly s3Service: S3Service,
+    private readonly minioService: MinioService,
   ) {}
 
-  /**
-   * Create a presigned upload URL for a document file
-   * SOLID: Single Responsibility - abstraction over S3 operations
-   */
   async createUploadIntent(
     category: string,
     fileName: string,
@@ -32,8 +23,7 @@ export class DocumentService {
       throw new BadRequestException('fileName and contentType are required');
     }
 
-    // Validate category
-    const validCategories = [
+    const validCategories: PatientDocumentCategory[] = [
       'lab_report',
       'imaging',
       'ecg',
@@ -41,23 +31,17 @@ export class DocumentService {
       'referral',
       'other',
     ];
-    if (!validCategories.includes(category)) {
+    if (!validCategories.includes(category as PatientDocumentCategory)) {
       throw new BadRequestException(`Invalid category: ${category}`);
     }
 
-    const input: S3UploadIntentInput = {
-      category: category as any,
+    return this.minioService.createDocumentUploadIntent({
+      category: category as PatientDocumentCategory,
       fileName,
       contentType,
-    };
-
-    return await this.s3Service.createUploadIntent(input);
+    });
   }
 
-  /**
-   * Save document metadata to database
-   * SOLID: Interface Segregation - focused method for one operation
-   */
   async saveDocumentMetadata(payload: {
     userId: number;
     fileName: string;
@@ -92,20 +76,12 @@ export class DocumentService {
     return inserted[0];
   }
 
-  /**
-   * Get user documents
-   * SOLID: Open/Closed - can be extended for filtering without modification
-   */
   async getUserDocuments(userId: number) {
     return await this.db.query.patientDocument.findMany({
       where: eq(patientDocument.userId, userId),
     });
   }
 
-  /**
-   * Delete a document from database and S3
-   * SOLID: Single Responsibility - handles both operations through S3Service
-   */
   async deleteDocument(userId: number, documentId: string) {
     const doc = await this.db.query.patientDocument.findFirst({
       where: and(
@@ -118,10 +94,8 @@ export class DocumentService {
       throw new BadRequestException('Document not found');
     }
 
-    // Delete from S3
-    await this.s3Service.deleteObject({ key: doc.s3Key });
+    await this.minioService.deleteObject(doc.s3Key);
 
-    // Delete from database
     await this.db
       .delete(patientDocument)
       .where(eq(patientDocument.id, documentId));

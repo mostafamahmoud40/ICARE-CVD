@@ -6,6 +6,9 @@ dist/
 .codex
 *.7z
 
+# Database seed scripts (local/demo only — do not commit)
+backend/src/database/seeds/*.sql
+
 # OS
 .DS_Store
 Thumbs.db

@@ -41,6 +41,7 @@ export type ProcedureOrder = {
   patientName: string
   patientAge: number
   patientPhone: string | null
+  patientAvatarUrl?: string | null
   doctorName: string
   department: string
   procedureName: string

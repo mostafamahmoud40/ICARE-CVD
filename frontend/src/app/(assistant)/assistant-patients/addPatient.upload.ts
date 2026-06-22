@@ -87,7 +87,7 @@ export async function uploadAssistantPatientDocument(
   if (!putRes.ok) {
     const text = await putRes.text().catch(() => "")
     throw new Error(
-      text || `File storage failed (${putRes.status}). Check S3 configuration and CORS.`,
+      text || `File storage failed (${putRes.status}). Check MinIO configuration and CORS.`,
     )
   }
 

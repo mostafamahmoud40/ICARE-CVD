@@ -50,6 +50,7 @@ export type Appointment = {
   department: string
   reason?: string
   clinician: string
+  clinicianAvatarUrl?: string | null
   location: string
   locationDetail?: string
   status: AppointmentBookingStatus

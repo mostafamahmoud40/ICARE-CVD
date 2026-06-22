@@ -27,6 +27,7 @@ import type { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { AppointmentPatientNotificationService } from './appointment-patient-notification.service';
 import { AppointmentAssistantNotificationService } from './appointment-assistant-notification.service';
 import { allocatePatientNumber } from '../../shared/patient/patient-number';
+import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
 
 @Injectable()
 export class AppointmentService {
@@ -36,6 +37,7 @@ export class AppointmentService {
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly appointmentPatientNotifications: AppointmentPatientNotificationService,
     private readonly appointmentAssistantNotifications: AppointmentAssistantNotificationService,
+    private readonly avatarUrlResolver: AvatarUrlResolver,
   ) {}
 
   async listDoctors() {
@@ -51,20 +53,22 @@ export class AppointmentService {
       .innerJoin(user, eq(doctor.userId, user.id))
       .where(and(eq(user.role, 'doctor'), eq(user.isActive, true)));
 
-    return rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      title: row.specialty ?? 'Cardiologist',
-      experience: `${row.experienceYears ?? 0}+ Years Exp.`,
-      avatarUrl: row.avatarUrl,
-      specialties: [
-        {
-          icon: 'heart',
-          label: row.specialty ?? 'Cardiology',
-          color: 'primary' as const,
-        },
-      ],
-    }));
+    return Promise.all(
+      rows.map(async (row) => ({
+        id: row.id,
+        name: row.name,
+        title: row.specialty ?? 'Cardiologist',
+        experience: `${row.experienceYears ?? 0}+ Years Exp.`,
+        avatarUrl: await this.avatarUrlResolver.resolve(row.avatarUrl),
+        specialties: [
+          {
+            icon: 'heart',
+            label: row.specialty ?? 'Cardiology',
+            color: 'primary' as const,
+          },
+        ],
+      })),
+    );
   }
 
   async listDoctorDirectory() {
@@ -314,6 +318,7 @@ export class AppointmentService {
       notes: string | null;
       doctorName: string;
       doctorSpecialty: string | null;
+      doctorAvatarUrl: string | null;
     }> = [];
 
     try {
@@ -329,6 +334,7 @@ export class AppointmentService {
           notes: appointment.notes,
           doctorName: user.name,
           doctorSpecialty: doctor.specialty,
+          doctorAvatarUrl: user.avatarUrl,
         })
         .from(appointment)
         .innerJoin(doctor, eq(appointment.doctorId, doctor.id))
@@ -343,22 +349,25 @@ export class AppointmentService {
       throw error;
     }
 
-    return rows.map((row) => ({
-      id: row.id,
-      confirmationCode: row.confirmationCode,
-      scheduledAt: row.scheduledAt.toISOString(),
-      department: row.doctorSpecialty ?? 'Cardiology',
-      clinician: row.doctorName,
-      location:
-        row.visitType === 'virtual'
-          ? 'Virtual Consultation'
-          : 'ICARE-CVD Main Center',
-      status: row.status,
-      notes: row.notes ?? undefined,
-      symptoms: row.symptoms ?? undefined,
-      visitType: row.visitType,
-      reason: row.reason ?? undefined,
-    }));
+    return Promise.all(
+      rows.map(async (row) => ({
+        id: row.id,
+        confirmationCode: row.confirmationCode,
+        scheduledAt: row.scheduledAt.toISOString(),
+        department: row.doctorSpecialty ?? 'Cardiology',
+        clinician: row.doctorName,
+        clinicianAvatarUrl: await this.avatarUrlResolver.resolve(row.doctorAvatarUrl),
+        location:
+          row.visitType === 'virtual'
+            ? 'Virtual Consultation'
+            : 'ICARE-CVD Main Center',
+        status: row.status,
+        notes: row.notes ?? undefined,
+        symptoms: row.symptoms ?? undefined,
+        visitType: row.visitType,
+        reason: row.reason ?? undefined,
+      })),
+    );
   }
 
   async create(userId: number, dto: CreateAppointmentDto) {
@@ -826,7 +835,7 @@ export class AppointmentService {
       title: specialtyLabel,
       specialty: specialtyLabel,
       experienceYears: row.experienceYears ?? 0,
-      avatarUrl: row.avatarUrl,
+      avatarUrl: await this.avatarUrlResolver.resolve(row.avatarUrl),
       acceptedVisitModes: this.normalizeAcceptedVisitModes(
         row.acceptedVisitModes,
       ),

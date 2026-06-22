@@ -9,6 +9,7 @@ export type ScheduledOperation = {
   endTimeExpected?: string
   patientName: string
   patientId: string
+  patientAvatarUrl?: string | null
   age: number
   gender: "M" | "F"
   procedureName: string
@@ -20,6 +21,7 @@ export type ScheduledOperation = {
   priority: ProcedurePriority
   teamStatus: string
   notes?: string
+  patientAvatarUrl?: string | null
 }
 
 export const MOCK_HISTORY_OPERATIONS: ScheduledOperation[] = [
