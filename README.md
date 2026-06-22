@@ -29,7 +29,7 @@ Cardiovascular disease (CVD) patient management platform — fullstack web app p
 |---------|----------|
 | [Groq](https://console.groq.com/keys) | Patient chat, AI analysis, ECG/Echo reports |
 | [Mistral](https://console.mistral.ai/) | Lab report OCR (ml-medical) |
-| AWS S3 | Doctor documents (`S3_*` in backend `.env`) |
+| MinIO | All file storage (`MINIO_*` in backend `.env`) |
 | [Brevo](https://www.brevo.com/) | Transactional email (optional) |
 
 ---
@@ -86,11 +86,9 @@ Edit `backend/.env` — **minimum required** for Docker Compose:
 JWT_ACCESS_SECRET=use-a-long-random-secret
 JWT_REFRESH_SECRET=use-another-long-random-secret
 
-# AWS S3 for doctor documents (required by docker-compose)
-S3_BUCKET_NAME=your-bucket
-S3_REGION=eu-north-1
-S3_ACCESS_KEY_ID=...
-S3_SECRET_ACCESS_KEY=...
+# MinIO defaults work with docker compose (minioadmin / icare-chat bucket)
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=minioadmin
 
 # Optional — AI and email
 GROQ_API_KEY=
@@ -194,12 +192,23 @@ Open: **http://localhost:3000**
 
 ### Extra patient seeds
 
+Seed SQL files live under `backend/src/database/seeds/` and are **gitignored** (not pushed to GitHub). Keep them locally or share them privately within the team.
+
+Expected files (local only):
+
+- `seed_patients.sql`
+- `seed_enrich.sql`
+- `seed_procedures.sql`
+
 ```bash
 docker cp backend/src/database/seeds/seed_patients.sql icare-cvd-postgres:/tmp/
 docker exec icare-cvd-postgres psql -U postgres -d icare_cvd -f /tmp/seed_patients.sql
 
 docker cp backend/src/database/seeds/seed_enrich.sql icare-cvd-postgres:/tmp/
 docker exec icare-cvd-postgres psql -U postgres -d icare_cvd -f /tmp/seed_enrich.sql
+
+docker cp backend/src/database/seeds/seed_procedures.sql icare-cvd-postgres:/tmp/
+docker exec icare-cvd-postgres psql -U postgres -d icare_cvd -f /tmp/seed_procedures.sql
 ```
 
 Seed patient password: `Patient123!`
@@ -234,7 +243,7 @@ cd frontend && npm run dev
 | Issue | Fix |
 |-------|-----|
 | Frontend cannot reach API | Set `NEXT_PUBLIC_API_URL=http://localhost:3001` and ensure `icare-cvd-backend` is running |
-| Backend `docker compose` fails on S3 | Set `S3_BUCKET_NAME`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` in `backend/.env` |
+| Backend `docker compose` fails on MinIO | Ensure `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` are set (defaults in `.env.example`) |
 | ML returns model not found | Run `download_hf_assets.py --full-repo` from `ml-service/` |
 | GPU not available | Check `nvidia-smi` and [Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) |
 | Embeddings very slow on first start | BGE-M3 downloads ~2 GB — wait until `icare-cvd-embeddings` is `healthy` |

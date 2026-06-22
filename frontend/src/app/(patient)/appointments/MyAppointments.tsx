@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import {
   CalendarIcon,
   CalendarDaysIcon,
@@ -129,13 +129,10 @@ function AppointmentTableRow({
       <td className="px-4 py-4 align-middle">
         <div className="flex items-start gap-3">
           <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
-            <Image
-              src={`https://i.pravatar.cc/150?u=${encodeURIComponent(appointment.clinician)}`}
-              alt=""
-              width={44}
-              height={44}
-              unoptimized
-              className="size-full object-cover"
+            <PatientAvatar
+              name={appointment.clinician}
+              avatarUrl={appointment.clinicianAvatarUrl}
+              sizes="44px"
             />
           </div>
           <div className="min-w-0">

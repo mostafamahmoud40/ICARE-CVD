@@ -22,6 +22,7 @@ import {
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import { findPatientByIdentifier } from '../../shared/patient/patient-identifier';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ProcedureService } from '../procedure/procedure.service';
 import type {
   CreateConsultationDto,
   UpdateConsultationDto,
@@ -46,6 +47,7 @@ export class ConsultationService {
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly doctorVerifier: DoctorVerifierService,
     private readonly notificationsService: NotificationsService,
+    private readonly procedureService: ProcedureService,
   ) {}
 
   async listConsultations(doctorUserId: number, patientId: string) {
@@ -406,6 +408,15 @@ export class ConsultationService {
       })
       .returning();
 
+    if (dto.consultationProcedureDetails) {
+      await this.procedureService.syncFromConsultation({
+        consultationId: created.id,
+        patientId,
+        doctorId: doctorRow.id,
+        procedureDetailsRaw: dto.consultationProcedureDetails,
+      });
+    }
+
     return created;
   }
 
@@ -444,6 +455,15 @@ export class ConsultationService {
 
     if (isPublishingReport) {
       await this.notifyPatientReportPublished(consultationId);
+    }
+
+    if (dto.consultationProcedureDetails !== undefined) {
+      await this.procedureService.syncFromConsultation({
+        consultationId: updated.id,
+        patientId: updated.patientId,
+        doctorId: updated.doctorId,
+        procedureDetailsRaw: dto.consultationProcedureDetails,
+      });
     }
 
     return updated;

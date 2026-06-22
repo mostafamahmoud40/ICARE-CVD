@@ -43,3 +43,4 @@ export * from './patientCareGoal.schema';
 export * from './doctorAssistant.schema';
 export * from './patientQueue.schema';
 export * from './notification.schema';
+export * from './procedure.schema';

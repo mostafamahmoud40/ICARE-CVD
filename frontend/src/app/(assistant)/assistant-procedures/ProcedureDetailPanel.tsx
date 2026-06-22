@@ -27,6 +27,7 @@ import { PRIORITY_CONFIG } from "./assistantProcedures.config"
 import type { ProcedureOrder } from "./assistantProcedures.types"
 import { ProcedureConsentCard } from "./ProcedureConsentCard"
 import type { ProcedureConsentSavePayload } from "./ProcedureConsentDialog"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import { nonConsentRequirements, findConsentRequirement } from "./procedureConsent.shared"
 import { useAnalyzeRequirementAttachment } from "./useAnalyzeRequirementAttachment"
 import { useSuggestPhysicianDirectives } from "./useSuggestPhysicianDirectives"
@@ -102,11 +103,6 @@ export function ProcedureDetailPanel({
     checklistRequirements.filter((r) => r.isDone).length + (consentDone ? (consentRequirement ? 1 : 0) : 0)
   const totalCount = checklistRequirements.length + (consentRequirement ? 1 : 0)
   const allDone = totalCount > 0 && doneCount === totalCount
-
-  const dicebearAvatarUrl = (name: string, id: string) => {
-    const seed = (name + id).replace(/\s+/g, "")
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`
-  }
 
   useEffect(() => {
     setAttachmentInsights({})
@@ -216,10 +212,11 @@ export function ProcedureDetailPanel({
           <div className="relative flex flex-col items-center justify-between gap-4 sm:flex-row sm:items-start">
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
               <div className="size-16 shrink-0 overflow-hidden rounded-2xl border-2 border-[#F4F3ED] bg-white p-0.5 shadow-md sm:size-20">
-                <img
-                   src={dicebearAvatarUrl(order.patientName, order.patientId)}
-                   alt=""
-                   className="size-full rounded-[14px] object-cover sm:rounded-[18px]"
+                <PatientAvatar
+                  name={order.patientName}
+                  avatarUrl={order.patientAvatarUrl}
+                  sizes="80px"
+                  initialsClassName="text-[18px]"
                 />
               </div>
               <div className="text-center sm:text-left">

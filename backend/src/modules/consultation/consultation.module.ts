@@ -20,6 +20,7 @@ import { DoctorConsultationEcgClsController } from './doctor-consultation-ecg-cl
 import { DoctorVerifierModule } from '../../shared/doctor/doctor-verifier.module';
 import { MinioModule } from '../../shared/storage/minio.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { ProcedureModule } from '../procedure/procedure.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     DoctorVerifierModule,
     MinioModule,
     NotificationsModule,
+    ProcedureModule,
   ],
   controllers: [
     DoctorConsultationController,

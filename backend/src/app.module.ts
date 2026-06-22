@@ -6,7 +6,6 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AssistantModule } from './modules/assistant/assistant.module';
 import { DoctorScheduleModule } from './modules/doctor/schedule/doctor-schedule.module';
 import { DoctorQueueModule } from './modules/doctor/queue/doctor-queue.module';
-import { S3Module } from './shared/storage/s3.module';
 import { AppointmentModule } from './modules/appointment/appointment.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { MedicationModule } from './modules/medication/medication.module';
@@ -23,6 +22,7 @@ import { PatientQueueModule } from './modules/patient/queue/patient-queue.module
 import { PatientConsultationModule } from './modules/patient/consultations/patient-consultation.module';
 import { PatientAccountModule } from './modules/patient/account/patient-account.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ProcedureModule } from './modules/procedure/procedure.module';
 
 @Module({
   imports: [
@@ -32,7 +32,6 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     AssistantModule,
     DoctorScheduleModule,
     DoctorQueueModule,
-    S3Module,
     AppointmentModule,
     ChatModule,
     MedicationModule,
@@ -49,6 +48,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     PatientConsultationModule,
     PatientAccountModule,
     NotificationsModule,
+    ProcedureModule,
   ],
   controllers: [],
   providers: [],

@@ -12,9 +12,14 @@ import {
   MINIO_DEFAULT_PRESIGN_TTL_SECONDS,
   type MinioStorageCategory,
 } from './minio.constants';
-import { buildMinioObjectPrefix } from './minio-patient-path';
+import {
+  buildMinioObjectPrefix,
+  buildPatientDocumentPrefix,
+  buildRegistrationDocumentPrefix,
+} from './minio-patient-path';
 import { buildStaffAvatarPrefix } from './minio-staff-path';
 import type {
+  MinioDocumentUploadIntentInput,
   MinioDownloadUrlInput,
   MinioUploadIntentInput,
   MinioUploadIntentResult,
@@ -63,14 +68,39 @@ export class MinioService {
   async createUploadIntent(
     input: MinioUploadIntentInput,
   ): Promise<MinioUploadIntentResult> {
+    const prefix = this.resolveObjectPrefix(input);
+    return this.presignUpload({
+      prefix,
+      fileName: input.fileName,
+      contentType: input.contentType,
+    });
+  }
+
+  async createDocumentUploadIntent(
+    input: MinioDocumentUploadIntentInput,
+  ): Promise<MinioUploadIntentResult> {
+    const prefix = input.patientNumber?.trim()
+      ? buildPatientDocumentPrefix(input.patientNumber, input.category)
+      : buildRegistrationDocumentPrefix(input.category);
+    return this.presignUpload({
+      prefix,
+      fileName: input.fileName,
+      contentType: input.contentType,
+    });
+  }
+
+  private async presignUpload(input: {
+    prefix: string;
+    fileName: string;
+    contentType: string;
+  }): Promise<MinioUploadIntentResult> {
     if (!this.bucket || !this.endpoint) {
       throw new InternalServerErrorException(
         'MinIO is not configured (missing bucket/endpoint).',
       );
     }
 
-    const prefix = this.resolveObjectPrefix(input);
-    const key = `${prefix}/${this.buildObjectName(input.fileName, input.contentType)}`;
+    const key = `${input.prefix}/${this.buildObjectName(input.fileName, input.contentType)}`;
 
     const command = new PutObjectCommand({
       Bucket: this.bucket,
@@ -152,6 +182,29 @@ export class MinioService {
         Key: key,
       }),
     );
+  }
+
+  async putObjectBuffer(input: {
+    key: string;
+    body: Buffer;
+    contentType: string;
+  }): Promise<{ key: string }> {
+    if (!this.bucket || !this.endpoint) {
+      throw new InternalServerErrorException(
+        'MinIO is not configured (missing bucket/endpoint).',
+      );
+    }
+
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: input.key,
+        Body: input.body,
+        ContentType: input.contentType,
+      }),
+    );
+
+    return { key: input.key };
   }
 
   private resolveObjectPrefix(input: MinioUploadIntentInput): string {

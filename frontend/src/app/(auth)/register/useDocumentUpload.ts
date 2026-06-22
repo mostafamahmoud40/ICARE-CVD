@@ -1,15 +1,12 @@
 /**
- * useDocumentUpload - Hook for handling S3 document uploads
- * SOLID Principles:
- * - Single Responsibility: Handles document upload logic only
- * - Dependency Inversion: Depends on apiClient abstraction, not direct API calls
+ * useDocumentUpload — presigned MinIO uploads during patient registration.
  */
 
 import { useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import axios from "axios";
 
-export interface S3UploadIntentResult {
+export interface StorageUploadIntentResult {
   key: string;
   uploadUrl: string;
   publicUrl?: string;
@@ -33,23 +30,19 @@ export function useDocumentUpload() {
   const [uploadProgress, setUploadProgress] = useState<{ [fileId: string]: number }>({});
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Request a presigned URL from backend before uploading to S3
-   * Single Responsibility: Get presigned URL for client-side upload
-   */
   const getUploadIntent = async (
     fileName: string,
     contentType: string,
-    category: string
-  ): Promise<S3UploadIntentResult> => {
+    category: string,
+  ): Promise<StorageUploadIntentResult> => {
     try {
-      const response = await apiClient.post<S3UploadIntentResult>(
+      const response = await apiClient.post<StorageUploadIntentResult>(
         "/documents/upload-intent",
         {
           fileName,
           contentType,
           category,
-        }
+        },
       );
       return response.data;
     } catch (err) {
@@ -61,48 +54,36 @@ export function useDocumentUpload() {
     }
   };
 
-  /**
-   * Upload file directly to S3 using presigned URL
-   * Single Responsibility: Handle S3 upload only
-   * Handles CORS with proper headers and error recovery
-   */
-  const uploadToS3 = async (
+  const uploadToStorage = async (
     fileId: string,
     file: File,
     uploadUrl: string,
-    mimeType: string
+    mimeType: string,
   ): Promise<void> => {
     setUploading((prev) => ({ ...prev, [fileId]: "uploading" }));
 
     try {
-      // Use Fetch API with proper headers for S3
-      // S3 requires Content-Type header to match what was used in presigned URL generation
       const response = await fetch(uploadUrl, {
         method: "PUT",
         body: file,
         headers: {
           "Content-Type": mimeType,
-          // Don't set Authorization header - presigned URL includes it
-          // Don't set Host header - browser will set it
         },
-        // IMPORTANT: Not setting mode: 'cors' on purpose
-        // Presigned URLs should work without explicit CORS mode
       });
 
       if (!response.ok) {
-        // For 403 Forbidden (CORS), we need better error message
         if (response.status === 403) {
           console.error(
-            `[S3 Upload Error] 403 Forbidden - Possible CORS issue. URL: ${uploadUrl.split('?')[0]}`
+            `[MinIO upload] 403 Forbidden — check MinIO CORS. URL: ${uploadUrl.split("?")[0]}`,
           );
           throw new Error(
-            "S3 upload rejected (403). Check S3 bucket CORS configuration and verify presigned URL is valid."
+            "Upload rejected (403). Check MinIO bucket CORS and presigned URL validity.",
           );
         }
-        
+
         const errorText = await response.text();
         throw new Error(
-          `S3 upload failed (${response.status}): ${errorText || response.statusText}`
+          `Upload failed (${response.status}): ${errorText || response.statusText}`,
         );
       }
 
@@ -111,46 +92,44 @@ export function useDocumentUpload() {
       const message =
         err instanceof Error
           ? err.message
-          : "Upload to S3 failed - Network error or CORS issue";
-      
-      console.error(`[S3 Upload Error for ${fileId}]:`, {
+          : "Upload failed — network error or CORS issue";
+
+      console.error(`[MinIO upload error for ${fileId}]:`, {
         message,
         url: uploadUrl.split("?")[0],
         fileSize: file.size,
         contentType: mimeType,
       });
-      
+
       setError(message);
       setUploading((prev) => ({ ...prev, [fileId]: "error" }));
       throw new Error(message);
     }
   };
 
-  /**
-   * Complete upload workflow: Get intent → Upload to S3 → Return metadata
-   * Single Responsibility: Orchestrate upload steps (composition)
-   */
   const uploadDocument = async (
     fileId: string,
     file: File,
-    category: string
+    category: string,
   ): Promise<UploadedDocumentFile> => {
     try {
       setUploading((prev) => ({ ...prev, [fileId]: "preparing" }));
       setError(null);
 
-      // Step 1: Get presigned URL from backend
       const intent = await getUploadIntent(
         file.name,
         file.type || "application/octet-stream",
-        category
+        category,
       );
 
-      // Step 2: Upload file to S3
-      await uploadToS3(fileId, file, intent.uploadUrl, file.type || "application/octet-stream");
+      await uploadToStorage(
+        fileId,
+        file,
+        intent.uploadUrl,
+        file.type || "application/octet-stream",
+      );
 
-      // Step 3: Return document metadata for database storage
-      const uploadedDoc: UploadedDocumentFile = {
+      return {
         id: fileId,
         fileName: file.name,
         fileSize: file.size,
@@ -159,8 +138,6 @@ export function useDocumentUpload() {
         s3Url: intent.publicUrl || `${window.location.origin}/${intent.key}`,
         mimeType: file.type || "application/octet-stream",
       };
-
-      return uploadedDoc;
     } catch (err) {
       setUploading((prev) => ({ ...prev, [fileId]: "error" }));
       throw err;

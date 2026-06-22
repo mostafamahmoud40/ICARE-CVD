@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import Link from "next/link"
 import { useLocale } from "next-intl"
 import {
@@ -9,6 +8,7 @@ import {
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import { Input } from "@/components/ui/input"
 import {
   Breadcrumb,
@@ -318,12 +318,10 @@ export function AssistantProceduresOperations({
                           <td className="py-4 pl-4 pr-4">
                             <div className="flex items-center gap-3">
                               <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
-                                <Image
-                                  src={`https://i.pravatar.cc/150?u=${encodeURIComponent(order.patientId)}`}
-                                  alt=""
-                                  width={44}
-                                  height={44}
-                                  className="size-full object-cover"
+                                <PatientAvatar
+                                  name={order.patientName}
+                                  avatarUrl={order.patientAvatarUrl}
+                                  sizes="44px"
                                 />
                               </div>
                               <div className="min-w-0">

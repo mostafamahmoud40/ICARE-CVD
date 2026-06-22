@@ -10,6 +10,17 @@ export type PatientStorageFolder =
   | 'imaging'
   | 'documents';
 
+/** Patient document categories stored in `patient_document`. */
+export type PatientDocumentCategory =
+  | 'lab_report'
+  | 'imaging'
+  | 'ecg'
+  | 'prescription'
+  | 'referral'
+  | 'other';
+
+const REGISTRATION_DOCUMENT_ROOT = 'registration/documents';
+
 /** Legacy flat prefixes kept for reading old keys still stored in the DB. */
 export const LEGACY_MINIO_CATEGORY_PREFIX: Record<MinioStorageCategory, string> = {
   chat_image: 'chat/images',
@@ -41,6 +52,50 @@ export function buildPatientStoragePrefix(
     ...subfolders.map((part) => part.trim()).filter(Boolean),
   ];
   return segments.join('/');
+}
+
+export function buildPatientDocumentPrefix(
+  patientNumber: string,
+  category: PatientDocumentCategory,
+): string {
+  const pn = normalizePatientNumber(patientNumber);
+  if (category === 'lab_report') {
+    return buildPatientStoragePrefix(pn, 'labs');
+  }
+  return buildPatientStoragePrefix(pn, 'documents', category);
+}
+
+export function buildRegistrationDocumentPrefix(
+  category: PatientDocumentCategory,
+): string {
+  const folder = category === 'lab_report' ? 'lab-reports' : category;
+  return `${REGISTRATION_DOCUMENT_ROOT}/${folder}`;
+}
+
+/** True when the key belongs to this app's MinIO bucket layout (incl. legacy flat keys). */
+export function isMinioObjectKey(key: string, patientNumber?: string): boolean {
+  const trimmed = key.trim();
+  if (!trimmed) return false;
+
+  if (
+    trimmed.startsWith(`${PATIENTS_STORAGE_ROOT}/`) ||
+    trimmed.startsWith(`${REGISTRATION_DOCUMENT_ROOT}/`) ||
+    trimmed.startsWith('staff/') ||
+    trimmed.startsWith('chat/')
+  ) {
+    return true;
+  }
+
+  if (trimmed.startsWith('documents/')) {
+    return true;
+  }
+
+  if (patientNumber) {
+    const pn = normalizePatientNumber(patientNumber);
+    return trimmed.includes(`/${pn}/`);
+  }
+
+  return false;
 }
 
 export function buildMinioObjectPrefix(

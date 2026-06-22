@@ -11,7 +11,7 @@ export class DocumentsController {
   constructor(private readonly documentService: DocumentService) {}
 
   /**
-   * Create upload intent (presigned URL) for file upload to S3
+   * Create upload intent (presigned URL) for file upload to MinIO
    * POST /documents/upload-intent
    * Body: { fileName: string, contentType: string, category: string }
    * Response: { key, uploadUrl, publicUrl, expiresIn }
