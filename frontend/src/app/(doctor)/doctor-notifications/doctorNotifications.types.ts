@@ -10,6 +10,7 @@ export type DoctorNotificationKind =
   | "ai_insight"
   | "system"
   | "medication_flag"
+  | "message"
 
 export type DoctorNotificationSender = {
   name: string

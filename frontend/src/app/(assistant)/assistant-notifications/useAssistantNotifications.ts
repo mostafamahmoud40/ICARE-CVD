@@ -7,16 +7,9 @@ import {
   markAllNotificationsRead as markAllNotificationsReadApi,
   markNotificationRead as markNotificationReadApi,
 } from "@/lib/notifications/notifications.api"
-import {
-  isAssistantNotificationLiveKind,
-  isLiveAssistantNotificationId,
-} from "./assistantNotifications.config"
-import { getAssistantNotificationsMock } from "./assistantNotifications.mock"
-import { mergeAssistantNotifications } from "./assistantNotifications.merge"
 import type { AssistantNotification, AssistantNotificationKind } from "./assistantNotifications.types"
 
-const MOCK_SEED = getAssistantNotificationsMock()
-let notifications: AssistantNotification[] = mergeAssistantNotifications(MOCK_SEED, [])
+let notifications: AssistantNotification[] = []
 let hydratedFromApi = false
 
 const listeners = new Set<() => void>()
@@ -26,10 +19,7 @@ function emit() {
 }
 
 function setNotifications(next: AssistantNotification[]) {
-  notifications = mergeAssistantNotifications(
-    MOCK_SEED,
-    next.filter((item) => isAssistantNotificationLiveKind(item.kind)),
-  )
+  notifications = next
   emit()
 }
 
@@ -42,24 +32,15 @@ export function getAssistantNotificationsSnapshot() {
   return notifications
 }
 
-const assistantNotificationsServerSnapshot = mergeAssistantNotifications(MOCK_SEED, [])
-
 export function getAssistantNotificationsServerSnapshot() {
-  return assistantNotificationsServerSnapshot
+  return notifications
 }
 
 export function prependAssistantRealtimeNotification(item: AssistantNotification) {
   if (!item.id) return
-  if (!isAssistantNotificationLiveKind(item.kind)) return
   if (notifications.some((n) => n.id === item.id)) return
 
-  const liveItems = [
-    item,
-    ...notifications.filter(
-      (n) => isAssistantNotificationLiveKind(n.kind) && n.id !== item.id,
-    ),
-  ]
-  setNotifications(liveItems)
+  setNotifications([item, ...notifications.filter((n) => n.id !== item.id)])
 }
 
 export function markAllAssistantNotificationsRead() {
@@ -79,7 +60,7 @@ export function markAssistantNotificationRead(id: string) {
   )
   emit()
 
-  if (isLiveAssistantNotificationId(id)) {
+  if (isLiveNotificationId(id)) {
     void markNotificationReadApi(id).catch(() => undefined)
   }
 }
@@ -107,12 +88,14 @@ const ASSISTANT_KINDS: AssistantNotificationKind[] = [
   "checklist",
   "document",
   "system",
+  "message",
 ]
 
 function mapKind(kind: string): AssistantNotificationKind {
   if (ASSISTANT_KINDS.includes(kind as AssistantNotificationKind)) {
     return kind as AssistantNotificationKind
   }
+  if (kind === "message") return "doctor_message"
   return "system"
 }
 
@@ -136,6 +119,10 @@ function mapApiNotification(row: {
   }
 }
 
+function isLiveNotificationId(id: string) {
+  return /^\d+$/.test(id)
+}
+
 async function hydrateFromApi() {
   if (hydratedFromApi) return
   await refreshAssistantNotificationsFromApi()
@@ -144,10 +131,7 @@ async function hydrateFromApi() {
 export async function refreshAssistantNotificationsFromApi() {
   try {
     const rows = await fetchNotifications()
-    const liveItems = rows
-      .map(mapApiNotification)
-      .filter((item) => isAssistantNotificationLiveKind(item.kind))
-    setNotifications(liveItems)
+    setNotifications(rows.map(mapApiNotification))
   } catch {
     /* keep current list when API unavailable */
   } finally {

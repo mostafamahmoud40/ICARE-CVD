@@ -17,6 +17,7 @@ export enum MedicationType {
   Antiarrhythmics = 'antiarrhythmics',
   Diuretics = 'diuretics',
   DiabetesMedications = 'diabetes_medications',
+  Other = 'other',
 }
 
 export enum TimeOfDay {

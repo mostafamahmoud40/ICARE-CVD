@@ -425,6 +425,20 @@ export class ProcedureService {
       })),
     );
 
+    const assistantUserIds = await this.listActiveAssistantUserIds();
+    await Promise.all(
+      assistantUserIds.map((userId) =>
+        this.notifications.dispatch({
+          userId,
+          kind: 'procedure',
+          title: 'New procedure scheduled',
+          body: `${values.procedureName} was scheduled and needs preparation.`,
+          href: '/assistant-procedures',
+          metadata: { procedureOrderId: created.id, consultationId: input.consultationId },
+        }),
+      ),
+    );
+
     return created;
   }
 
@@ -669,5 +683,14 @@ export class ProcedureService {
 
     if (!row) throw new NotFoundException('Procedure order not found');
     return row;
+  }
+
+  private async listActiveAssistantUserIds() {
+    const rows = await this.db
+      .select({ userId: user.id })
+      .from(user)
+      .where(and(eq(user.role, 'assistant'), eq(user.isActive, true)));
+
+    return rows.map((row) => row.userId);
   }
 }

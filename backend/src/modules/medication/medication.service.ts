@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, sql } from 'drizzle-orm';
 
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
@@ -18,6 +18,7 @@ import {
   doctor,
 } from '../../database/schema';
 import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
+import { NotificationsService } from '../notifications/notifications.service';
 import type {
   CreateMedicationDto,
   UpdateMedicationDto,
@@ -28,6 +29,7 @@ export class MedicationService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly avatarUrlResolver: AvatarUrlResolver,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // ===================== PATIENT ENDPOINTS =====================
@@ -58,7 +60,7 @@ export class MedicationService {
       .from(medication)
       .leftJoin(doctor, eq(medication.prescribedBy, doctor.id))
       .leftJoin(user, eq(doctor.userId, user.id))
-      .where(eq(medication.userId, userId))
+      .where(and(eq(medication.userId, userId), isNotNull(medication.prescribedBy)))
       .orderBy(desc(medication.createdAt));
 
     return rows.map((row) => ({
@@ -74,6 +76,7 @@ export class MedicationService {
       where: and(
         eq(medication.id, medicationId),
         eq(medication.userId, userId),
+        isNotNull(medication.prescribedBy),
       ),
     });
 
@@ -90,6 +93,7 @@ export class MedicationService {
       where: and(
         eq(medication.id, medicationId),
         eq(medication.userId, userId),
+        isNotNull(medication.prescribedBy),
       ),
     });
 
@@ -160,6 +164,7 @@ export class MedicationService {
       where: and(
         eq(medication.id, medicationId),
         eq(medication.userId, userId),
+        isNotNull(medication.prescribedBy),
       ),
     });
 
@@ -338,6 +343,23 @@ export class MedicationService {
         durationDays: dto.durationDays ?? null,
       })
       .returning();
+
+    const [doctorUser] = await this.db
+      .select({ name: user.name })
+      .from(user)
+      .where(eq(user.id, doctorUserId))
+      .limit(1);
+
+    void this.notificationsService
+      .dispatch({
+        userId: patientUserId,
+        kind: 'prescription',
+        title: 'New prescription',
+        body: `Dr. ${doctorUser?.name ?? 'Your doctor'} prescribed ${newMed.name} ${newMed.dose}.`,
+        href: '/medications',
+        metadata: { medicationId: newMed.id, patientId },
+      })
+      .catch(() => undefined);
 
     return newMed;
   }

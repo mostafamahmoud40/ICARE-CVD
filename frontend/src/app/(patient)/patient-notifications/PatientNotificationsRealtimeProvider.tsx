@@ -1,7 +1,6 @@
 "use client"
 
 import type { ApiNotification } from "@/lib/notifications/notifications.api"
-import { isPatientNotificationLiveKind } from "@/app/(patient)/patient-notifications/patientNotifications.config"
 import { prependPatientRealtimeNotification, refreshPatientNotificationsFromApi } from "@/app/(patient)/patient-notifications/usePatientNotifications"
 import type { PatientNotificationKind } from "@/app/(patient)/patient-notifications/patientNotifications.types"
 import { NotificationsRealtimeProvider } from "@/components/shared/notifications/NotificationsRealtimeProvider"
@@ -16,6 +15,8 @@ const PATIENT_KINDS: PatientNotificationKind[] = [
   "prescription",
   "ai_insight",
   "system",
+  "message",
+  "procedure",
 ]
 
 function mapPatientKind(kind: string): PatientNotificationKind {
@@ -27,12 +28,9 @@ function mapPatientKind(kind: string): PatientNotificationKind {
 }
 
 function handlePatientNotification(notification: ApiNotification) {
-  const kind = mapPatientKind(notification.kind)
-  if (!isPatientNotificationLiveKind(kind)) return
-
   prependPatientRealtimeNotification({
     id: notification.id,
-    kind,
+    kind: mapPatientKind(notification.kind),
     title: notification.title,
     body: notification.body,
     href: notification.href,

@@ -4,6 +4,7 @@ import { AppointmentModule } from '../appointment/appointment.module';
 import { DoctorScheduleModule } from '../doctor/schedule/doctor-schedule.module';
 import { MinioModule } from '../../shared/storage/minio.module';
 import { MailModule } from '../../shared/mail/mail.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 import { AccessTokenGuard } from '../auth/access-token.guard';
 import { AuthJwtService } from '../auth/jwt';
@@ -31,6 +32,7 @@ import { AssistantAccountService } from './account/assistant-account.service';
     DoctorScheduleModule,
     MinioModule,
     MailModule,
+    NotificationsModule,
   ],
   controllers: [
     AssistantController,

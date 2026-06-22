@@ -28,6 +28,7 @@ import type {
   QueuePriority,
   QueueStatus,
 } from './dto/patient-queue.dto';
+import { QueueNotificationService } from '../notifications/queue-notification.service';
 
 export type QueuePatientDocumentCategory =
   | 'lab_report'
@@ -39,7 +40,10 @@ export type QueuePatientDocumentCategory =
 
 @Injectable()
 export class AssistantPatientQueueService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly queueNotifications: QueueNotificationService,
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*  Stats                                                              */
@@ -455,6 +459,10 @@ export class AssistantPatientQueueService {
       .values(values)
       .returning();
 
+    void this.queueNotifications
+      .notifyAfterAdd(created.id)
+      .catch(() => undefined);
+
     return this.getQueueEntry(created.id);
   }
 
@@ -522,6 +530,10 @@ export class AssistantPatientQueueService {
       .update(patientQueue)
       .set(updates)
       .where(eq(patientQueue.id, queueId));
+
+    void this.queueNotifications
+      .notifyAfterStatusChange(queueId, existing.status, status)
+      .catch(() => undefined);
 
     return this.getQueueEntry(queueId);
   }

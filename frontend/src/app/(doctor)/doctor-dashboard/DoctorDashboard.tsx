@@ -11,6 +11,7 @@ import type {
 } from "./doctorDashboard.types"
 
 import { PatientAvatar } from "@/components/shared/PatientAvatar"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -37,15 +38,6 @@ import {
   UsersIcon,
   VideoIcon,
 } from "lucide-react"
-
-const workloadChartData = [
-  { date: "Mon", scheduled: 42, completed: 26 },
-  { date: "Tue", scheduled: 36, completed: 33 },
-  { date: "Wed", scheduled: 50, completed: 19 },
-  { date: "Thu", scheduled: 22, completed: 41 },
-  { date: "Fri", scheduled: 54, completed: 30 },
-  { date: "Sat", scheduled: 44, completed: 35 },
-]
 
 const workloadChartConfig = {
   scheduled: { label: "Scheduled", color: "#7BA393" },
@@ -308,10 +300,11 @@ function DoctorDashboardContent({ data }: { data: DoctorDashboardData }) {
   ).length
 
   const chartData = React.useMemo(() => {
-    if (activeRange === "1D") return workloadChartData.slice(0, 1)
-    if (activeRange === "1M") return [...workloadChartData, ...workloadChartData]
-    return workloadChartData
-  }, [activeRange])
+    const base = data.weeklyWorkload
+    if (activeRange === "1D") return base.slice(0, 1)
+    if (activeRange === "1M") return [...base, ...base]
+    return base
+  }, [activeRange, data.weeklyWorkload])
 
   const utilizationRate = Math.min(
     100,
@@ -375,7 +368,13 @@ function DoctorDashboardContent({ data }: { data: DoctorDashboardData }) {
               </div>
 
               <div className="grid gap-4">
-                {priorityAlerts.map((alert) => {
+                {priorityAlerts.length === 0 ? (
+                  <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-8 text-center text-muted-foreground">
+                    <AlertCircleIcon className="mx-auto mb-2 size-8 opacity-40" />
+                    <p className="text-[13px] font-bold">No priority alerts right now.</p>
+                  </div>
+                ) : (
+                  priorityAlerts.map((alert) => {
                   const tone = severityTone(alert.severity)
                   return (
                     <div
@@ -434,7 +433,8 @@ function DoctorDashboardContent({ data }: { data: DoctorDashboardData }) {
                       </div>
                     </div>
                   )
-                })}
+                })
+                )}
               </div>
             </div>
 

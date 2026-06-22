@@ -6,6 +6,7 @@ import { AuthJwtService } from '../auth/jwt';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsGateway } from './notifications.gateway';
 import { NotificationsService } from './notifications.service';
+import { QueueNotificationService } from './queue-notification.service';
 
 @Module({
   imports: [
@@ -16,10 +17,11 @@ import { NotificationsService } from './notifications.service';
   controllers: [NotificationsController],
   providers: [
     NotificationsService,
+    QueueNotificationService,
     NotificationsGateway,
     AuthJwtService,
     AccessTokenGuard,
   ],
-  exports: [NotificationsService],
+  exports: [NotificationsService, QueueNotificationService],
 })
 export class NotificationsModule {}

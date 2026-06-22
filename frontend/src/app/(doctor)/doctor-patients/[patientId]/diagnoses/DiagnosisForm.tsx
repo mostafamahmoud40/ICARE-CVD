@@ -35,7 +35,8 @@ import { DIAGNOSIS_CATEGORY_LABELS } from "../../doctorPatients.types"
 type DiagnosisFormProps = {
   initial: DiagnosisFormValues
   onCancel: () => void
-  onSubmit: (values: DiagnosisFormValues) => void
+  onSubmit: (values: DiagnosisFormValues) => void | Promise<void>
+  isSubmitting?: boolean
 }
 
 const inputClassName =
@@ -210,7 +211,7 @@ function CardiacFields({
   )
 }
 
-export function DiagnosisForm({ initial, onCancel, onSubmit }: DiagnosisFormProps) {
+export function DiagnosisForm({ initial, onCancel, onSubmit, isSubmitting = false }: DiagnosisFormProps) {
   const [form, setForm] = useState<DiagnosisFormValues>(initial)
   const [activeSection, setActiveSection] = useState<FormSection>("details")
   const set = <K extends keyof DiagnosisFormValues>(k: K, v: DiagnosisFormValues[K]) =>
@@ -443,7 +444,7 @@ export function DiagnosisForm({ initial, onCancel, onSubmit }: DiagnosisFormProp
         <Button
           type="submit"
           size="sm"
-          disabled={!canSubmit}
+          disabled={!canSubmit || isSubmitting}
           className="h-8 gap-1.5 rounded-xl border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34] disabled:opacity-50"
         >
           <ClipboardCheckIcon className="size-3.5" aria-hidden />

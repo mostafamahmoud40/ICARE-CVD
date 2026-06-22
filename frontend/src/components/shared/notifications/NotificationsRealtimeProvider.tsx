@@ -148,6 +148,7 @@ function mapDoctorKind(kind: string): DoctorNotificationKind {
     "ai_insight",
     "system",
     "medication_flag",
+    "message",
   ] as const
 
   return allowed.includes(kind as (typeof allowed)[number])

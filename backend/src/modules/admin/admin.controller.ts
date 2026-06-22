@@ -13,11 +13,18 @@ import { AdminService } from './admin.service';
 import { AddStaffDto } from './dto/add-staff.dto';
 import { AccessTokenGuard } from '../auth/access-token.guard';
 import { AdminGuard } from './admin.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { TokenPayload } from '../auth/jwt';
 
 @Controller('admin')
 @UseGuards(AccessTokenGuard, AdminGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  @Get('dashboard')
+  getDashboard(@CurrentUser() user: TokenPayload) {
+    return this.adminService.getDashboard(user.sub);
+  }
 
   @Get('staff')
   getStaff() {

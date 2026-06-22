@@ -25,6 +25,8 @@ function rolePillClass(role: AdminUser["role"]) {
   switch (role) {
     case "doctor":
       return "border-primary/30 bg-primary/10 text-primary"
+    case "assistant":
+      return "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300"
     case "admin":
       return "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300"
     case "patient":
@@ -135,7 +137,9 @@ function AdminDashboardContent({ data }: { data: AdminDashboardData }) {
             <div className="text-3xl font-semibold tracking-tight">
               {counts.pendingVerifications}
             </div>
-            <div className="mt-1 text-xs text-muted-foreground">Mock data for now.</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              Email OTP registrations not yet verified.
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -159,7 +163,7 @@ function AdminDashboardContent({ data }: { data: AdminDashboardData }) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle>Recent activity</CardTitle>
-            <CardDescription>Operational events (mock).</CardDescription>
+            <CardDescription>Recent platform events.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {data.recentActivity.map((item, idx) => (

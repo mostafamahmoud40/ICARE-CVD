@@ -35,6 +35,12 @@ export type VitalAlert = {
   at: string
 }
 
+export type WeeklyWorkloadPoint = {
+  date: string
+  scheduled: number
+  completed: number
+}
+
 export type DoctorDashboardData = {
   doctor: DoctorInfo
   assignedPatients: DoctorPatient[]
@@ -44,4 +50,5 @@ export type DoctorDashboardData = {
     patientsPerWeek: number
     hoursAvailable: number
   }
+  weeklyWorkload: WeeklyWorkloadPoint[]
 }

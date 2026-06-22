@@ -5,6 +5,7 @@ import { AccessTokenGuard } from '../../auth/access-token.guard';
 import { AuthJwtService } from '../../auth/jwt';
 import { MinioModule } from '../../../shared/storage/minio.module';
 import { ConsultationModule } from '../../consultation/consultation.module';
+import { NotificationsModule } from '../../notifications/notifications.module';
 
 import { DoctorGuard } from '../doctor.guard';
 import { DoctorQueueController } from './doctor-queue.controller';
@@ -17,6 +18,7 @@ import { DoctorQueueService } from './doctor-queue.service';
     }),
     MinioModule,
     ConsultationModule,
+    NotificationsModule,
   ],
   controllers: [DoctorQueueController],
   providers: [

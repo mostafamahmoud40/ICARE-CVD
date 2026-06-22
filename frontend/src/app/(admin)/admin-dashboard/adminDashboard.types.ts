@@ -2,7 +2,7 @@ export type AdminUser = {
   id: string
   fullName: string
   email: string
-  role: "patient" | "doctor" | "admin"
+  role: "patient" | "doctor" | "assistant" | "admin"
   status: "active" | "pending" | "suspended"
   joinedAt: string
 }

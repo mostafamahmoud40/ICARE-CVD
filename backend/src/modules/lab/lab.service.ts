@@ -19,6 +19,7 @@ import {
 import { isMinioKeyForCategory } from '../../shared/storage/minio-patient-path';
 import { MinioService } from '../../shared/storage/minio.service';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import type {
   CreateLabOrderDto,
   CreateLabResultDto,
@@ -34,6 +35,7 @@ export class LabService {
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly doctorVerifier: DoctorVerifierService,
     private readonly minioService: MinioService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async listLabOrders(doctorUserId: number, patientId: string) {
@@ -99,6 +101,29 @@ export class LabService {
         })),
       );
     }
+
+    const [doctorUser] = await this.db
+      .select({ name: user.name })
+      .from(doctor)
+      .innerJoin(user, eq(doctor.userId, user.id))
+      .where(eq(doctor.id, doctorRow.id))
+      .limit(1);
+
+    const testLabel =
+      dto.items?.[0]?.testName?.trim() ||
+      dto.items?.[0]?.panel?.trim() ||
+      'lab tests';
+
+    void this.notificationsService
+      .dispatch({
+        userId: patientRow.userId,
+        kind: 'lab_result',
+        title: 'New lab order',
+        body: `Dr. ${doctorUser?.name ?? 'Your doctor'} ordered ${testLabel}.`,
+        href: '/lab-orders',
+        metadata: { labOrderId: order.id, patientId },
+      })
+      .catch(() => undefined);
 
     return this.getLabOrder(doctorUserId, order.id);
   }
@@ -318,6 +343,34 @@ export class LabService {
       })
       .where(eq(labOrder.id, orderId));
 
+    const [doctorUser] = order.orderedByDoctorId
+      ? await this.db
+          .select({ userId: user.id, name: user.name })
+          .from(doctor)
+          .innerJoin(user, eq(doctor.userId, user.id))
+          .where(eq(doctor.id, order.orderedByDoctorId))
+          .limit(1)
+      : [];
+
+    if (doctorUser) {
+      const [patientUser] = await this.db
+        .select({ name: user.name })
+        .from(user)
+        .where(eq(user.id, patientRow.userId))
+        .limit(1);
+
+      void this.notificationsService
+        .dispatch({
+          userId: doctorUser.userId,
+          kind: 'lab_result',
+          title: 'Lab report uploaded',
+          body: `${patientUser?.name ?? 'A patient'} uploaded lab results for ${dto.panelTitle}.`,
+          href: `/doctor-patients/${patientRow.id}`,
+          metadata: { labOrderId: orderId, patientId: patientRow.id },
+        })
+        .catch(() => undefined);
+    }
+
     return panel;
   }
 
@@ -360,6 +413,19 @@ export class LabService {
         status: dto.status ?? 'normal',
       })
       .returning();
+
+    if (result.status && result.status !== 'normal') {
+      void this.notificationsService
+        .dispatch({
+          userId: patientRow.userId,
+          kind: 'lab_result',
+          title: 'Lab result available',
+          body: `Your ${result.testName} result is ready to review.`,
+          href: '/lab-orders',
+          metadata: { labResultId: result.id, patientId },
+        })
+        .catch(() => undefined);
+    }
 
     return result;
   }
