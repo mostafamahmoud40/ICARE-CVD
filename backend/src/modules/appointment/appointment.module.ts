@@ -11,6 +11,7 @@ import { AppointmentController } from './appointment.controller';
 import { AppointmentService } from './appointment.service';
 import { AppointmentPatientNotificationService } from './appointment-patient-notification.service';
 import { AppointmentAssistantNotificationService } from './appointment-assistant-notification.service';
+import { AppointmentDoctorNotificationService } from './appointment-doctor-notification.service';
 import { DoctorAppointmentController } from './doctor-appointment.controller';
 import { DoctorAppointmentService } from './doctor-appointment.service';
 
@@ -28,6 +29,7 @@ import { DoctorAppointmentService } from './doctor-appointment.service';
     AppointmentService,
     AppointmentPatientNotificationService,
     AppointmentAssistantNotificationService,
+    AppointmentDoctorNotificationService,
     DoctorAppointmentService,
     PatientGuard,
     DoctorGuard,
@@ -38,6 +40,7 @@ import { DoctorAppointmentService } from './doctor-appointment.service';
     AppointmentService,
     AppointmentPatientNotificationService,
     AppointmentAssistantNotificationService,
+    AppointmentDoctorNotificationService,
   ],
 })
 export class AppointmentModule {}

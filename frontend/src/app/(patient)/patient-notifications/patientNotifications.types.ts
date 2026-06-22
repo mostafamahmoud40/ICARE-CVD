@@ -10,6 +10,8 @@ export type PatientNotificationKind =
   | "prescription"
   | "ai_insight"
   | "system"
+  | "message"
+  | "procedure"
 
 export type PatientNotificationSender = {
   name: string

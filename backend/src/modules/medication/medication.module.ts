@@ -11,6 +11,7 @@ import { AssistantMedicationController } from './assistant-medication.controller
 import { AssistantMedicationService } from './assistant-medication.service';
 import { AssistantGuard } from '../assistant/assistant.guard';
 import { MinioModule } from '../../shared/storage/minio.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { MinioModule } from '../../shared/storage/minio.module';
       secret: process.env.JWT_ACCESS_SECRET,
     }),
     MinioModule,
+    NotificationsModule,
   ],
   controllers: [
     PatientMedicationController,

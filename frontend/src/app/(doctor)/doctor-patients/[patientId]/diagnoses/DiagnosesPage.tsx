@@ -43,12 +43,12 @@ import {
   DiagnosedByCell,
   StatusBadge,
   TypeBadge,
-  buildDiagnosisNotes,
   diagnosesScrollbarCss,
   emptyDiagnosisForm,
   fmtShort,
   toDiagnosisForm,
 } from "./diagnosis.shared"
+import { useDoctorPatientDiagnoses } from "../../useDoctorPatientDiagnoses"
 
 type TypeFilter = "all" | DiagnosisRecord["type"]
 
@@ -57,9 +57,9 @@ type DiagnosesPageProps = {
   diagnoses: DiagnosisRecord[]
 }
 
-export function DiagnosesPage({ patient, diagnoses: initialDiagnoses }: DiagnosesPageProps) {
+export function DiagnosesPage({ patient, diagnoses }: DiagnosesPageProps) {
   const router = useRouter()
-  const [diagnoses, setDiagnoses] = useState<DiagnosisRecord[]>(initialDiagnoses)
+  const { createDiagnosis, updateDiagnosis, isSaving } = useDoctorPatientDiagnoses(patient.id)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<DiagnosisFormValues>(emptyDiagnosisForm())
@@ -84,49 +84,11 @@ export function DiagnosesPage({ patient, diagnoses: initialDiagnoses }: Diagnose
     })
   }, [diagnoses, searchQuery, typeFilter])
 
-  function handleSave(data: DiagnosisFormValues) {
-    const now = new Date().toISOString().slice(0, 10)
-    const nowIso = new Date().toISOString()
-    const notes = buildDiagnosisNotes(data)
-
+  async function handleSave(data: DiagnosisFormValues) {
     if (editingId) {
-      setDiagnoses((prev) =>
-        prev.map((d) =>
-          d.id === editingId
-            ? {
-                ...d,
-                icdCode: data.icdCode,
-                description: data.description,
-                category: data.category,
-                chronicFlag: data.chronicFlag,
-                infectiousFlag: data.infectiousFlag,
-                type: data.type,
-                severity: data.severity,
-                status: data.status,
-                notes,
-                updatedAt: nowIso,
-              }
-            : d,
-        ),
-      )
+      await updateDiagnosis({ diagnosisId: editingId, values: data })
     } else {
-      const newDiagnosis: DiagnosisRecord = {
-        id: `dx-${Date.now()}`,
-        icdCode: data.icdCode || "N/A",
-        description: data.description,
-        category: data.category,
-        chronicFlag: data.chronicFlag,
-        infectiousFlag: data.infectiousFlag,
-        type: data.type,
-        severity: data.severity,
-        diagnosedAt: now,
-        diagnosedBy: "Dr. Mahmoud",
-        status: data.status,
-        notes,
-        createdAt: nowIso,
-        updatedAt: nowIso,
-      }
-      setDiagnoses((prev) => [newDiagnosis, ...prev])
+      await createDiagnosis(data)
     }
     setDialogOpen(false)
     setEditingId(null)
@@ -437,6 +399,7 @@ export function DiagnosesPage({ patient, diagnoses: initialDiagnoses }: Diagnose
           <DiagnosisForm
             initial={editForm}
             onSubmit={handleSave}
+            isSubmitting={isSaving}
             onCancel={() => {
               setDialogOpen(false)
               setEditingId(null)

@@ -60,6 +60,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  useDoctorPatientMedications,
+  type DoctorMedicationFormPayload,
+} from "../../useDoctorPatientMedications"
+
+function medFormToPayload(data: MedFormData): DoctorMedicationFormPayload {
+  return {
+    name: data.name,
+    dose: data.dose,
+    frequency: data.frequency,
+    type: (data.type || "other") as MedicationRecord["type"],
+    status: data.status,
+    compliance: data.compliance,
+    timeOfDay: data.timeOfDay,
+    startDate: data.startDate,
+    durationDays: data.durationDays ? Number(data.durationDays) : null,
+    instructions: data.instructions,
+    sideEffects: data.sideEffects,
+  }
+}
 
 function fmtShort(iso: string | null | undefined) {
   if (!iso) return "\u2014"
@@ -579,9 +599,17 @@ function MedicationRow({ m, onEdit, onStop, onFlag }: { m: MedicationRecord; onE
   )
 }
 
-export function MedicationsPage({ patientId, patientName, medications: initialMeds }: MedicationsPageProps) {
+export function MedicationsPage({ patientId, patientName, medications }: MedicationsPageProps) {
   const router = useRouter()
-  const [meds, setMeds] = useState<MedicationRecord[]>(initialMeds)
+  const {
+    createMedication,
+    updateMedication,
+    changeMedicationStatus,
+    flagMedication,
+    isSaving,
+    isUpdatingStatus,
+    isFlagging,
+  } = useDoctorPatientMedications(patientId)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<MedFormData>(emptyMedForm())
@@ -590,88 +618,44 @@ export function MedicationsPage({ patientId, patientName, medications: initialMe
   const [flagDialog, setFlagDialog] = useState<string | null>(null)
   const [flagReason, setFlagReason] = useState("")
 
-  const active = meds.filter((m) => m.status === "active")
-  const discontinued = meds.filter((m) => m.status === "discontinued")
-  const paused = meds.filter((m) => m.status === "paused")
+  const active = medications.filter((m) => m.status === "active")
+  const discontinued = medications.filter((m) => m.status === "discontinued")
+  const paused = medications.filter((m) => m.status === "paused")
 
-  function handleSave(data: MedFormData) {
-    const now = new Date().toISOString().slice(0, 10)
-    const durationDays = data.durationDays ? Number(data.durationDays) : null
-    const compliance = data.compliance === "unknown" ? null : data.compliance
-    const type = (data.type || "other") as MedicationRecord["type"]
-    const endDate =
-      durationDays && data.startDate
-        ? new Date(new Date(data.startDate).getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-        : null
+  async function handleSave(data: MedFormData) {
+    const payload = medFormToPayload(data)
 
     if (editingId) {
-      setMeds((prev) => prev.map((m) =>
-        m.id === editingId
-          ? {
-            ...m,
-            name: data.name,
-            dose: data.dose,
-            frequency: data.frequency,
-            type,
-            status: data.status,
-            compliance,
-            timeOfDay: data.timeOfDay,
-            startDate: data.startDate,
-            durationDays,
-            endDate,
-            instructions: data.instructions || null,
-            sideEffects: data.sideEffects || null,
-            pausedAt: data.status === "paused" ? m.pausedAt ?? new Date().toISOString() : null,
-            discontinuedAt: data.status === "discontinued" ? m.discontinuedAt ?? new Date().toISOString() : null,
-          }
-          : m
-      ))
+      const previous = medications.find((med) => med.id === editingId)
+      await updateMedication({
+        medicationId: editingId,
+        values: payload,
+        previousStatus: previous?.status ?? "active",
+      })
     } else {
-      const newMed: MedicationRecord = {
-        id: `med-${Date.now()}`,
-        name: data.name,
-        dose: data.dose,
-        frequency: data.frequency,
-        type,
-        status: data.status,
-        compliance,
-        timeOfDay: data.timeOfDay,
-        startDate: data.startDate,
-        durationDays,
-        endDate,
-        instructions: data.instructions || null,
-        pausedAt: data.status === "paused" ? new Date().toISOString() : null,
-        discontinuedAt: data.status === "discontinued" ? new Date().toISOString() : null,
-        prescribedAt: now,
-        prescribedBy: "Dr. Mahmoud",
-        adherencePercent: 100,
-        sideEffects: data.sideEffects || null,
-        lastTakenAt: null,
-      }
-      setMeds((prev) => [newMed, ...prev])
+      await createMedication(payload)
     }
     setDialogOpen(false)
     setEditingId(null)
   }
 
-  function handleDiscontinue() {
+  async function handleDiscontinue() {
     if (!discontinueDialog) return
-    setMeds((prev) => prev.map((m) =>
-      m.id === discontinueDialog
-        ? { ...m, status: "discontinued" as const, sideEffects: discontinueReason || m.sideEffects }
-        : m
-    ))
+    await changeMedicationStatus({
+      medicationId: discontinueDialog,
+      status: "discontinued",
+      sideEffects: discontinueReason || undefined,
+    })
     setDiscontinueDialog(null)
     setDiscontinueReason("")
   }
 
-  function handleFlag() {
+  async function handleFlag() {
     if (!flagDialog) return
-    setMeds((prev) => prev.map((m) =>
-      m.id === flagDialog
-        ? { ...m, flagReason: flagReason.trim() || null }
-        : m
-    ))
+    await flagMedication({
+      medicationId: flagDialog,
+      flagReason,
+    })
     setFlagDialog(null)
     setFlagReason("")
   }

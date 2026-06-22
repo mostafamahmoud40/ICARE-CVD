@@ -5,6 +5,7 @@ import {
   FlaskConicalIcon,
   HeartPulseIcon,
   ListOrderedIcon,
+  MessageSquareIcon,
   PillIcon,
   ShieldAlertIcon,
   StethoscopeIcon,
@@ -23,6 +24,8 @@ const META: Record<PatientNotificationKind, PatientNotificationMeta> = {
   prescription: { icon: PillIcon, accent: "#CC5533" },
   ai_insight: { icon: BotMessageSquareIcon, accent: "#7C3AED" },
   system: { icon: ShieldAlertIcon, accent: "#E89042" },
+  message: { icon: MessageSquareIcon, accent: "#2563EB" },
+  procedure: { icon: FileTextIcon, accent: "#1A5345" },
 }
 
 export function getPatientNotificationMeta(kind: PatientNotificationKind): PatientNotificationMeta {

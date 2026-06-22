@@ -2,13 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query"
 
-import { mockAssistantDashboard } from "./assistantDashboard.mock"
+import { fetchAssistantDashboard } from "./assistantDashboard.api"
 import type { AssistantDashboardData } from "./assistantDashboard.types"
 
 export function useAssistantDashboard() {
   return useQuery<AssistantDashboardData, Error>({
     queryKey: ["assistant-dashboard"],
-    queryFn: async () => mockAssistantDashboard,
-    staleTime: 5 * 60 * 1000,
+    queryFn: fetchAssistantDashboard,
+    staleTime: 60 * 1000,
   })
 }

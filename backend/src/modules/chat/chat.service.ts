@@ -21,6 +21,7 @@ import {
 import type { TokenPayload } from '../auth/jwt';
 import { ChatAttachmentService } from './chat-attachment.service';
 import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
+import { NotificationsService } from '../notifications/notifications.service';
 import type { CreateConversationDto } from './dto/create-conversation.dto';
 import type { ChatUploadIntentDto, SendMessageDto } from './dto/send-message.dto';
 
@@ -51,6 +52,7 @@ export class ChatService {
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly chatAttachmentService: ChatAttachmentService,
     private readonly avatarUrlResolver: AvatarUrlResolver,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async listConversations(currentUser: TokenPayload) {
@@ -492,6 +494,36 @@ export class ChatService {
 
     const recipients =
       await this.getConversationParticipantUserIds(conversationId);
+
+    const senderName = await this.getUserDisplayName(actor.userId);
+    const preview =
+      text.length > 0
+        ? text.slice(0, 120)
+        : savedAttachments.length > 0
+          ? `Sent ${savedAttachments.length} attachment(s)`
+          : 'New message';
+
+    const href =
+      actor.role === 'doctor'
+        ? '/doctor-inbox'
+        : actor.role === 'assistant'
+          ? '/assistant-inbox'
+          : '/patient-inbox';
+
+    void Promise.all(
+      recipients
+        .filter((userId) => userId !== actor.userId)
+        .map((userId) =>
+          this.notificationsService.dispatch({
+            userId,
+            kind: 'message',
+            title: `Message from ${senderName}`,
+            body: preview,
+            href,
+            metadata: { conversationId, messageId: created.id },
+          }),
+        ),
+    ).catch(() => undefined);
 
     return {
       ...created,

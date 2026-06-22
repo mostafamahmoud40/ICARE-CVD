@@ -2,13 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query"
 
-import { mockAdminDashboard } from "./adminDashboard.mock"
+import { fetchAdminDashboard } from "./adminDashboard.api"
 import type { AdminDashboardData } from "./adminDashboard.types"
 
 export function useAdminDashboard() {
   return useQuery<AdminDashboardData, Error>({
     queryKey: ["admin-dashboard"],
-    queryFn: async () => mockAdminDashboard,
-    staleTime: 5 * 60 * 1000,
+    queryFn: fetchAdminDashboard,
+    staleTime: 60 * 1000,
   })
 }

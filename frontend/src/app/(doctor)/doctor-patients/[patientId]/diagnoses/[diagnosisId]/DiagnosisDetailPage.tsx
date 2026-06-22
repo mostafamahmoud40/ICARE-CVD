@@ -37,7 +37,6 @@ import {
   SeverityBadge,
   StatusBadge,
   TypeBadge,
-  buildDiagnosisNotes,
   diagnosesScrollbarCss,
   findRelatedConsultationVisits,
   fmtDateTime,
@@ -47,6 +46,7 @@ import {
   visitTypeStyles,
   yesNoLabel,
 } from "../diagnosis.shared"
+import { useDoctorPatientDiagnoses } from "../../../useDoctorPatientDiagnoses"
 import { cn } from "@/lib/utils"
 
 type DiagnosisDetailPageProps = {
@@ -55,32 +55,17 @@ type DiagnosisDetailPageProps = {
   visits: VisitRecord[]
 }
 
-export function DiagnosisDetailPage({ patient, diagnosis: initialDiagnosis, visits }: DiagnosisDetailPageProps) {
-  const [diagnosis, setDiagnosis] = useState(initialDiagnosis)
+export function DiagnosisDetailPage({ patient, diagnosis, visits }: DiagnosisDetailPageProps) {
+  const { updateDiagnosis, isSaving } = useDoctorPatientDiagnoses(patient.id)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editForm, setEditForm] = useState<DiagnosisFormValues>(toDiagnosisForm(initialDiagnosis))
+  const [editForm, setEditForm] = useState<DiagnosisFormValues>(toDiagnosisForm(diagnosis))
 
   const parsed = parseDiagnosisNotes(diagnosis.notes)
   const relatedVisits = findRelatedConsultationVisits(diagnosis.icdCode, visits)
   const basePath = `/doctor-patients/${patient.id}`
 
-  function handleSave(data: DiagnosisFormValues) {
-    const nowIso = new Date().toISOString()
-    const notes = buildDiagnosisNotes(data)
-
-    setDiagnosis((prev) => ({
-      ...prev,
-      icdCode: data.icdCode,
-      description: data.description,
-      category: data.category,
-      chronicFlag: data.chronicFlag,
-      infectiousFlag: data.infectiousFlag,
-      type: data.type,
-      severity: data.severity,
-      status: data.status,
-      notes,
-      updatedAt: nowIso,
-    }))
+  async function handleSave(data: DiagnosisFormValues) {
+    await updateDiagnosis({ diagnosisId: diagnosis.id, values: data })
     setDialogOpen(false)
   }
 
@@ -397,6 +382,7 @@ export function DiagnosisDetailPage({ patient, diagnosis: initialDiagnosis, visi
             initial={editForm}
             onSubmit={handleSave}
             onCancel={() => setDialogOpen(false)}
+            isSubmitting={isSaving}
           />
         </DialogContent>
       </Dialog>

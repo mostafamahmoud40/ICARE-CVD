@@ -4,6 +4,7 @@ import {
   FlagIcon,
   FlaskConicalIcon,
   HeartPulseIcon,
+  MessageSquareIcon,
   PillIcon,
   ShieldAlertIcon,
   SparklesIcon,
@@ -22,6 +23,7 @@ const META: Record<DoctorNotificationKind, DoctorNotificationMeta> = {
   ai_insight: { icon: SparklesIcon, accent: "#7C3AED" },
   system: { icon: ShieldAlertIcon, accent: "#E89042" },
   medication_flag: { icon: FlagIcon, accent: "#E11D48" },
+  message: { icon: MessageSquareIcon, accent: "#2563EB" },
 }
 
 export function getDoctorNotificationMeta(kind: DoctorNotificationKind): DoctorNotificationMeta {

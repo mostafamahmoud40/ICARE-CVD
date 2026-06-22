@@ -26,6 +26,7 @@ import type { CreateAppointmentDto } from './dto/create-appointment.dto';
 import type { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { AppointmentPatientNotificationService } from './appointment-patient-notification.service';
 import { AppointmentAssistantNotificationService } from './appointment-assistant-notification.service';
+import { AppointmentDoctorNotificationService } from './appointment-doctor-notification.service';
 import { allocatePatientNumber } from '../../shared/patient/patient-number';
 import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
 
@@ -37,6 +38,7 @@ export class AppointmentService {
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly appointmentPatientNotifications: AppointmentPatientNotificationService,
     private readonly appointmentAssistantNotifications: AppointmentAssistantNotificationService,
+    private readonly appointmentDoctorNotifications: AppointmentDoctorNotificationService,
     private readonly avatarUrlResolver: AvatarUrlResolver,
   ) {}
 
@@ -434,6 +436,9 @@ export class AppointmentService {
     void this.appointmentAssistantNotifications
       .notifyPatientBooked(created.id)
       .catch(() => undefined);
+    void this.appointmentDoctorNotifications
+      .notifyPatientBooked(created.id)
+      .catch(() => undefined);
 
     return {
       id: created.id,
@@ -481,6 +486,9 @@ export class AppointmentService {
       .notifyAfterUpdate(existing, updated)
       .catch(() => undefined);
     void this.appointmentAssistantNotifications
+      .notifyAfterPatientUpdate(existing, updated)
+      .catch(() => undefined);
+    void this.appointmentDoctorNotifications
       .notifyAfterPatientUpdate(existing, updated)
       .catch(() => undefined);
 

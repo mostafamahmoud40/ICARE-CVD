@@ -17,9 +17,12 @@ import {
   medicationRefill,
   patient,
   user,
+  doctor,
+  doctorPatient,
 } from '../../database/schema';
 import { findPatientByIdentifier } from '../../shared/patient/patient-identifier';
 import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
+import { NotificationsService } from '../notifications/notifications.service';
 import { compute7DayAdherence } from './medication-adherence.util';
 import type {
   CreateMedicationContactDto,
@@ -68,6 +71,7 @@ export class AssistantMedicationService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly avatarUrlResolver: AvatarUrlResolver,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async listMedicationProfiles() {
@@ -224,6 +228,41 @@ export class AssistantMedicationService {
         createdByUserId: assistantUserId,
       })
       .returning();
+
+    const [patientUser] = await this.db
+      .select({ name: user.name })
+      .from(user)
+      .where(eq(user.id, patientRow.userId))
+      .limit(1);
+
+    const doctorAssignments = await this.db
+      .select({ doctorUserId: doctor.userId })
+      .from(doctorPatient)
+      .innerJoin(doctor, eq(doctorPatient.doctorId, doctor.id))
+      .where(
+        and(
+          eq(doctorPatient.patientId, patientRow.id),
+          eq(doctorPatient.status, 'active'),
+        ),
+      );
+
+    await Promise.all(
+      doctorAssignments.map((assignment) =>
+        this.notificationsService.dispatch({
+          userId: assignment.doctorUserId,
+          kind: 'medication_flag',
+          title: 'Medication adherence flag',
+          body: `${patientUser?.name ?? 'Patient'} — ${med.name}: ${dto.reason.trim()}`,
+          href: `/doctor-patients/${patientRow.id}/medications`,
+          metadata: {
+            flagId: created.id,
+            medicationId: dto.medicationId,
+            patientId: patientRow.id,
+            severity: dto.severity,
+          },
+        }),
+      ),
+    );
 
     return {
       id: created.id,

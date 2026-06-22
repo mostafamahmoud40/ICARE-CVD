@@ -9,6 +9,7 @@ import { PatientLabController } from './patient-lab.controller';
 import { DoctorVerifierModule } from '../../shared/doctor/doctor-verifier.module';
 import { MinioModule } from '../../shared/storage/minio.module';
 import { PatientGuard } from '../patient/patient.guard';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { PatientGuard } from '../patient/patient.guard';
     }),
     DoctorVerifierModule,
     MinioModule,
+    NotificationsModule,
   ],
   controllers: [DoctorLabController, PatientLabController],
   providers: [LabService, DoctorGuard, PatientGuard, AuthJwtService, AccessTokenGuard],

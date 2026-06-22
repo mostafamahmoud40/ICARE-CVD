@@ -19,12 +19,14 @@ import type {
   QueueStatus,
 } from './dto/doctor-queue.dto';
 import { AvatarUrlResolver } from '../../../shared/storage/avatar-url.resolver';
+import { QueueNotificationService } from '../../notifications/queue-notification.service';
 
 @Injectable()
 export class DoctorQueueService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly avatarUrlResolver: AvatarUrlResolver,
+    private readonly queueNotifications: QueueNotificationService,
   ) {}
 
   /* ------------------------------------------------------------------ */
@@ -223,6 +225,7 @@ export class DoctorQueueService {
       .select({
         id: patientQueue.id,
         appointmentId: patientQueue.appointmentId,
+        status: patientQueue.status,
       })
       .from(patientQueue)
       .innerJoin(appointment, eq(patientQueue.appointmentId, appointment.id))
@@ -233,6 +236,7 @@ export class DoctorQueueService {
 
     if (!existing.length) throw new NotFoundException('Queue entry not found');
 
+    const previousStatus = existing[0].status;
     const appointmentId = existing[0].appointmentId;
 
     const now = new Date();
@@ -292,6 +296,10 @@ export class DoctorQueueService {
         .set({ status: 'cancelled', cancelledAt: now, updatedAt: now })
         .where(eq(appointment.id, appointmentId));
     }
+
+    void this.queueNotifications
+      .notifyAfterStatusChange(queueId, previousStatus, status)
+      .catch(() => undefined);
 
     return this.getQueueEntry(doctorId, queueId);
   }

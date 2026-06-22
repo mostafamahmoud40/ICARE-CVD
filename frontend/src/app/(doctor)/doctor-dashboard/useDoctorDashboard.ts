@@ -2,14 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query"
 
-import { mockDoctorDashboard } from "./doctorDashboard.mock"
+import { fetchDoctorDashboard } from "./doctorDashboard.api"
 import type { DoctorDashboardData } from "./doctorDashboard.types"
 
 export function useDoctorDashboard() {
   return useQuery<DoctorDashboardData, Error>({
     queryKey: ["doctor-dashboard"],
-    queryFn: async () => mockDoctorDashboard,
-    staleTime: 5 * 60 * 1000,
+    queryFn: fetchDoctorDashboard,
+    staleTime: 60 * 1000,
   })
 }
-
