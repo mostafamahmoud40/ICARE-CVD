@@ -9,6 +9,7 @@ import {
 import { AgentContextStage } from '../agent-context.stage';
 import { AgentPromptStage } from '../agent-prompt.stage';
 import { AgentRetrievalStage } from '../agent-retrieval.stage';
+import { PatientMedicalContextService } from '../patient-medical-context.service';
 import type {
   AgentPipelineInput,
   AgentPipelineResult,
@@ -23,6 +24,7 @@ export class LangChainRagPipelineService {
     private readonly contextStage: AgentContextStage,
     private readonly promptStage: AgentPromptStage,
     private readonly appointmentService: AppointmentService,
+    private readonly patientMedicalContext: PatientMedicalContextService,
   ) {}
 
   async run(
@@ -83,9 +85,10 @@ export class LangChainRagPipelineService {
       summary: `${assembled.blocks.length} blocks, deduped & ranked`,
     });
 
-    const [appointments, clinic] = await Promise.all([
+    const [appointments, clinic, patientContext] = await Promise.all([
       this.buildPatientAppointmentsContext(input.userId),
       this.buildClinicContext(input.todayStr),
+      this.patientMedicalContext.build(input.userId),
     ]);
 
     const intentPromptAddon = this.promptStage.buildIntentAddon(understanding);
@@ -103,7 +106,7 @@ export class LangChainRagPipelineService {
       assembled,
       pipelineTrace: trace,
       intentPromptAddon,
-      fallbackLiveContext: { appointments, clinic },
+      fallbackLiveContext: { appointments, clinic, patientContext },
     };
   }
 

@@ -103,5 +103,7 @@ export type AgentPipelineResult = {
   fallbackLiveContext: {
     appointments: string;
     clinic: string;
+    /** Full medical record for this patient (profile, history, meds, labs, consultations, etc.) */
+    patientContext: string;
   };
 };

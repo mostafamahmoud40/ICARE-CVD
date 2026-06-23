@@ -105,7 +105,7 @@ export class AgentPipelineService {
       assembled,
       pipelineTrace: trace,
       intentPromptAddon,
-      fallbackLiveContext: { appointments, clinic },
+      fallbackLiveContext: { appointments, clinic, patientContext: '' },
     };
   }
 

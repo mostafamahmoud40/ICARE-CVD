@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { and, desc, eq, isNotNull, sql } from 'drizzle-orm';
+import { notifyPatientDataChanged } from '../../shared/patient-data-notifier';
 
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
@@ -361,6 +362,8 @@ export class MedicationService {
       })
       .catch(() => undefined);
 
+    notifyPatientDataChanged(patientId, 'medication');
+
     return newMed;
   }
 
@@ -388,6 +391,10 @@ export class MedicationService {
       })
       .where(eq(medication.id, medicationId))
       .returning();
+
+    void this.db.query.patient
+      .findFirst({ where: eq(patient.userId, existing.userId) })
+      .then((p) => p && notifyPatientDataChanged(p.id, 'medication'));
 
     return updated;
   }
@@ -425,6 +432,10 @@ export class MedicationService {
       .set(updates)
       .where(eq(medication.id, medicationId))
       .returning();
+
+    void this.db.query.patient
+      .findFirst({ where: eq(patient.userId, existing.userId) })
+      .then((p) => p && notifyPatientDataChanged(p.id, 'medication'));
 
     return updated;
   }

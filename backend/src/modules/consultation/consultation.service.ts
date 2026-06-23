@@ -1,5 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
+import { notifyPatientDataChanged } from '../../shared/patient-data-notifier';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import {
@@ -465,6 +466,8 @@ export class ConsultationService {
         procedureDetailsRaw: dto.consultationProcedureDetails,
       });
     }
+
+    notifyPatientDataChanged(updated.patientId, 'consultation');
 
     return updated;
   }

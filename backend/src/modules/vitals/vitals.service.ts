@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { and, desc, eq, gte } from 'drizzle-orm';
+import { notifyPatientDataChanged } from '../../shared/patient-data-notifier';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import {
@@ -93,6 +94,8 @@ export class VitalsService {
         recordedByUserId: doctorRow.userId,
       })
       .returning();
+
+    notifyPatientDataChanged(patientId, 'vital');
 
     return reading;
   }
@@ -261,6 +264,8 @@ export class VitalsService {
     if (isAbnormalVitalReading(snapshot)) {
       await this.notifyCareTeam(patientRow.id, patientRow.userId, snapshot);
     }
+
+    notifyPatientDataChanged(patientRow.id, 'vital');
 
     return reading;
   }
