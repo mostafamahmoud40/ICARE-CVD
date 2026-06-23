@@ -5,7 +5,7 @@ import { AuthJwtService } from '../auth/jwt';
 import { DoctorGuard } from '../doctor/doctor.guard';
 import { LabService } from './lab.service';
 import { DoctorLabController } from './doctor-lab.controller';
-import { PatientLabController } from './patient-lab.controller';
+import { PatientLabController, PatientLabResultsController } from './patient-lab.controller';
 import { DoctorVerifierModule } from '../../shared/doctor/doctor-verifier.module';
 import { MinioModule } from '../../shared/storage/minio.module';
 import { PatientGuard } from '../patient/patient.guard';
@@ -20,7 +20,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     MinioModule,
     NotificationsModule,
   ],
-  controllers: [DoctorLabController, PatientLabController],
+  controllers: [DoctorLabController, PatientLabController, PatientLabResultsController],
   providers: [LabService, DoctorGuard, PatientGuard, AuthJwtService, AccessTokenGuard],
 })
 export class LabModule {}

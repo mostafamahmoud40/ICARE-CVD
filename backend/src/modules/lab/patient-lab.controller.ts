@@ -63,3 +63,14 @@ export class PatientLabController {
     return this.labService.submitPatientLabReport(user.sub, orderId, dto);
   }
 }
+
+@Controller('patient/lab-results')
+@UseGuards(AccessTokenGuard, PatientGuard)
+export class PatientLabResultsController {
+  constructor(private readonly labService: LabService) {}
+
+  @Get()
+  listLabResults(@CurrentUser() user: TokenPayload) {
+    return this.labService.listPatientLabResults(user.sub);
+  }
+}
