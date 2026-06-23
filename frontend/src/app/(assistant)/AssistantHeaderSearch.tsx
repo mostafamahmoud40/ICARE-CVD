@@ -9,7 +9,6 @@ import {
   CalendarClockIcon,
   CalendarDaysIcon,
   ClipboardListIcon,
-  InboxIcon,
   LayoutDashboardIcon,
   MessageCircleIcon,
   SearchIcon,
@@ -77,14 +76,6 @@ const SEARCH_ENTRIES: SearchEntry[] = [
     href: "/assistant-appointments",
     icon: CalendarClockIcon,
     keywords: ["appointment", "booking", "schedule"],
-  },
-  {
-    id: "inbox",
-    titleKey: "header.inbox.title",
-    subtitleKey: "header.inbox.subtitle",
-    href: "/assistant-inbox",
-    icon: InboxIcon,
-    keywords: ["inbox", "tasks", "messages"],
   },
   {
     id: "chats",

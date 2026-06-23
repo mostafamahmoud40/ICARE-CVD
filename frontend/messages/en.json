@@ -33,7 +33,6 @@
     "portalName": "Assistant Portal",
     "nav": {
       "commandCenter": "Command Center",
-      "inbox": "Inbox",
       "chats": "Chats",
       "patients": "Patients",
       "appointments": "Appointments",
@@ -77,10 +76,6 @@
       "dashboard": {
         "title": "Today's Command Center",
         "subtitle": "Live reception queue, appointments, and triage"
-      },
-      "inbox": {
-        "title": "Inbox",
-        "subtitle": "Tasks and messages needing attention"
       },
       "chats": {
         "title": "Chats",

@@ -12,7 +12,6 @@ import {
   ClipboardListIcon,
   ClipboardPlusIcon,
   CreditCardIcon,
-  InboxIcon,
   LayoutDashboardIcon,
   LogOutIcon,
   MessageCircleIcon,
@@ -77,11 +76,6 @@ const ROUTES: RouteEntry[] = [
     prefix: "/assistant-dashboard",
     routeId: "dashboard",
     icon: LayoutDashboardIcon,
-  },
-  {
-    prefix: "/assistant-inbox",
-    routeId: "inbox",
-    icon: InboxIcon,
   },
   {
     prefix: "/assistant-chats",
