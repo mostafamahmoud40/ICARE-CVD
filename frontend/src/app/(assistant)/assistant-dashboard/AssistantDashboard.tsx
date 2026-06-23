@@ -18,7 +18,6 @@ import {
   CalendarClockIcon,
   CheckCircleIcon,
   ClockIcon,
-  InboxIcon,
   UsersIcon,
   StethoscopeIcon,
   PlusIcon,
