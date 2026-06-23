@@ -388,6 +388,26 @@ export class LabService {
     });
   }
 
+  async listPatientLabResults(userId: number) {
+    const patientRow = await this.findPatientByUserId(userId);
+
+    const rows = await this.db.query.labResult.findMany({
+      where: eq(labResult.patientId, patientRow.id),
+      orderBy: desc(labResult.resultAt),
+      limit: 24,
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      testName: row.testName,
+      value: row.value,
+      unit: row.unit,
+      referenceRange: row.referenceRange,
+      status: row.status,
+      resultAt: row.resultAt.toISOString(),
+    }));
+  }
+
   async createLabResult(
     doctorUserId: number,
     patientId: string,

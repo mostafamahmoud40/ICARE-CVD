@@ -7,7 +7,7 @@ dist/
 *.7z
 
 # Database seed scripts (local/demo only — do not commit)
-backend/src/database/seeds/*.sql
+seed-database/*.sql
 
 # OS
 .DS_Store
