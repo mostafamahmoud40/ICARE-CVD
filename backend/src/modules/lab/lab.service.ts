@@ -1,5 +1,6 @@
 import { Inject, Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { and, desc, eq, inArray } from 'drizzle-orm';
+import { notifyPatientDataChanged } from '../../shared/patient-data-notifier';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import {
@@ -446,6 +447,8 @@ export class LabService {
         })
         .catch(() => undefined);
     }
+
+    notifyPatientDataChanged(patientId, 'lab_result');
 
     return result;
   }

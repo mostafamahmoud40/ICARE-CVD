@@ -136,6 +136,7 @@ export class ChromaService implements OnModuleInit {
     collectionName: string,
     queryEmbedding: number[],
     nResults = 8,
+    where?: Record<string, unknown>,
   ): Promise<Array<{ id: string; document: string; metadata: Record<string, unknown>; distance: number }>> {
     if (!this._ready) return [];
     try {
@@ -143,6 +144,7 @@ export class ChromaService implements OnModuleInit {
       const results = await col.query({
         queryEmbeddings: [queryEmbedding],
         nResults,
+        ...(where ? { where: where as Parameters<typeof col.query>[0]['where'] } : {}),
       });
 
       const ids = results.ids[0] ?? [];

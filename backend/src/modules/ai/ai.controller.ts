@@ -3,17 +3,21 @@ import { AccessTokenGuard } from '../auth/access-token.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { TokenPayload } from '../auth/jwt';
 import { PatientGuard } from '../patient/patient.guard';
+import { DoctorGuard } from '../doctor/doctor.guard';
 import { AiService } from './ai.service';
 import { PatientAiChatService } from './patient-ai-chat.service';
+import { DoctorAiChatService } from './doctor-ai-chat.service';
 import { PersistRegistrationSummaryDto } from './dto/persist-registration-summary.dto';
 import { RegistrationAnalyzeDto } from './dto/registration-analyze.dto';
 import { PatientAiChatDto } from './dto/patient-ai-chat.dto';
+import { DoctorAiChatDto } from './dto/doctor-ai-chat.dto';
 
 @Controller('ai')
 export class AiController {
   constructor(
     private readonly aiService: AiService,
     private readonly patientAiChatService: PatientAiChatService,
+    private readonly doctorAiChatService: DoctorAiChatService,
   ) {}
 
   @Get('registration-summary')
@@ -51,5 +55,15 @@ export class AiController {
     @Body() dto: PatientAiChatDto,
   ) {
     return this.patientAiChatService.chat(currentUser.sub, dto);
+  }
+
+  /** POST /ai/doctor/chat — doctor clinical AI over full patient panel */
+  @Post('doctor/chat')
+  @UseGuards(AccessTokenGuard, DoctorGuard)
+  doctorChat(
+    @CurrentUser() currentUser: TokenPayload,
+    @Body() dto: DoctorAiChatDto,
+  ) {
+    return this.doctorAiChatService.chat(currentUser.sub, dto);
   }
 }
