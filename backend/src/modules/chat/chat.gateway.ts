@@ -6,13 +6,15 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
-import type { TokenPayload } from '../auth/jwt';
+import { Server } from 'socket.io';
 import { AuthJwtService } from '../auth/jwt';
+import {
+  extractSocketToken,
+  getSocketUser,
+  type SocketWithUser,
+} from '../../shared/socket-auth';
 import { ChatService } from './chat.service';
 import type { SendMessageDto } from './dto/send-message.dto';
-
-type SocketWithUser = Socket & { data: { user?: TokenPayload } };
 
 @WebSocketGateway({
   namespace: 'chat',
@@ -32,7 +34,7 @@ export class ChatGateway implements OnGatewayConnection {
 
   async handleConnection(client: SocketWithUser) {
     try {
-      const token = this.extractToken(client);
+      const token = extractSocketToken(client);
       const user = await this.authJwtService.verifyAccessToken(token);
       client.data.user = user;
       await client.join(`user:${user.sub}`);
@@ -46,7 +48,7 @@ export class ChatGateway implements OnGatewayConnection {
     @ConnectedSocket() client: SocketWithUser,
     @MessageBody() body: { conversationId: number },
   ) {
-    const user = client.data.user;
+    const user = getSocketUser(client);
     if (!user || !body?.conversationId) return { ok: false };
 
     await this.chatService.ensureConversationAccess(body.conversationId, user);
@@ -64,9 +66,10 @@ export class ChatGateway implements OnGatewayConnection {
       attachments?: SendMessageDto['attachments'];
     },
   ) {
-    const user = client.data.user;
+    const user = getSocketUser(client);
     if (!user || !body?.conversationId) return { ok: false };
-    if (!body.message?.trim() && !body.attachments?.length) return { ok: false };
+    if (!body.message?.trim() && !body.attachments?.length)
+      return { ok: false };
 
     const created = await this.chatService.sendMessage(
       body.conversationId,
@@ -92,8 +95,9 @@ export class ChatGateway implements OnGatewayConnection {
     @ConnectedSocket() client: SocketWithUser,
     @MessageBody() body: { conversationId: number; messageId: number },
   ) {
-    const user = client.data.user;
-    if (!user || !body?.conversationId || !body?.messageId) return { ok: false };
+    const user = getSocketUser(client);
+    if (!user || !body?.conversationId || !body?.messageId)
+      return { ok: false };
 
     const result = await this.chatService.deleteMessage(
       body.conversationId,
@@ -116,7 +120,7 @@ export class ChatGateway implements OnGatewayConnection {
     @ConnectedSocket() client: SocketWithUser,
     @MessageBody() body: { conversationId: number; isTyping: boolean },
   ) {
-    const user = client.data.user;
+    const user = getSocketUser(client);
     if (!user || !body?.conversationId) return { ok: false };
 
     await this.chatService.ensureConversationAccess(body.conversationId, user);
@@ -143,7 +147,7 @@ export class ChatGateway implements OnGatewayConnection {
     @ConnectedSocket() client: SocketWithUser,
     @MessageBody() body: { conversationId: number; kind: 'video' | 'voice' },
   ) {
-    const user = client.data.user;
+    const user = getSocketUser(client);
     if (!user || !body?.conversationId || !body?.kind) return { ok: false };
 
     await this.chatService.ensureConversationAccess(body.conversationId, user);
@@ -163,7 +167,9 @@ export class ChatGateway implements OnGatewayConnection {
     };
 
     for (const recipientUserId of recipientUserIds) {
-      this.server.to(`user:${recipientUserId}`).emit('chat:incomingCall', payload);
+      this.server
+        .to(`user:${recipientUserId}`)
+        .emit('chat:incomingCall', payload);
     }
 
     return { ok: true };
@@ -174,7 +180,7 @@ export class ChatGateway implements OnGatewayConnection {
     @ConnectedSocket() client: SocketWithUser,
     @MessageBody() body: { conversationId: number; kind: 'video' | 'voice' },
   ) {
-    const user = client.data.user;
+    const user = getSocketUser(client);
     if (!user || !body?.conversationId || !body?.kind) return { ok: false };
 
     await this.chatService.ensureConversationAccess(body.conversationId, user);
@@ -194,19 +200,11 @@ export class ChatGateway implements OnGatewayConnection {
     };
 
     for (const recipientUserId of recipientUserIds) {
-      this.server.to(`user:${recipientUserId}`).emit('chat:callMissed', payload);
+      this.server
+        .to(`user:${recipientUserId}`)
+        .emit('chat:callMissed', payload);
     }
 
     return { ok: true };
-  }
-
-  private extractToken(client: SocketWithUser) {
-    const fromAuth = client.handshake.auth?.token;
-    const fromHeader = client.handshake.headers.authorization;
-    const raw = fromAuth ?? fromHeader;
-    if (!raw || typeof raw !== 'string') {
-      throw new Error('Missing token');
-    }
-    return raw.startsWith('Bearer ') ? raw.slice(7).trim() : raw.trim();
   }
 }

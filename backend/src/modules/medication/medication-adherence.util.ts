@@ -17,7 +17,10 @@ const TIME_OF_DAY_SLOTS: Record<string, DoseTimeSlot> = {
 };
 
 function normalizeFrequency(frequency: string): string {
-  return frequency.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  return frequency
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
 }
 
 function hourlySlots(intervalHours: number, startHour = 6): DoseTimeSlot[] {
@@ -93,7 +96,10 @@ export function buildDoseSchedule(input: {
 
   const upper = input.frequency.trim().toUpperCase();
   if (upper.includes('BID')) {
-    return buildDoseSchedule({ frequency: 'twice_daily', timeOfDay: input.timeOfDay });
+    return buildDoseSchedule({
+      frequency: 'twice_daily',
+      timeOfDay: input.timeOfDay,
+    });
   }
   if (upper.includes('TID') || upper.includes('Q8H')) {
     return buildDoseSchedule({
@@ -108,13 +114,19 @@ export function buildDoseSchedule(input: {
     });
   }
   if (upper.includes('QD')) {
-    return buildDoseSchedule({ frequency: 'once_daily', timeOfDay: input.timeOfDay });
+    return buildDoseSchedule({
+      frequency: 'once_daily',
+      timeOfDay: input.timeOfDay,
+    });
   }
   if (upper.includes('HS')) {
     return [{ label: 'Bedtime', hour24: 22 }];
   }
 
-  return buildDoseSchedule({ frequency: 'twice_daily', timeOfDay: input.timeOfDay });
+  return buildDoseSchedule({
+    frequency: 'twice_daily',
+    timeOfDay: input.timeOfDay,
+  });
 }
 
 function dateKeyFromDate(date: Date): string {

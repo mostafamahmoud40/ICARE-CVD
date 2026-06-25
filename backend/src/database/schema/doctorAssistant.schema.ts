@@ -1,9 +1,4 @@
-import {
-  pgTable,
-  timestamp,
-  uuid,
-  uniqueIndex,
-} from 'drizzle-orm/pg-core';
+import { pgTable, timestamp, uuid, uniqueIndex } from 'drizzle-orm/pg-core';
 import { assistant } from './assistant.schema';
 import { doctor } from './doctor.schema';
 

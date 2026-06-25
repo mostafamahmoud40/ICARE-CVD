@@ -25,17 +25,12 @@ import type { SaveConsultationCineMriAnalysisDto } from './dto/consultation-cine
 
 function isNiftiFile(fileName: string, contentType: string): boolean {
   const mime = contentType.trim().toLowerCase();
-  return (
-    /\.nii(\.gz)?$/i.test(fileName) ||
-    CINE_MRI_NIFTI_MIME_TYPES.has(mime)
-  );
+  return /\.nii(\.gz)?$/i.test(fileName) || CINE_MRI_NIFTI_MIME_TYPES.has(mime);
 }
 
 function isVisualizationFile(fileName: string, contentType: string): boolean {
   const mime = contentType.trim().toLowerCase();
-  return (
-    CINE_MRI_IMAGE_MIME_TYPES.has(mime) || /\.(gif|png)$/i.test(fileName)
-  );
+  return CINE_MRI_IMAGE_MIME_TYPES.has(mime) || /\.(gif|png)$/i.test(fileName);
 }
 
 @Injectable()
@@ -154,12 +149,13 @@ export class ConsultationCineMriService {
     );
 
     if (dto.consultationId) {
-      const existing = await this.db.query.consultationCineMriAnalysis.findFirst({
-        where: and(
-          eq(consultationCineMriAnalysis.patientId, patientId),
-          eq(consultationCineMriAnalysis.consultationId, dto.consultationId),
-        ),
-      });
+      const existing =
+        await this.db.query.consultationCineMriAnalysis.findFirst({
+          where: and(
+            eq(consultationCineMriAnalysis.patientId, patientId),
+            eq(consultationCineMriAnalysis.consultationId, dto.consultationId),
+          ),
+        });
       if (existing) {
         await this.deleteAnalysisRow(existing.id, patientId);
       }
@@ -344,25 +340,21 @@ export class ConsultationCineMriService {
       clinicalFeatures: Record<string, number>;
     };
 
-    const [
-      rawGifUrl,
-      segGifUrl,
-      segGridEdUrl,
-      segGridEsUrl,
-    ] = await Promise.all([
-      rawGifDoc?.s3Key
-        ? this.minioService.createDownloadUrl({ key: rawGifDoc.s3Key })
-        : null,
-      segGifDoc?.s3Key
-        ? this.minioService.createDownloadUrl({ key: segGifDoc.s3Key })
-        : null,
-      segGridEdDoc?.s3Key
-        ? this.minioService.createDownloadUrl({ key: segGridEdDoc.s3Key })
-        : null,
-      segGridEsDoc?.s3Key
-        ? this.minioService.createDownloadUrl({ key: segGridEsDoc.s3Key })
-        : null,
-    ]);
+    const [rawGifUrl, segGifUrl, segGridEdUrl, segGridEsUrl] =
+      await Promise.all([
+        rawGifDoc?.s3Key
+          ? this.minioService.createDownloadUrl({ key: rawGifDoc.s3Key })
+          : null,
+        segGifDoc?.s3Key
+          ? this.minioService.createDownloadUrl({ key: segGifDoc.s3Key })
+          : null,
+        segGridEdDoc?.s3Key
+          ? this.minioService.createDownloadUrl({ key: segGridEdDoc.s3Key })
+          : null,
+        segGridEsDoc?.s3Key
+          ? this.minioService.createDownloadUrl({ key: segGridEsDoc.s3Key })
+          : null,
+      ]);
 
     return {
       id: row.id,

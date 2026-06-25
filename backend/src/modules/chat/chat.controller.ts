@@ -14,10 +14,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { TokenPayload } from '../auth/jwt';
 import { ChatService } from './chat.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
-import {
-  ChatUploadIntentDto,
-  SendMessageDto,
-} from './dto/send-message.dto';
+import { ChatUploadIntentDto, SendMessageDto } from './dto/send-message.dto';
 
 @Controller('chat')
 @UseGuards(AccessTokenGuard)

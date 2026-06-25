@@ -60,11 +60,15 @@ export class AgentPromptStage {
     }
 
     if (understanding.expandedTerms.length > 0) {
-      parts.push(`Expanded terms: ${understanding.expandedTerms.slice(0, 8).join(', ')}`);
+      parts.push(
+        `Expanded terms: ${understanding.expandedTerms.slice(0, 8).join(', ')}`,
+      );
     }
 
     if (understanding.subQuestions.length > 0) {
-      parts.push(`Anticipated questions: ${understanding.subQuestions.join(' | ')}`);
+      parts.push(
+        `Anticipated questions: ${understanding.subQuestions.join(' | ')}`,
+      );
     }
 
     for (const intent of understanding.intents.slice(0, 2)) {
@@ -72,7 +76,10 @@ export class AgentPromptStage {
       if (addon) parts.push(addon);
     }
 
-    if (understanding.needsClarification && understanding.clarificationQuestion) {
+    if (
+      understanding.needsClarification &&
+      understanding.clarificationQuestion
+    ) {
       parts.push(
         `## Clarification fallback\nIf still ambiguous, ask: "${understanding.clarificationQuestion}"`,
       );

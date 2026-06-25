@@ -1,12 +1,23 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { AppointmentService } from '../../appointment/appointment.service';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  APPOINTMENT_READER,
+  type IAppointmentReader,
+} from '../../../shared/ports/appointment.port';
+import {
+  EMBEDDING_SERVICE,
+  type IEmbeddingService,
+} from '../../../shared/ports/embedding.port';
+
 import {
   clinicSlotToIso,
   formatClinicDateTime,
   todayClinicDateStr,
 } from '../../../common/clinic-time.util';
-import { ChromaService, CHROMA_COLLECTION_CLINIC, CHROMA_COLLECTION_APPOINTMENTS } from './chroma.service';
-import { EmbeddingService } from '../embedding/embedding.service';
+import {
+  ChromaService,
+  CHROMA_COLLECTION_CLINIC,
+  CHROMA_COLLECTION_APPOINTMENTS,
+} from './chroma.service';
 
 /**
  * Indexes clinic data into ChromaDB when an embedding provider is enabled (BGE-M3 or Cohere).
@@ -17,13 +28,15 @@ export class ClinicIndexerService implements OnModuleInit {
 
   constructor(
     private readonly chromaService: ChromaService,
-    private readonly appointmentService: AppointmentService,
-    private readonly embeddingService: EmbeddingService,
+    @Inject(APPOINTMENT_READER)
+    private readonly appointmentReader: IAppointmentReader,
+    @Inject(EMBEDDING_SERVICE)
+    private readonly embeddingService: IEmbeddingService,
   ) {}
 
   // ─── Startup + periodic full re-index ────────────────────────────────────
 
-  async onModuleInit() {
+  onModuleInit() {
     if (!this.embeddingService.isEnabled()) return;
     // Initial index after a short delay (let ChromaDB finish connecting)
     setTimeout(() => void this.indexAllClinicData(), 5_000);
@@ -49,9 +62,9 @@ export class ClinicIndexerService implements OnModuleInit {
 
   async indexDoctorsAndSchedules(): Promise<void> {
     const today = todayClinicDateStr();
-    let doctors: Awaited<ReturnType<AppointmentService['listDoctors']>> = [];
+    let doctors: Awaited<ReturnType<IAppointmentReader['listDoctors']>> = [];
     try {
-      doctors = await this.appointmentService.listDoctors();
+      doctors = await this.appointmentReader.listDoctors();
     } catch {
       return;
     }
@@ -83,7 +96,7 @@ export class ClinicIndexerService implements OnModuleInit {
 
       // ── Schedule documents (one per day with available slots) ─────────────
       try {
-        const avail = await this.appointmentService.getDoctorAvailability(
+        const avail = await this.appointmentReader.getDoctorAvailability(
           doc.id,
           today,
           7,
@@ -164,9 +177,11 @@ export class ClinicIndexerService implements OnModuleInit {
     if (!this.embeddingService.isEnabled()) return;
     if (!this.chromaService.isReady) return;
     try {
-      const appts = await this.appointmentService.listPatientAppointments(userId);
+      const appts =
+        await this.appointmentReader.listPatientAppointments(userId);
       const upcoming = appts.filter(
-        (a) => a.status !== 'cancelled' && new Date(a.scheduledAt) >= new Date(),
+        (a) =>
+          a.status !== 'cancelled' && new Date(a.scheduledAt) >= new Date(),
       );
 
       if (upcoming.length === 0) {

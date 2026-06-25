@@ -6,6 +6,21 @@ import {
 } from '@aws-sdk/client-ses';
 import * as SibApiV3Sdk from 'sib-api-v3-sdk';
 
+type BrevoEmailClient = {
+  sendTransacEmail(body: Record<string, unknown>): Promise<unknown>;
+};
+
+type BrevoSdkModule = {
+  ApiClient: {
+    instance: {
+      authentications: Record<string, { apiKey: string }>;
+    };
+  };
+  TransactionalEmailsApi: new () => BrevoEmailClient;
+};
+
+const brevoSdk = SibApiV3Sdk as unknown as BrevoSdkModule;
+
 /**
  * MailService — transactional email via Brevo (preferred) or AWS SES fallback.
  *
@@ -21,22 +36,21 @@ import * as SibApiV3Sdk from 'sib-api-v3-sdk';
 export class MailService {
   private readonly logger = new Logger(MailService.name);
 
-  private readonly brevoApi: SibApiV3Sdk.TransactionalEmailsApi | null =
-    this.buildBrevoClient();
+  private readonly brevoApi: BrevoEmailClient | null = this.buildBrevoClient();
 
   private readonly sesClient: SESClient | null = this.brevoApi
     ? null
     : this.buildSesClient();
 
-  private buildBrevoClient(): SibApiV3Sdk.TransactionalEmailsApi | null {
+  private buildBrevoClient(): BrevoEmailClient | null {
     const apiKey = process.env.BREVO_API_KEY?.trim();
     if (!apiKey) return null;
 
-    const client = SibApiV3Sdk.ApiClient.instance;
+    const client = brevoSdk.ApiClient.instance;
     client.authentications['api-key'].apiKey = apiKey;
 
     this.logger.log('Brevo email provider configured.');
-    return new SibApiV3Sdk.TransactionalEmailsApi();
+    return new brevoSdk.TransactionalEmailsApi();
   }
 
   private buildSesClient(): SESClient | null {
@@ -292,19 +306,26 @@ export class MailService {
       this.logger.log(`Email sent to ${params.to} via Brevo`);
     } catch (err) {
       const message = this.formatBrevoError(err);
-      this.logger.error(`Failed to send email to ${params.to} via Brevo: ${message}`, err);
+      this.logger.error(
+        `Failed to send email to ${params.to} via Brevo: ${message}`,
+        err,
+      );
       throw new Error(message);
     }
   }
 
   private formatBrevoError(err: unknown): string {
     if (err && typeof err === 'object') {
-      const body = (err as { response?: { body?: { message?: string } } }).response
-        ?.body?.message;
+      const body = (err as { response?: { body?: { message?: string } } })
+        .response?.body?.message;
       if (typeof body === 'string' && body.trim()) {
         return body.trim();
       }
-      if ('message' in err && typeof err.message === 'string' && err.message.trim()) {
+      if (
+        'message' in err &&
+        typeof err.message === 'string' &&
+        err.message.trim()
+      ) {
         return err.message.trim();
       }
     }

@@ -1,9 +1,6 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
-import { AccessTokenGuard } from '../auth/access-token.guard';
-import { AuthJwtService } from '../auth/jwt';
-import { PatientGuard } from '../patient/patient.guard';
-import { DoctorGuard } from '../doctor/doctor.guard';
+
+import { EMBEDDING_SERVICE } from '../../shared/ports/embedding.port';
 import { AppointmentModule } from '../appointment/appointment.module';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
@@ -27,18 +24,14 @@ import { DoctorRetrievalStage } from './doctor-agent/doctor-retrieval.stage';
 import { DoctorRagPipelineService } from './doctor-agent/langchain/doctor-rag-pipeline.service';
 
 @Module({
-  imports: [
-    JwtModule.register({
-      secret: process.env.JWT_ACCESS_SECRET,
-    }),
-    AppointmentModule,
-  ],
+  imports: [AppointmentModule],
   controllers: [AiController],
   providers: [
     AiService,
     PatientAiChatService,
     DoctorAiChatService,
     EmbeddingService,
+    { provide: EMBEDDING_SERVICE, useExisting: EmbeddingService },
     ChromaService,
     ClinicIndexerService,
     AgentRetrievalStage,
@@ -54,10 +47,6 @@ import { DoctorRagPipelineService } from './doctor-agent/langchain/doctor-rag-pi
     DoctorIndexerService,
     DoctorRetrievalStage,
     DoctorRagPipelineService,
-    PatientGuard,
-    DoctorGuard,
-    AuthJwtService,
-    AccessTokenGuard,
   ],
 })
 export class AiModule {}

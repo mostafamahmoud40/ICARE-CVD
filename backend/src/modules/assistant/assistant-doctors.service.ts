@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, count, eq, gte, inArray, lte } from 'drizzle-orm';
+import { and, eq, gte, inArray, lte } from 'drizzle-orm';
 
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
@@ -77,9 +77,7 @@ export class AssistantDoctorsService {
       const patientsWaiting = op?.patientsWaiting ?? 0;
       const status = this.resolveStatus(op, day);
       const room =
-        op?.activeRoom?.trim() ||
-        row.clinicLocation?.trim() ||
-        undefined;
+        op?.activeRoom?.trim() || row.clinicLocation?.trim() || undefined;
 
       return {
         id: row.id,
@@ -121,9 +119,8 @@ export class AssistantDoctorsService {
     }
 
     const row = rows[0];
-    const schedule = await this.doctorScheduleService.getScheduleByDoctorId(
-      doctorId,
-    );
+    const schedule =
+      await this.doctorScheduleService.getScheduleByDoctorId(doctorId);
     const { todayStart, todayEnd, weekday } = this.todayBounds();
     const operational = await this.loadOperationalByDoctor(
       [doctorId],

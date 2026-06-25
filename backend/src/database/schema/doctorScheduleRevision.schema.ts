@@ -1,4 +1,11 @@
-import { integer, jsonb, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  integer,
+  jsonb,
+  pgTable,
+  timestamp,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import { doctor } from './doctor.schema';
 import { user } from './users.schema';
 import type { DayAvailabilityRow } from './doctorSchedule.schema';

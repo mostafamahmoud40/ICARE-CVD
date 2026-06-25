@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 
 import { ChromaService } from '../chroma/chroma.service';
 import { CHROMA_COLLECTION_DOCTOR_PATIENTS } from './doctor-indexer.service';
-import type { DoctorQueryUnderstanding, DoctorRetrievalHit } from './doctor.types';
+import type {
+  DoctorQueryUnderstanding,
+  DoctorRetrievalHit,
+} from './doctor.types';
 
 @Injectable()
 export class DoctorRetrievalStage {
@@ -13,7 +16,9 @@ export class DoctorRetrievalStage {
     doctorId: string;
   }): Promise<DoctorRetrievalHit[]> {
     const [keywordHits, vectorHits] = await Promise.all([
-      this.keywordSearch(params.understanding, params.doctorId),
+      Promise.resolve(
+        this.keywordSearch(params.understanding, params.doctorId),
+      ),
       this.vectorSearch(params.understanding, params.doctorId),
     ]);
 
@@ -103,8 +108,6 @@ export class DoctorRetrievalStage {
       }
     }
 
-    return [...byKey.values()]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 12);
+    return [...byKey.values()].sort((a, b) => b.score - a.score).slice(0, 12);
   }
 }

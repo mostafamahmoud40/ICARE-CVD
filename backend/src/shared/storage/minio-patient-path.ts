@@ -22,7 +22,10 @@ export type PatientDocumentCategory =
 const REGISTRATION_DOCUMENT_ROOT = 'registration/documents';
 
 /** Legacy flat prefixes kept for reading old keys still stored in the DB. */
-export const LEGACY_MINIO_CATEGORY_PREFIX: Record<MinioStorageCategory, string> = {
+export const LEGACY_MINIO_CATEGORY_PREFIX: Record<
+  MinioStorageCategory,
+  string
+> = {
   chat_image: 'chat/images',
   chat_file: 'chat/files',
   lab_report: 'documents/lab-reports',
@@ -167,7 +170,9 @@ export function isPatientProfileStorageKey(
   return isMinioKeyForCategory(key, 'patient_avatar', patientNumber);
 }
 
-function categoryFolder(category: MinioStorageCategory): PatientStorageFolder | null {
+function categoryFolder(
+  category: MinioStorageCategory,
+): PatientStorageFolder | null {
   switch (category) {
     case 'patient_avatar':
       return 'profile';

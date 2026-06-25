@@ -26,8 +26,7 @@ import type { SaveConsultationEcgClsAnalysisDto } from './dto/consultation-ecg-c
 function isEcgClsImage(fileName: string, contentType: string): boolean {
   const mime = contentType.trim().toLowerCase();
   return (
-    XRAY_IMAGE_MIME_TYPES.has(mime) ||
-    /\.(png|jpe?g|webp|bmp)$/i.test(fileName)
+    XRAY_IMAGE_MIME_TYPES.has(mime) || /\.(png|jpe?g|webp|bmp)$/i.test(fileName)
   );
 }
 
@@ -130,7 +129,9 @@ export class ConsultationEcgClsService {
       await this.assertDocument(dto.imageDocumentId, patientId, 'image');
     } else {
       if (!dto.heaDocumentId || !dto.datDocumentId) {
-        throw new BadRequestException('heaDocumentId and datDocumentId are required');
+        throw new BadRequestException(
+          'heaDocumentId and datDocumentId are required',
+        );
       }
       await this.assertDocument(dto.heaDocumentId, patientId, 'wfdb');
       await this.assertDocument(dto.datDocumentId, patientId, 'wfdb');
@@ -291,9 +292,10 @@ export class ConsultationEcgClsService {
           })
         : null);
 
-    const classification = JSON.parse(
-      row.classificationJson,
-    ) as Record<string, unknown>;
+    const classification = JSON.parse(row.classificationJson) as Record<
+      string,
+      unknown
+    >;
 
     const previewUrl = previewDoc?.s3Key
       ? await this.minioService.createDownloadUrl({ key: previewDoc.s3Key })

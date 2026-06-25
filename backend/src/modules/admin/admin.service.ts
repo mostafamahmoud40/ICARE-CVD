@@ -14,7 +14,7 @@ import {
   pendingRegistration,
   user,
 } from '../../database/schema';
-import { hashPassword, verifyPassword } from '../auth/password';
+import { hashPassword } from '../auth/password';
 import { AuthJwtService } from '../auth/jwt';
 import {
   AddStaffDto,
@@ -346,8 +346,7 @@ export class AdminService {
         specialty: docDetail?.specialty ?? assDetail?.department ?? null,
         experienceYears:
           docDetail?.experienceYears ?? assDetail?.experienceYears ?? 0,
-        acceptedVisitModes:
-          docDetail?.acceptedVisitModes ?? null,
+        acceptedVisitModes: docDetail?.acceptedVisitModes ?? null,
         createdAt:
           (docDetail?.createdAt ?? assDetail?.createdAt)?.toISOString() ??
           new Date().toISOString(),
@@ -402,12 +401,17 @@ export class AdminService {
       throw new UnauthorizedException('Failed to update staff member');
     }
 
-    const roleChanged = existing.role !== dto.role;
+    const roleChanged = (existing.role as StaffRole) !== dto.role;
 
     if (roleChanged) {
-      await this.handleRoleChange(existing.role, dto.role, id, dto);
+      await this.handleRoleChange(
+        existing.role as StaffRole,
+        dto.role,
+        id,
+        dto,
+      );
     } else {
-      await this.updateRoleSpecificProfile(existing.role, id, dto);
+      await this.updateRoleSpecificProfile(existing.role as StaffRole, id, dto);
     }
 
     return {
@@ -417,8 +421,8 @@ export class AdminService {
   }
 
   private async handleRoleChange(
-    previousRole: string,
-    newRole: string,
+    previousRole: StaffRole,
+    newRole: StaffRole,
     userId: number,
     dto: AddStaffDto,
   ): Promise<void> {
@@ -427,7 +431,7 @@ export class AdminService {
   }
 
   private async deleteRoleSpecificProfile(
-    role: string,
+    role: StaffRole,
     userId: number,
   ): Promise<void> {
     if (role === StaffRole.Doctor) {
@@ -438,7 +442,7 @@ export class AdminService {
   }
 
   private async createRoleSpecificProfile(
-    role: string,
+    role: StaffRole,
     userId: number,
     dto: AddStaffDto,
   ): Promise<void> {
@@ -460,7 +464,7 @@ export class AdminService {
   }
 
   private async updateRoleSpecificProfile(
-    role: string,
+    role: StaffRole,
     userId: number,
     dto: AddStaffDto,
   ): Promise<void> {
@@ -511,10 +515,7 @@ export class AdminService {
       throw new NotFoundException('Staff member not found');
     }
 
-    await this.db
-      .update(user)
-      .set({ isActive })
-      .where(eq(user.id, id));
+    await this.db.update(user).set({ isActive }).where(eq(user.id, id));
 
     return {
       message: 'Staff member status updated successfully',

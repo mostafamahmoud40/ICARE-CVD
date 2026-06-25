@@ -121,7 +121,9 @@ export class PatientAiChatService {
       }
 
       this.logger.error('Patient AI chat failed', error);
-      throw new ServiceUnavailableException('AI service temporarily unavailable');
+      throw new ServiceUnavailableException(
+        'AI service temporarily unavailable',
+      );
     }
   }
 
@@ -163,7 +165,10 @@ ${clinicContext}
 
   private isGroqRateLimit(error: unknown): boolean {
     if (!error || typeof error !== 'object') return false;
-    const err = error as { status?: number; error?: { error?: { code?: string } } };
+    const err = error as {
+      status?: number;
+      error?: { error?: { code?: string } };
+    };
     return (
       err.status === 429 ||
       err.status === 413 ||

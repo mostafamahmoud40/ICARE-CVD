@@ -30,18 +30,18 @@ export type DoctorEntity = {
 // ─── Intents ──────────────────────────────────────────────────────────────────
 
 export type DoctorIntentId =
-  | 'lookup_patient'     // info about a specific patient
-  | 'panel_overview'     // overview of all / filtered patients
-  | 'clinical_question'  // general clinical / medical question
-  | 'medication_review'  // medication-specific query
-  | 'lab_review'         // lab results
-  | 'vitals_review'      // vital signs
-  | 'risk_assessment'    // high-risk patients, alerts
-  | 'follow_up_needed'   // who needs follow-up
-  | 'comparison'         // compare multiple patients
+  | 'lookup_patient' // info about a specific patient
+  | 'panel_overview' // overview of all / filtered patients
+  | 'clinical_question' // general clinical / medical question
+  | 'medication_review' // medication-specific query
+  | 'lab_review' // lab results
+  | 'vitals_review' // vital signs
+  | 'risk_assessment' // high-risk patients, alerts
+  | 'follow_up_needed' // who needs follow-up
+  | 'comparison' // compare multiple patients
   | 'ai_analysis_review' // Echo / ECG / X-ray / Cine-MRI
-  | 'procedure_check'    // procedure orders / status
-  | 'diagnosis_query'    // diagnosis-specific
+  | 'procedure_check' // procedure orders / status
+  | 'diagnosis_query' // diagnosis-specific
   | 'general_help';
 
 export type DoctorIntent = {
@@ -91,15 +91,15 @@ export type DoctorPipelineInput = {
   message: string;
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
   todayStr: string;
-  doctorId: string;      // UUID from doctor table
-  doctorUserId: number;  // integer user ID
+  doctorId: string; // UUID from doctor table
+  doctorUserId: number; // integer user ID
 };
 
 export type DoctorPipelineResult = {
   understanding: DoctorQueryUnderstanding;
   retrievalHits: DoctorRetrievalHit[];
-  preFetchedContext: string;  // intent-based pre-fetched tool data
+  preFetchedContext: string; // intent-based pre-fetched tool data
   pipelineTrace: DoctorPipelineStage[];
-  intentPromptAddon: string;  // injected into agent system prompt
-  roster: string;             // compact patient list
+  intentPromptAddon: string; // injected into agent system prompt
+  roster: string; // compact patient list
 };

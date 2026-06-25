@@ -5,7 +5,6 @@ import type { Database } from '../../../database/drizzle.provider';
 import {
   allergy,
   appointment,
-  doctor,
   medication,
   patient,
   patientQueue,

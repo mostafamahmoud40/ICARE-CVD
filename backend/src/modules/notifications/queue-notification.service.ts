@@ -12,7 +12,7 @@ import {
 } from '../../database/schema';
 import { NotificationsService } from './notifications.service';
 
-type QueueStatus = typeof patientQueue.$inferSelect['status'];
+type QueueStatus = (typeof patientQueue.$inferSelect)['status'];
 
 const patientUser = alias(user, 'patient_user');
 const doctorUser = alias(user, 'doctor_user');
@@ -29,7 +29,9 @@ export class QueueNotificationService {
     if (!ctx) return;
 
     const title =
-      ctx.priority === 'urgent' ? 'Urgent patient in queue' : 'Patient added to queue';
+      ctx.priority === 'urgent'
+        ? 'Urgent patient in queue'
+        : 'Patient added to queue';
     const body =
       ctx.priority === 'urgent'
         ? `${ctx.patientName} was added to your queue with urgent priority.`

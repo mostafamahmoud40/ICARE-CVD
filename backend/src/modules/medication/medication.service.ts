@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -13,7 +12,6 @@ import type { Database } from '../../database/drizzle.provider';
 import {
   medication,
   doseLog,
-  medicationRefill,
   patient,
   user,
   doctor,
@@ -61,7 +59,9 @@ export class MedicationService {
       .from(medication)
       .leftJoin(doctor, eq(medication.prescribedBy, doctor.id))
       .leftJoin(user, eq(doctor.userId, user.id))
-      .where(and(eq(medication.userId, userId), isNotNull(medication.prescribedBy)))
+      .where(
+        and(eq(medication.userId, userId), isNotNull(medication.prescribedBy)),
+      )
       .orderBy(desc(medication.createdAt));
 
     return rows.map((row) => ({
@@ -143,9 +143,7 @@ export class MedicationService {
         frequency: med.frequency,
         instructions: med.instructions,
         timeOfDay: med.timeOfDay ?? [],
-        startDate: med.startDate
-          ? String(med.startDate).slice(0, 10)
-          : null,
+        startDate: med.startDate ? String(med.startDate).slice(0, 10) : null,
         adherencePercent: med.adherencePercent,
       },
       doseLogs: logs.map((log) => ({
@@ -187,7 +185,7 @@ export class MedicationService {
       .returning();
 
     // Update last taken and recalculate adherence
-    await this.recalculateAdherence(medicationId, userId);
+    await this.recalculateAdherence(medicationId);
 
     return log;
   }
@@ -492,7 +490,7 @@ export class MedicationService {
     return doctorRow;
   }
 
-  private async recalculateAdherence(medicationId: string, _userId: number) {
+  private async recalculateAdherence(medicationId: string) {
     // Calculate adherence over the last 7 days
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);

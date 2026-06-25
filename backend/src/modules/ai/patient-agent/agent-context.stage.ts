@@ -13,7 +13,13 @@ export class AgentContextStage {
     const ranked = deduped.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       const priority = (c: string) =>
-        c === 'appointments' ? 3 : c === 'schedule' ? 2 : c === 'doctors' ? 1 : 0;
+        c === 'appointments'
+          ? 3
+          : c === 'schedule'
+            ? 2
+            : c === 'doctors'
+              ? 1
+              : 0;
       return priority(b.collection) - priority(a.collection);
     });
 
@@ -35,7 +41,8 @@ export class AgentContextStage {
 
     for (const hit of hits) {
       const contentKey = hit.content.trim().toLowerCase();
-      if (seenCitation.has(hit.citation) || seenContent.has(contentKey)) continue;
+      if (seenCitation.has(hit.citation) || seenContent.has(contentKey))
+        continue;
       seenCitation.add(hit.citation);
       seenContent.add(contentKey);
       out.push(hit);
@@ -55,7 +62,9 @@ export class AgentContextStage {
       byCollection.set(block.collection, list);
     }
 
-    const lines: string[] = ['=== RETRIEVED CONTEXT (ranked, with citations) ==='];
+    const lines: string[] = [
+      '=== RETRIEVED CONTEXT (ranked, with citations) ===',
+    ];
 
     const order: Array<ContextBlock['collection']> = [
       'appointments',
@@ -69,7 +78,9 @@ export class AgentContextStage {
       if (!group?.length) continue;
       lines.push(`--- ${collection} ---`);
       for (const block of group) {
-        lines.push(`[${block.citation}] (score:${block.score.toFixed(2)}) ${block.content}`);
+        lines.push(
+          `[${block.citation}] (score:${block.score.toFixed(2)}) ${block.content}`,
+        );
       }
     }
 

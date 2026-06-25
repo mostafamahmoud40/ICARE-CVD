@@ -3,6 +3,7 @@ import { and, desc, eq, inArray } from 'drizzle-orm';
 
 import { DRIZZLE } from '../../../database/drizzle.provider';
 import type { Database } from '../../../database/drizzle.provider';
+import { jsonToText } from '../../../shared/format-unknown';
 import {
   allergy,
   consultation,
@@ -131,7 +132,10 @@ export class PatientMedicalContextService {
           .orderBy(desc(vitalReading.createdAt))
           .limit(8),
         this.db
-          .select({ body: patientClinicalNote.body, createdAt: patientClinicalNote.createdAt })
+          .select({
+            body: patientClinicalNote.body,
+            createdAt: patientClinicalNote.createdAt,
+          })
           .from(patientClinicalNote)
           .where(eq(patientClinicalNote.patientId, patientRow.id))
           .orderBy(desc(patientClinicalNote.createdAt))
@@ -235,25 +239,25 @@ export class PatientMedicalContextService {
           lines.push(`Chief complaint: ${txt}`);
         }
         if (historyRow.hpiData) {
-          lines.push(`HPI: ${this.jsonToText(historyRow.hpiData)}`);
+          lines.push(`HPI: ${jsonToText(historyRow.hpiData)}`);
         }
         if (historyRow.noCardiacHistory) {
           lines.push('Past cardiac history: none');
         } else if (historyRow.pastCardiacHistory) {
           lines.push(
-            `Past cardiac history: ${this.jsonToText(historyRow.pastCardiacHistory)}`,
+            `Past cardiac history: ${jsonToText(historyRow.pastCardiacHistory)}`,
           );
         }
         if (historyRow.noNonCardiacHistory) {
           lines.push('Past non-cardiac history: none');
         } else if (historyRow.pastNonCardiacHistory) {
           lines.push(
-            `Past non-cardiac history: ${this.jsonToText(historyRow.pastNonCardiacHistory)}`,
+            `Past non-cardiac history: ${jsonToText(historyRow.pastNonCardiacHistory)}`,
           );
         }
         if (historyRow.cardiovascularRiskFactors) {
           lines.push(
-            `CVD risk factors: ${this.jsonToText(historyRow.cardiovascularRiskFactors)}`,
+            `CVD risk factors: ${jsonToText(historyRow.cardiovascularRiskFactors)}`,
           );
         }
         if (historyRow.medicalHistoryNotes?.trim()) {
@@ -294,7 +298,8 @@ export class PatientMedicalContextService {
           for (const m of active) {
             const parts = [`${m.name} ${m.dose} ${m.frequency}`];
             if (m.compliance) parts.push(`compliance: ${m.compliance}`);
-            if (m.startDate) parts.push(`from: ${this.formatDate(m.startDate)}`);
+            if (m.startDate)
+              parts.push(`from: ${this.formatDate(m.startDate)}`);
             if (m.endDate) parts.push(`until: ${this.formatDate(m.endDate)}`);
             if (m.doctorName) parts.push(`by: Dr. ${m.doctorName}`);
             lines.push(`  - ${parts.join(' | ')}`);
@@ -326,7 +331,8 @@ export class PatientMedicalContextService {
             parts.push(`SpO2: ${v.oxygenSaturation}%`);
           if (v.weight != null) parts.push(`Weight: ${v.weight} kg`);
           if (v.temperature != null) parts.push(`Temp: ${v.temperature}°C`);
-          if (v.bloodSugar != null) parts.push(`Glucose: ${v.bloodSugar} mg/dL`);
+          if (v.bloodSugar != null)
+            parts.push(`Glucose: ${v.bloodSugar} mg/dL`);
           lines.push(`  ${parts.join(' | ')}`);
           if (v.notes?.trim()) lines.push(`    Note: ${v.notes.trim()}`);
         }
@@ -336,8 +342,14 @@ export class PatientMedicalContextService {
       // ── Past Consultations ────────────────────────────────────────────────
       if (consultations.length > 0) {
         const lines = ['\n## Past Consultations (last 6)'];
-        const diagsByConsId = this.groupBy(diagnosesRows, (d) => d.consultationId);
-        const rxByConsId = this.groupBy(prescriptionsRows, (p) => p.consultationId);
+        const diagsByConsId = this.groupBy(
+          diagnosesRows,
+          (d) => d.consultationId,
+        );
+        const rxByConsId = this.groupBy(
+          prescriptionsRows,
+          (p) => p.consultationId,
+        );
 
         for (const c of consultations) {
           const date = this.formatDate(c.completedAt ?? c.startedAt);
@@ -347,7 +359,9 @@ export class PatientMedicalContextService {
           if (c.chiefComplaint?.trim())
             lines.push(`  Complaint: ${c.chiefComplaint.trim()}`);
           if (c.historyOfPresentIllness?.trim())
-            lines.push(`  HPI: ${c.historyOfPresentIllness.trim().slice(0, 300)}`);
+            lines.push(
+              `  HPI: ${c.historyOfPresentIllness.trim().slice(0, 300)}`,
+            );
 
           const diags = diagsByConsId.get(c.id) ?? [];
           if (diags.length > 0) {
@@ -378,11 +392,12 @@ export class PatientMedicalContextService {
         const dedupedLabs = this.dedupeLabsByTestName(labResults);
         const lines = ['\n## Recent Lab Results'];
         for (const lr of dedupedLabs) {
-          const val =
-            lr.unit?.trim() ? `${lr.value} ${lr.unit}` : lr.value;
+          const val = lr.unit?.trim() ? `${lr.value} ${lr.unit}` : lr.value;
           const ref = lr.referenceRange ? ` (ref: ${lr.referenceRange})` : '';
           const date = this.formatDate(lr.resultAt);
-          lines.push(`  - ${lr.testName}: ${val} [${lr.status}]${ref} — ${date}`);
+          lines.push(
+            `  - ${lr.testName}: ${val} [${lr.status}]${ref} — ${date}`,
+          );
         }
         sections.push(lines.join('\n'));
       }
@@ -400,13 +415,17 @@ export class PatientMedicalContextService {
       sections.push('\n=== END PATIENT MEDICAL RECORD ===');
       return sections.join('\n');
     } catch (err) {
-      this.logger.warn('PatientMedicalContextService failed — returning empty context', err);
+      this.logger.warn(
+        'PatientMedicalContextService failed — returning empty context',
+        err,
+      );
       return '';
     }
   }
 
   private computeAge(dateOfBirth: Date | string): number {
-    const dob = typeof dateOfBirth === 'string' ? new Date(dateOfBirth) : dateOfBirth;
+    const dob =
+      typeof dateOfBirth === 'string' ? new Date(dateOfBirth) : dateOfBirth;
     const today = new Date();
     let age = today.getFullYear() - dob.getFullYear();
     const m = today.getMonth() - dob.getMonth();
@@ -419,21 +438,6 @@ export class PatientMedicalContextService {
     const date = typeof d === 'string' ? new Date(d) : d;
     if (isNaN(date.getTime())) return 'unknown';
     return date.toISOString().slice(0, 10);
-  }
-
-  private jsonToText(data: unknown): string {
-    if (!data) return '';
-    if (typeof data === 'string') return data;
-    try {
-      const obj = typeof data === 'object' ? data : JSON.parse(String(data));
-      if (Array.isArray(obj)) return obj.join(', ');
-      return Object.entries(obj as Record<string, unknown>)
-        .filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== false)
-        .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : String(v)}`)
-        .join('; ');
-    } catch {
-      return String(data);
-    }
   }
 
   private dedupeLabsByTestName<T extends { testName: string; resultAt: Date }>(

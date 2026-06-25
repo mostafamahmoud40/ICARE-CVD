@@ -1,8 +1,4 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
-import { AccessTokenGuard } from '../auth/access-token.guard';
-import { AuthJwtService } from '../auth/jwt';
-import { DoctorGuard } from '../doctor/doctor.guard';
 import { ConsultationService } from './consultation.service';
 import { ConsultationXrayService } from './consultation-xray.service';
 import { ConsultationEchoService } from './consultation-echo.service';
@@ -24,9 +20,6 @@ import { ProcedureModule } from '../procedure/procedure.module';
 
 @Module({
   imports: [
-    JwtModule.register({
-      secret: process.env.JWT_ACCESS_SECRET,
-    }),
     DoctorVerifierModule,
     MinioModule,
     NotificationsModule,
@@ -49,9 +42,6 @@ import { ProcedureModule } from '../procedure/procedure.module';
     ConsultationCineMriService,
     ConsultationCtService,
     ConsultationEcgClsService,
-    DoctorGuard,
-    AuthJwtService,
-    AccessTokenGuard,
   ],
   exports: [ConsultationService],
 })

@@ -42,7 +42,10 @@ export class PatientAccountController {
   }
 
   @Patch('avatar')
-  setAvatar(@CurrentUser() user: TokenPayload, @Body() dto: SetPatientAvatarDto) {
+  setAvatar(
+    @CurrentUser() user: TokenPayload,
+    @Body() dto: SetPatientAvatarDto,
+  ) {
     return this.accountService.setAvatar(user.sub, dto.s3Key);
   }
 }

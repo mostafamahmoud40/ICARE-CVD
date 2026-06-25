@@ -31,7 +31,9 @@ export function mapProcedureTypeLabel(value: string | undefined): string {
   return PROCEDURE_TYPE_LABELS[value.trim()] ?? value.trim();
 }
 
-export function mapOperatingRoomLabel(value: string | undefined): string | null {
+export function mapOperatingRoomLabel(
+  value: string | undefined,
+): string | null {
   if (!value?.trim()) return null;
   return OPERATING_ROOM_LABELS[value.trim()] ?? value.trim();
 }
@@ -63,7 +65,9 @@ export function formatTimeInClinic(date: Date): string {
   });
 }
 
-export function formatDurationLabel(minutes: number | null | undefined): string {
+export function formatDurationLabel(
+  minutes: number | null | undefined,
+): string {
   if (!minutes || minutes <= 0) return '—';
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
@@ -115,7 +119,8 @@ export const DEFAULT_PROCEDURE_REQUIREMENTS = [
   {
     kind: 'consent' as const,
     title: 'Signed consent form',
-    description: 'Patient or legal guardian must sign the procedure consent form',
+    description:
+      'Patient or legal guardian must sign the procedure consent form',
     allowsAttachment: true,
     sortOrder: 0,
   },

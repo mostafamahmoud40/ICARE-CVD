@@ -162,7 +162,10 @@ export class DoctorAccountService {
     const doctorRow = await this.doctorVerifier.verify(userId);
     const key = s3Key.trim();
     const expectedPrefix = `${buildStaffAvatarPrefix('doctor', doctorRow.id)}/`;
-    if (!key.startsWith(expectedPrefix) && !isStaffAvatarStorageKey(key, doctorRow.id)) {
+    if (
+      !key.startsWith(expectedPrefix) &&
+      !isStaffAvatarStorageKey(key, doctorRow.id)
+    ) {
       throw new BadRequestException('Invalid profile photo storage key');
     }
 
@@ -184,7 +187,8 @@ export class DoctorAccountService {
       return trimmed;
     }
 
-    const extractedKey = this.avatarUrlResolver.extractPatientAvatarKey(trimmed);
+    const extractedKey =
+      this.avatarUrlResolver.extractPatientAvatarKey(trimmed);
     if (extractedKey) {
       return extractedKey.split('?')[0] ?? extractedKey;
     }

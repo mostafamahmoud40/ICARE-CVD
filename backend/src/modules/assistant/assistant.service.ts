@@ -4,7 +4,6 @@ import {
   Inject,
   Injectable,
   BadRequestException,
-  NotFoundException,
   Logger,
 } from '@nestjs/common';
 import { eq, sql } from 'drizzle-orm';
@@ -23,10 +22,7 @@ import {
   patientHistory,
   user,
 } from '../../database/schema';
-import {
-  PATIENT_AVATAR_MAX_BYTES,
-  PATIENT_AVATAR_MIME_TYPES,
-} from '../../shared/storage/minio.constants';
+import { PATIENT_AVATAR_MIME_TYPES } from '../../shared/storage/minio.constants';
 import {
   buildMinioObjectPrefix,
   isPatientProfileStorageKey,
@@ -289,7 +285,9 @@ export class AssistantService {
       );
     } catch (err) {
       credentialsEmailError =
-        err instanceof Error ? err.message : 'Failed to send login credentials email';
+        err instanceof Error
+          ? err.message
+          : 'Failed to send login credentials email';
       this.logger.error(
         `Patient ${createdUser.id} created but credentials email failed: ${credentialsEmailError}`,
         err,
@@ -329,7 +327,10 @@ export class AssistantService {
       throw new BadRequestException('s3Key is required');
     }
 
-    const patientRow = await findPatientByIdentifier(this.db, patientIdentifier);
+    const patientRow = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
 
     const [doc] = await this.db
       .insert(patientDocument)
@@ -354,7 +355,10 @@ export class AssistantService {
     fileName: string,
     contentType: string,
   ) {
-    const patientRow = await findPatientByIdentifier(this.db, patientIdentifier);
+    const patientRow = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
     const mimeType = contentType.trim().toLowerCase();
     if (!PATIENT_AVATAR_MIME_TYPES.has(mimeType)) {
       throw new BadRequestException('Unsupported profile photo file type');
@@ -370,10 +374,16 @@ export class AssistantService {
   }
 
   async setPatientAvatar(patientIdentifier: string, s3Key: string) {
-    const patientRow = await findPatientByIdentifier(this.db, patientIdentifier);
+    const patientRow = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
     const key = s3Key.trim();
     const expectedPrefix = `${buildMinioObjectPrefix('patient_avatar', patientRow.patientNumber)}/`;
-    if (!key.startsWith(expectedPrefix) && !isPatientProfileStorageKey(key, patientRow.patientNumber)) {
+    if (
+      !key.startsWith(expectedPrefix) &&
+      !isPatientProfileStorageKey(key, patientRow.patientNumber)
+    ) {
       throw new BadRequestException('Invalid profile photo storage key');
     }
 
@@ -447,7 +457,7 @@ export class AssistantService {
     ] as const);
 
     if (normalized.has(raw as never)) {
-      return raw as (typeof normalized extends Set<infer T> ? T : never);
+      return raw as typeof normalized extends Set<infer T> ? T : never;
     }
 
     // Legacy assistant UI values

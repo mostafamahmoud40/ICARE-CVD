@@ -97,7 +97,11 @@ export class ProcedureService {
         and(
           gte(procedureOrder.scheduledAt, dayStart),
           lte(procedureOrder.scheduledAt, dayEnd),
-          inArray(procedureOrder.status, ['pending', 'in-progress', 'completed']),
+          inArray(procedureOrder.status, [
+            'pending',
+            'in-progress',
+            'completed',
+          ]),
         ),
       )
       .orderBy(asc(procedureOrder.scheduledAt));
@@ -213,7 +217,9 @@ export class ProcedureService {
 
   async addRequirement(orderId: string, dto: CreateProcedureRequirementDto) {
     const maxSort = await this.db
-      .select({ value: sql<number>`coalesce(max(${procedureRequirement.sortOrder}), -1)` })
+      .select({
+        value: sql<number>`coalesce(max(${procedureRequirement.sortOrder}), -1)`,
+      })
       .from(procedureRequirement)
       .where(eq(procedureRequirement.orderId, orderId));
 
@@ -298,7 +304,8 @@ export class ProcedureService {
         eq(procedureRequirement.id, dto.requirementId),
       ),
     });
-    if (!requirement) throw new NotFoundException('Consent requirement not found');
+    if (!requirement)
+      throw new NotFoundException('Consent requirement not found');
 
     let attachmentKey: string | null = null;
     let attachmentName: string | null = null;
@@ -434,7 +441,10 @@ export class ProcedureService {
           title: 'New procedure scheduled',
           body: `${values.procedureName} was scheduled and needs preparation.`,
           href: '/assistant-procedures',
-          metadata: { procedureOrderId: created.id, consultationId: input.consultationId },
+          metadata: {
+            procedureOrderId: created.id,
+            consultationId: input.consultationId,
+          },
         }),
       ),
     );
@@ -485,7 +495,6 @@ export class ProcedureService {
       .from(procedureConsent)
       .where(inArray(procedureConsent.orderId, orderIds));
 
-    const requirementIds = requirements.map((row) => row.id);
     const attachmentUrls = new Map<string, string | null>();
     await Promise.all(
       requirements
@@ -517,7 +526,8 @@ export class ProcedureService {
           row.order.id,
           {
             row,
-            patientAvatarUrlPromise: this.avatarUrlResolver.resolve(patientAvatarUrl),
+            patientAvatarUrlPromise:
+              this.avatarUrlResolver.resolve(patientAvatarUrl),
           },
         ];
       }),
@@ -530,11 +540,16 @@ export class ProcedureService {
       }),
     );
 
-    const byOrderId = new Map<string, ReturnType<ProcedureService['buildOrderDto']>>();
+    const byOrderId = new Map<
+      string,
+      ReturnType<ProcedureService['buildOrderDto']>
+    >();
     for (const orderId of orderIds) {
       const entry = orderMap.get(orderId);
       if (!entry) continue;
-      const orderRequirements = requirements.filter((row) => row.orderId === orderId);
+      const orderRequirements = requirements.filter(
+        (row) => row.orderId === orderId,
+      );
       const consent = consents.find((row) => row.orderId === orderId) ?? null;
       byOrderId.set(
         orderId,
@@ -627,7 +642,9 @@ export class ProcedureService {
     };
   }
 
-  private toScheduledOperation(order: Awaited<ReturnType<ProcedureService['mapOrdersByIds']>>[number]) {
+  private toScheduledOperation(
+    order: Awaited<ReturnType<ProcedureService['mapOrdersByIds']>>[number],
+  ) {
     const scheduledAt = order.scheduledAt ? new Date(order.scheduledAt) : null;
     const scheduledEndAt = order.scheduledEndAt
       ? new Date(order.scheduledEndAt)

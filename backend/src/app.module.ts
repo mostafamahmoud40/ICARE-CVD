@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { DrizzleModule } from './database/drizzle.module';
+import { AuthCoreModule } from './modules/auth/auth-core.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AssistantModule } from './modules/assistant/assistant.module';
@@ -27,6 +28,7 @@ import { ProcedureModule } from './modules/procedure/procedure.module';
 @Module({
   imports: [
     DrizzleModule,
+    AuthCoreModule,
     AuthModule,
     AdminModule,
     AssistantModule,

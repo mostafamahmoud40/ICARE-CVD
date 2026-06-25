@@ -62,8 +62,7 @@ export async function runLangChainUnderstanding(
 ): Promise<QueryUnderstandingResult> {
   const fallback = buildHeuristicUnderstanding(input.message, input.todayStr);
 
-  const modelName =
-    process.env.GROQ_ANALYSIS_MODEL?.trim() || 'qwen/qwen3-32b';
+  const modelName = process.env.GROQ_ANALYSIS_MODEL?.trim() || 'qwen/qwen3-32b';
 
   try {
     const llm = new ChatGroq({

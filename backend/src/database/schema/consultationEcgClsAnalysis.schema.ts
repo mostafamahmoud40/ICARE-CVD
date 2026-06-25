@@ -18,12 +18,18 @@ export const consultationEcgClsAnalysis = pgTable(
       () => patientDocument.id,
       { onDelete: 'set null' },
     ),
-    heaDocumentId: uuid('hea_document_id').references(() => patientDocument.id, {
-      onDelete: 'set null',
-    }),
-    datDocumentId: uuid('dat_document_id').references(() => patientDocument.id, {
-      onDelete: 'set null',
-    }),
+    heaDocumentId: uuid('hea_document_id').references(
+      () => patientDocument.id,
+      {
+        onDelete: 'set null',
+      },
+    ),
+    datDocumentId: uuid('dat_document_id').references(
+      () => patientDocument.id,
+      {
+        onDelete: 'set null',
+      },
+    ),
     previewDocumentId: uuid('preview_document_id').references(
       () => patientDocument.id,
       { onDelete: 'set null' },

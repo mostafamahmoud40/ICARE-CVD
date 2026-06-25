@@ -1,8 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
-import { AppointmentService } from '../../../appointment/appointment.service';
+import {
+  APPOINTMENT_COMMANDS,
+  APPOINTMENT_READER,
+  type IAppointmentCommands,
+  type IAppointmentReader,
+} from '../../../../shared/ports/appointment.port';
 import { ClinicIndexerService } from '../../chroma/clinic-indexer.service';
-import type { PatientAiChatResponse, PatientAgentAction } from '../../dto/patient-ai-chat.dto';
+import type {
+  PatientAiChatResponse,
+  PatientAgentAction,
+} from '../../dto/patient-ai-chat.dto';
 
 export type ToolExecutionResult = {
   data: unknown;
@@ -13,18 +21,18 @@ export type ToolExecutionResult = {
 @Injectable()
 export class PatientAppointmentToolsService {
   constructor(
-    private readonly appointmentService: AppointmentService,
+    @Inject(APPOINTMENT_COMMANDS)
+    private readonly appointmentCommands: IAppointmentCommands,
+    @Inject(APPOINTMENT_READER)
+    private readonly appointmentReader: IAppointmentReader,
     private readonly clinicIndexer: ClinicIndexerService,
   ) {}
 
   formatAgentAction(toolName: string, data: unknown): PatientAgentAction {
     const payload =
-      data && typeof data === 'object'
-        ? (data as Record<string, unknown>)
-        : {};
+      data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
     const success = payload.success === true;
-    const error =
-      typeof payload.error === 'string' ? payload.error : undefined;
+    const error = typeof payload.error === 'string' ? payload.error : undefined;
     const message =
       typeof payload.message === 'string' ? payload.message : undefined;
 
@@ -58,13 +66,13 @@ export class PatientAppointmentToolsService {
         if (visitType !== 'clinic' && visitType !== 'virtual') {
           return { data: { error: 'visitType must be clinic or virtual' } };
         }
-        const created = await this.appointmentService.create(userId, {
+        const created = await this.appointmentCommands.create(userId, {
           doctorId,
           scheduledAt,
-          visitType: visitType as 'clinic' | 'virtual',
+          visitType: visitType,
           reason: reason.slice(0, 1500),
         });
-        const doctors = await this.appointmentService.listDoctors();
+        const doctors = await this.appointmentReader.listDoctors();
         const doc = doctors.find((d) => d.id === doctorId);
         const bookingResult = {
           confirmationCode: created.confirmationCode,
@@ -88,11 +96,11 @@ export class PatientAppointmentToolsService {
         const code = args.confirmationCode?.trim();
         if (!code) return { data: { error: 'confirmationCode required' } };
         const appt =
-          await this.appointmentService.findUpcomingByConfirmationCode(
+          await this.appointmentReader.findUpcomingByConfirmationCode(
             userId,
             code,
           );
-        const result = await this.appointmentService.cancel(userId, appt.id);
+        const result = await this.appointmentCommands.cancel(userId, appt.id);
         void this.refreshAppointmentIndex(userId);
         return {
           data: {
@@ -105,7 +113,7 @@ export class PatientAppointmentToolsService {
       }
 
       if (name === 'cancel_all_appointments') {
-        const result = await this.appointmentService.cancelAllUpcoming(userId);
+        const result = await this.appointmentCommands.cancelAllUpcoming(userId);
         void this.refreshAppointmentIndex(userId);
         return {
           data: {
@@ -130,7 +138,7 @@ export class PatientAppointmentToolsService {
           };
         }
         const updated =
-          await this.appointmentService.rescheduleByConfirmationCode(
+          await this.appointmentCommands.rescheduleByConfirmationCode(
             userId,
             code,
             scheduledAt,
@@ -157,10 +165,10 @@ export class PatientAppointmentToolsService {
           return { data: { error: 'visitType must be clinic or virtual' } };
         }
         const updated =
-          await this.appointmentService.changeVisitTypeByConfirmationCode(
+          await this.appointmentCommands.changeVisitTypeByConfirmationCode(
             userId,
             code,
-            visitType as 'clinic' | 'virtual',
+            visitType,
           );
         void this.refreshAppointmentIndex(userId);
         return {

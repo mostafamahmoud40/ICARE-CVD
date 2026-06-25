@@ -76,7 +76,9 @@ export class LangChainDoctorAgentService {
       if (this.isGroqToolUseFailed(error)) {
         const recovered = this.recoverFromToolUseFailed(error);
         if (recovered) {
-          this.logger.warn('Doctor agent tool_use_failed — returning text fallback');
+          this.logger.warn(
+            'Doctor agent tool_use_failed — returning text fallback',
+          );
           return { reply: recovered };
         }
       }
@@ -112,11 +114,7 @@ export class LangChainDoctorAgentService {
         : Array.isArray(lastAi?.content)
           ? lastAi.content
               .map((c) =>
-                typeof c === 'string'
-                  ? c
-                  : 'text' in c
-                    ? String(c.text)
-                    : '',
+                typeof c === 'string' ? c : 'text' in c ? String(c.text) : '',
               )
               .join('')
           : 'No reply generated.';

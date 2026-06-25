@@ -13,6 +13,7 @@ import type {
   PatientAgentAction,
 } from '../../dto/patient-ai-chat.dto';
 import { buildPatientAppointmentLangChainTools } from './patient-appointment.langchain-tools';
+import { formatUnknown } from '../../../../shared/format-unknown';
 import { PatientAppointmentToolsService } from './patient-appointment-tools.service';
 
 export type LangChainAgentInput = {
@@ -97,8 +98,7 @@ export class LangChainCareAgentService {
 
     for (const msg of messages) {
       if (!(msg instanceof ToolMessage)) continue;
-      const toolName =
-        toolCallNameById.get(msg.tool_call_id) ?? 'unknown_tool';
+      const toolName = toolCallNameById.get(msg.tool_call_id) ?? 'unknown_tool';
       let data: unknown = msg.content;
       if (typeof msg.content === 'string') {
         try {
@@ -121,9 +121,9 @@ export class LangChainCareAgentService {
           ) {
             booking = {
               confirmationCode: payload.confirmationCode,
-              scheduledAt: String(payload.scheduledAt ?? ''),
-              doctorName: String(payload.doctorName ?? 'Your doctor'),
-              visitType: String(payload.visitType ?? 'clinic'),
+              scheduledAt: formatUnknown(payload.scheduledAt ?? ''),
+              doctorName: formatUnknown(payload.doctorName ?? 'Your doctor'),
+              visitType: formatUnknown(payload.visitType ?? 'clinic'),
             };
             appointmentsUpdated = true;
           } else if (
@@ -150,11 +150,7 @@ export class LangChainCareAgentService {
         : Array.isArray(lastAi?.content)
           ? lastAi.content
               .map((c) =>
-                typeof c === 'string'
-                  ? c
-                  : 'text' in c
-                    ? String(c.text)
-                    : '',
+                typeof c === 'string' ? c : 'text' in c ? String(c.text) : '',
               )
               .join('')
           : 'No reply generated.';

@@ -1,8 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, desc, eq, gte, inArray } from 'drizzle-orm';
 
 import { DRIZZLE } from '../../database/drizzle.provider';
@@ -24,6 +20,14 @@ import { findPatientByIdentifier } from '../../shared/patient/patient-identifier
 import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
 import { NotificationsService } from '../notifications/notifications.service';
 import { compute7DayAdherence } from './medication-adherence.util';
+
+type DoseLogSummary = {
+  medicationId: string;
+  takenAt: Date;
+  skipped: boolean;
+};
+
+type MedicationRefillRow = typeof medicationRefill.$inferSelect;
 import type {
   CreateMedicationContactDto,
   CreateMedicationEscalationDto,
@@ -57,10 +61,7 @@ function toDateOnly(value: Date | string | null | undefined): string | null {
   return String(value).slice(0, 10);
 }
 
-function mapRiskTier(
-  overallPct: number,
-  hasPoorCompliance: boolean,
-): RiskTier {
+function mapRiskTier(overallPct: number, hasPoorCompliance: boolean): RiskTier {
   if (hasPoorCompliance || overallPct < 65) return 'high';
   if (overallPct < 85) return 'medium';
   return 'low';
@@ -91,7 +92,6 @@ export class AssistantMedicationService {
 
     if (patientRows.length === 0) return [];
 
-    const patientIds = patientRows.map((row) => row.id);
     const userIds = patientRows.map((row) => row.userId);
 
     const medicationRows = await this.db
@@ -137,13 +137,13 @@ export class AssistantMedicationService {
                   gte(doseLog.takenAt, sevenDaysAgo),
                 ),
               )
-          : Promise.resolve([]),
+          : Promise.resolve([] as DoseLogSummary[]),
         medIds.length > 0
           ? this.db
               .select()
               .from(medicationRefill)
               .where(inArray(medicationRefill.medicationId, medIds))
-          : Promise.resolve([]),
+          : Promise.resolve([] as MedicationRefillRow[]),
         this.db
           .select()
           .from(medicationAdherenceFlag)
@@ -167,14 +167,14 @@ export class AssistantMedicationService {
           ),
       ]);
 
-    const doseLogsByMed = new Map<string, typeof doseLogs>();
+    const doseLogsByMed = new Map<string, DoseLogSummary[]>();
     for (const log of doseLogs) {
       const bucket = doseLogsByMed.get(log.medicationId) ?? [];
       bucket.push(log);
       doseLogsByMed.set(log.medicationId, bucket);
     }
 
-    const refillByMed = new Map(
+    const refillByMed = new Map<string, MedicationRefillRow>(
       refills.map((r) => [r.medicationId, r] as const),
     );
 
@@ -182,7 +182,9 @@ export class AssistantMedicationService {
       relevantPatients.map(async (p) =>
         this.buildProfile({
           patientRow: p,
-          medications: activeMedicationRows.filter((m) => m.userId === p.userId),
+          medications: activeMedicationRows.filter(
+            (m) => m.userId === p.userId,
+          ),
           allMedications: medicationRows.filter((m) => m.userId === p.userId),
           doseLogsByMed,
           refillByMed,
@@ -200,11 +202,16 @@ export class AssistantMedicationService {
   }
 
   async getMedicationProfile(patientIdentifier: string) {
-    const patientRow = await findPatientByIdentifier(this.db, patientIdentifier);
+    const patientRow = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
     const profiles = await this.listMedicationProfiles();
     const profile = profiles.find((p) => p.id === patientRow.id);
     if (!profile) {
-      throw new NotFoundException('No active medications found for this patient');
+      throw new NotFoundException(
+        'No active medications found for this patient',
+      );
     }
     return profile;
   }
@@ -292,7 +299,8 @@ export class AssistantMedicationService {
       .set({
         status: 'resolved',
         resolvedAt: new Date(),
-        resolutionNote: resolutionNote?.trim() || 'Cleared from assistant workflow.',
+        resolutionNote:
+          resolutionNote?.trim() || 'Cleared from assistant workflow.',
       })
       .where(eq(medicationAdherenceFlag.id, flagId));
 
@@ -392,7 +400,10 @@ export class AssistantMedicationService {
     patientIdentifier: string,
     insightKey: string,
   ) {
-    const patientRow = await findPatientByIdentifier(this.db, patientIdentifier);
+    const patientRow = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
 
     await this.db
       .insert(medicationAiInsightDismissal)
@@ -432,9 +443,15 @@ export class AssistantMedicationService {
     contacts: (typeof medicationContactLog.$inferSelect)[];
     dismissedKeys: Set<string>;
   }) {
-    const { patientRow, medications, allMedications, doseLogsByMed, refillByMed } = input;
+    const {
+      patientRow,
+      medications,
+      allMedications,
+      doseLogsByMed,
+      refillByMed,
+    } = input;
 
-    const mapMedicationLine = (med: (typeof medication.$inferSelect)) => {
+    const mapMedicationLine = (med: typeof medication.$inferSelect) => {
       const logs = doseLogsByMed.get(med.id) ?? [];
       const refill = refillByMed.get(med.id);
       const adherence = compute7DayAdherence({
@@ -448,7 +465,8 @@ export class AssistantMedicationService {
         id: med.id,
         name: med.name,
         strength: med.dose,
-        dosageInstructions: med.instructions?.trim() || `${med.dose} · ${med.frequency}`,
+        dosageInstructions:
+          med.instructions?.trim() || `${med.dose} · ${med.frequency}`,
         frequencyLabel: med.frequency,
         adherencePct7d: adherence.adherencePct7d,
         missedLast7d: adherence.missedLast7d,
@@ -468,8 +486,7 @@ export class AssistantMedicationService {
         strength: med.dose,
         dosageInstructions:
           med.instructions?.trim() || `${med.dose} · ${med.frequency}`,
-        statusLabel:
-          med.status === 'discontinued' ? 'Discontinued' : 'Paused',
+        statusLabel: med.status === 'discontinued' ? 'Discontinued' : 'Paused',
       }));
 
     const activePcts = medicationLines.map((m) => m.adherencePct7d);

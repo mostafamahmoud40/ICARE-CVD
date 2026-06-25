@@ -32,7 +32,8 @@ export class AvatarUrlResolver {
     const pathStyle = `/${bucket}/`;
     const pathIndex = trimmed.indexOf(pathStyle);
     if (pathIndex >= 0) {
-      const key = trimmed.slice(pathIndex + pathStyle.length).split('?')[0] ?? null;
+      const key =
+        trimmed.slice(pathIndex + pathStyle.length).split('?')[0] ?? null;
       return key &&
         (isPatientProfileStorageKey(key) || isStaffAvatarStorageKey(key))
         ? key
@@ -42,7 +43,8 @@ export class AvatarUrlResolver {
     const hostMarker = `${bucket}/`;
     const hostIndex = trimmed.indexOf(hostMarker);
     if (hostIndex >= 0) {
-      const key = trimmed.slice(hostIndex + hostMarker.length).split('?')[0] ?? null;
+      const key =
+        trimmed.slice(hostIndex + hostMarker.length).split('?')[0] ?? null;
       return key &&
         (isPatientProfileStorageKey(key) || isStaffAvatarStorageKey(key))
         ? key
@@ -55,7 +57,10 @@ export class AvatarUrlResolver {
   isMinioPatientAvatar(avatarUrl: string | null | undefined): boolean {
     if (!avatarUrl?.trim()) return false;
     const key = this.extractPatientAvatarKey(avatarUrl.trim());
-    return Boolean(key?.startsWith(`${PATIENTS_STORAGE_ROOT}/`) || key?.includes('/profile/'));
+    return Boolean(
+      key?.startsWith(`${PATIENTS_STORAGE_ROOT}/`) ||
+      key?.includes('/profile/'),
+    );
   }
 
   async resolve(avatarUrl: string | null | undefined): Promise<string | null> {

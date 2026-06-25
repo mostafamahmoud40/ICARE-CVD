@@ -23,7 +23,10 @@ import { ChatAttachmentService } from './chat-attachment.service';
 import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
 import { NotificationsService } from '../notifications/notifications.service';
 import type { CreateConversationDto } from './dto/create-conversation.dto';
-import type { ChatUploadIntentDto, SendMessageDto } from './dto/send-message.dto';
+import type {
+  ChatUploadIntentDto,
+  SendMessageDto,
+} from './dto/send-message.dto';
 
 type ChatActorRole = 'doctor' | 'patient' | 'assistant';
 
@@ -396,7 +399,9 @@ export class ChatService {
 
     await this.assertConversationAccess(parentMessage.conversationId, actor);
 
-    const object = await this.chatAttachmentService.getObjectStream(attachment.s3Key);
+    const object = await this.chatAttachmentService.getObjectStream(
+      attachment.s3Key,
+    );
     const body =
       object.body instanceof Readable
         ? object.body
@@ -572,7 +577,10 @@ export class ChatService {
     await this.db
       .delete(message)
       .where(
-        and(eq(message.id, messageId), eq(message.conversationId, conversationId)),
+        and(
+          eq(message.id, messageId),
+          eq(message.conversationId, conversationId),
+        ),
       );
 
     const recipients =
@@ -594,7 +602,10 @@ export class ChatService {
     return { ok: true };
   }
 
-  async getOtherParticipantUserIds(conversationId: number, excludeUserId: number) {
+  async getOtherParticipantUserIds(
+    conversationId: number,
+    excludeUserId: number,
+  ) {
     const ids = await this.getConversationParticipantUserIds(conversationId);
     return ids.filter((id) => id !== excludeUserId);
   }
@@ -894,7 +905,9 @@ export class ChatService {
     attachments: NonNullable<SendMessageDto['attachments']>,
   ) {
     if (attachments.every((item) => item.attachmentType === 'image')) {
-      return attachments.length === 1 ? '📷 Photo' : `📷 ${attachments.length} photos`;
+      return attachments.length === 1
+        ? '📷 Photo'
+        : `📷 ${attachments.length} photos`;
     }
     if (attachments.length === 1) {
       return `📎 ${attachments[0].fileName}`;

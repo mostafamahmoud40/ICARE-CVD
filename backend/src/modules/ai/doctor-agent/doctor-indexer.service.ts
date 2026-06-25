@@ -5,14 +5,13 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { DRIZZLE } from '../../../database/drizzle.provider';
 import type { Database } from '../../../database/drizzle.provider';
 import {
   appointment,
   consultation,
-  doctor,
   doctorPatient,
 } from '../../../database/schema';
 import {
@@ -37,7 +36,9 @@ export class DoctorIndexerService implements OnModuleInit, OnModuleDestroy {
   private readonly lastIndexed = new Map<string, number>();
 
   /** Bound handler reference so we can unregister it on destroy. */
-  private readonly dataChangedHandler = (payload: PatientDataChangedPayload) => {
+  private readonly dataChangedHandler = (
+    payload: PatientDataChangedPayload,
+  ) => {
     void this.handlePatientDataChanged(payload);
   };
 
@@ -72,7 +73,9 @@ export class DoctorIndexerService implements OnModuleInit, OnModuleDestroy {
       await this.indexAllPatientsForDoctor(doctorId);
       this.lastIndexed.set(doctorId, Date.now());
     } catch (err) {
-      this.logger.warn(`Bulk doctor index failed for ${doctorId}: ${String(err)}`);
+      this.logger.warn(
+        `Bulk doctor index failed for ${doctorId}: ${String(err)}`,
+      );
     }
   }
 
@@ -106,7 +109,10 @@ export class DoctorIndexerService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Re-index a single patient's data for a specific doctor. */
-  async reIndexSinglePatient(doctorId: string, patientId: string): Promise<void> {
+  async reIndexSinglePatient(
+    doctorId: string,
+    patientId: string,
+  ): Promise<void> {
     if (!this.isEnabled) return;
 
     const chunks = await this.buildPatientChunks(doctorId, patientId);
@@ -168,7 +174,8 @@ export class DoctorIndexerService implements OnModuleInit, OnModuleDestroy {
   // ─── Bulk index (all patients for a doctor) ───────────────────────────────
 
   private async indexAllPatientsForDoctor(doctorId: string): Promise<void> {
-    const accessibleIds = await this.doctorTools.getAccessiblePatientIds(doctorId);
+    const accessibleIds =
+      await this.doctorTools.getAccessiblePatientIds(doctorId);
     if (accessibleIds.length === 0) return;
 
     this.logger.log(

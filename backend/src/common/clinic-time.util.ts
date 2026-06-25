@@ -37,9 +37,9 @@ export function todayClinicDateStr(ref = new Date()): string {
 export function clinicSlotToIso(dateStr: string, time12h: string): string {
   const match = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(time12h.trim());
   if (!match) return `${dateStr}T00:00:00+03:00`;
-  let hours = parseInt(match[1]!, 10);
-  const minutes = parseInt(match[2]!, 10);
-  const period = match[3]!.toUpperCase();
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const period = match[3].toUpperCase();
   if (period === 'PM' && hours !== 12) hours += 12;
   if (period === 'AM' && hours === 12) hours = 0;
   const hh = String(hours).padStart(2, '0');

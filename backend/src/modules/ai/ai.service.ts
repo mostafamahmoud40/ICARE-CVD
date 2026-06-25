@@ -104,8 +104,7 @@ export class AiService {
       throw new ServiceUnavailableException('AI unavailable');
     }
 
-    const model =
-      process.env.GROQ_ANALYSIS_MODEL?.trim() || 'qwen/qwen3-32b';
+    const model = process.env.GROQ_ANALYSIS_MODEL?.trim() || 'qwen/qwen3-32b';
 
     const promptPayload = {
       account: {

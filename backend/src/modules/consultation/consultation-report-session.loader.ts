@@ -77,8 +77,7 @@ export function applyReportOverrides(params: {
         ...study,
         title: patch.title ?? study.title,
         summary: patch.summary ?? study.summary,
-        details:
-          patch.details !== undefined ? patch.details : study.details,
+        details: patch.details !== undefined ? patch.details : study.details,
       };
     })
     .filter((study): study is ConsultationReportAiStudy => study !== null);
@@ -126,7 +125,13 @@ function pickText(...values: Array<string | null | undefined>): string | null {
 function summarizeEcgAiReport(raw: string | null): string | null {
   const parsed = safeJsonParse<Record<string, unknown>>(raw);
   if (!parsed) return null;
-  const candidates = ['summary', 'report', 'interpretation', 'findings', 'conclusion'];
+  const candidates = [
+    'summary',
+    'report',
+    'interpretation',
+    'findings',
+    'conclusion',
+  ];
   for (const key of candidates) {
     const value = parsed[key];
     if (typeof value === 'string' && value.trim()) return value.trim();
@@ -161,16 +166,21 @@ export function formatMedicalHistorySummary(
   if (!parsed) return null;
 
   const lines: string[] = [];
-  if (parsed.noCardiacHistory) lines.push('No significant cardiac history reported.');
-  else if (parsed.cardiacNotes?.trim()) lines.push(`Cardiac: ${parsed.cardiacNotes.trim()}`);
+  if (parsed.noCardiacHistory)
+    lines.push('No significant cardiac history reported.');
+  else if (parsed.cardiacNotes?.trim())
+    lines.push(`Cardiac: ${parsed.cardiacNotes.trim()}`);
 
-  if (parsed.noNonCardiacHistory) lines.push('No significant non-cardiac history reported.');
+  if (parsed.noNonCardiacHistory)
+    lines.push('No significant non-cardiac history reported.');
   else if (parsed.nonCardiacNotes?.trim()) {
     lines.push(`Non-cardiac: ${parsed.nonCardiacNotes.trim()}`);
   }
 
-  if (parsed.noKnownAllergies) lines.push('No known allergies documented at visit.');
-  if (parsed.noChronicConditions) lines.push('No chronic conditions flagged at visit.');
+  if (parsed.noKnownAllergies)
+    lines.push('No known allergies documented at visit.');
+  if (parsed.noChronicConditions)
+    lines.push('No chronic conditions flagged at visit.');
 
   return lines.length > 0 ? lines.join('\n') : null;
 }
@@ -193,7 +203,8 @@ export function formatProcedureDetailsSummary(
   if (!parsed) return null;
 
   const lines: string[] = [];
-  if (parsed.procedureType?.trim()) lines.push(`Procedure: ${parsed.procedureType.trim()}`);
+  if (parsed.procedureType?.trim())
+    lines.push(`Procedure: ${parsed.procedureType.trim()}`);
   if (parsed.surgicalSpecialty?.trim()) {
     lines.push(`Specialty: ${parsed.surgicalSpecialty.trim()}`);
   }
@@ -202,14 +213,19 @@ export function formatProcedureDetailsSummary(
       `Scheduled: ${parsed.surgeryDate.trim()}${parsed.startTime ? ` at ${parsed.startTime}` : ''}`,
     );
   }
-  if (parsed.operatingRoom?.trim()) lines.push(`OR: ${parsed.operatingRoom.trim()}`);
-  if (parsed.anesthesiaType?.trim()) lines.push(`Anesthesia: ${parsed.anesthesiaType.trim()}`);
-  if (parsed.asaClassification?.trim()) lines.push(`ASA: ${parsed.asaClassification.trim()}`);
+  if (parsed.operatingRoom?.trim())
+    lines.push(`OR: ${parsed.operatingRoom.trim()}`);
+  if (parsed.anesthesiaType?.trim())
+    lines.push(`Anesthesia: ${parsed.anesthesiaType.trim()}`);
+  if (parsed.asaClassification?.trim())
+    lines.push(`ASA: ${parsed.asaClassification.trim()}`);
   if (parsed.estimatedDurationMin) {
     lines.push(`Estimated duration: ${parsed.estimatedDurationMin} min`);
   }
-  if (parsed.priority?.trim()) lines.push(`Priority: ${parsed.priority.trim()}`);
-  if (parsed.clinicalNotes?.trim()) lines.push(`Notes: ${parsed.clinicalNotes.trim()}`);
+  if (parsed.priority?.trim())
+    lines.push(`Priority: ${parsed.priority.trim()}`);
+  if (parsed.clinicalNotes?.trim())
+    lines.push(`Notes: ${parsed.clinicalNotes.trim()}`);
 
   return lines.length > 0 ? lines.join('\n') : null;
 }
@@ -217,9 +233,10 @@ export function formatProcedureDetailsSummary(
 export function parseHomeMeasurements(
   raw: string | null | undefined,
 ): ConsultationReportHomeMeasurement[] {
-  const parsed = safeJsonParse<
-    Array<{ metric?: string; frequency?: string; notes?: string }>
-  >(raw);
+  const parsed =
+    safeJsonParse<
+      Array<{ metric?: string; frequency?: string; notes?: string }>
+    >(raw);
   if (!Array.isArray(parsed)) return [];
   return parsed
     .map((entry) => ({
@@ -286,44 +303,37 @@ export async function loadConsultationAiStudies(
 ): Promise<ConsultationReportAiStudy[]> {
   const studies: ConsultationReportAiStudy[] = [];
 
-  const [
-    ctRows,
-    xrayRows,
-    ecgRows,
-    echoRows,
-    cineRows,
-    ecgClsRows,
-    labPanels,
-  ] = await Promise.all([
-    db.query.consultationCtAnalysis.findMany({
-      where: eq(consultationCtAnalysis.consultationId, consultationId),
-      orderBy: desc(consultationCtAnalysis.createdAt),
-    }),
-    db.query.consultationXrayAnalysis.findMany({
-      where: eq(consultationXrayAnalysis.consultationId, consultationId),
-      orderBy: desc(consultationXrayAnalysis.createdAt),
-    }),
-    db.query.consultationEcgAnalysis.findMany({
-      where: eq(consultationEcgAnalysis.consultationId, consultationId),
-      orderBy: desc(consultationEcgAnalysis.createdAt),
-    }),
-    db.query.consultationEchoAnalysis.findMany({
-      where: eq(consultationEchoAnalysis.consultationId, consultationId),
-      orderBy: desc(consultationEchoAnalysis.createdAt),
-    }),
-    db.query.consultationCineMriAnalysis.findMany({
-      where: eq(consultationCineMriAnalysis.consultationId, consultationId),
-      orderBy: desc(consultationCineMriAnalysis.createdAt),
-    }),
-    db.query.consultationEcgClsAnalysis.findMany({
-      where: eq(consultationEcgClsAnalysis.consultationId, consultationId),
-      orderBy: desc(consultationEcgClsAnalysis.createdAt),
-    }),
-    db.query.labReportPanel.findMany({
-      where: eq(labReportPanel.consultationId, consultationId),
-      orderBy: desc(labReportPanel.createdAt),
-    }),
-  ]);
+  const [ctRows, xrayRows, ecgRows, echoRows, cineRows, ecgClsRows, labPanels] =
+    await Promise.all([
+      db.query.consultationCtAnalysis.findMany({
+        where: eq(consultationCtAnalysis.consultationId, consultationId),
+        orderBy: desc(consultationCtAnalysis.createdAt),
+      }),
+      db.query.consultationXrayAnalysis.findMany({
+        where: eq(consultationXrayAnalysis.consultationId, consultationId),
+        orderBy: desc(consultationXrayAnalysis.createdAt),
+      }),
+      db.query.consultationEcgAnalysis.findMany({
+        where: eq(consultationEcgAnalysis.consultationId, consultationId),
+        orderBy: desc(consultationEcgAnalysis.createdAt),
+      }),
+      db.query.consultationEchoAnalysis.findMany({
+        where: eq(consultationEchoAnalysis.consultationId, consultationId),
+        orderBy: desc(consultationEchoAnalysis.createdAt),
+      }),
+      db.query.consultationCineMriAnalysis.findMany({
+        where: eq(consultationCineMriAnalysis.consultationId, consultationId),
+        orderBy: desc(consultationCineMriAnalysis.createdAt),
+      }),
+      db.query.consultationEcgClsAnalysis.findMany({
+        where: eq(consultationEcgClsAnalysis.consultationId, consultationId),
+        orderBy: desc(consultationEcgClsAnalysis.createdAt),
+      }),
+      db.query.labReportPanel.findMany({
+        where: eq(labReportPanel.consultationId, consultationId),
+        orderBy: desc(labReportPanel.createdAt),
+      }),
+    ]);
 
   for (const row of ctRows) {
     const analysis = safeJsonParse<{
@@ -354,10 +364,11 @@ export async function loadConsultationAiStudies(
       modality: 'xray',
       title: 'Chest X-ray AI',
       fileName: row.fileName,
-      summary: pickText(
-        analysis?.interpretation?.join('; '),
-        row.riskLevel ? `Risk level: ${row.riskLevel}` : null,
-      ) ?? 'X-ray analysis completed',
+      summary:
+        pickText(
+          analysis?.interpretation?.join('; '),
+          row.riskLevel ? `Risk level: ${row.riskLevel}` : null,
+        ) ?? 'X-ray analysis completed',
       details:
         analysis?.totalDetections != null
           ? `${analysis.totalDetections} detection(s)`
@@ -389,20 +400,22 @@ export async function loadConsultationAiStudies(
       modality: 'echo',
       title: 'Echocardiogram AI',
       fileName: row.fileName,
-      summary: pickText(
-        row.aiReport,
-        analysis?.label,
-        analysis?.ef != null ? `EF ${analysis.ef}%` : null,
-      ) ?? 'Echo analysis completed',
-      details: analysis?.ef != null ? `Ejection fraction: ${analysis.ef}%` : null,
+      summary:
+        pickText(
+          row.aiReport,
+          analysis?.label,
+          analysis?.ef != null ? `EF ${analysis.ef}%` : null,
+        ) ?? 'Echo analysis completed',
+      details:
+        analysis?.ef != null ? `Ejection fraction: ${analysis.ef}%` : null,
       createdAt: row.createdAt.toISOString(),
     });
   }
 
   for (const row of cineRows) {
-    const analysis = safeJsonParse<{ clinicalFeatures?: Record<string, number> }>(
-      row.analysisJson,
-    );
+    const analysis = safeJsonParse<{
+      clinicalFeatures?: Record<string, number>;
+    }>(row.analysisJson);
     const featureText = analysis?.clinicalFeatures
       ? Object.entries(analysis.clinicalFeatures)
           .map(([key, value]) => `${key}: ${value}`)
@@ -413,10 +426,11 @@ export async function loadConsultationAiStudies(
       modality: 'cine_mri',
       title: 'Cine MRI analysis',
       fileName: null,
-      summary: pickText(
-        row.diagnosisClass ? `Diagnosis class: ${row.diagnosisClass}` : null,
-        featureText,
-      ) ?? 'Cine MRI analysis completed',
+      summary:
+        pickText(
+          row.diagnosisClass ? `Diagnosis class: ${row.diagnosisClass}` : null,
+          featureText,
+        ) ?? 'Cine MRI analysis completed',
       details: featureText,
       createdAt: row.createdAt.toISOString(),
     });
@@ -442,7 +456,9 @@ export async function loadConsultationAiStudies(
       modality: 'lab_panel',
       title: row.panelTitle ?? 'Uploaded lab report',
       fileName: row.panelTitle,
-      summary: pickText(row.summary, 'Lab report processed with AI') ?? 'Lab report processed',
+      summary:
+        pickText(row.summary, 'Lab report processed with AI') ??
+        'Lab report processed',
       details: row.orderedBy ? `Ordered by: ${row.orderedBy}` : null,
       createdAt: row.createdAt.toISOString(),
     });

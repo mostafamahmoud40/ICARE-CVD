@@ -1,7 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { RunnableLambda } from '@langchain/core/runnables';
 
-import { AppointmentService } from '../../../appointment/appointment.service';
+import {
+  APPOINTMENT_READER,
+  type IAppointmentReader,
+} from '../../../../shared/ports/appointment.port';
 import {
   clinicSlotToIso,
   formatClinicDateTime,
@@ -23,7 +26,8 @@ export class LangChainRagPipelineService {
     private readonly retrievalStage: AgentRetrievalStage,
     private readonly contextStage: AgentContextStage,
     private readonly promptStage: AgentPromptStage,
-    private readonly appointmentService: AppointmentService,
+    @Inject(APPOINTMENT_READER)
+    private readonly appointmentReader: IAppointmentReader,
     private readonly patientMedicalContext: PatientMedicalContextService,
   ) {}
 
@@ -117,9 +121,9 @@ export class LangChainRagPipelineService {
   }
 
   private async buildClinicContext(today: string): Promise<string> {
-    let doctors: Awaited<ReturnType<AppointmentService['listDoctors']>> = [];
+    let doctors: Awaited<ReturnType<IAppointmentReader['listDoctors']>> = [];
     try {
-      doctors = await this.appointmentService.listDoctors();
+      doctors = await this.appointmentReader.listDoctors();
     } catch {
       return '=== CLINIC CONTEXT: unavailable ===';
     }
@@ -133,7 +137,7 @@ export class LangChainRagPipelineService {
     for (const doc of doctors) {
       lines.push(`${doc.name} | ${doc.title} | id:${doc.id}`);
       try {
-        const avail = await this.appointmentService.getDoctorAvailability(
+        const avail = await this.appointmentReader.getDoctorAvailability(
           doc.id,
           today,
           3,
@@ -164,11 +168,10 @@ export class LangChainRagPipelineService {
   ): Promise<string> {
     try {
       const appts =
-        await this.appointmentService.listPatientAppointments(userId);
+        await this.appointmentReader.listPatientAppointments(userId);
       const upcoming = appts.filter(
         (a) =>
-          a.status !== 'cancelled' &&
-          new Date(a.scheduledAt) >= new Date(),
+          a.status !== 'cancelled' && new Date(a.scheduledAt) >= new Date(),
       );
       if (upcoming.length === 0) {
         return '=== MY UPCOMING APPOINTMENTS ===\n(none)\n=== END ===';

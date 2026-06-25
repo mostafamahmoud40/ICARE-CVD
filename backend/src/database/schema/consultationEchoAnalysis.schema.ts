@@ -11,9 +11,12 @@ export const consultationEchoAnalysis = pgTable('consultation_echo_analysis', {
   consultationId: uuid('consultation_id').references(() => consultation.id, {
     onDelete: 'set null',
   }),
-  videoDocumentId: uuid('video_document_id').references(() => patientDocument.id, {
-    onDelete: 'set null',
-  }),
+  videoDocumentId: uuid('video_document_id').references(
+    () => patientDocument.id,
+    {
+      onDelete: 'set null',
+    },
+  ),
   overlayGifDocumentId: uuid('overlay_gif_document_id').references(
     () => patientDocument.id,
     { onDelete: 'set null' },

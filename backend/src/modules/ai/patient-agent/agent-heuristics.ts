@@ -6,65 +6,72 @@ import type {
   QueryUnderstandingResult,
 } from './agent.types';
 
-const SYMPTOM_SPECIALTY: Array<{ pattern: RegExp; specialty: string; terms: string[] }> =
-  [
-    {
-      pattern: /قلب|صدر|ضغط|خفقان|chest|heart|cardio/i,
-      specialty: 'Cardiology',
-      terms: ['cardiology', 'قلب', 'cardiologist', 'دكتور قلب', 'chest pain'],
-    },
-    {
-      pattern: /سكر|سكري|diabet|glucose/i,
-      specialty: 'Endocrinology',
-      terms: ['diabetes', 'endocrinology', 'سكر', 'blood sugar'],
-    },
-  ];
+const SYMPTOM_SPECIALTY: Array<{
+  pattern: RegExp;
+  specialty: string;
+  terms: string[];
+}> = [
+  {
+    pattern: /قلب|صدر|ضغط|خفقان|chest|heart|cardio/i,
+    specialty: 'Cardiology',
+    terms: ['cardiology', 'قلب', 'cardiologist', 'دكتور قلب', 'chest pain'],
+  },
+  {
+    pattern: /سكر|سكري|diabet|glucose/i,
+    specialty: 'Endocrinology',
+    terms: ['diabetes', 'endocrinology', 'سكر', 'blood sugar'],
+  },
+];
 
-const INTENT_KEYWORDS: Array<{ id: AgentIntentId; patterns: RegExp[]; confidence: number }> =
-  [
-    {
-      id: 'book_appointment',
-      patterns: [/احجز|حجز|book|schedule|موعد جديد|عايز موعد|محتاج دكتور/i],
-      confidence: 0.88,
-    },
-    {
-      id: 'cancel_appointment',
-      patterns: [/الغ|cancel|امسح الموعد|شيل الموعد/i],
-      confidence: 0.86,
-    },
-    {
-      id: 'cancel_all_appointments',
-      patterns: [/الغي كل|امسح كل|cancel all/i],
-      confidence: 0.9,
-    },
-    {
-      id: 'reschedule_appointment',
-      patterns: [/أجل|اجل|أعد|اعد|جدول|reschedule|غير الموعد|غير ميعاد/i],
-      confidence: 0.85,
-    },
-    {
-      id: 'list_appointments',
-      patterns: [/مواعيدي|ميعاد|appointment|حجزي|عندي ايه|الساعه كام|مع مين/i],
-      confidence: 0.84,
-    },
-    {
-      id: 'change_visit_type',
-      patterns: [/اونلاين|أونلاين|virtual|clinic|عيادة|زيارة/i],
-      confidence: 0.7,
-    },
-    {
-      id: 'health_question',
-      patterns: [/وجع|ألم|الم|symptom|دوا|دواء|علاج|health/i],
-      confidence: 0.75,
-    },
-  ];
+const INTENT_KEYWORDS: Array<{
+  id: AgentIntentId;
+  patterns: RegExp[];
+  confidence: number;
+}> = [
+  {
+    id: 'book_appointment',
+    patterns: [/احجز|حجز|book|schedule|موعد جديد|عايز موعد|محتاج دكتور/i],
+    confidence: 0.88,
+  },
+  {
+    id: 'cancel_appointment',
+    patterns: [/الغ|cancel|امسح الموعد|شيل الموعد/i],
+    confidence: 0.86,
+  },
+  {
+    id: 'cancel_all_appointments',
+    patterns: [/الغي كل|امسح كل|cancel all/i],
+    confidence: 0.9,
+  },
+  {
+    id: 'reschedule_appointment',
+    patterns: [/أجل|اجل|أعد|اعد|جدول|reschedule|غير الموعد|غير ميعاد/i],
+    confidence: 0.85,
+  },
+  {
+    id: 'list_appointments',
+    patterns: [/مواعيدي|ميعاد|appointment|حجزي|عندي ايه|الساعه كام|مع مين/i],
+    confidence: 0.84,
+  },
+  {
+    id: 'change_visit_type',
+    patterns: [/اونلاين|أونلاين|virtual|clinic|عيادة|زيارة/i],
+    confidence: 0.7,
+  },
+  {
+    id: 'health_question',
+    patterns: [/وجع|ألم|الم|symptom|دوا|دواء|علاج|health/i],
+    confidence: 0.75,
+  },
+];
 
 export function detectDialect(text: string): AgentDialect {
   if (/[a-zA-Z]{4,}/.test(text) && /[\u0600-\u06FF]/.test(text)) return 'mixed';
   if (/[a-zA-Z]{3,}/.test(text)) return 'english';
   if (/وش|ابي|ابغى|زين/.test(text)) return 'gulf';
   if (/شو|هلق|كتير/.test(text)) return 'levantine';
-  if (/عايز|ازاي|إزاي|مفيش|كدا|احجزلي|الغي|بكره|النهارده/.test(text)) return 'egyptian';
+  if (/عايز|ازاي|إزاي|مفيش|كدا|احجزلي|الغي|بكره|النهارده/.test(text))
+    return 'egyptian';
   if (/[\u0600-\u06FF]/.test(text)) return 'msa';
   return 'unknown';
 }
@@ -184,7 +191,9 @@ export function expandHeuristicTerms(
   for (const entity of entities) {
     terms.add(entity.normalized.toLowerCase());
     if (entity.type === 'symptom' || entity.type === 'specialty') {
-      const rule = SYMPTOM_SPECIALTY.find((r) => r.specialty === entity.normalized);
+      const rule = SYMPTOM_SPECIALTY.find(
+        (r) => r.specialty === entity.normalized,
+      );
       rule?.terms.forEach((t) => terms.add(t.toLowerCase()));
     }
   }
@@ -243,7 +252,9 @@ export function mergeUnderstanding(
     normalizedQuery: llm.normalizedQuery?.trim() || fallback.normalizedQuery,
     dialect: (llm.dialect as AgentDialect) || fallback.dialect,
     entities:
-      llm.entities && llm.entities.length > 0 ? llm.entities : fallback.entities,
+      llm.entities && llm.entities.length > 0
+        ? llm.entities
+        : fallback.entities,
     intents:
       llm.intents && llm.intents.length > 0 ? llm.intents : fallback.intents,
     expandedTerms:
@@ -253,14 +264,15 @@ export function mergeUnderstanding(
     subQuestions: llm.subQuestions ?? fallback.subQuestions,
     reformulatedQuery:
       llm.reformulatedQuery?.trim() || fallback.reformulatedQuery,
-    needsClarification:
-      llm.needsClarification ?? fallback.needsClarification,
+    needsClarification: llm.needsClarification ?? fallback.needsClarification,
     clarificationQuestion:
       llm.clarificationQuestion ?? fallback.clarificationQuestion,
   };
 }
 
-export function parseUnderstandingJson(raw: string): Partial<QueryUnderstandingResult> | null {
+export function parseUnderstandingJson(
+  raw: string,
+): Partial<QueryUnderstandingResult> | null {
   const trimmed = raw.trim();
   const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
   if (!jsonMatch) return null;
