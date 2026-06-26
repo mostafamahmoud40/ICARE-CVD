@@ -142,8 +142,7 @@ export class PatientQueueService {
           e.status === 'in-consultation'),
     ).length;
 
-    const avgExamMin =
-      (queueRow.estimatedDurationMin ?? AVG_EXAM_MIN);
+    const avgExamMin = queueRow.estimatedDurationMin ?? AVG_EXAM_MIN;
     const estimatedWaitMin = Math.max(0, peopleAhead * avgExamMin);
 
     const estimatedFinishTime = new Date(
@@ -152,7 +151,9 @@ export class PatientQueueService {
 
     const clinicName = doctorRow?.clinicName ?? CLINIC_NAME;
     const department = doctorRow?.specialty ?? 'Cardiology';
-    const doctorName = doctorRow?.name ? `Dr. ${doctorRow.name}` : 'Your Doctor';
+    const doctorName = doctorRow?.name
+      ? `Dr. ${doctorRow.name}`
+      : 'Your Doctor';
     const doctorTitle = doctorRow?.title ?? null;
     const roomLabel = queueRow.roomNumber
       ? `${queueRow.roomNumber} · ${doctorRow?.clinicLocation ?? 'Clinic'}`
@@ -204,7 +205,7 @@ export class PatientQueueService {
 
   private visitTypeLabel(visitType: string): string {
     if (visitType === 'virtual') return 'Virtual consultation';
-    if (visitType === 'follow-up') return "Follow-up visit";
+    if (visitType === 'follow-up') return 'Follow-up visit';
     return "Today's clinic visit";
   }
 
@@ -272,10 +273,7 @@ export class PatientQueueService {
       return order.indexOf(status) > order.indexOf(s);
     };
 
-    const checkInStatus =
-      status === 'scheduled'
-        ? 'pending'
-        : 'done';
+    const checkInStatus = status === 'scheduled' ? 'pending' : 'done';
 
     const waitingStatus =
       status === 'scheduled' || status === 'arrived'
@@ -319,7 +317,11 @@ export class PatientQueueService {
         id: 'prescription',
         title: 'Prescription from your doctor',
         detail: 'Issued at the end of your consultation',
-        status: isAfter('completed') ? 'done' : status === 'completed' ? 'in-progress' : 'pending',
+        status: isAfter('completed')
+          ? 'done'
+          : status === 'completed'
+            ? 'in-progress'
+            : 'pending',
       },
     ];
   }

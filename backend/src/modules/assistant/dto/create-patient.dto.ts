@@ -149,7 +149,7 @@ export class CreatePatientDto {
   stressLevel?: string;
 
   @IsOptional()
-  @Transform(({ value }) =>
+  @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' && value.trim() === '' ? undefined : value,
   )
   @IsIn(chiefComplaints)
@@ -175,7 +175,6 @@ export class CreatePatientDto {
   occupation?: string;
 
   @IsOptional()
-
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreatePatientMedicationDto)

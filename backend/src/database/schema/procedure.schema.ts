@@ -25,10 +25,10 @@ export const procedurePriorityEnum = pgEnum('procedure_priority', [
   'emergency',
 ]);
 
-export const procedureRequirementKindEnum = pgEnum('procedure_requirement_kind', [
-  'standard',
-  'consent',
-]);
+export const procedureRequirementKindEnum = pgEnum(
+  'procedure_requirement_kind',
+  ['standard', 'consent'],
+);
 
 export const procedureOrder = pgTable('procedure_order', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -42,7 +42,9 @@ export const procedureOrder = pgTable('procedure_order', {
     onDelete: 'set null',
   }),
   procedureName: text('procedure_name').notNull(),
-  department: varchar('department', { length: 120 }).notNull().default('Cardiology'),
+  department: varchar('department', { length: 120 })
+    .notNull()
+    .default('Cardiology'),
   scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
   scheduledEndAt: timestamp('scheduled_end_at', { withTimezone: true }),
   actualEndAt: timestamp('actual_end_at', { withTimezone: true }),
@@ -54,8 +56,12 @@ export const procedureOrder = pgTable('procedure_order', {
   riskScore: varchar('risk_score', { length: 120 }),
   riskTags: jsonb('risk_tags').$type<string[]>().notNull().default([]),
   notes: text('notes'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export const procedureRequirement = pgTable('procedure_requirement', {
@@ -73,7 +79,9 @@ export const procedureRequirement = pgTable('procedure_requirement', {
   attachmentKey: text('attachment_key'),
   attachmentName: varchar('attachment_name', { length: 255 }),
   sortOrder: integer('sort_order').notNull().default(0),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export const procedureConsent = pgTable('procedure_consent', {

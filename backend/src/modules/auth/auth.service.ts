@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { randomBytes, randomInt } from 'crypto';
 import { AuthJwtService } from './jwt';
@@ -33,7 +38,6 @@ import {
   parseMedicationCompliance,
   parseMedicationType,
 } from '../medication/medication-insert.helpers';
-
 
 @Injectable()
 export class AuthService {
@@ -187,15 +191,13 @@ export class AuthService {
       await this.db.insert(pendingRegistration).values(pendingValues);
     }
 
-    await this.mailService.sendRegistrationOtpEmail(
-      normalizedEmail,
-      otpCode,
-    );
+    await this.mailService.sendRegistrationOtpEmail(normalizedEmail, otpCode);
 
     return {
       requiresEmailVerification: true,
       email: normalizedEmail,
-      message: 'Verification code sent to your email. Enter it to create your account.',
+      message:
+        'Verification code sent to your email. Enter it to create your account.',
     };
   }
 
@@ -547,7 +549,12 @@ export class AuthService {
 
     await this.db
       .update(user)
-      .set({ otpCode, otpExpiresAt, otpResetToken: null, otpResetTokenExpiresAt: null })
+      .set({
+        otpCode,
+        otpExpiresAt,
+        otpResetToken: null,
+        otpResetTokenExpiresAt: null,
+      })
       .where(eq(user.id, userRecord.id));
 
     await this.mailService.sendOtpEmail(normalizedEmail, otpCode);
@@ -586,7 +593,10 @@ export class AuthService {
       })
       .where(eq(user.id, userRecord.id));
 
-    return { resetToken, message: 'OTP verified. Use the reset token to set a new password.' };
+    return {
+      resetToken,
+      message: 'OTP verified. Use the reset token to set a new password.',
+    };
   }
 
   /** Step 3 – set a new password using the reset token from step 2. */
@@ -614,11 +624,13 @@ export class AuthService {
       })
       .where(eq(user.id, userRecord.id));
 
-    return { message: 'Password updated successfully. Please log in with your new password.' };
+    return {
+      message:
+        'Password updated successfully. Please log in with your new password.',
+    };
   }
 
   private parseDurationMs(input: string): number {
-
     const m = input.match(/^(\d+)([smhd])$/);
     if (!m) return 7 * 24 * 60 * 60 * 1000;
     const amount = Number(m[1]);

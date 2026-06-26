@@ -8,7 +8,13 @@ import { count, desc, eq, gte, lt, ne, and } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
-import { appointment, doctor, patient, patientQueue, user } from '../../database/schema';
+import {
+  appointment,
+  doctor,
+  patient,
+  patientQueue,
+  user,
+} from '../../database/schema';
 import type {
   CreateAssistantAppointmentDto,
   PatchAssistantAppointmentDto,
@@ -18,7 +24,12 @@ import { AppointmentPatientNotificationService } from '../appointment/appointmen
 import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
 import { findPatientByIdentifier } from '../../shared/patient/patient-identifier';
 
-type DoctorRow = { id: string; name: string; specialty: string | null; avatarUrl: string | null };
+type DoctorRow = {
+  id: string;
+  name: string;
+  specialty: string | null;
+  avatarUrl: string | null;
+};
 
 const doctorUser = alias(user, 'doctor_user');
 
@@ -194,7 +205,10 @@ export class AssistantAppointmentService {
         a.patientUserAvatarUrl,
       ),
       doctorName: doctorNames.get(a.doctorId) ?? 'Unknown',
-      doctorAvatarUrl: await this.resolveStoredAvatarUrl(a.doctorAvatarUrl, null),
+      doctorAvatarUrl: await this.resolveStoredAvatarUrl(
+        a.doctorAvatarUrl,
+        null,
+      ),
       department: a.doctorSpecialty ?? 'Cardiology',
       scheduledAt: a.scheduledAt.toISOString(),
       visitType: a.visitType,
@@ -296,8 +310,7 @@ export class AssistantAppointmentService {
     const updates: Record<string, unknown> = {
       updatedAt: new Date(),
     };
-    if (dto.scheduledAt !== undefined)
-      updates.scheduledAt = nextScheduledAt;
+    if (dto.scheduledAt !== undefined) updates.scheduledAt = nextScheduledAt;
     if (dto.doctorId !== undefined) updates.doctorId = nextDoctorId;
     if (dto.visitType !== undefined) updates.visitType = dto.visitType;
     if (dto.reason !== undefined) updates.reason = dto.reason;

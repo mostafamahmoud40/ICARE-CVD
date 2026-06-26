@@ -28,8 +28,12 @@ export const doctor = pgTable('doctor', {
   clinicName: varchar('clinic_name', { length: 200 }),
   clinicLocation: varchar('clinic_location', { length: 300 }),
   licenseNumber: varchar('license_number', { length: 64 }),
-  clinicConsultationFee: integer('clinic_consultation_fee').notNull().default(0),
-  onlineConsultationFee: integer('online_consultation_fee').notNull().default(0),
+  clinicConsultationFee: integer('clinic_consultation_fee')
+    .notNull()
+    .default(0),
+  onlineConsultationFee: integer('online_consultation_fee')
+    .notNull()
+    .default(0),
   languages: jsonb('languages').$type<string[]>().notNull().default([]),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()

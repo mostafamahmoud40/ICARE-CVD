@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, ne, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../../../database/drizzle.provider';
 import type { Database } from '../../../database/drizzle.provider';
@@ -22,9 +28,7 @@ import {
 import { DoctorVerifierService } from '../../../shared/doctor/doctor-verifier.service';
 import { AvatarUrlResolver } from '../../../shared/storage/avatar-url.resolver';
 import { MinioService } from '../../../shared/storage/minio.service';
-import {
-  PATIENT_AVATAR_MIME_TYPES,
-} from '../../../shared/storage/minio.constants';
+import { PATIENT_AVATAR_MIME_TYPES } from '../../../shared/storage/minio.constants';
 import {
   buildMinioObjectPrefix,
   isPatientProfileStorageKey,
@@ -453,7 +457,8 @@ export class DoctorPatientService {
 
     const userUpdate: Partial<typeof user.$inferInsert> = {};
     if (dto.fullName !== undefined) userUpdate.name = dto.fullName.trim();
-    if (dto.email !== undefined) userUpdate.email = dto.email.toLowerCase().trim();
+    if (dto.email !== undefined)
+      userUpdate.email = dto.email.toLowerCase().trim();
     if (dto.phone !== undefined) userUpdate.phone = dto.phone.trim() || null;
 
     const patientUpdate: Partial<typeof patient.$inferInsert> = {};
@@ -498,7 +503,10 @@ export class DoctorPatientService {
         .where(eq(patient.id, patientId));
     }
 
-    return this.getPatientFullRecord(doctorUserId, resolvedPatient.patientNumber);
+    return this.getPatientFullRecord(
+      doctorUserId,
+      resolvedPatient.patientNumber,
+    );
   }
 
   private normalizePatientAvatarStorageValue(
@@ -511,7 +519,8 @@ export class DoctorPatientService {
       return trimmed;
     }
 
-    const extractedKey = this.avatarUrlResolver.extractPatientAvatarKey(trimmed);
+    const extractedKey =
+      this.avatarUrlResolver.extractPatientAvatarKey(trimmed);
     if (extractedKey && isPatientProfileStorageKey(extractedKey)) {
       return extractedKey;
     }
@@ -530,7 +539,10 @@ export class DoctorPatientService {
     contentType: string,
   ) {
     const doctorRow = await this.doctorVerifier.verify(doctorUserId);
-    const resolvedPatient = await findPatientByIdentifier(this.db, patientIdentifier);
+    const resolvedPatient = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
     await this.verifyDoctorPatientAccess(doctorRow.id, resolvedPatient.id);
 
     const mimeType = contentType.trim().toLowerCase();
@@ -553,7 +565,10 @@ export class DoctorPatientService {
     s3Key: string,
   ) {
     const doctorRow = await this.doctorVerifier.verify(doctorUserId);
-    const resolvedPatient = await findPatientByIdentifier(this.db, patientIdentifier);
+    const resolvedPatient = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
     await this.verifyDoctorPatientAccess(doctorRow.id, resolvedPatient.id);
 
     const patientRow = await this.db.query.patient.findFirst({
@@ -565,7 +580,10 @@ export class DoctorPatientService {
 
     const key = s3Key.trim();
     const expectedPrefix = `${buildMinioObjectPrefix('patient_avatar', patientRow.patientNumber)}/`;
-    if (!key.startsWith(expectedPrefix) && !isPatientProfileStorageKey(key, patientRow.patientNumber)) {
+    if (
+      !key.startsWith(expectedPrefix) &&
+      !isPatientProfileStorageKey(key, patientRow.patientNumber)
+    ) {
       throw new BadRequestException('Invalid profile photo storage key');
     }
 
@@ -582,10 +600,17 @@ export class DoctorPatientService {
     return { avatarUrl: await this.avatarUrlResolver.resolve(key) };
   }
 
-  async assignPatient(doctorUserId: number, patientIdentifier: string, notes?: string) {
+  async assignPatient(
+    doctorUserId: number,
+    patientIdentifier: string,
+    notes?: string,
+  ) {
     const doctorRow = await this.doctorVerifier.verify(doctorUserId);
 
-    const patientRow = await findPatientByIdentifier(this.db, patientIdentifier);
+    const patientRow = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
     const patientId = patientRow.id;
 
     const existing = await this.db.query.doctorPatient.findFirst({
@@ -821,7 +846,10 @@ export class DoctorPatientService {
     if (!patientRow) throw new NotFoundException('Patient not found');
 
     const existing = await this.db.query.allergy.findFirst({
-      where: and(eq(allergy.id, allergyId), eq(allergy.userId, patientRow.userId)),
+      where: and(
+        eq(allergy.id, allergyId),
+        eq(allergy.userId, patientRow.userId),
+      ),
     });
     if (!existing) throw new NotFoundException('Allergy not found');
 
@@ -883,9 +911,12 @@ export class DoctorPatientService {
         eq(familyHistory.userId, patientRow.userId),
       ),
     });
-    if (!existing) throw new NotFoundException('Family history entry not found');
+    if (!existing)
+      throw new NotFoundException('Family history entry not found');
 
-    await this.db.delete(familyHistory).where(eq(familyHistory.id, familyHistoryId));
+    await this.db
+      .delete(familyHistory)
+      .where(eq(familyHistory.id, familyHistoryId));
 
     return { success: true };
   }
@@ -923,29 +954,32 @@ export class DoctorPatientService {
   private async getAccessiblePatientIds(doctorId: string): Promise<string[]> {
     const [assigned, fromAppointments, fromConsultations, fromQueue] =
       await Promise.all([
-      this.db
-        .select({ patientId: doctorPatient.patientId })
-        .from(doctorPatient)
-        .where(
-          and(
-            eq(doctorPatient.doctorId, doctorId),
-            eq(doctorPatient.status, 'active'),
+        this.db
+          .select({ patientId: doctorPatient.patientId })
+          .from(doctorPatient)
+          .where(
+            and(
+              eq(doctorPatient.doctorId, doctorId),
+              eq(doctorPatient.status, 'active'),
+            ),
           ),
-        ),
-      this.db
-        .selectDistinct({ patientId: appointment.patientId })
-        .from(appointment)
-        .where(eq(appointment.doctorId, doctorId)),
-      this.db
-        .selectDistinct({ patientId: consultation.patientId })
-        .from(consultation)
-        .where(eq(consultation.doctorId, doctorId)),
-      this.db
-        .selectDistinct({ patientId: appointment.patientId })
-        .from(patientQueue)
-        .innerJoin(appointment, eq(patientQueue.appointmentId, appointment.id))
-        .where(eq(appointment.doctorId, doctorId)),
-    ]);
+        this.db
+          .selectDistinct({ patientId: appointment.patientId })
+          .from(appointment)
+          .where(eq(appointment.doctorId, doctorId)),
+        this.db
+          .selectDistinct({ patientId: consultation.patientId })
+          .from(consultation)
+          .where(eq(consultation.doctorId, doctorId)),
+        this.db
+          .selectDistinct({ patientId: appointment.patientId })
+          .from(patientQueue)
+          .innerJoin(
+            appointment,
+            eq(patientQueue.appointmentId, appointment.id),
+          )
+          .where(eq(appointment.doctorId, doctorId)),
+      ]);
 
     return [
       ...new Set([
@@ -958,11 +992,17 @@ export class DoctorPatientService {
   }
 
   private async resolvePatientUuid(patientIdentifier: string): Promise<string> {
-    const patientRow = await findPatientByIdentifier(this.db, patientIdentifier);
+    const patientRow = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
     return patientRow.id;
   }
 
-  private async verifyDoctorPatientAccess(doctorId: string, patientUuid: string) {
+  private async verifyDoctorPatientAccess(
+    doctorId: string,
+    patientUuid: string,
+  ) {
     const accessibleIds = await this.getAccessiblePatientIds(doctorId);
     if (!accessibleIds.includes(patientUuid)) {
       throw new NotFoundException(

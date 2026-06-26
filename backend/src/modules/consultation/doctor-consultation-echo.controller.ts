@@ -64,12 +64,7 @@ export class DoctorConsultationEchoController {
     @Param('analysisId') analysisId: string,
     @Body() dto: UpdateConsultationEchoReportDto,
   ) {
-    return this.echoService.updateReport(
-      user.sub,
-      patientId,
-      analysisId,
-      dto,
-    );
+    return this.echoService.updateReport(user.sub, patientId, analysisId, dto);
   }
 
   @Delete(':patientId/echo-analyses/:analysisId')

@@ -1,4 +1,9 @@
-import { Inject, Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { desc, eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
@@ -15,12 +20,16 @@ import {
 import { MinioService } from '../../shared/storage/minio.service';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type { CreateDocumentDto } from './dto/documents.dto';
+import { DocumentCategory } from './dto/documents.dto';
 
 function isMinioLabReportKey(key: string, patientNumber?: string): boolean {
   return isMinioKeyForCategory(key, 'lab_report', patientNumber);
 }
 
-function isConsultationImagingKey(key: string, patientNumber?: string): boolean {
+function isConsultationImagingKey(
+  key: string,
+  patientNumber?: string,
+): boolean {
   return (
     isMinioKeyForCategory(key, 'consultation_xray', patientNumber) ||
     isMinioKeyForCategory(key, 'consultation_echo', patientNumber) ||
@@ -101,12 +110,12 @@ export class DoctorDocumentService {
       });
       storageKey = intent.key;
     } else if (
-      dto.category === 'lab_report' &&
+      dto.category === DocumentCategory.LabReport &&
       !isMinioLabReportKey(storageKey, patientRow.patientNumber)
     ) {
       throw new BadRequestException('Invalid lab report storage key');
     } else if (
-      dto.category === 'imaging' &&
+      dto.category === DocumentCategory.Imaging &&
       !isConsultationImagingKey(storageKey, patientRow.patientNumber) &&
       !isMinioObjectKey(storageKey, patientRow.patientNumber)
     ) {
@@ -116,7 +125,7 @@ export class DoctorDocumentService {
     }
 
     if (
-      dto.category === 'lab_report' &&
+      dto.category === DocumentCategory.LabReport &&
       dto.fileSize != null &&
       dto.fileSize > LAB_REPORT_MAX_BYTES
     ) {
@@ -151,6 +160,8 @@ export class DoctorDocumentService {
 
     await this.minioService.deleteObject(doc.s3Key);
 
-    await this.db.delete(patientDocument).where(eq(patientDocument.id, documentId));
+    await this.db
+      .delete(patientDocument)
+      .where(eq(patientDocument.id, documentId));
   }
 }

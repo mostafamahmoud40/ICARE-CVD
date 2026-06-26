@@ -29,9 +29,11 @@ export class ExternalEmbeddingFunction {
     return new ExternalEmbeddingFunction();
   }
 
-  async generate(_texts: string[]): Promise<number[][]> {
-    throw new Error(
-      'ExternalEmbeddingFunction: pass embeddings directly on upsert/query',
+  generate(_texts: string[]): Promise<number[][]> {
+    return Promise.reject(
+      new Error(
+        'ExternalEmbeddingFunction: pass embeddings directly on upsert/query',
+      ),
     );
   }
 }

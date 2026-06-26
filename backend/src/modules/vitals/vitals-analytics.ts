@@ -112,7 +112,9 @@ export function isAbnormalVitalReading(reading: VitalReadingSnapshot): boolean {
   );
 }
 
-export function isElevatedBloodPressure(reading: VitalReadingSnapshot): boolean {
+export function isElevatedBloodPressure(
+  reading: VitalReadingSnapshot,
+): boolean {
   const systolic = reading.systolicBp;
   const diastolic = reading.diastolicBp;
   return (
@@ -146,7 +148,8 @@ export function aggregateReadingsByDate(
     if (reading.systolicBp != null) existing.systolic = reading.systolicBp;
     if (reading.diastolicBp != null) existing.diastolic = reading.diastolicBp;
     if (reading.heartRate != null) existing.heartRate = reading.heartRate;
-    if (reading.oxygenSaturation != null) existing.spo2 = reading.oxygenSaturation;
+    if (reading.oxygenSaturation != null)
+      existing.spo2 = reading.oxygenSaturation;
     if (reading.weight != null) existing.weight = parseNumber(reading.weight);
     if (reading.temperature != null) {
       existing.temperature = parseNumber(reading.temperature);
@@ -170,7 +173,9 @@ export function aggregateReadingsByDate(
     byDate.set(dateKey, existing);
   }
 
-  return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+  return Array.from(byDate.values()).sort((a, b) =>
+    a.date.localeCompare(b.date),
+  );
 }
 
 export function buildCurrentVitals(
@@ -189,23 +194,27 @@ export function buildCurrentVitals(
   const latestWeight = withWeight.at(-1);
 
   const baselineBp = average(
-    withBp.slice(0, Math.max(0, withBp.length - 1)).map((item) => item.systolic!),
+    withBp
+      .slice(0, Math.max(0, withBp.length - 1))
+      .map((item) => item.systolic!),
   );
   const baselineHr = average(
-    withHr.slice(0, Math.max(0, withHr.length - 1)).map((item) => item.heartRate!),
+    withHr
+      .slice(0, Math.max(0, withHr.length - 1))
+      .map((item) => item.heartRate!),
   );
   const baselineSpo2 = average(
-    withSpo2.slice(0, Math.max(0, withSpo2.length - 1)).map((item) => item.spo2!),
+    withSpo2
+      .slice(0, Math.max(0, withSpo2.length - 1))
+      .map((item) => item.spo2!),
   );
   const baselineWeight = average(
-    withWeight.slice(0, Math.max(0, withWeight.length - 1)).map((item) => item.weight!),
+    withWeight
+      .slice(0, Math.max(0, withWeight.length - 1))
+      .map((item) => item.weight!),
   );
 
-  const bpTrend = computeTrend(
-    latestBp?.systolic ?? null,
-    baselineBp,
-    'mmHg',
-  );
+  const bpTrend = computeTrend(latestBp?.systolic ?? null, baselineBp, 'mmHg');
   const hrTrend = computeTrend(latestHr?.heartRate ?? null, baselineHr, 'bpm');
   const spo2Trend = computeTrend(latestSpo2?.spo2 ?? null, baselineSpo2, '%');
   const weightTrend = computeTrend(
@@ -250,7 +259,9 @@ export function buildClinicalAlert(
   if (withBp.length === 0) return null;
 
   const baseline = average(
-    withBp.slice(0, Math.max(0, withBp.length - 1)).map((item) => item.systolic!),
+    withBp
+      .slice(0, Math.max(0, withBp.length - 1))
+      .map((item) => item.systolic!),
   );
 
   const abnormalReadings = readings
@@ -349,7 +360,9 @@ export function buildAiAnalysisItems(
     }
   }
 
-  const dates = history.map((item) => new Date(item.date).getTime()).sort((a, b) => a - b);
+  const dates = history
+    .map((item) => new Date(item.date).getTime())
+    .sort((a, b) => a - b);
   for (let i = 1; i < dates.length; i++) {
     const gapDays = (dates[i] - dates[i - 1]) / (1000 * 60 * 60 * 24);
     if (gapDays >= 10) {
@@ -383,7 +396,8 @@ export function buildKpiBadges(current: PatientCurrentVitals): {
   weight: string | null;
 } {
   const bloodPressure =
-    current.bloodPressure.systolic != null && current.bloodPressure.diastolic != null
+    current.bloodPressure.systolic != null &&
+    current.bloodPressure.diastolic != null
       ? current.bloodPressure.systolic < 130 &&
         current.bloodPressure.diastolic < 85
         ? 'Within your normal range'

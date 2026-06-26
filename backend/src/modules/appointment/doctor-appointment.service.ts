@@ -1,8 +1,19 @@
-import { Inject, Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { and, count, desc, eq, gte, lt, ne } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
-import { appointment, doctor, patient, patientQueue, user } from '../../database/schema';
+import {
+  appointment,
+  doctor,
+  patient,
+  patientQueue,
+  user,
+} from '../../database/schema';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
 import { findPatientByIdentifier } from '../../shared/patient/patient-identifier';
@@ -157,9 +168,9 @@ export class DoctorAppointmentService {
         reason: row.reason,
         notes: row.notes,
         department: row.department ?? 'Cardiology',
-      patient: {
-        id: row.patientNumber,
-        name: row.patientName,
+        patient: {
+          id: row.patientNumber,
+          name: row.patientName,
           avatar: await this.resolvePatientAvatar(
             row.patientAvatar,
             row.patientUserAvatar,
@@ -389,7 +400,9 @@ export class DoctorAppointmentService {
     });
     if (!appt) throw new NotFoundException('Appointment not found');
     if (appt.status === 'cancelled' || appt.status === 'completed') {
-      throw new BadRequestException('Cannot mark a closed appointment as no-show');
+      throw new BadRequestException(
+        'Cannot mark a closed appointment as no-show',
+      );
     }
 
     const now = new Date();

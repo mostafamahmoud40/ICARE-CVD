@@ -56,8 +56,12 @@ export class AssistantDoctorScheduleService {
 
   async getScheduleBundle(doctorId: string) {
     await this.assertDoctorExists(doctorId);
-    const base = await this.doctorScheduleService.getScheduleByDoctorId(doctorId);
-    const bookings = await this.listUpcomingBookings(doctorId, base.slotDurationMinutes);
+    const base =
+      await this.doctorScheduleService.getScheduleByDoctorId(doctorId);
+    const bookings = await this.listUpcomingBookings(
+      doctorId,
+      base.slotDurationMinutes,
+    );
     const dayExtras = await this.listDayExtras(doctorId);
 
     return {
@@ -157,11 +161,7 @@ export class AssistantDoctorScheduleService {
     return result;
   }
 
-  async deleteDayExtra(
-    doctorId: string,
-    extraId: string,
-    actorUserId: number,
-  ) {
+  async deleteDayExtra(doctorId: string, extraId: string, actorUserId: number) {
     await this.assertDoctorExists(doctorId);
 
     const result = await this.db
@@ -267,7 +267,9 @@ export class AssistantDoctorScheduleService {
     const current = row?.doctorArrivalByWeekday ?? {};
     const next = { ...current };
     const arrival =
-      dto.arrivalTime === undefined || dto.arrivalTime === null || dto.arrivalTime === ''
+      dto.arrivalTime === undefined ||
+      dto.arrivalTime === null ||
+      dto.arrivalTime === ''
         ? null
         : dto.arrivalTime;
     if (arrival === null) {
@@ -296,7 +298,11 @@ export class AssistantDoctorScheduleService {
       source: 'assistant_doctor_arrival',
     });
 
-    return { weekday: dto.weekday, arrivalTime: arrival, doctorArrivalByWeekday: next };
+    return {
+      weekday: dto.weekday,
+      arrivalTime: arrival,
+      doctorArrivalByWeekday: next,
+    };
   }
 
   // ─── Schedule AI Chat ────────────────────────────────────────────────────────
@@ -309,7 +315,9 @@ export class AssistantDoctorScheduleService {
   ): Promise<{ reply: string }> {
     const apiKey = process.env.GROQ_API_KEY?.trim();
     if (!apiKey) {
-      throw new ServiceUnavailableException('AI unavailable — GROQ_API_KEY not configured');
+      throw new ServiceUnavailableException(
+        'AI unavailable — GROQ_API_KEY not configured',
+      );
     }
 
     const [bundle, revisions] = await Promise.all([
@@ -354,11 +362,14 @@ export class AssistantDoctorScheduleService {
       });
 
       const reply =
-        completion.choices[0]?.message?.content?.trim() || 'No reply generated.';
+        completion.choices[0]?.message?.content?.trim() ||
+        'No reply generated.';
       return { reply };
     } catch (error) {
       this.logger.error('Groq schedule chat failed', error);
-      throw new ServiceUnavailableException('AI service temporarily unavailable');
+      throw new ServiceUnavailableException(
+        'AI service temporarily unavailable',
+      );
     }
   }
 
@@ -368,7 +379,9 @@ export class AssistantDoctorScheduleService {
   ): Promise<ScheduleAiAnalysisResult> {
     const apiKey = process.env.GROQ_API_KEY?.trim();
     if (!apiKey) {
-      throw new ServiceUnavailableException('AI unavailable — GROQ_API_KEY not configured');
+      throw new ServiceUnavailableException(
+        'AI unavailable — GROQ_API_KEY not configured',
+      );
     }
 
     const [bundle, revisions] = await Promise.all([
@@ -393,8 +406,7 @@ export class AssistantDoctorScheduleService {
     ].join('\n');
 
     const groq = new Groq({ apiKey });
-    const model =
-      process.env.GROQ_ANALYSIS_MODEL?.trim() || 'qwen/qwen3-32b';
+    const model = process.env.GROQ_ANALYSIS_MODEL?.trim() || 'qwen/qwen3-32b';
 
     try {
       const completion = await groq.chat.completions.create({
@@ -403,7 +415,8 @@ export class AssistantDoctorScheduleService {
           { role: 'system', content: systemPrompt },
           {
             role: 'user',
-            content: 'Analyze this doctor\'s schedule and return the JSON object.',
+            content:
+              "Analyze this doctor's schedule and return the JSON object.",
           },
         ],
         temperature: 0.6,
@@ -419,12 +432,17 @@ export class AssistantDoctorScheduleService {
       raw = raw.replace(/<think[\s\S]*?<\/think>/gi, '').trim();
 
       // Strip markdown code fences if present
-      raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      raw = raw
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim();
 
       const parsed = JSON.parse(raw) as Partial<ScheduleAiAnalysisResult>;
 
       return {
-        insights: Array.isArray(parsed.insights) ? parsed.insights.map(String) : [],
+        insights: Array.isArray(parsed.insights)
+          ? parsed.insights.map(String)
+          : [],
         risks: Array.isArray(parsed.risks) ? parsed.risks.map(String) : [],
         recommendations: Array.isArray(parsed.recommendations)
           ? parsed.recommendations.map(String)
@@ -432,24 +450,37 @@ export class AssistantDoctorScheduleService {
       };
     } catch (error) {
       this.logger.error('Groq schedule analysis failed', error);
-      throw new ServiceUnavailableException('AI analysis temporarily unavailable');
+      throw new ServiceUnavailableException(
+        'AI analysis temporarily unavailable',
+      );
     }
   }
 
   private buildScheduleContext(
     doctorName: string,
-    bundle: Awaited<ReturnType<AssistantDoctorScheduleService['getScheduleBundle']>>,
-    revisions: Awaited<ReturnType<DoctorScheduleService['listScheduleRevisions']>>,
+    bundle: Awaited<
+      ReturnType<AssistantDoctorScheduleService['getScheduleBundle']>
+    >,
+    revisions: Awaited<
+      ReturnType<DoctorScheduleService['listScheduleRevisions']>
+    >,
   ): string {
-    const { schedule, bookings, dayExtras, pausedPeriodIds, doctorArrivalByWeekday } =
-      bundle;
+    const {
+      schedule,
+      bookings,
+      dayExtras,
+      pausedPeriodIds,
+      doctorArrivalByWeekday,
+    } = bundle;
 
     const lines: string[] = [];
     lines.push(`Doctor: ${doctorName}`);
 
     lines.push('\n## Weekly Template');
     lines.push(`Slot duration: ${schedule.slotDurationMinutes} min`);
-    lines.push(`Buffer between slots: ${schedule.bufferBetweenSlotsMinutes} min`);
+    lines.push(
+      `Buffer between slots: ${schedule.bufferBetweenSlotsMinutes} min`,
+    );
 
     const activeDays = schedule.days.filter((d) => d.enabled);
     lines.push(`Active days: ${activeDays.length} of 7`);
@@ -462,9 +493,11 @@ export class AssistantDoctorScheduleService {
           return `${p.startTime}–${p.endTime}${paused ? ' [PAUSED]' : ''}`;
         })
         .join(', ');
-      const arrival = (doctorArrivalByWeekday as Record<string, string | null>)[day.weekday];
+      const arrival = doctorArrivalByWeekday[day.weekday];
       const arrivalNote = arrival ? ` (doctor arrives ${arrival})` : '';
-      lines.push(`  ${day.label}: ${periods || 'no periods defined'}${arrivalNote}`);
+      lines.push(
+        `  ${day.label}: ${periods || 'no periods defined'}${arrivalNote}`,
+      );
     }
 
     if (schedule.blockedDates.length > 0) {
@@ -496,7 +529,7 @@ export class AssistantDoctorScheduleService {
       for (const [date, bs] of Object.entries(byDate).slice(0, 10)) {
         const slots = bs.map((b) => b.startTime).join(', ');
         lines.push(
-          `  ${date} (${bs[0]!.weekday}): ${bs.length} booking${bs.length > 1 ? 's' : ''} at ${slots}`,
+          `  ${date} (${bs[0].weekday}): ${bs.length} booking${bs.length > 1 ? 's' : ''} at ${slots}`,
         );
       }
     }
@@ -517,7 +550,10 @@ export class AssistantDoctorScheduleService {
 
   // ─── Bookings list (private) ──────────────────────────────────────────────────
 
-  private async listUpcomingBookings(doctorId: string, slotDurationMinutes: number) {
+  private async listUpcomingBookings(
+    doctorId: string,
+    slotDurationMinutes: number,
+  ) {
     const now = new Date();
     const horizon = new Date(now);
     horizon.setDate(horizon.getDate() + 14);

@@ -187,7 +187,8 @@ export class AssistantPatientRecordService {
         patientSince: toIsoString(patientRow.patientSince) ?? null,
         allergies,
         familyHistory: family,
-        activeMedications: medications.filter((m) => m.status === 'active').length,
+        activeMedications: medications.filter((m) => m.status === 'active')
+          .length,
         condition: primaryCondition,
         lastVisitDate,
         upcomingAppointmentDate: toIsoString(upcomingAppointment?.scheduledAt),

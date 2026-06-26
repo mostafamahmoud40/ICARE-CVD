@@ -113,10 +113,7 @@ export class DoctorScheduleService {
     return this.listScheduleRevisions(doctorRow.id, limit);
   }
 
-  async getScheduleRevisionForUser(
-    userId: number,
-    revisionId: string,
-  ) {
+  async getScheduleRevisionForUser(userId: number, revisionId: string) {
     const doctorRow = await this.db.query.doctor.findFirst({
       where: eq(doctor.userId, userId),
     });

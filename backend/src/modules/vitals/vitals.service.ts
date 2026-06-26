@@ -227,7 +227,9 @@ export class VitalsService {
       dto.weight == null &&
       dto.bloodSugar == null
     ) {
-      throw new BadRequestException('At least one vital measurement is required');
+      throw new BadRequestException(
+        'At least one vital measurement is required',
+      );
     }
 
     if (

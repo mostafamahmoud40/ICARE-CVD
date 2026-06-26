@@ -139,9 +139,7 @@ export class ConsultationService {
     plan: string | null;
   }): 'report-ready' | 'pending-report' {
     const hasContent = Boolean(
-      row.chiefComplaint?.trim() ||
-        row.notes?.trim() ||
-        row.plan?.trim(),
+      row.chiefComplaint?.trim() || row.notes?.trim() || row.plan?.trim(),
     );
     return hasContent ? 'report-ready' : 'pending-report';
   }
@@ -218,7 +216,10 @@ export class ConsultationService {
         notes: consultationPrescription.notes,
       })
       .from(consultationPrescription)
-      .innerJoin(medication, eq(consultationPrescription.medicationId, medication.id))
+      .innerJoin(
+        medication,
+        eq(consultationPrescription.medicationId, medication.id),
+      )
       .where(eq(consultationPrescription.consultationId, consultationId));
 
     const referrals = await this.db.query.consultationReferral.findMany({
@@ -226,7 +227,8 @@ export class ConsultationService {
     });
 
     let labOrderRows: Array<{ id: string; notes: string | null }> = [];
-    let labItems: Array<{ id: string; labOrderId: string; testName: string }> = [];
+    let labItems: Array<{ id: string; labOrderId: string; testName: string }> =
+      [];
     if (cons.appointmentId) {
       labOrderRows = await this.db
         .select({ id: labOrder.id, notes: labOrder.notes })
@@ -472,7 +474,11 @@ export class ConsultationService {
     return updated;
   }
 
-  async deleteConsultation(doctorUserId: number, patientId: string, consultationId: string) {
+  async deleteConsultation(
+    doctorUserId: number,
+    patientId: string,
+    consultationId: string,
+  ) {
     await this.doctorVerifier.verify(doctorUserId);
 
     const patientRow = await findPatientByIdentifier(this.db, patientId);
@@ -485,7 +491,9 @@ export class ConsultationService {
     });
     if (!existing) throw new NotFoundException('Consultation not found');
 
-    await this.db.delete(consultation).where(eq(consultation.id, consultationId));
+    await this.db
+      .delete(consultation)
+      .where(eq(consultation.id, consultationId));
 
     return { success: true };
   }
@@ -621,7 +629,10 @@ export class ConsultationService {
         durationDays: medication.durationDays,
       })
       .from(consultationPrescription)
-      .innerJoin(medication, eq(consultationPrescription.medicationId, medication.id))
+      .innerJoin(
+        medication,
+        eq(consultationPrescription.medicationId, medication.id),
+      )
       .where(eq(consultationPrescription.consultationId, cons.id))
       .orderBy(desc(consultationPrescription.createdAt));
 

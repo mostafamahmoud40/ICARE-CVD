@@ -65,10 +65,6 @@ export class DoctorConsultationCineMriController {
     @Param('patientId') patientId: string,
     @Param('analysisId') analysisId: string,
   ) {
-    return this.cineMriService.deleteAnalysis(
-      user.sub,
-      patientId,
-      analysisId,
-    );
+    return this.cineMriService.deleteAnalysis(user.sub, patientId, analysisId);
   }
 }

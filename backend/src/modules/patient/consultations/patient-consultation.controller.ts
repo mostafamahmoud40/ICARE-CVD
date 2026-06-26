@@ -1,4 +1,10 @@
-import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { AccessTokenGuard } from '../../auth/access-token.guard';
 import { CurrentUser } from '../../auth/current-user.decorator';
 import type { TokenPayload } from '../../auth/jwt';
@@ -20,6 +26,9 @@ export class PatientConsultationController {
     @CurrentUser() user: TokenPayload,
     @Param('consultationId', ParseUUIDPipe) consultationId: string,
   ) {
-    return this.consultationService.getPatientConsultation(user.sub, consultationId);
+    return this.consultationService.getPatientConsultation(
+      user.sub,
+      consultationId,
+    );
   }
 }

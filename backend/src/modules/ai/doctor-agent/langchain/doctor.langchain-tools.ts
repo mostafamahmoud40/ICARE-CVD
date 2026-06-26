@@ -144,9 +144,11 @@ export function buildDoctorLangChainTools(
       description:
         'Search your accessible patients by a specific criterion. Examples: "procedures tomorrow", "procedures today", "pending procedures", "high risk", "abnormal labs", "follow-up needed". Returns matching patients with relevant context. Use this when the doctor asks about a group of patients matching a condition rather than a specific named patient.',
       schema: z.object({
-        criteria: z.string().describe(
-          'Natural language search criterion — e.g. "procedures tomorrow", "high risk patients", "abnormal labs", "needs follow-up"',
-        ),
+        criteria: z
+          .string()
+          .describe(
+            'Natural language search criterion — e.g. "procedures tomorrow", "high risk patients", "abnormal labs", "needs follow-up"',
+          ),
       }),
     },
   );

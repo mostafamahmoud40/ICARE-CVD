@@ -21,7 +21,10 @@ export class DoctorRagPipelineService {
     private readonly doctorTools: DoctorToolsService,
   ) {}
 
-  async run(apiKey: string, input: DoctorPipelineInput): Promise<DoctorPipelineResult> {
+  async run(
+    apiKey: string,
+    input: DoctorPipelineInput,
+  ): Promise<DoctorPipelineResult> {
     const trace: DoctorPipelineStage[] = [];
 
     // ── Stage 0: Understanding ─────────────────────────────────────────────
@@ -42,9 +45,12 @@ export class DoctorRagPipelineService {
       stage: 1,
       key: 'entities',
       label: 'Entity Extraction',
-      summary: understanding.entities.length > 0
-        ? understanding.entities.map((e) => `${e.type}:${e.normalized}`).join(', ')
-        : 'no entities extracted',
+      summary:
+        understanding.entities.length > 0
+          ? understanding.entities
+              .map((e) => `${e.type}:${e.normalized}`)
+              .join(', ')
+          : 'no entities extracted',
     });
 
     // ── Stage 2: Ensure Chroma index is fresh ─────────────────────────────
@@ -97,7 +103,10 @@ export class DoctorRagPipelineService {
     });
 
     // ── Stage 6: Intent prompt addon ───────────────────────────────────────
-    const intentPromptAddon = this.buildIntentAddon(understanding, preFetchedContext);
+    const intentPromptAddon = this.buildIntentAddon(
+      understanding,
+      preFetchedContext,
+    );
 
     trace.push({
       stage: 6,
@@ -122,7 +131,9 @@ export class DoctorRagPipelineService {
     understanding: DoctorQueryUnderstanding,
     doctorId: string,
   ): Promise<[string, string]> {
-    const topIntent = understanding.intents[0]?.id as DoctorIntentId | undefined;
+    const topIntent = understanding.intents[0]?.id as
+      | DoctorIntentId
+      | undefined;
     const patientIds = understanding.targetPatientIdentifiers;
     const firstPatient = patientIds[0];
 
@@ -164,50 +175,86 @@ export class DoctorRagPipelineService {
       case 'lookup_patient':
       case 'clinical_question':
         await Promise.all([
-          fetch(() => this.doctorTools.getPatientOverview(doctorId, firstPatient), 'overview'),
-          fetch(() => this.doctorTools.getPatientConsultations(doctorId, firstPatient), 'consultations'),
+          fetch(
+            () => this.doctorTools.getPatientOverview(doctorId, firstPatient),
+            'overview',
+          ),
+          fetch(
+            () =>
+              this.doctorTools.getPatientConsultations(doctorId, firstPatient),
+            'consultations',
+          ),
         ]);
         break;
 
       case 'medication_review':
-        await fetch(() => this.doctorTools.getPatientMedications(doctorId, firstPatient), 'medications');
+        await fetch(
+          () => this.doctorTools.getPatientMedications(doctorId, firstPatient),
+          'medications',
+        );
         break;
 
       case 'lab_review':
-        await fetch(() => this.doctorTools.getPatientLabResults(doctorId, firstPatient), 'labs');
+        await fetch(
+          () => this.doctorTools.getPatientLabResults(doctorId, firstPatient),
+          'labs',
+        );
         break;
 
       case 'vitals_review':
-        await fetch(() => this.doctorTools.getPatientVitals(doctorId, firstPatient), 'vitals');
+        await fetch(
+          () => this.doctorTools.getPatientVitals(doctorId, firstPatient),
+          'vitals',
+        );
         break;
 
       case 'ai_analysis_review':
-        await fetch(() => this.doctorTools.getPatientAiAnalyses(doctorId, firstPatient), 'ai_analyses');
+        await fetch(
+          () => this.doctorTools.getPatientAiAnalyses(doctorId, firstPatient),
+          'ai_analyses',
+        );
         break;
 
       case 'diagnosis_query':
         await Promise.all([
-          fetch(() => this.doctorTools.getPatientDiagnoses(doctorId, firstPatient), 'diagnoses'),
-          fetch(() => this.doctorTools.getPatientOverview(doctorId, firstPatient), 'overview'),
+          fetch(
+            () => this.doctorTools.getPatientDiagnoses(doctorId, firstPatient),
+            'diagnoses',
+          ),
+          fetch(
+            () => this.doctorTools.getPatientOverview(doctorId, firstPatient),
+            'overview',
+          ),
         ]);
         break;
 
       case 'procedure_check':
-        await fetch(() => this.doctorTools.getPatientProcedures(doctorId, firstPatient), 'procedures');
+        await fetch(
+          () => this.doctorTools.getPatientProcedures(doctorId, firstPatient),
+          'procedures',
+        );
         break;
 
       case 'comparison':
         // Pre-fetch overview for all mentioned patients (up to 3)
         await Promise.all(
-          patientIds.slice(0, 3).map((pid) =>
-            fetch(() => this.doctorTools.getPatientOverview(doctorId, pid), `overview(${pid})`),
-          ),
+          patientIds
+            .slice(0, 3)
+            .map((pid) =>
+              fetch(
+                () => this.doctorTools.getPatientOverview(doctorId, pid),
+                `overview(${pid})`,
+              ),
+            ),
         );
         break;
 
       default:
         // For general / unclear intent: just fetch overview
-        await fetch(() => this.doctorTools.getPatientOverview(doctorId, firstPatient), 'overview');
+        await fetch(
+          () => this.doctorTools.getPatientOverview(doctorId, firstPatient),
+          'overview',
+        );
         break;
     }
 
@@ -243,10 +290,15 @@ export class DoctorRagPipelineService {
     };
 
     if (topIntent && intentGuidance[topIntent]) {
-      parts.push(`## Clinical focus for this query\n${intentGuidance[topIntent]}`);
+      parts.push(
+        `## Clinical focus for this query\n${intentGuidance[topIntent]}`,
+      );
     }
 
-    if (understanding.needsClarification && understanding.clarificationQuestion) {
+    if (
+      understanding.needsClarification &&
+      understanding.clarificationQuestion
+    ) {
       parts.push(
         `## Clarification needed\nAsk the doctor: "${understanding.clarificationQuestion}"`,
       );

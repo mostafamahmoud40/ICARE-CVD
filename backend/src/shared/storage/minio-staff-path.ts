@@ -10,7 +10,10 @@ export function buildStaffAvatarPrefix(
   return `${STAFF_STORAGE_ROOT}/${folder}/${staffId.trim()}/profile`;
 }
 
-export function isStaffAvatarStorageKey(key: string, staffId?: string): boolean {
+export function isStaffAvatarStorageKey(
+  key: string,
+  staffId?: string,
+): boolean {
   const trimmed = key.trim();
   if (!trimmed.startsWith(`${STAFF_STORAGE_ROOT}/`)) return false;
   if (!trimmed.includes('/profile/')) return false;

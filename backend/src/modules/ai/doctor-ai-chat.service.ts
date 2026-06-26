@@ -10,7 +10,10 @@ import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import { doctor, user } from '../../database/schema';
 import { todayClinicDateStr } from '../../common/clinic-time.util';
-import type { DoctorAiChatDto, DoctorAiChatResponse } from './dto/doctor-ai-chat.dto';
+import type {
+  DoctorAiChatDto,
+  DoctorAiChatResponse,
+} from './dto/doctor-ai-chat.dto';
 import { DoctorToolsService } from './doctor-agent/langchain/doctor-tools.service';
 import { LangChainDoctorAgentService } from './doctor-agent/langchain/langchain-doctor-agent.service';
 import { DoctorRagPipelineService } from './doctor-agent/langchain/doctor-rag-pipeline.service';
@@ -69,12 +72,15 @@ export class DoctorAiChatService {
         `Doctor pipeline trace:\n${pipelineResult.pipelineTrace.map((s) => `  [${s.stage}] ${s.label}: ${s.summary}`).join('\n')}`,
       );
     } catch (pipelineError) {
-      this.logger.warn(`Doctor pipeline failed — falling back to basic agent: ${String(pipelineError)}`);
+      this.logger.warn(
+        `Doctor pipeline failed — falling back to basic agent: ${String(pipelineError)}`,
+      );
     }
 
     // Roster comes from pipeline or we fetch it fresh
     const roster =
-      pipelineResult?.roster ?? (await this.doctorTools.listPatients(doctorRow.id));
+      pipelineResult?.roster ??
+      (await this.doctorTools.listPatients(doctorRow.id));
 
     const systemPrompt = this.buildSystemPrompt(
       doctorRow.name,
@@ -105,7 +111,9 @@ export class DoctorAiChatService {
       if (error instanceof ServiceUnavailableException) throw error;
 
       if (this.isGroqRateLimit(error) && fallbackModel !== primaryModel) {
-        this.logger.warn(`Doctor agent rate-limited — retrying with ${fallbackModel}`);
+        this.logger.warn(
+          `Doctor agent rate-limited — retrying with ${fallbackModel}`,
+        );
         try {
           return await this.agentService.invoke({
             ...agentInput,
@@ -124,7 +132,9 @@ export class DoctorAiChatService {
       }
 
       this.logger.error('Doctor AI chat failed', error);
-      throw new ServiceUnavailableException('AI service temporarily unavailable');
+      throw new ServiceUnavailableException(
+        'AI service temporarily unavailable',
+      );
     }
   }
 
@@ -182,7 +192,10 @@ ${roster}`;
 
   private isGroqRateLimit(error: unknown): boolean {
     if (!error || typeof error !== 'object') return false;
-    const err = error as { status?: number; error?: { error?: { code?: string } } };
+    const err = error as {
+      status?: number;
+      error?: { error?: { code?: string } };
+    };
     return (
       err.status === 429 ||
       err.status === 413 ||

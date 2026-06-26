@@ -12,9 +12,7 @@ import type { Database } from '../../../database/drizzle.provider';
 import { patient, user } from '../../../database/schema';
 import { AvatarUrlResolver } from '../../../shared/storage/avatar-url.resolver';
 import { MinioService } from '../../../shared/storage/minio.service';
-import {
-  PATIENT_AVATAR_MIME_TYPES,
-} from '../../../shared/storage/minio.constants';
+import { PATIENT_AVATAR_MIME_TYPES } from '../../../shared/storage/minio.constants';
 import {
   buildMinioObjectPrefix,
   isPatientProfileStorageKey,
@@ -64,7 +62,8 @@ export class PatientAccountService {
 
     const userUpdate: Partial<typeof user.$inferInsert> = {};
     if (dto.fullName !== undefined) userUpdate.name = dto.fullName.trim();
-    if (dto.email !== undefined) userUpdate.email = dto.email.toLowerCase().trim();
+    if (dto.email !== undefined)
+      userUpdate.email = dto.email.toLowerCase().trim();
     if (dto.phone !== undefined) userUpdate.phone = dto.phone.trim() || null;
     if (dto.avatarUrl !== undefined) {
       userUpdate.avatarUrl = dto.avatarUrl.trim() || null;
@@ -122,7 +121,10 @@ export class PatientAccountService {
     const patientRow = await this.findPatientByUserId(userId);
     const key = s3Key.trim();
     const expectedPrefix = `${buildMinioObjectPrefix('patient_avatar', patientRow.patientNumber)}/`;
-    if (!key.startsWith(expectedPrefix) && !isPatientProfileStorageKey(key, patientRow.patientNumber)) {
+    if (
+      !key.startsWith(expectedPrefix) &&
+      !isPatientProfileStorageKey(key, patientRow.patientNumber)
+    ) {
       throw new BadRequestException('Invalid profile photo storage key');
     }
 
@@ -184,7 +186,10 @@ export class PatientAccountService {
     const today = new Date();
     let age = today.getFullYear() - dob.getFullYear();
     const monthDelta = today.getMonth() - dob.getMonth();
-    if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < dob.getDate())) {
+    if (
+      monthDelta < 0 ||
+      (monthDelta === 0 && today.getDate() < dob.getDate())
+    ) {
       age -= 1;
     }
     return age;

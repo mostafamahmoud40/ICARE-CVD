@@ -12,7 +12,10 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { TokenPayload } from '../auth/jwt';
 import { DoctorGuard } from '../doctor/doctor.guard';
 import { DoctorDocumentService } from './doctor-documents.service';
-import { CreateDocumentDto, LabReportUploadIntentDto } from './dto/documents.dto';
+import {
+  CreateDocumentDto,
+  LabReportUploadIntentDto,
+} from './dto/documents.dto';
 
 @Controller('doctor/patients')
 @UseGuards(AccessTokenGuard, DoctorGuard)

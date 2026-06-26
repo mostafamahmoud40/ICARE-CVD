@@ -49,4 +49,4 @@ patient-agent/
 
 ## Legacy (unused)
 
-`agent-pipeline.service.ts` and `agent-understanding.stage.ts` are superseded by `langchain/` — safe to remove in a cleanup PR.
+Legacy `agent-pipeline.service.ts` and `agent-understanding.stage.ts` were removed; use `langchain/` only.

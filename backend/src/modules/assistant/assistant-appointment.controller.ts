@@ -9,8 +9,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AccessTokenGuard } from '../auth/access-token.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import type { TokenPayload } from '../auth/jwt';
 import { AssistantGuard } from './assistant.guard';
 import { AssistantAppointmentService } from './assistant-appointment.service';
 import {

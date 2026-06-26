@@ -10,7 +10,10 @@ export function isPatientNumber(identifier: string): boolean {
   return PATIENT_NUMBER_RE.test(identifier.trim());
 }
 
-export async function findPatientByIdentifier(db: Database, identifier: string) {
+export async function findPatientByIdentifier(
+  db: Database,
+  identifier: string,
+) {
   const trimmed = identifier.trim();
   if (!trimmed) {
     throw new NotFoundException('Patient not found');

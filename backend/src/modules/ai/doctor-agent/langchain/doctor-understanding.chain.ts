@@ -145,18 +145,18 @@ export function buildDoctorHeuristicUnderstanding(
       intent: 'follow_up_needed',
     },
     {
-      keywords: ['مقارنه', 'مقارنة', 'compare', 'comparison', 'بين مريضين', 'between'],
+      keywords: [
+        'مقارنه',
+        'مقارنة',
+        'compare',
+        'comparison',
+        'بين مريضين',
+        'between',
+      ],
       intent: 'comparison',
     },
     {
-      keywords: [
-        'إجراء',
-        'عملية',
-        'procedure',
-        'operation',
-        'جراحة',
-        'قسطرة',
-      ],
+      keywords: ['إجراء', 'عملية', 'procedure', 'operation', 'جراحة', 'قسطرة'],
       intent: 'procedure_check',
     },
     {
@@ -191,11 +191,15 @@ export function buildDoctorHeuristicUnderstanding(
     .map((r) => ({ id: r.intent, confidence: 0.7 }));
 
   const intents =
-    detected.length > 0 ? detected : [{ id: 'lookup_patient' as const, confidence: 0.5 }];
+    detected.length > 0
+      ? detected
+      : [{ id: 'lookup_patient' as const, confidence: 0.5 }];
 
   // Extract patient identifiers (P-xxx pattern)
   const pNumMatches = message.match(/\bP-\d{3,6}\b/gi) ?? [];
-  const targetPatientIdentifiers = pNumMatches.map((m) => m.toUpperCase());
+  const targetPatientIdentifiers = pNumMatches.map((match: string) =>
+    match.toUpperCase(),
+  );
 
   return {
     normalizedQuery: message,
@@ -229,8 +233,7 @@ export async function runDoctorUnderstanding(
 ): Promise<DoctorQueryUnderstanding> {
   const fallback = buildDoctorHeuristicUnderstanding(input.message);
 
-  const modelName =
-    process.env.GROQ_ANALYSIS_MODEL?.trim() || 'qwen/qwen3-32b';
+  const modelName = process.env.GROQ_ANALYSIS_MODEL?.trim() || 'qwen/qwen3-32b';
 
   try {
     const llm = new ChatGroq({
@@ -293,14 +296,12 @@ targetPatientIdentifiers: list all patient names and numbers mentioned.`,
         ? parsed.expandedTerms
         : fallback.expandedTerms,
       subQuestions: parsed.subQuestions || fallback.subQuestions,
-      reformulatedQuery:
-        parsed.reformulatedQuery || fallback.reformulatedQuery,
+      reformulatedQuery: parsed.reformulatedQuery || fallback.reformulatedQuery,
       needsClarification: parsed.needsClarification ?? false,
       clarificationQuestion: parsed.clarificationQuestion,
-      targetPatientIdentifiers:
-        parsed.targetPatientIdentifiers?.length
-          ? parsed.targetPatientIdentifiers
-          : fallback.targetPatientIdentifiers,
+      targetPatientIdentifiers: parsed.targetPatientIdentifiers?.length
+        ? parsed.targetPatientIdentifiers
+        : fallback.targetPatientIdentifiers,
     };
   } catch {
     return fallback;

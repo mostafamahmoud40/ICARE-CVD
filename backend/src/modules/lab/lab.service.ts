@@ -1,4 +1,9 @@
-import { Inject, Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { notifyPatientDataChanged } from '../../shared/patient-data-notifier';
 import { DRIZZLE } from '../../database/drizzle.provider';
@@ -181,7 +186,12 @@ export class LabService {
     const orders = await this.db.query.labOrder.findMany({
       where: and(
         eq(labOrder.patientId, patientRow.id),
-        inArray(labOrder.status, ['ordered', 'collected', 'resulted', 'cancelled']),
+        inArray(labOrder.status, [
+          'ordered',
+          'collected',
+          'resulted',
+          'cancelled',
+        ]),
       ),
       orderBy: desc(labOrder.createdAt),
     });
@@ -283,7 +293,9 @@ export class LabService {
     );
     this.assertLabOrderAcceptsUpload(order);
 
-    if (!isMinioKeyForCategory(dto.s3Key, 'lab_report', patientRow.patientNumber)) {
+    if (
+      !isMinioKeyForCategory(dto.s3Key, 'lab_report', patientRow.patientNumber)
+    ) {
       throw new BadRequestException('Invalid lab report storage key');
     }
 
@@ -490,7 +502,9 @@ export class LabService {
 
     return panels.map((panel) => ({
       ...panel,
-      document: panel.documentId ? docById.get(panel.documentId) ?? null : null,
+      document: panel.documentId
+        ? (docById.get(panel.documentId) ?? null)
+        : null,
     }));
   }
 
@@ -599,7 +613,9 @@ export class LabService {
       throw new BadRequestException('This lab order was cancelled');
     }
     if (order.status === 'resulted') {
-      throw new BadRequestException('Results were already uploaded for this order');
+      throw new BadRequestException(
+        'Results were already uploaded for this order',
+      );
     }
   }
 
@@ -608,8 +624,7 @@ export class LabService {
     priority: 'routine' | 'urgent' | 'stat',
   ) {
     const due = new Date(createdAt);
-    const days =
-      priority === 'stat' ? 1 : priority === 'urgent' ? 3 : 7;
+    const days = priority === 'stat' ? 1 : priority === 'urgent' ? 3 : 7;
     due.setDate(due.getDate() + days);
     due.setHours(23, 59, 0, 0);
     return due;
@@ -625,7 +640,9 @@ export class LabService {
     return 'ordered';
   }
 
-  private buildLabOrderTitle(items: Array<{ testName: string; panel: string | null }>) {
+  private buildLabOrderTitle(
+    items: Array<{ testName: string; panel: string | null }>,
+  ) {
     const panels = [
       ...new Set(items.map((item) => item.panel?.trim()).filter(Boolean)),
     ] as string[];
@@ -741,7 +758,9 @@ export class LabService {
   private mapAiStatus(
     status: string | undefined,
   ): 'normal' | 'high' | 'low' | 'critical' {
-    const normalized = String(status ?? 'normal').trim().toLowerCase();
+    const normalized = String(status ?? 'normal')
+      .trim()
+      .toLowerCase();
     if (
       normalized === 'high' ||
       normalized === 'low' ||

@@ -1,8 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lte, type SQL } from 'drizzle-orm';
 
 import { DRIZZLE } from '../../../../database/drizzle.provider';
 import type { Database } from '../../../../database/drizzle.provider';
+import { formatUnknown, jsonToText } from '../../../../shared/format-unknown';
 import {
   allergy,
   appointment,
@@ -186,7 +187,9 @@ export class DoctorToolsService {
         patientRow.heightCm ? `Height: ${patientRow.heightCm} cm` : null,
         patientRow.weightKg ? `Weight: ${patientRow.weightKg} kg` : null,
         patientRow.bmi ? `BMI: ${patientRow.bmi}` : null,
-        patientRow.smokingStatus ? `Smoking: ${patientRow.smokingStatus}` : null,
+        patientRow.smokingStatus
+          ? `Smoking: ${patientRow.smokingStatus}`
+          : null,
         patientRow.alcoholConsumption
           ? `Alcohol: ${patientRow.alcoholConsumption}`
           : null,
@@ -197,7 +200,9 @@ export class DoctorToolsService {
     );
 
     if (patientRow.aiRegistrationSummary?.trim()) {
-      lines.push(`AI Summary: ${patientRow.aiRegistrationSummary.trim().slice(0, 400)}`);
+      lines.push(
+        `AI Summary: ${patientRow.aiRegistrationSummary.trim().slice(0, 400)}`,
+      );
     }
 
     // Medical history
@@ -212,18 +217,27 @@ export class DoctorToolsService {
         );
       }
       if (!historyRow.noCardiacHistory && historyRow.pastCardiacHistory) {
-        hParts.push(`Cardiac: ${this.jsonToText(historyRow.pastCardiacHistory).slice(0, 200)}`);
+        hParts.push(
+          `Cardiac: ${jsonToText(historyRow.pastCardiacHistory).slice(0, 200)}`,
+        );
       }
       if (!historyRow.noNonCardiacHistory && historyRow.pastNonCardiacHistory) {
-        hParts.push(`Non-cardiac: ${this.jsonToText(historyRow.pastNonCardiacHistory).slice(0, 200)}`);
+        hParts.push(
+          `Non-cardiac: ${jsonToText(historyRow.pastNonCardiacHistory).slice(0, 200)}`,
+        );
       }
       if (historyRow.cardiovascularRiskFactors) {
-        hParts.push(`CVD risks: ${this.jsonToText(historyRow.cardiovascularRiskFactors).slice(0, 200)}`);
+        hParts.push(
+          `CVD risks: ${jsonToText(historyRow.cardiovascularRiskFactors).slice(0, 200)}`,
+        );
       }
       if (historyRow.medicalHistoryNotes?.trim()) {
-        hParts.push(`Notes: ${historyRow.medicalHistoryNotes.trim().slice(0, 300)}`);
+        hParts.push(
+          `Notes: ${historyRow.medicalHistoryNotes.trim().slice(0, 300)}`,
+        );
       }
-      if (hParts.length > 0) lines.push(`Medical history: ${hParts.join(' · ')}`);
+      if (hParts.length > 0)
+        lines.push(`Medical history: ${hParts.join(' · ')}`);
     }
 
     // Allergies
@@ -253,7 +267,9 @@ export class DoctorToolsService {
       lines.push('Active medications: none');
     }
     if (stoppedMeds.length > 0) {
-      lines.push(`Paused/discontinued: ${stoppedMeds.map((m) => `${m.name}[${m.status}]`).join(', ')}`);
+      lines.push(
+        `Paused/discontinued: ${stoppedMeds.map((m) => `${m.name}[${m.status}]`).join(', ')}`,
+      );
     }
 
     return lines.join('\n');
@@ -308,7 +324,10 @@ export class DoctorToolsService {
           chronicFlag: diagnosis.chronicFlag,
         })
         .from(consultationDiagnosis)
-        .innerJoin(diagnosis, eq(consultationDiagnosis.diagnosisId, diagnosis.id))
+        .innerJoin(
+          diagnosis,
+          eq(consultationDiagnosis.diagnosisId, diagnosis.id),
+        )
         .where(inArray(consultationDiagnosis.consultationId, consIds)),
       this.db
         .select({
@@ -319,28 +338,41 @@ export class DoctorToolsService {
           isNew: consultationPrescription.isNew,
         })
         .from(consultationPrescription)
-        .innerJoin(medication, eq(consultationPrescription.medicationId, medication.id))
+        .innerJoin(
+          medication,
+          eq(consultationPrescription.medicationId, medication.id),
+        )
         .where(inArray(consultationPrescription.consultationId, consIds)),
     ]);
 
     const diagByConsId = this.groupBy(diagRows, (d) => d.consultationId);
     const rxByConsId = this.groupBy(rxRows, (r) => r.consultationId);
 
-    const lines: string[] = [`## ${p.name} — Consultations (last ${cons.length})`];
+    const lines: string[] = [
+      `## ${p.name} — Consultations (last ${cons.length})`,
+    ];
     for (const c of cons) {
       const date = this.formatDate(c.completedAt ?? c.startedAt);
-      lines.push(`\n[${date}] ${c.visitType} | Dr. ${c.doctorName}${c.doctorSpecialty ? ' | ' + c.doctorSpecialty : ''}`);
-      if (c.chiefComplaint?.trim()) lines.push(`  Complaint: ${c.chiefComplaint.trim()}`);
+      lines.push(
+        `\n[${date}] ${c.visitType} | Dr. ${c.doctorName}${c.doctorSpecialty ? ' | ' + c.doctorSpecialty : ''}`,
+      );
+      if (c.chiefComplaint?.trim())
+        lines.push(`  Complaint: ${c.chiefComplaint.trim()}`);
       if (c.historyOfPresentIllness?.trim())
         lines.push(`  HPI: ${c.historyOfPresentIllness.trim().slice(0, 200)}`);
       const diags = diagByConsId.get(c.id) ?? [];
       if (diags.length > 0)
-        lines.push(`  Diagnoses: ${diags.map((d) => `${d.description}[${d.icdCode}](${d.type},${d.severity}${d.chronicFlag ? ',chronic' : ''})`).join('; ')}`);
+        lines.push(
+          `  Diagnoses: ${diags.map((d) => `${d.description}[${d.icdCode}](${d.type},${d.severity}${d.chronicFlag ? ',chronic' : ''})`).join('; ')}`,
+        );
       const rxs = rxByConsId.get(c.id) ?? [];
       if (rxs.length > 0)
-        lines.push(`  Prescribed: ${rxs.map((r) => `${r.name} ${r.dose}${r.isNew ? '[new]' : ''}`).join('; ')}`);
+        lines.push(
+          `  Prescribed: ${rxs.map((r) => `${r.name} ${r.dose}${r.isNew ? '[new]' : ''}`).join('; ')}`,
+        );
       if (c.plan?.trim()) lines.push(`  Plan: ${c.plan.trim().slice(0, 300)}`);
-      if (c.notes?.trim()) lines.push(`  Notes: ${c.notes.trim().slice(0, 200)}`);
+      if (c.notes?.trim())
+        lines.push(`  Notes: ${c.notes.trim().slice(0, 200)}`);
       if (c.followUpInstructions?.trim())
         lines.push(`  Follow-up: ${c.followUpInstructions.trim()}`);
     }
@@ -387,17 +419,26 @@ export class DoctorToolsService {
     if (active.length > 0) {
       lines.push(`\nActive (${active.length}):`);
       for (const m of active) {
-        lines.push(`  ${m.name} ${m.dose} ${m.frequency} [${m.compliance ?? 'unknown'} compliance, ${m.adherencePercent}%]`);
-        if (m.startDate) lines.push(`    From: ${this.formatDate(m.startDate)}${m.endDate ? ' → ' + this.formatDate(m.endDate) : ''}`);
-        if (m.sideEffects?.trim()) lines.push(`    Side effects: ${m.sideEffects.trim()}`);
-        if (m.instructions?.trim()) lines.push(`    Instructions: ${m.instructions.trim()}`);
+        lines.push(
+          `  ${m.name} ${m.dose} ${m.frequency} [${m.compliance ?? 'unknown'} compliance, ${m.adherencePercent}%]`,
+        );
+        if (m.startDate)
+          lines.push(
+            `    From: ${this.formatDate(m.startDate)}${m.endDate ? ' → ' + this.formatDate(m.endDate) : ''}`,
+          );
+        if (m.sideEffects?.trim())
+          lines.push(`    Side effects: ${m.sideEffects.trim()}`);
+        if (m.instructions?.trim())
+          lines.push(`    Instructions: ${m.instructions.trim()}`);
         if (m.doctorName) lines.push(`    Prescribed by: Dr. ${m.doctorName}`);
       }
     }
     if (other.length > 0) {
       lines.push(`\nPaused/discontinued (${other.length}):`);
       for (const m of other) {
-        lines.push(`  ${m.name} ${m.dose} [${m.status}] — from ${this.formatDate(m.startDate)}`);
+        lines.push(
+          `  ${m.name} ${m.dose} [${m.status}] — from ${this.formatDate(m.startDate)}`,
+        );
       }
     }
 
@@ -435,7 +476,9 @@ export class DoctorToolsService {
 
     const lines: string[] = [`## ${p.name} — Vitals (last ${vitals.length})`];
     for (const v of vitals) {
-      const parts: string[] = [`[${this.formatDate(v.date)} ${v.time ?? ''} | ${v.source}]`];
+      const parts: string[] = [
+        `[${this.formatDate(v.date)} ${v.time ?? ''} | ${v.source}]`,
+      ];
       if (v.systolicBp != null && v.diastolicBp != null)
         parts.push(`BP ${v.systolicBp}/${v.diastolicBp} mmHg`);
       if (v.heartRate != null) parts.push(`HR ${v.heartRate} bpm`);
@@ -487,7 +530,9 @@ export class DoctorToolsService {
       for (const l of abnormal) {
         const val = l.unit?.trim() ? `${l.value} ${l.unit}` : l.value;
         const ref = l.referenceRange ? ` (ref: ${l.referenceRange})` : '';
-        lines.push(`  ${l.testName}: ${val} [${l.status.toUpperCase()}]${ref} — ${this.formatDate(l.resultAt)}`);
+        lines.push(
+          `  ${l.testName}: ${val} [${l.status.toUpperCase()}]${ref} — ${this.formatDate(l.resultAt)}`,
+        );
       }
     }
     if (normal.length > 0) {
@@ -567,8 +612,11 @@ export class DoctorToolsService {
       lines.push(
         `\n${proc.procedureName} [${proc.status}/${proc.priority}]${scheduled}${completed}`,
       );
-      lines.push(`  Dept: ${proc.department}${proc.riskScore ? ' | Risk: ' + proc.riskScore : ''}`);
-      if (proc.notes?.trim()) lines.push(`  Notes: ${proc.notes.trim().slice(0, 200)}`);
+      lines.push(
+        `  Dept: ${proc.department}${proc.riskScore ? ' | Risk: ' + proc.riskScore : ''}`,
+      );
+      if (proc.notes?.trim())
+        lines.push(`  Notes: ${proc.notes.trim().slice(0, 200)}`);
     }
 
     return lines.join('\n');
@@ -625,8 +673,7 @@ export class DoctorToolsService {
         .limit(3),
     ]);
 
-    const hasAny =
-      echos.length + ecgs.length + xrays.length + mris.length > 0;
+    const hasAny = echos.length + ecgs.length + xrays.length + mris.length > 0;
     if (!hasAny) return `${p.name}: no AI analyses recorded.`;
 
     const lines: string[] = [`## ${p.name} — AI Analyses`];
@@ -641,14 +688,21 @@ export class DoctorToolsService {
     }
     for (const e of ecgs) {
       lines.push(`\nECG [${this.formatDate(e.createdAt)}]:`);
-      lines.push(this.extractEcgSummary(e.aiReportJson) || this.extractJsonSummary(e.analysisJson));
+      lines.push(
+        this.extractEcgSummary(e.aiReportJson) ||
+          this.extractJsonSummary(e.analysisJson),
+      );
     }
     for (const x of xrays) {
-      lines.push(`\nChest X-ray [${this.formatDate(x.createdAt)}] — Risk: ${x.riskLevel}:`);
+      lines.push(
+        `\nChest X-ray [${this.formatDate(x.createdAt)}] — Risk: ${x.riskLevel}:`,
+      );
       lines.push(this.extractJsonSummary(x.analysisJson));
     }
     for (const m of mris) {
-      lines.push(`\nCine-MRI [${this.formatDate(m.createdAt)}] — Class: ${m.diagnosisClass}:`);
+      lines.push(
+        `\nCine-MRI [${this.formatDate(m.createdAt)}] — Class: ${m.diagnosisClass}:`,
+      );
       lines.push(this.extractMriSummary(m.analysisJson, m.diagnosisClass));
     }
 
@@ -684,16 +738,23 @@ export class DoctorToolsService {
     if (diagnoses.length === 0) return `${p.name}: no diagnoses recorded.`;
 
     const lines: string[] = [`## ${p.name} — Diagnoses (${diagnoses.length})`];
-    const active = diagnoses.filter((d) => d.status === 'active' || d.status === 'chronic');
+    const active = diagnoses.filter(
+      (d) => d.status === 'active' || d.status === 'chronic',
+    );
     const resolved = diagnoses.filter((d) => d.status === 'resolved');
 
     if (active.length > 0) {
       lines.push('\nActive/Chronic:');
       for (const d of active) {
         const nyha = d.nyhaClass ? ` NYHA ${d.nyhaClass}` : '';
-        const onset = d.onsetDate ? ` onset: ${this.formatDate(d.onsetDate)}` : '';
-        lines.push(`  ${d.description} [${d.icdCode}] (${d.type}, ${d.severity}${d.chronicFlag ? ', chronic' : ''}${nyha}${onset})`);
-        if (d.clinicalNotes?.trim()) lines.push(`    Notes: ${d.clinicalNotes.trim().slice(0, 150)}`);
+        const onset = d.onsetDate
+          ? ` onset: ${this.formatDate(d.onsetDate)}`
+          : '';
+        lines.push(
+          `  ${d.description} [${d.icdCode}] (${d.type}, ${d.severity}${d.chronicFlag ? ', chronic' : ''}${nyha}${onset})`,
+        );
+        if (d.clinicalNotes?.trim())
+          lines.push(`    Notes: ${d.clinicalNotes.trim().slice(0, 150)}`);
       }
     }
     if (resolved.length > 0) {
@@ -725,31 +786,25 @@ export class DoctorToolsService {
     return date.toISOString().slice(0, 10);
   }
 
-  private jsonToText(data: unknown): string {
-    if (!data) return '';
-    if (typeof data === 'string') return data;
-    try {
-      const obj =
-        typeof data === 'object' ? data : JSON.parse(String(data));
-      if (Array.isArray(obj)) return obj.join(', ');
-      return Object.entries(obj as Record<string, unknown>)
-        .filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== false)
-        .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : String(v)}`)
-        .join('; ');
-    } catch {
-      return String(data);
-    }
-  }
-
   private extractJsonSummary(json: string | null | undefined): string {
     if (!json?.trim()) return '(no data)';
     try {
       const parsed = JSON.parse(json) as Record<string, unknown>;
-      const fields = ['findings', 'impression', 'diagnosis', 'interpretation', 'summary'];
+      const fields = [
+        'findings',
+        'impression',
+        'diagnosis',
+        'interpretation',
+        'summary',
+      ];
       for (const f of fields) {
         if (parsed[f]) {
           const val = parsed[f];
-          return (Array.isArray(val) ? val.join(', ') : String(val)).slice(0, 500);
+          return (
+            Array.isArray(val)
+              ? val.map(formatUnknown).join(', ')
+              : formatUnknown(val)
+          ).slice(0, 500);
         }
       }
       return JSON.stringify(parsed).slice(0, 300);
@@ -763,28 +818,46 @@ export class DoctorToolsService {
     try {
       const parsed = JSON.parse(reportJson) as Record<string, unknown>;
       const parts: string[] = [];
-      if (parsed.diagnosis) parts.push(String(parsed.diagnosis));
-      if (parsed.rhythm) parts.push(`rhythm: ${parsed.rhythm}`);
-      if (parsed.findings)
+      if (parsed.diagnosis) parts.push(formatUnknown(parsed.diagnosis));
+      if (parsed.rhythm) parts.push(`rhythm: ${formatUnknown(parsed.rhythm)}`);
+      if (parsed.findings) {
         parts.push(
-          `findings: ${Array.isArray(parsed.findings) ? parsed.findings.slice(0, 3).join(', ') : String(parsed.findings)}`,
+          `findings: ${
+            Array.isArray(parsed.findings)
+              ? parsed.findings.slice(0, 3).map(formatUnknown).join(', ')
+              : formatUnknown(parsed.findings)
+          }`,
         );
-      if (parsed.interpretation) parts.push(String(parsed.interpretation).slice(0, 200));
+      }
+      if (parsed.interpretation) {
+        parts.push(formatUnknown(parsed.interpretation).slice(0, 200));
+      }
       return parts.join(' | ').slice(0, 500);
     } catch {
       return reportJson.trim().slice(0, 500);
     }
   }
 
-  private extractMriSummary(analysisJson: string, diagnosisClass: string): string {
+  private extractMriSummary(
+    analysisJson: string,
+    diagnosisClass: string,
+  ): string {
     try {
       const parsed = JSON.parse(analysisJson) as Record<string, unknown>;
       const parts = [`Class: ${diagnosisClass}`];
-      if (parsed.ef !== undefined) parts.push(`EF: ${parsed.ef}%`);
-      if (parsed.edv !== undefined) parts.push(`EDV: ${parsed.edv} ml`);
-      if (parsed.esv !== undefined) parts.push(`ESV: ${parsed.esv} ml`);
-      if (parsed.sv !== undefined) parts.push(`SV: ${parsed.sv} ml`);
-      if (parsed.interpretation) parts.push(String(parsed.interpretation).slice(0, 200));
+      if (parsed.ef !== undefined)
+        parts.push(`EF: ${formatUnknown(parsed.ef)}%`);
+      if (parsed.edv !== undefined) {
+        parts.push(`EDV: ${formatUnknown(parsed.edv)} ml`);
+      }
+      if (parsed.esv !== undefined) {
+        parts.push(`ESV: ${formatUnknown(parsed.esv)} ml`);
+      }
+      if (parsed.sv !== undefined)
+        parts.push(`SV: ${formatUnknown(parsed.sv)} ml`);
+      if (parsed.interpretation) {
+        parts.push(formatUnknown(parsed.interpretation).slice(0, 200));
+      }
       return parts.join(' | ').slice(0, 500);
     } catch {
       return `Class: ${diagnosisClass}`;
@@ -823,10 +896,7 @@ export class DoctorToolsService {
    *  - medication / دواء
    * Returns a formatted list of matching patients with relevant context.
    */
-  async searchPatients(
-    doctorId: string,
-    criteria: string,
-  ): Promise<string> {
+  async searchPatients(doctorId: string, criteria: string): Promise<string> {
     const accessibleIds = await this.getAccessiblePatientIds(doctorId);
     if (accessibleIds.length === 0) return 'No patients in your panel.';
 
@@ -850,7 +920,7 @@ export class DoctorToolsService {
       const tomorrowEnd = new Date(tomorrowStart);
       tomorrowEnd.setHours(23, 59, 59, 999);
 
-      let dateFilter;
+      let dateFilter: SQL | undefined;
       if (isTomorrow) {
         dateFilter = and(
           gte(procedureOrder.scheduledAt, tomorrowStart),
@@ -880,15 +950,16 @@ export class DoctorToolsService {
         .innerJoin(patient, eq(procedureOrder.patientId, patient.id))
         .innerJoin(user, eq(patient.userId, user.id))
         .where(
-          and(
-            inArray(procedureOrder.patientId, accessibleIds),
-            dateFilter,
-          ),
+          and(inArray(procedureOrder.patientId, accessibleIds), dateFilter),
         )
         .orderBy(procedureOrder.scheduledAt);
 
       if (procs.length === 0) {
-        const timeLabel = isTomorrow ? 'tomorrow' : isToday ? 'today' : 'upcoming';
+        const timeLabel = isTomorrow
+          ? 'tomorrow'
+          : isToday
+            ? 'today'
+            : 'upcoming';
         return `No patients with ${timeLabel} procedures found.`;
       }
 
@@ -921,11 +992,14 @@ export class DoctorToolsService {
           ),
         );
 
-      if (rows.length === 0) return 'No high-risk patients found in your panel.';
+      if (rows.length === 0)
+        return 'No high-risk patients found in your panel.';
       const lines = [`${rows.length} high-risk patient(s):`];
       for (const p of rows) {
         const age = this.computeAge(p.dateOfBirth);
-        lines.push(`  ${p.patientNumber} | ${p.name} | Age ${age} | Risk: ${p.riskLevel}`);
+        lines.push(
+          `  ${p.patientNumber} | ${p.name} | Age ${age} | Risk: ${p.riskLevel}`,
+        );
       }
       return lines.join('\n');
     }
@@ -954,7 +1028,8 @@ export class DoctorToolsService {
         .orderBy(desc(labResult.resultAt))
         .limit(20);
 
-      if (abnormalLabs.length === 0) return 'No patients with abnormal lab results found.';
+      if (abnormalLabs.length === 0)
+        return 'No patients with abnormal lab results found.';
 
       const byPatient = new Map<string, typeof abnormalLabs>();
       for (const r of abnormalLabs) {
@@ -996,13 +1071,14 @@ export class DoctorToolsService {
         .orderBy(desc(consultation.completedAt))
         .limit(30);
 
-      const withFollowUp = recent.filter(
-        (r) => r.followUpInstructions?.trim(),
-      );
+      const withFollowUp = recent.filter((r) => r.followUpInstructions?.trim());
 
-      if (withFollowUp.length === 0) return 'No recent consultations with follow-up instructions.';
+      if (withFollowUp.length === 0)
+        return 'No recent consultations with follow-up instructions.';
 
-      const lines = [`${withFollowUp.length} consultation(s) with follow-up instructions:`];
+      const lines = [
+        `${withFollowUp.length} consultation(s) with follow-up instructions:`,
+      ];
       for (const c of withFollowUp.slice(0, 10)) {
         lines.push(
           `  ${c.patientNumber} | ${c.name} [${this.formatDate(c.completedAt)}]: ${c.followUpInstructions!.trim().slice(0, 100)}`,

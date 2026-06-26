@@ -25,10 +25,7 @@ import type { SaveConsultationCtAnalysisDto } from './dto/consultation-ct.dto';
 
 function isNiftiFile(fileName: string, contentType: string): boolean {
   const mime = contentType.trim().toLowerCase();
-  return (
-    /\.nii(\.gz)?$/i.test(fileName) ||
-    CINE_MRI_NIFTI_MIME_TYPES.has(mime)
-  );
+  return /\.nii(\.gz)?$/i.test(fileName) || CINE_MRI_NIFTI_MIME_TYPES.has(mime);
 }
 
 function isSliceImage(fileName: string, contentType: string): boolean {
@@ -93,7 +90,9 @@ export class ConsultationCtService {
 
     const conditions = [eq(consultationCtAnalysis.patientId, patientId)];
     if (consultationId) {
-      conditions.push(eq(consultationCtAnalysis.consultationId, consultationId));
+      conditions.push(
+        eq(consultationCtAnalysis.consultationId, consultationId),
+      );
     }
 
     const rows = await this.db.query.consultationCtAnalysis.findMany({

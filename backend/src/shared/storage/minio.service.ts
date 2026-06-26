@@ -109,7 +109,8 @@ export class MinioService {
     });
 
     const expiresIn = Number(
-      process.env.MINIO_PRESIGN_TTL_SECONDS ?? MINIO_DEFAULT_PRESIGN_TTL_SECONDS,
+      process.env.MINIO_PRESIGN_TTL_SECONDS ??
+        MINIO_DEFAULT_PRESIGN_TTL_SECONDS,
     );
     const uploadUrl = await getSignedUrl(this.presignClient, command, {
       expiresIn,
@@ -163,7 +164,8 @@ export class MinioService {
     });
 
     const expiresIn = Number(
-      process.env.MINIO_PRESIGN_TTL_SECONDS ?? MINIO_DEFAULT_PRESIGN_TTL_SECONDS,
+      process.env.MINIO_PRESIGN_TTL_SECONDS ??
+        MINIO_DEFAULT_PRESIGN_TTL_SECONDS,
     );
 
     return getSignedUrl(this.presignClient, command, { expiresIn });
@@ -214,10 +216,7 @@ export class MinioService {
       input.conversationId > 0 &&
       !input.patientNumber?.trim()
     ) {
-      return buildChatConversationPrefix(
-        input.conversationId,
-        input.category,
-      );
+      return buildChatConversationPrefix(input.conversationId, input.category);
     }
 
     if (PATIENT_SCOPED_CATEGORIES.has(input.category)) {
@@ -235,10 +234,7 @@ export class MinioService {
           'staffId is required for staff avatar uploads.',
         );
       }
-      return buildStaffAvatarPrefix(
-        input.staffRole ?? 'doctor',
-        input.staffId,
-      );
+      return buildStaffAvatarPrefix(input.staffRole ?? 'doctor', input.staffId);
     }
 
     if (input.conversationId && input.conversationId > 0) {

@@ -42,10 +42,7 @@ export class AssistantProcedureController {
   }
 
   @Get('schedule')
-  listSchedule(
-    @Query('date') date?: string,
-    @Query('search') search?: string,
-  ) {
+  listSchedule(@Query('date') date?: string, @Query('search') search?: string) {
     const day = date?.trim() || new Date().toISOString().slice(0, 10);
     return this.procedureService.listSchedule(day, search);
   }

@@ -1,5 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
+import type { IEmbeddingService } from '../../../shared/ports/embedding.port';
+import { formatUnknown } from '../../../shared/format-unknown';
+
 export type EmbeddingProvider = 'bge-m3' | 'cohere' | 'none';
 
 const BGE_M3_DIM = 1024;
@@ -12,7 +15,7 @@ const COHERE_DIM = 384;
  * - Chroma search: BGE-M3 via local TEI service (recommended) or Cohere API.
  */
 @Injectable()
-export class EmbeddingService implements OnModuleInit {
+export class EmbeddingService implements OnModuleInit, IEmbeddingService {
   private readonly logger = new Logger(EmbeddingService.name);
   private loggedDisabled = false;
   private provider: EmbeddingProvider = 'none';
@@ -118,7 +121,10 @@ export class EmbeddingService implements OnModuleInit {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          inputs: texts.length === 1 ? texts[0].slice(0, 8192) : texts.map((t) => t.slice(0, 8192)),
+          inputs:
+            texts.length === 1
+              ? texts[0].slice(0, 8192)
+              : texts.map((t) => t.slice(0, 8192)),
         }),
         signal: AbortSignal.timeout(180_000),
       });
@@ -150,7 +156,7 @@ export class EmbeddingService implements OnModuleInit {
     } catch (err) {
       const cause = (err as { cause?: unknown })?.cause;
       this.logger.warn(
-        `BGE-M3 embed failed: ${String(err)}${cause ? ` → cause: ${String(cause)}` : ''}`,
+        `BGE-M3 embed failed: ${String(err)}${cause ? ` → cause: ${formatUnknown(cause)}` : ''}`,
       );
       return texts.map(() => null);
     }
@@ -194,7 +200,7 @@ export class EmbeddingService implements OnModuleInit {
     } catch (err) {
       const cause = (err as { cause?: unknown })?.cause;
       this.logger.warn(
-        `Cohere embed failed: ${String(err)}${cause ? ` → cause: ${String(cause)}` : ''}`,
+        `Cohere embed failed: ${String(err)}${cause ? ` → cause: ${formatUnknown(cause)}` : ''}`,
       );
       return texts.map(() => null);
     }

@@ -13,9 +13,7 @@ import {
   patientDocument,
 } from '../../database/schema';
 import { isMinioKeyForCategory } from '../../shared/storage/minio-patient-path';
-import {
-  ECG_FILE_MAX_BYTES,
-} from '../../shared/storage/minio.constants';
+import { ECG_FILE_MAX_BYTES } from '../../shared/storage/minio.constants';
 import { MinioService } from '../../shared/storage/minio.service';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type {
@@ -75,7 +73,9 @@ export class ConsultationEcgService {
 
     const conditions = [eq(consultationEcgAnalysis.patientId, patientId)];
     if (consultationId) {
-      conditions.push(eq(consultationEcgAnalysis.consultationId, consultationId));
+      conditions.push(
+        eq(consultationEcgAnalysis.consultationId, consultationId),
+      );
     }
 
     const rows = await this.db.query.consultationEcgAnalysis.findMany({

@@ -63,7 +63,16 @@ export const patientRecreationalDrugUseEnum = pgEnum(
 
 export const patientExerciseFrequencyEnum = pgEnum(
   'patient_exercise_frequency',
-  ['none', 'rarely-monthly', 'occasional-monthly', '1-week', '1-2', '3-4', '5+', 'daily'],
+  [
+    'none',
+    'rarely-monthly',
+    'occasional-monthly',
+    '1-week',
+    '1-2',
+    '3-4',
+    '5+',
+    'daily',
+  ],
 );
 
 export const patientExerciseDurationEnum = pgEnum('patient_exercise_duration', [

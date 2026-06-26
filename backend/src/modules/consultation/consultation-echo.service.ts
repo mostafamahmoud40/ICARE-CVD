@@ -87,7 +87,9 @@ export class ConsultationEchoService {
 
     const conditions = [eq(consultationEchoAnalysis.patientId, patientId)];
     if (consultationId) {
-      conditions.push(eq(consultationEchoAnalysis.consultationId, consultationId));
+      conditions.push(
+        eq(consultationEchoAnalysis.consultationId, consultationId),
+      );
     }
 
     const rows = await this.db.query.consultationEchoAnalysis.findMany({
@@ -110,7 +112,10 @@ export class ConsultationEchoService {
     });
     if (!patientRow) throw new NotFoundException('Patient not found');
 
-    const videoDoc = await this.assertEchoDocument(dto.videoDocumentId, patientId);
+    const videoDoc = await this.assertEchoDocument(
+      dto.videoDocumentId,
+      patientId,
+    );
     const overlayDoc = await this.assertEchoDocument(
       dto.overlayGifDocumentId,
       patientId,

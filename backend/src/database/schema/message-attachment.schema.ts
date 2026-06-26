@@ -8,10 +8,10 @@ import {
 } from 'drizzle-orm/pg-core';
 import { message } from './message.schema';
 
-export const messageAttachmentTypeEnum = pgEnum('message_attachment_type_enum', [
-  'image',
-  'file',
-]);
+export const messageAttachmentTypeEnum = pgEnum(
+  'message_attachment_type_enum',
+  ['image', 'file'],
+);
 
 export const messageAttachment = pgTable('message_attachments', {
   id: uuid('id').defaultRandom().primaryKey(),

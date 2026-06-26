@@ -73,7 +73,9 @@ export class ConsultationXrayService {
 
     const conditions = [eq(consultationXrayAnalysis.patientId, patientId)];
     if (consultationId) {
-      conditions.push(eq(consultationXrayAnalysis.consultationId, consultationId));
+      conditions.push(
+        eq(consultationXrayAnalysis.consultationId, consultationId),
+      );
     }
 
     const rows = await this.db.query.consultationXrayAnalysis.findMany({
@@ -173,7 +175,10 @@ export class ConsultationXrayService {
     });
     if (!row) return;
 
-    for (const documentId of [row.originalDocumentId, row.annotatedDocumentId]) {
+    for (const documentId of [
+      row.originalDocumentId,
+      row.annotatedDocumentId,
+    ]) {
       if (!documentId) continue;
       const doc = await this.db.query.patientDocument.findFirst({
         where: eq(patientDocument.id, documentId),
