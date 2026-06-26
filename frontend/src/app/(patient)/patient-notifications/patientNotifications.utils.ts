@@ -13,6 +13,16 @@ import {
 
 import { formatNotificationTime } from "@/lib/notifications/notification-display"
 import type { PatientNotificationKind, PatientNotificationMeta } from "./patientNotifications.types"
+import type { NotificationListItemModel } from "@/components/shared/notifications/notification-list-item.types"
+
+const ICON_FIRST_KINDS = new Set<PatientNotificationKind>([
+  "medication",
+  "ai_insight",
+  "system",
+  "lab_result",
+  "vitals_alert",
+  "queue",
+])
 
 const META: Record<PatientNotificationKind, PatientNotificationMeta> = {
   appointment: { icon: CalendarDaysIcon, accent: "#E89042" },
@@ -33,3 +43,23 @@ export function getPatientNotificationMeta(kind: PatientNotificationKind): Patie
 }
 
 export { formatNotificationTime }
+
+export function toPatientNotificationListItem(
+  notification: import("./patientNotifications.types").PatientNotification,
+): NotificationListItemModel {
+  const { icon, accent } = getPatientNotificationMeta(notification.kind)
+  return {
+    id: notification.id,
+    title: notification.title,
+    body: notification.body,
+    createdAtLabel: formatNotificationTime(notification.createdAt),
+    read: notification.read,
+    href: notification.href,
+    useIconPresentation:
+      !notification.sender || ICON_FIRST_KINDS.has(notification.kind),
+    icon,
+    accent,
+    sender: notification.sender,
+    actions: notification.actions,
+  }
+}

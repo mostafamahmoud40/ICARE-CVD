@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { useAssistantPageTranslations, useAssistantSharedTranslations } from "../use-assistant-i18n"
 import {
-  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   DownloadIcon,
@@ -12,7 +11,6 @@ import {
   CalendarIcon,
   ActivityIcon,
   UsersIcon,
-  FilterIcon,
   MoreHorizontalIcon,
   RefreshCwIcon,
   SearchIcon,
@@ -23,8 +21,6 @@ import {
   EditIcon,
   ArchiveIcon,
   StethoscopeIcon,
-  BrainIcon,
-  BabyIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -103,7 +99,6 @@ type PatientsListProps = {
   initialSheetOpen?: boolean
 }
 
-type SortOption = "lastVisit" | "riskLevel" | "name"
 type StatusFilter = "all" | "in-treatment" | "discharged" | "monitoring"
 type RiskFilter = "all" | "high" | "moderate" | "stable"
 
@@ -182,7 +177,6 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [riskFilter, setRiskFilter] = useState<RiskFilter>("all")
-  const [sortBy, setSortBy] = useState<SortOption>("lastVisit")
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid")
   const [scheduleVisitPatient, setScheduleVisitPatient] = useState<CreatedPatient | null>(null)
@@ -611,13 +605,6 @@ export function PatientsList({ patients, addPatientState, initialSearchQuery = "
                   const condition = display.condition
                   const lastVisit = display.lastVisit
                   const status = display.status
-
-                  const age = patient.dateOfBirth
-                    ? Math.floor(
-                      (new Date().getTime() - new Date(patient.dateOfBirth).getTime()) /
-                      (365.25 * 24 * 60 * 60 * 1000)
-                    )
-                    : "—"
 
                   return (
                     <Card key={patient.id} className="group relative h-fit w-full gap-0 self-start overflow-hidden rounded-3xl border border-[#E8E6E0]/60 bg-white py-0 shadow-sm ring-0 transition-shadow hover:shadow-md">

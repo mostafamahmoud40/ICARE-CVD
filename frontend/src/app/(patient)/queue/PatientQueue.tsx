@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { DynamicLucideIcon } from "@/components/shared/DynamicLucideIcon"
 import type { LucideIcon } from "lucide-react"
 import {
   ArmchairIcon,
@@ -33,9 +34,6 @@ import {
   BriefcaseMedicalIcon,
   CheckIcon,
   ClockIcon,
-  FileTextIcon,
-  HeartPulseIcon,
-  InfoIcon,
   ListOrderedIcon,
   MapPinIcon,
   MegaphoneIcon,
@@ -44,7 +42,6 @@ import {
   RefreshCwIcon,
   RouteIcon,
   ScanLineIcon,
-  ShieldIcon,
   StethoscopeIcon,
   TicketIcon,
   TimerIcon,
@@ -53,8 +50,6 @@ import {
 } from "lucide-react"
 
 import type {
-  PatientQueueInstruction,
-  PatientQueueInstructionIcon,
   PatientQueuePageContext,
   PatientQueueVisit,
   PatientVisitStage,
@@ -112,22 +107,6 @@ function formatTodayHeaderDate() {
     day: "numeric",
     year: "numeric",
   })
-}
-
-function InstructionIcon({ kind }: { kind: PatientQueueInstructionIcon }) {
-  let IconComponent = InfoIcon
-  switch (kind) {
-    case "shield": IconComponent = ShieldIcon; break;
-    case "file": IconComponent = FileTextIcon; break;
-    case "clock": IconComponent = ClockIcon; break;
-    case "heart": IconComponent = HeartPulseIcon; break;
-  }
-  
-  return (
-    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#F4F3EF] border border-[#E8E6E0]/60 shadow-sm">
-      <IconComponent className="size-4.5 sm:size-5 text-[#1A5345]" strokeWidth={2} />
-    </div>
-  )
 }
 
 type TicketStripKind = "cancelled" | "completed" | "calling" | "waiting" | "yours" | "queued"
@@ -263,7 +242,7 @@ function resolveStageIcon(stage: Pick<PatientVisitStage, "id" | "title">): Lucid
 }
 
 function StageStepNode({ stage }: { stage: PatientVisitStage }) {
-  const Icon = resolveStageIcon(stage)
+  const icon = resolveStageIcon(stage)
 
   if (stage.status === "done") {
     return (
@@ -271,7 +250,7 @@ function StageStepNode({ stage }: { stage: PatientVisitStage }) {
         className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1A5345] text-white shadow-sm"
         aria-label={`${stage.title}: completed`}
       >
-        <Icon className="size-4 sm:size-[18px]" strokeWidth={2.25} aria-hidden />
+        <DynamicLucideIcon className="size-4 sm:size-[18px]" icon={icon} strokeWidth={2.25} aria-hidden />
       </div>
     )
   }
@@ -282,7 +261,7 @@ function StageStepNode({ stage }: { stage: PatientVisitStage }) {
         className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white shadow-sm ring-4 ring-amber-500/15"
         aria-label={`${stage.title}: in progress`}
       >
-        <Icon className="size-4 sm:size-[18px]" strokeWidth={2.25} aria-hidden />
+        <DynamicLucideIcon className="size-4 sm:size-[18px]" icon={icon} strokeWidth={2.25} aria-hidden />
       </div>
     )
   }
@@ -292,7 +271,7 @@ function StageStepNode({ stage }: { stage: PatientVisitStage }) {
       className="flex size-10 shrink-0 items-center justify-center rounded-full border border-[#E8E6E0] bg-[#F4F3EF] text-[#9CA3AF]"
       aria-label={`${stage.title}: pending`}
     >
-      <Icon className="size-4 sm:size-[18px]" strokeWidth={2} aria-hidden />
+      <DynamicLucideIcon className="size-4 sm:size-[18px]" icon={icon} strokeWidth={2} aria-hidden />
     </div>
   )
 }
@@ -845,7 +824,6 @@ export function PatientQueue({
 
   const ctx = resolvePageContext(page, visit)
   const stages = visit.stages ?? []
-  const instructions = visit.instructions ?? []
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">

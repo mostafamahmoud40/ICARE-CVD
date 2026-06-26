@@ -2,7 +2,6 @@
 
 import Image from "next/image"
 import type { AttendanceLog, DoctorStatus } from "./doctors.types"
-import { cn } from "@/lib/utils"
 
 export function DoctorAttendanceHistoryTable({ logs, doctors }: { logs: AttendanceLog[], doctors: DoctorStatus[] }) {
   return (

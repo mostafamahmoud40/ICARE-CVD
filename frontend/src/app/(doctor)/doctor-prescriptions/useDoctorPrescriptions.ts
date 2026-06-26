@@ -1,7 +1,7 @@
 "use client"
 
-import { useMemo, useCallback } from "react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useCallback } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
 import type {
   PatientInfo,
@@ -96,7 +96,7 @@ function computeStats(patients: PatientInfo[], prescriptions: PatientPrescriptio
 }
 
 async function fetchDoctorPrescriptions(): Promise<DoctorPrescriptionsPageData> {
-  const [patientsResult, statsResult] = await Promise.allSettled([
+  const [patientsResult] = await Promise.allSettled([
     apiClient.get<PatientApiRow[]>("/doctor/medications/patients"),
     apiClient.get<StatsApiRow>("/doctor/medications/stats"),
   ])

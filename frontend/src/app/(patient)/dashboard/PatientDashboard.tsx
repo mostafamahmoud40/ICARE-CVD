@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { DynamicLucideIcon } from "@/components/shared/DynamicLucideIcon"
 import {
   ActivityIcon,
   AlertCircleIcon,
@@ -122,13 +123,12 @@ function vitalIcon(vital: Vital) {
 function VitalCard({ vital }: { vital: Vital }) {
   const rangeStatus = getVitalRangeStatus(vital)
   const styles = VITAL_STATUS_STYLES[rangeStatus]
-  const Icon = vitalIcon(vital)
 
   return (
     <div className="rounded-xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm transition-all hover:shadow-md">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <Icon className={cn("size-4 shrink-0", styles.icon)} aria-hidden />
+          <DynamicLucideIcon icon={vitalIcon(vital)} className={cn("size-4 shrink-0", styles.icon)} aria-hidden />
           <p className="text-[13px] font-bold text-[#1A1F1E]">{vital.label}</p>
         </div>
         <span className={cn("shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-bold", styles.badge)}>

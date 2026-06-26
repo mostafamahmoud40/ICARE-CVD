@@ -63,10 +63,7 @@ function b64ToBlob(b64: string, mime = "application/gzip"): Blob {
   return new Blob([arr], { type: mime })
 }
 
-const ML_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_ML_SERVICE_URL ?? "http://localhost:8000")
-    : "http://localhost:8000"
+import { getMlServiceUrl } from "@/lib/ml"
 
 const STAT_CARD =
   "rounded-xl border border-[#E8E6E0]/60 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
@@ -368,7 +365,7 @@ function ErrorPanel({ message, onRetry }: { message: string; onRetry: () => void
           <p className="mt-1 text-[12px] text-rose-700">{message}</p>
           <p className="mt-2 text-[12px] text-rose-600/90">
             Ensure the ML service is running at{" "}
-            <span className="font-mono font-medium">{ML_URL}</span>
+            <span className="font-mono font-medium">{getMlServiceUrl()}</span>
           </p>
         </div>
         <Button

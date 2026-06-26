@@ -2,9 +2,28 @@
 
 import { useEffect, useRef } from "react"
 
+type PlotlyModule = {
+  default?: PlotlyStatic
+} & PlotlyStatic
+
+type PlotlyStatic = {
+  newPlot: (
+    root: HTMLElement,
+    data: unknown[],
+    layout?: Record<string, unknown>,
+    config?: Record<string, unknown>,
+  ) => Promise<void>
+  purge?: (root: HTMLElement) => void
+}
+
 export type MriPlotlyChartProps = {
   data: unknown
   className?: string
+}
+
+async function loadPlotly(): Promise<PlotlyStatic> {
+  const mod = (await import("plotly.js-dist-min")) as PlotlyModule
+  return mod.default ?? mod
 }
 
 export function MriPlotlyChart({ data, className }: MriPlotlyChartProps) {
@@ -14,8 +33,7 @@ export function MriPlotlyChart({ data, className }: MriPlotlyChartProps) {
     let cancelled = false
 
     async function draw() {
-      const mod: any = await import("plotly.js-dist-min")
-      const Plotly = mod.default || mod
+      const Plotly = await loadPlotly()
       if (cancelled || !ref.current) return
 
       const payload = data as Record<string, unknown>
@@ -30,18 +48,17 @@ export function MriPlotlyChart({ data, className }: MriPlotlyChartProps) {
       })
     }
 
-    draw()
+    void draw()
 
     return () => {
       cancelled = true
-      if (ref.current) {
-        import("plotly.js-dist-min")
-          .then((mod: any) => {
-            const Plotly = mod.default || mod
-            Plotly.purge?.(ref.current!)
-          })
-          .catch(() => {})
-      }
+      const node = ref.current
+      if (!node) return
+      void loadPlotly()
+        .then((Plotly) => {
+          Plotly.purge?.(node)
+        })
+        .catch(() => {})
     }
   }, [data])
 

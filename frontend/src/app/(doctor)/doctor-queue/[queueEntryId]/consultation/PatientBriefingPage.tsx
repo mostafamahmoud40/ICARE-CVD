@@ -2,9 +2,13 @@
 
 import Link from "next/link"
 import { useMemo } from "react"
-import { useRouter } from "next/navigation"
-import { useQueryClient } from "@tanstack/react-query"
-import { apiClient } from "@/lib/api-client"
+import {
+  ArrowLeftIcon,
+  BrainCircuitIcon,
+  ChevronRightIcon,
+  SparklesIcon,
+} from "lucide-react"
+
 import { mockBriefingPatientSummary } from "./consultation.mock"
 import {
   DEFAULT_BRIEFING_TREND_DATA,
@@ -13,53 +17,28 @@ import {
   DEFAULT_MEDICATION_ADHERENCE_TREND,
   DEFAULT_MEDICATION_MISSED_BREAKDOWN,
 } from "./briefing.constants"
-import { acknowledgeBriefing } from "./briefingStorage"
 import { useBriefingPatientAvatar } from "./useBriefingPatientAvatar"
 import { usePatientBriefing } from "./usePatientBriefing"
 import { useQueueEntryId } from "./useQueueEntryId"
+import { useStartConsultationFromBriefing } from "./useStartConsultationFromBriefing"
 import {
   BriefingPreparation,
   PatientBriefingReportContent,
 } from "./PatientBriefingReportView"
-import {
-  ArrowLeftIcon,
-  BrainCircuitIcon,
-  ChevronRightIcon,
-  SparklesIcon,
-} from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
 export default function PatientBriefingPage() {
   const queueEntryId = useQueueEntryId()
-  const router = useRouter()
-  const queryClient = useQueryClient()
   const summary = mockBriefingPatientSummary
   const { data: patientAvatarUrl } = useBriefingPatientAvatar(queueEntryId)
   const { report, isReady, prepStep } = usePatientBriefing(summary, queueEntryId)
+  const startConsultation = useStartConsultationFromBriefing(queueEntryId)
+
   const displayReport = useMemo(
-    () =>
-      patientAvatarUrl
-        ? { ...report, avatarUrl: patientAvatarUrl }
-        : report,
+    () => (patientAvatarUrl ? { ...report, avatarUrl: patientAvatarUrl } : report),
     [report, patientAvatarUrl],
   )
-
-  const handleStartConsultation = async () => {
-    acknowledgeBriefing(queueEntryId)
-    try {
-      await apiClient.patch(`/doctor/queue/${queueEntryId}/status`, {
-        status: "in-consultation",
-      })
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["doctor-queue"] }),
-        queryClient.invalidateQueries({ queryKey: ["doctor-queue-stats"] }),
-      ])
-    } catch {
-      // Continue into consultation even if status sync fails locally.
-    }
-    router.push(`/doctor-queue/${queueEntryId}/consultation/new`)
-  }
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col bg-[#F9F8F5]">
@@ -80,7 +59,9 @@ export default function PatientBriefingPage() {
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <BrainCircuitIcon className="size-5 shrink-0 text-violet-600" aria-hidden />
-                <h1 className="truncate font-serif text-[18px] font-bold text-[#1A1F1E]">Pre-visit briefing</h1>
+                <h1 className="truncate font-serif text-[18px] font-bold text-[#1A1F1E]">
+                  Pre-visit briefing
+                </h1>
               </div>
               <p className="mt-0.5 text-[13px] text-muted-foreground">
                 {isReady
@@ -123,7 +104,7 @@ export default function PatientBriefingPage() {
             </div>
             <Button
               type="button"
-              onClick={() => void handleStartConsultation()}
+              onClick={() => void startConsultation()}
               className="h-10 gap-1.5 rounded-lg border-0 bg-[#1A5345] px-5 text-[13px] font-bold text-white shadow-sm hover:bg-[#133F34]"
             >
               Start consultation

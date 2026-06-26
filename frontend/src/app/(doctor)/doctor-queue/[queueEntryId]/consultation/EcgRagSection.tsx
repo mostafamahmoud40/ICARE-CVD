@@ -26,12 +26,7 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-// ─── service URL ──────────────────────────────────────────────────────────────
-
-const ECG_RAG_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_ECG_RAG_SERVICE_URL ?? "http://localhost:8502")
-    : "http://localhost:8502"
+import { ecgRagMlAdapter, getEcgRagServiceUrl } from "@/lib/ml"
 
 const SECTION_CARD = "rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm"
 
@@ -888,16 +883,12 @@ function DiagnosisPanel({
     setErrorMsg("")
 
     try {
-      const fd = new FormData()
-      fd.append("features_json", JSON.stringify(legacyFeatures))
-      fd.append("query", q)
-      fd.append("retrieved", retrieved)
-      if (historyText.trim()) fd.append("medical_history", historyText)
-
-      const res = await fetch(`${ECG_RAG_URL}/diagnose`, { method: "POST", body: fd })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const json = await res.json()
-      if (json.error) throw new Error(json.error)
+      const json = await ecgRagMlAdapter.diagnose({
+        featuresJson: JSON.stringify(legacyFeatures),
+        query: q,
+        retrieved,
+        medicalHistory: historyText.trim() || undefined,
+      })
       setDiagnosis(json.diagnosis)
       setStatus("done")
     } catch (err) {
@@ -1042,7 +1033,7 @@ function EcgRagErrorPanel({ message, onRetry }: { message: string; onRetry: () =
           <p className="mt-0.5 text-[10px] text-red-600">{message}</p>
           <p className="mt-1 text-[10px] text-red-500/80">
             Make sure the ECG-RAG service is running at{" "}
-            <span className="font-mono font-medium">{ECG_RAG_URL}</span>
+            <span className="font-mono font-medium">{getEcgRagServiceUrl()}</span>
           </p>
         </div>
         <Button
@@ -1187,17 +1178,10 @@ export function EcgRagSection() {
     timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000)
 
     try {
-      const fd = new FormData()
-      fd.append("dat_file", datFile)
-      fd.append("hea_file", heaFile)
-
-      const res = await fetch(`${ECG_RAG_URL}/analyze`, { method: "POST", body: fd })
-      if (!res.ok) {
-        const txt = await res.text().catch(() => `HTTP ${res.status}`)
-        throw new Error(txt || `HTTP ${res.status}`)
-      }
-
-      const json: EcgRagAnalysisResult = await res.json()
+      const json = (await ecgRagMlAdapter.analyze({
+        heaFile,
+        datFile,
+      })) as EcgRagAnalysisResult
       setResult(json)
       setStatus("done")
     } catch (err) {

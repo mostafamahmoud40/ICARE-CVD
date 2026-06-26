@@ -8,9 +8,7 @@ import type {
   LabResultStatus,
   MedicalAnalyzerRawBundle,
 } from "./labMaterials.types"
-
-/** Internal Next.js proxy route — no external origin ever reaches the browser. */
-const OCR_ROUTE = "/api/medical-analyzer/ocr"
+import { medicalAnalyzerMlAdapter } from "@/lib/ml"
 
 // ─── Response mapper (SRP: shape translation only) ────────────────────────────
 
@@ -118,17 +116,7 @@ export function useLabMaterialsWorkspace(
     formData.append("file", firstFile)
 
     try {
-      const res = await fetch(OCR_ROUTE, {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => `HTTP ${res.status}`)
-        throw new Error(text || `HTTP ${res.status}`)
-      }
-
-      const data = await res.json() as {
+      const data = (await medicalAnalyzerMlAdapter.ocr(formData)) as {
         success: boolean
         markdown?: string
         llm_error?: string

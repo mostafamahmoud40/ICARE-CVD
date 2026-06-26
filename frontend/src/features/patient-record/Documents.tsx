@@ -44,54 +44,6 @@ interface PatientDocument {
   uploadedBy: string
 }
 
-const MOCK_DOCUMENTS: PatientDocument[] = [
-  {
-    id: "doc1",
-    name: "Complete Blood Count (CBC) - Q3",
-    category: "lab",
-    type: "pdf",
-    size: "1.2 MB",
-    uploadedAt: "Oct 12, 2024",
-    uploadedBy: "Dr. Sarah Jenkins",
-  },
-  {
-    id: "doc2",
-    name: "Echocardiogram Report",
-    category: "imaging",
-    type: "pdf",
-    size: "4.5 MB",
-    uploadedAt: "Sep 28, 2024",
-    uploadedBy: "Dr. Michael Chen",
-  },
-  {
-    id: "doc3",
-    name: "Chest X-Ray Anterior View",
-    category: "imaging",
-    type: "jpg",
-    size: "8.1 MB",
-    uploadedAt: "Sep 28, 2024",
-    uploadedBy: "Radiology Dept",
-  },
-  {
-    id: "doc4",
-    name: "Patient Discharge Summary - Aug 2024",
-    category: "clinical",
-    type: "pdf",
-    size: "2.8 MB",
-    uploadedAt: "Aug 15, 2024",
-    uploadedBy: "Hospital Admin",
-  },
-  {
-    id: "doc5",
-    name: "Health Insurance Card Copy",
-    category: "insurance",
-    type: "png",
-    size: "0.5 MB",
-    uploadedAt: "Jan 10, 2024",
-    uploadedBy: "Front Desk",
-  },
-]
-
 const DOCUMENT_CATEGORY_TABS = [
   { id: "all" as const, label: "All", icon: FilesIcon },
   { id: "lab" as const, label: "Lab", icon: MicroscopeIcon },
@@ -109,14 +61,6 @@ const DOCUMENT_CATEGORY_LABEL: Record<PatientDocument["category"], string> = {
 
 function fileFormatLabel(type: PatientDocument["type"]): string {
   return type === "doc" ? "DOC" : type.toUpperCase()
-}
-
-/** Thumbnail tile: white surround, brand green icon (currentColor) */
-const DOCUMENT_THUMB_ICON_WRAP: Record<PatientDocument["type"], string> = {
-  pdf: "bg-white text-[#1A5345] ring-1 ring-inset ring-[#E8E6E0]",
-  doc: "bg-white text-[#1A5345] ring-1 ring-inset ring-[#E8E6E0]",
-  jpg: "bg-white text-[#1A5345] ring-1 ring-inset ring-[#E8E6E0]",
-  png: "bg-white text-[#1A5345] ring-1 ring-inset ring-[#E8E6E0]",
 }
 
 function documentUsesImageIcon(type: PatientDocument["type"]): boolean {

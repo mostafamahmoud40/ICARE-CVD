@@ -13,7 +13,7 @@ export function useLocalStorageState<T>(key: string, defaultValue: T): [T, Dispa
     } catch {
       // ignore
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [key])
 
   useEffect(() => {

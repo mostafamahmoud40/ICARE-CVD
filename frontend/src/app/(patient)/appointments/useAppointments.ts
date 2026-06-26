@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
-import type { AppointmentsPageData } from "./appointments.types"
+import type { Appointment, AppointmentsPageData } from "./appointments.types"
 import {
   normalizeAppointmentBookingStatus,
   partitionAppointmentsByBooking,

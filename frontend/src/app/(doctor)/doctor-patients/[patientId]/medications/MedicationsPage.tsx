@@ -3,6 +3,8 @@
 import React, { useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import type { MedicationRecord } from "../../doctorPatients.types"
+import type { LucideIcon } from "lucide-react"
+import { DynamicLucideIcon } from "@/components/shared/DynamicLucideIcon"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import {
@@ -13,26 +15,19 @@ import {
   LayoutGridIcon,
   ClockIcon,
   AlertCircleIcon,
-  ChevronDownIcon,
   StethoscopeIcon,
   CalendarIcon,
-  ActivityIcon,
   FlagIcon,
   AlertTriangleIcon,
   ZapIcon,
   ActivityIcon as SubstanceIcon,
   BrainCircuitIcon,
   TrendingUpIcon,
-  InfoIcon,
   SparklesIcon,
   CheckCircle2Icon as AdherenceIcon,
   SunriseIcon,
   SunIcon,
   MoonIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  DropletsIcon,
-  TruckIcon,
   ArrowRightIcon,
 } from "lucide-react"
 import {
@@ -81,11 +76,6 @@ function medFormToPayload(data: MedFormData): DoctorMedicationFormPayload {
   }
 }
 
-function fmtShort(iso: string | null | undefined) {
-  if (!iso) return "\u2014"
-  return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso))
-}
-
 type MedFormData = {
   name: string
   dose: string
@@ -130,10 +120,6 @@ function toMedForm(m: MedicationRecord): MedFormData {
     instructions: m.instructions ?? "",
     sideEffects: m.sideEffects ?? "",
   }
-}
-
-type DiscontinueFormData = {
-  reason: string
 }
 
 function MedicationForm({ initial, onSave, onCancel }: {
@@ -241,17 +227,19 @@ function MedicationForm({ initial, onSave, onCancel }: {
       <div className="space-y-3">
         <Label className="text-[12px] font-bold text-[#102F27]">Administration Schedule</Label>
         <div className="grid grid-cols-3 gap-3">
-          {[
-            { id: "morning", label: "Morning", icon: SunriseIcon, color: "text-amber-600", bg: "bg-amber-50" },
-            { id: "afternoon", label: "Afternoon", icon: SunIcon, color: "text-orange-500", bg: "bg-orange-50" },
-            { id: "evening", label: "Evening", icon: MoonIcon, color: "text-blue-600", bg: "bg-blue-50" },
-          ].map((t) => {
+          {(
+            [
+              { id: "morning", label: "Morning", icon: SunriseIcon, color: "text-amber-600", bg: "bg-amber-50" },
+              { id: "afternoon", label: "Afternoon", icon: SunIcon, color: "text-orange-500", bg: "bg-orange-50" },
+              { id: "evening", label: "Evening", icon: MoonIcon, color: "text-blue-600", bg: "bg-blue-50" },
+            ] as const
+          ).map((t) => {
             const isActive = form.timeOfDay.includes(t.id)
             return (
               <button
                 key={t.id}
                 type="button"
-                onClick={() => toggleTimeOfDay(t.id as any)}
+                onClick={() => toggleTimeOfDay(t.id)}
                 className={cn(
                   "flex items-center justify-center gap-2.5 rounded-xl border py-3 transition-all",
                   isActive
@@ -404,7 +392,7 @@ function ClinicalIntelligence({ meds }: { meds: MedicationRecord[] }) {
         </div>
 
         <div className="rounded-xl bg-violet-600 px-4 py-2.5 flex items-center justify-between">
-          <p className="text-[12px] font-bold text-white italic">"Overall clinical status is stable. Adherence has improved by 4% since the last visit."</p>
+          <p className="text-[12px] font-bold text-white italic">&ldquo;Overall clinical status is stable. Adherence has improved by 4% since the last visit.&rdquo;</p>
           <Button variant="ghost" size="sm" className="h-7 text-white hover:bg-white/10 text-[11px] font-bold">View History</Button>
         </div>
       </div>
@@ -425,10 +413,20 @@ function StatusBadge({ status }: { status: MedicationRecord["status"] }) {
   )
 }
 
-function MedicationMetric({ label, value, icon: Icon, color }: { label: string; value: number; icon: any; color: string }) {
+function MedicationMetric({
+  label,
+  value,
+  icon,
+  color,
+}: {
+  label: string
+  value: number
+  icon: LucideIcon
+  color: string
+}) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white px-4 py-3.5 shadow-sm transition-all duration-300 hover:shadow-md">
-      <Icon className={cn("size-5 shrink-0", color)} />
+      <DynamicLucideIcon icon={icon} className={cn("size-5 shrink-0", color)} />
       <div className="min-w-0 flex-1">
         <div className="text-[18px] font-bold text-[#1A1F1E] sm:text-[20px] leading-none">{value}</div>
         <div className="mt-1 text-[11px] font-semibold text-muted-foreground">{label}</div>
@@ -584,13 +582,13 @@ function MedicationRow({ m, onEdit, onStop, onFlag }: { m: MedicationRecord; onE
             <div className="flex items-center gap-2 text-[11px] text-rose-700 bg-rose-50/50 px-2 py-1 rounded-lg">
               <FlagIcon className="size-3 fill-rose-600 shrink-0" />
               <span className="shrink-0 text-[11px] font-bold text-rose-700">Flag:</span>
-              <p className="truncate italic">\"{m.flagReason}\"</p>
+              <p className="truncate italic">&ldquo;{m.flagReason}&rdquo;</p>
             </div>
           )}
           {m.instructions && (
             <div className="flex items-center gap-2 text-[11px] text-[#6B7870] bg-[#FFFCFA] px-2 py-1 rounded-lg">
               <span className="shrink-0 text-[11px] font-bold text-[#1A1F1E]">Note:</span>
-              <p className="truncate italic">\"{m.instructions}\"</p>
+              <p className="truncate italic">&ldquo;{m.instructions}&rdquo;</p>
             </div>
           )}
         </div>
@@ -600,15 +598,11 @@ function MedicationRow({ m, onEdit, onStop, onFlag }: { m: MedicationRecord; onE
 }
 
 export function MedicationsPage({ patientId, patientName, medications }: MedicationsPageProps) {
-  const router = useRouter()
   const {
     createMedication,
     updateMedication,
     changeMedicationStatus,
     flagMedication,
-    isSaving,
-    isUpdatingStatus,
-    isFlagging,
   } = useDoctorPatientMedications(patientId)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import * as React from "react"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useLocale } from "next-intl"
 import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import {
@@ -10,23 +10,16 @@ import {
   CalendarPlus2Icon,
   BanIcon,
   Building2Icon,
-  ClipboardListIcon,
   CalendarCheck2Icon,
   CalendarClockIcon,
-  CalendarDaysIcon,
-  MoreHorizontalIcon,
   SearchIcon,
-  SquareArrowOutUpRightIcon,
   UserCircle2Icon,
   UserIcon,
   VideoIcon,
   XIcon,
   FilterIcon,
-  HistoryIcon,
   PlusIcon,
-  ChevronDownIcon,
   DownloadIcon,
-  FileTextIcon,
   MoreVerticalIcon,
   CalendarIcon,
   ClockIcon,
@@ -53,14 +46,11 @@ import {
 } from "date-fns"
 
 import { cn } from "@/lib/utils"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
@@ -225,8 +215,6 @@ export function AssistantAppointments({
   doctorFilterOptions,
   departmentOptions,
   isLoading,
-  isError,
-  error,
   updateStatus,
   isUpdatingStatus,
   createAppointment,
@@ -339,7 +327,7 @@ export function AssistantAppointments({
       showIcareToast({ title: ts("success"), description: t("toastCancelled"), variant: "success" })
       setCancellingAppointment(null)
       setCancellationReason("")
-    } catch (err) {
+    } catch {
       showIcareToast({ title: ts("error"), description: t("toastCancelFailed"), variant: "destructive" })
     }
   }
@@ -361,7 +349,7 @@ export function AssistantAppointments({
       showIcareToast({ title: ts("success"), description: t("toastCreated"), variant: "success" })
       setBookingDraft({ patientId: "", doctorId: "", visitType: "clinic", date: "", timeSlot: "", reason: "" })
       setIsCreateDialogOpen(false)
-    } catch (err) {
+    } catch {
       showIcareToast({ title: ts("error"), description: t("toastCreateFailed"), variant: "destructive" })
     }
   }
@@ -398,7 +386,7 @@ export function AssistantAppointments({
       showIcareToast({ title: ts("success"), description: t("toastUpdated"), variant: "success" })
       setIsEditDialogOpen(false)
       setSelectedAppointment(null)
-    } catch (err) {
+    } catch {
       showIcareToast({ title: ts("error"), description: t("toastUpdateFailed"), variant: "destructive" })
     }
   }

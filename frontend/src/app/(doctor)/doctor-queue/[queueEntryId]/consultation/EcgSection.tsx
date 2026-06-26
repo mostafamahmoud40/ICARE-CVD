@@ -73,10 +73,7 @@ function waveformToPath(waveform: number[]): string {
     .join(" ")
 }
 
-const ECG_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_ECG_SERVICE_URL ?? "http://localhost:5050")
-    : "http://localhost:5050"
+import { ecgMlAdapter, getEcgServiceUrl } from "@/lib/ml"
 
 const SECTION_CARD = "rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm"
 const RESULT_SECTION =
@@ -533,7 +530,7 @@ function ErrorPanel({ message, onRetry }: { message: string; onRetry: () => void
           <p className="mt-1 text-[12px] text-rose-700">{message}</p>
           <p className="mt-2 text-[12px] text-rose-600/90">
             Make sure the ECG ML service is running at{" "}
-            <span className="font-mono font-medium">{ECG_URL}</span>
+            <span className="font-mono font-medium">{getEcgServiceUrl()}</span>
           </p>
         </div>
         <Button
@@ -879,21 +876,16 @@ function EcgChatPanel({ ecgResult }: { ecgResult: EcgResult }) {
     setIsReplying(true)
 
     try {
-      const res = await fetch(`${ECG_URL}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          history: history.map((m) => ({ role: m.role, content: m.content })),
-          ecg_context: ecgResult,
-        }),
+      const { reply } = await ecgMlAdapter.chat({
+        history: history.map((m) => ({ role: m.role, content: m.content })),
+        ecg_context: ecgResult,
       })
-      const j = await res.json()
       setMessages((prev) => [
         ...prev,
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: j.reply ?? j.error ?? "Error",
+          content: reply,
         },
       ])
     } catch {

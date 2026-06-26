@@ -27,7 +27,7 @@ type UploadState = "idle" | "preparing" | "uploading" | "success" | "error";
 
 export function useDocumentUpload() {
   const [uploading, setUploading] = useState<{ [fileId: string]: UploadState }>({});
-  const [uploadProgress, setUploadProgress] = useState<{ [fileId: string]: number }>({});
+  const [uploadProgress] = useState<{ [fileId: string]: number }>({});
   const [error, setError] = useState<string | null>(null);
 
   const getUploadIntent = async (

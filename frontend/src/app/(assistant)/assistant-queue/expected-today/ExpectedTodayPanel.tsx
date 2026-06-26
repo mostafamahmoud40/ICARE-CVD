@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import {
-  AlertTriangleIcon,
   CalendarDaysIcon,
   SearchIcon,
   StethoscopeIcon,
@@ -43,13 +42,6 @@ export function ExpectedTodayPanel({
     return acc
   }, {})
 
-  // Stats
-  const stats = {
-    total: patients.length,
-    totalDoctors: uniqueDoctors.length,
-    urgent: patients.filter(p => p.priority === "urgent" || p.priority === "emergency").length,
-  }
-
   if (patients.length === 0) {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-16 text-center bg-[#F9F8F5]">
@@ -70,7 +62,7 @@ export function ExpectedTodayPanel({
           <div>
             <h2 className="text-[18px] font-bold text-[#1A1F1E]">Expected Today</h2>
             <p className="text-[13px] text-muted-foreground mt-1">
-              Check-in patients scheduled for today's clinical sessions.
+              Check-in patients scheduled for today&apos;s clinical sessions.
             </p>
           </div>
         </div>

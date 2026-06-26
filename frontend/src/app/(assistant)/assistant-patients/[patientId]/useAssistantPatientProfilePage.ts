@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { usePathname, useSearchParams } from "next/navigation"
+import { useCallback, useMemo, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
   ActivityIcon,
   FileTextIcon,
@@ -83,26 +83,39 @@ type UseAssistantPatientProfilePageOpts = {
 export function useAssistantPatientProfilePage({ routePatientId }: UseAssistantPatientProfilePageOpts) {
   const patientId = routePatientId.trim()
   const pathname = usePathname()
+  const router = useRouter()
   const searchParams = useSearchParams()
 
   const record = useAssistantPatientRecord(patientId)
 
-  const [activeTab, setActiveTab] = useState<string>("overview")
+  const tabParam = searchParams.get("tab")
+  const activeTab = useMemo((): AssistantPatientProfileTabId => {
+    if (tabParam && PROFILE_TAB_IDS.includes(tabParam as AssistantPatientProfileTabId)) {
+      return tabParam as AssistantPatientProfileTabId
+    }
+    return "overview"
+  }, [tabParam])
+
+  const setActiveTab = useCallback(
+    (tab: AssistantPatientProfileTabId) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (tab === "overview") {
+        params.delete("tab")
+      } else {
+        params.set("tab", tab)
+      }
+      const query = params.toString()
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    },
+    [pathname, router, searchParams],
+  )
+
   const [isAddVitalsOpen, setIsAddVitalsOpen] = useState(false)
   const [expandedLabId, setExpandedLabId] = useState<string | null>(null)
   const [selectedLabReport, setSelectedLabReport] = useState<AssistantLabReportRow | null>(null)
   const [selectedPrescription, setSelectedPrescription] = useState<AssistantPrescriptionRow | null>(null)
   const [vitalReadingDetail, setVitalReadingDetail] = useState<AssistantVitalsHistoryRow | null>(null)
   const [appointmentDetail, setAppointmentDetail] = useState<AssistantAppointmentRow | null>(null)
-
-  useEffect(() => {
-    const t = searchParams.get("tab")
-    if (t && PROFILE_TAB_IDS.includes(t as AssistantPatientProfileTabId)) {
-      setActiveTab(t)
-    } else if (!t) {
-      setActiveTab("overview")
-    }
-  }, [searchParams])
 
   const patientProfilePath = `/assistant-patients/${patientId}`
   const hubNavItems = useMemo(
@@ -199,3 +212,5 @@ export function useAssistantPatientProfilePage({ routePatientId }: UseAssistantP
     setAppointmentDetail,
   }
 }
+
+export type AssistantPatientProfilePageState = ReturnType<typeof useAssistantPatientProfilePage>

@@ -14,7 +14,6 @@ const ASSISTANT_KINDS: AssistantNotificationKind[] = [
   "checklist",
   "document",
   "system",
-  "message",
 ]
 
 function mapAssistantKind(kind: string): AssistantNotificationKind {

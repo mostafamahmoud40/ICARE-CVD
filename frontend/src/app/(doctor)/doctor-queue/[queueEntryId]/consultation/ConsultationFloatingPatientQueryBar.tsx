@@ -19,15 +19,22 @@ export type ConsultationFloatingPatientQueryBarProps = {
   data: ConsultationData
 }
 
-export function ConsultationFloatingPatientQueryBar({ data }: ConsultationFloatingPatientQueryBarProps) {
-  if (!CONSULTATION_FLOATING_QUERY_BAR_ENABLED) return null
+export function ConsultationFloatingPatientQueryBar(props: ConsultationFloatingPatientQueryBarProps) {
+  if (!CONSULTATION_FLOATING_QUERY_BAR_ENABLED) {
+    return null
+  }
+
+  return <ConsultationFloatingPatientQueryBarBody {...props} />
+}
+
+function ConsultationFloatingPatientQueryBarBody({ data }: ConsultationFloatingPatientQueryBarProps) {
   const [draft, setDraft] = useState("")
   const [lastQuery, setLastQuery] = useState<string | null>(null)
   const [lastReply, setLastReply] = useState<string | null>(null)
   const [panelOpen, setPanelOpen] = useState(true)
 
   const getText = useCallback(
-    (_key: PatientQueryDraftKey) => draft,
+    () => draft,
     [draft],
   )
   const setText = useCallback((_key: PatientQueryDraftKey, value: string) => {

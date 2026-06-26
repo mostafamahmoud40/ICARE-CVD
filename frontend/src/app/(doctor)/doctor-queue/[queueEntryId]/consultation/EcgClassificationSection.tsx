@@ -17,10 +17,7 @@ import { Button } from "@/components/ui/button"
 import type { AnalysisStatus, PersistedEcgClsStudy } from "./useConsultationEcgClassification"
 import type { EcgClassificationResult, EcgClsInputSource } from "./consultationEcgCls.api"
 
-const ECG_CLS_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_ECG_CLASSIFICATION_URL ?? "http://localhost:8503")
-    : "http://localhost:8503"
+import { getEcgClassificationUrl } from "@/lib/ml"
 
 const SECTION_CARD = "rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm"
 const RESULT_SECTION = "overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-white shadow-sm"
@@ -342,7 +339,7 @@ export function EcgClassificationSection({
                         <p className="font-semibold">Classification failed</p>
                         <p className="mt-0.5">{errorMsg}</p>
                         <p className="mt-1 text-[10px] opacity-80">
-                          Service: <span className="font-mono">{ECG_CLS_URL}</span>
+                          Service: <span className="font-mono">{getEcgClassificationUrl()}</span>
                         </p>
                       </div>
                     </div>

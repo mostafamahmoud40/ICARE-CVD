@@ -237,7 +237,7 @@ function QueuePatientCard({
 
           {patient.notes && (
             <div className="mt-3 text-[12px] font-medium text-muted-foreground italic border-l-2 border-[#E8E6E0] pl-3 py-1 bg-white">
-              "{patient.notes}"
+              &ldquo;{patient.notes}&rdquo;
             </div>
           )}
         </div>

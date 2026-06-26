@@ -16,11 +16,7 @@ import {
   type EcgClassificationResult,
   type EcgClsInputSource,
 } from "./consultationEcgCls.api"
-
-const ECG_CLS_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_ECG_CLASSIFICATION_URL ?? "http://localhost:8503")
-    : "http://localhost:8503"
+import { ecgClsMlAdapter } from "@/lib/ml"
 
 export type AnalysisStatus = "idle" | "processing" | "done" | "error"
 
@@ -35,31 +31,14 @@ export type PersistedEcgClsStudy = {
 }
 
 async function classifyImage(file: File): Promise<EcgClassificationResult> {
-  const fd = new FormData()
-  fd.append("file", file)
-  const res = await fetch(`${ECG_CLS_URL}/predict/image`, { method: "POST", body: fd })
-  const json = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    throw new Error(typeof json.detail === "string" ? json.detail : `HTTP ${res.status}`)
-  }
-  if (json.error) throw new Error(json.error)
-  return json as EcgClassificationResult
+  return ecgClsMlAdapter.classifyImage(file)
 }
 
 async function classifyWfdb(
   heaFile: File,
   datFile: File,
 ): Promise<EcgClassificationResult> {
-  const fd = new FormData()
-  fd.append("hea_file", heaFile)
-  fd.append("dat_file", datFile)
-  const res = await fetch(`${ECG_CLS_URL}/predict/wfdb`, { method: "POST", body: fd })
-  const json = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    throw new Error(typeof json.detail === "string" ? json.detail : `HTTP ${res.status}`)
-  }
-  if (json.error) throw new Error(json.error)
-  return json as EcgClassificationResult
+  return ecgClsMlAdapter.classifyWfdb(heaFile, datFile)
 }
 
 function mapApiToPersisted(api: ApiEcgClsAnalysis): PersistedEcgClsStudy {
@@ -233,7 +212,8 @@ export function useConsultationEcgClassification(
         previewDocumentId = previewDoc.id
       }
 
-      const { input_preview_b64: _drop, ...classification } = ml
+      const classification = { ...ml }
+      delete (classification as Record<string, unknown>).input_preview_b64
 
       const saved = await saveEcgClsAnalysis(patientId, {
         consultationId: consultationId ?? undefined,

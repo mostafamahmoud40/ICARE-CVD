@@ -16,11 +16,7 @@ import {
   uploadCineMriFileToStorage,
   type ApiCineMriAnalysis,
 } from "./consultationCineMri.api"
-
-const MRI_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_MRI_SERVICE_URL ?? "http://localhost:8090")
-    : "http://localhost:8090"
+import { medicalAnalyzerMlAdapter } from "@/lib/ml"
 
 export type AnalysisStatus = "idle" | "processing" | "done" | "error"
 
@@ -119,7 +115,7 @@ export function useConsultationCineMri(
       throw new Error("delete failed")
     }
     setSavedStudy(null)
-  }, [consultationId, patientId, queryClient, savedStudy?.id])
+  }, [consultationId, patientId, queryClient, savedStudy])
 
   const handleEdFileSelected = useCallback(
     (file: File) => {
@@ -280,17 +276,10 @@ export function useConsultationCineMri(
       formData.append("ed_file", edFile)
       formData.append("es_file", esFile)
 
-      const res = await fetch(`${MRI_URL}/predict`, {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => `HTTP ${res.status}`)
-        throw new Error(text || `HTTP ${res.status}`)
-      }
-
-      const json = await res.json()
+      const json = (await medicalAnalyzerMlAdapter.predictMri(formData)) as Record<
+        string,
+        unknown
+      >
       const ml = mlJsonToMriResult(json)
 
       const liveResult: MriResult = {

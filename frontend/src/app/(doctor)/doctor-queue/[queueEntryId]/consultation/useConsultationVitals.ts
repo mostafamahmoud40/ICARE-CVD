@@ -59,8 +59,10 @@ export function useConsultationVitals(queueEntryId: string) {
   const patientIdRef = useRef<string | null>(null)
   const hydratedRef = useRef(false)
 
-  vitalsRef.current = vitals
-  sessionVitalIdRef.current = sessionVitalId
+  useEffect(() => {
+    vitalsRef.current = vitals
+    sessionVitalIdRef.current = sessionVitalId
+  }, [vitals, sessionVitalId])
 
   const contextQuery = useQuery({
     queryKey: ["consultation-queue-entry", queueEntryId],

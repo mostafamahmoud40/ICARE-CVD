@@ -1,14 +1,12 @@
 "use client"
 
 import React, { useState, useMemo } from "react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import type { VisitRecord } from "../../doctorPatients.types"
+import { useDeleteConsultationReport } from "./useDeleteConsultationReport"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { doctorAvatarUrl, diagnosesScrollbarCss } from "../diagnoses/diagnosis.shared"
-import { deleteConsultationReport } from "../../consultationReport.api"
+import type { VisitRecord } from "../../doctorPatients.types"
 import { DeleteConsultationDialog } from "./DeleteConsultationDialog"
-import { showIcareErrorToast, showIcareSuccessToast } from "@/components/shared/icare-toast"
 import {
   CalendarDaysIcon,
   ChevronRightIcon,
@@ -42,7 +40,7 @@ type ConsultationsPageProps = {
 }
 
 export function ConsultationsPage({ patientId, patientName, visits }: ConsultationsPageProps) {
-  const queryClient = useQueryClient()
+  const deleteMutation = useDeleteConsultationReport(patientId)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedType, setSelectedType] = useState<string>("all")
   const [localVisits, setLocalVisits] = useState(visits)
@@ -50,18 +48,6 @@ export function ConsultationsPage({ patientId, patientName, visits }: Consultati
   React.useEffect(() => {
     setLocalVisits(visits)
   }, [visits])
-
-  const deleteMutation = useMutation({
-    mutationFn: (visitId: string) => deleteConsultationReport(patientId, visitId),
-    onSuccess: async (_data, visitId) => {
-      setLocalVisits((prev) => prev.filter((visit) => visit.id !== visitId))
-      await queryClient.invalidateQueries({ queryKey: ["doctor-patient-record", patientId] })
-      showIcareSuccessToast("Consultation deleted", "The visit was removed from the timeline.")
-    },
-    onError: (error: Error) => {
-      showIcareErrorToast("Could not delete consultation", error.message)
-    },
-  })
 
   const typeStyles: Record<string, string> = {
     "follow-up": "bg-[#1A5345] text-white",
@@ -335,7 +321,15 @@ export function ConsultationsPage({ patientId, patientName, visits }: Consultati
                           <ChevronRightIcon className="size-3.5" />
                         </Link>
                         <DeleteConsultationDialog
-                          onConfirm={() => deleteMutation.mutate(v.id)}
+                          onConfirm={() =>
+                            deleteMutation.mutate(v.id, {
+                              onSuccess: () => {
+                                setLocalVisits((prev) =>
+                                  prev.filter((visit) => visit.id !== v.id),
+                                )
+                              },
+                            })
+                          }
                           isDeleting={deleteMutation.isPending}
                         />
                       </div>

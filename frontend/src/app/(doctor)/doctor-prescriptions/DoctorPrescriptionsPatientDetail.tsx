@@ -5,7 +5,6 @@ import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import { useParams } from "next/navigation"
 import { useMemo, useState } from "react"
 import {
-  AlertTriangleIcon,
   BellIcon,
   BrainCircuitIcon,
   CalendarIcon,
@@ -162,12 +161,6 @@ export function DoctorPrescriptionsPatientDetail({
   const activeRxs = data.prescriptions.filter(
     (r) => r.patientId === patientId && r.status === "active",
   )
-  const pausedCount = data.prescriptions.filter(
-    (r) => r.patientId === patientId && r.status === "paused",
-  ).length
-  const discontinuedCount = data.prescriptions.filter(
-    (r) => r.patientId === patientId && r.status === "discontinued",
-  ).length
   const poorCount = activeRxs.filter((r) => r.compliance === "poor").length
   const avgAdherence =
     activeRxs.length > 0

@@ -665,7 +665,7 @@ function MissedCallEvent({
   )
 }
 
-interface Volume2IconProps extends React.SVGProps<SVGSVGElement> {}
+type Volume2IconProps = React.SVGProps<SVGSVGElement>
 function Volume2Icon(props: Volume2IconProps) {
   return (
     <svg

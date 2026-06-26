@@ -114,7 +114,7 @@ function TimelineHeader() {
 
   return (
     <div className="mb-2 ml-[80px] sm:ml-[104px] flex items-end justify-between text-[10px] font-semibold text-muted-foreground">
-      {hours.map((hour, i) => (
+      {hours.map((hour) => (
         <div key={hour} className="flex flex-col items-center">
           <span>{formatHour(hour)}</span>
           <span className="mt-1 h-2 w-px bg-[#E8E6E0]" />

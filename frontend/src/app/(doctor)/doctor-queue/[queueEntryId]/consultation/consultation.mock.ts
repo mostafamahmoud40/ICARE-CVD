@@ -1,5 +1,4 @@
 import type { ConsultationData, PatientSummary } from "./consultation.types"
-import { mockAiSuggestions } from "./consultation.ai.mock"
 import { createConsultationDataFromPatient } from "./consultation.template"
 
 /** Demo patient summary for AI briefing mock content only. */
