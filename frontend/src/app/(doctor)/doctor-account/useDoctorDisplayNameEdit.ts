@@ -26,7 +26,9 @@ export function useDoctorDisplayNameEdit(displayName: string) {
   return {
     open,
     setOpen,
-    saveName: (fullName: string) => mutation.mutateAsync(fullName),
+    saveName: async (fullName: string) => {
+      await mutation.mutateAsync(fullName)
+    },
     isSaving: mutation.isPending,
     displayName,
   }

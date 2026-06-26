@@ -3,11 +3,9 @@
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import { ArrowRightIcon } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
-
+import { useAssistantMedicationProfile } from "./useAssistantMedicationProfile"
 import { Button } from "@/components/ui/button"
 import { MedicationRecordDialog } from "@/app/(assistant)/assistant-medications/MedicationRecordDialog"
-import { fetchAssistantMedicationProfile } from "@/app/(assistant)/assistant-medications/assistantMedications.api"
 import {
   PatientMedicationsTableSection,
   type PastMedicationTableRow,
@@ -22,11 +20,7 @@ export function AssistantPatientMedicationsTab({ patientId }: AssistantPatientMe
   const [medicationsTab, setMedicationsTab] = useState<"active" | "past">("active")
   const [recordMed, setRecordMed] = useState<MedicationLine | null>(null)
 
-  const { data } = useQuery({
-    queryKey: ["assistant-medication-profile", patientId],
-    queryFn: () => fetchAssistantMedicationProfile(patientId),
-    retry: false,
-  })
+  const { data } = useAssistantMedicationProfile(patientId)
 
   const activeMedications = useMemo(() => data?.medications ?? [], [data])
   const pastMedications = useMemo(

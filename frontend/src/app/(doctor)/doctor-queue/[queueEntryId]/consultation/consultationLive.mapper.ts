@@ -187,6 +187,7 @@ export function mapSessionToLiveFields(
   | "physicalExam"
   | "diagnoses"
   | "testOrders"
+  | "referrals"
   | "homeMeasurements"
   | "clinicalNotes"
   | "assessmentAndPlan"

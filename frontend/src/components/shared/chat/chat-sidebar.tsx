@@ -1,12 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { SearchIcon, PlusIcon, Loader2Icon, PhoneIcon, UsersIcon, ImageIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -14,17 +12,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { fetchDirectory, createOrGetConversation } from "./chat-api"
 import { resolveChatAvatarUrl } from "./chat-avatar"
+import { useChatSidebarNewChat } from "./use-chat-sidebar-new-chat"
 import { MISSED_VIDEO_CALL_LABEL, MISSED_VOICE_CALL_LABEL, OUTGOING_VIDEO_CALL_LABEL, OUTGOING_VOICE_CALL_LABEL, INCOMING_VIDEO_RING_LABEL, INCOMING_VOICE_RING_LABEL, OUTGOING_RING_LABEL } from "./chat-call"
 import {
-  CHAT_LAST_MESSAGE_DOCUMENT,
-  CHAT_LAST_MESSAGE_PHOTO,
   isDocumentLastMessagePreview,
   isPhotoLastMessagePreview,
 } from "./chat-message-preview"
 import type { ChatContact } from "./chat.types"
-import { getAuthUser } from "@/lib/auth-tokens"
 import { translateChatPreviewText, translateChatRole } from "./chat-i18n"
 
 interface ChatSidebarProps {
@@ -42,20 +37,21 @@ export function ChatSidebar({
   onSelectContact,
   onStartNewChat,
 }: ChatSidebarProps) {
-  const queryClient = useQueryClient()
-  const currentUser = getAuthUser()
   const t = useTranslations("chat")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState<FilterTab>("chat")
   const [filterSearch, setFilterSearch] = useState("")
 
-  const directoryQuery = useQuery({
-    queryKey: ["chat", "directory"],
-    queryFn: fetchDirectory,
-    enabled: isDialogOpen,
-    staleTime: 60_000,
-  })
+  const { directoryQuery, createConversationMutation, currentUser } =
+    useChatSidebarNewChat({
+      directoryEnabled: isDialogOpen,
+      onConversationCreated: (id) => {
+        onStartNewChat?.(id)
+        setIsDialogOpen(false)
+        setSearchQuery("")
+      },
+    })
 
   const filteredContacts = contacts.filter(
     (c) =>
@@ -69,30 +65,6 @@ export function ChatSidebar({
       u.name.toLowerCase().includes(q) ||
       (u.specialty?.toLowerCase().includes(q) ?? false)
     )
-  })
-
-  const createConversationMutation = useMutation({
-    mutationFn: async (entry: { profileId: string; role: string }) => {
-      if (currentUser?.role === "doctor") {
-        return createOrGetConversation({ patientId: entry.profileId })
-      }
-      if (currentUser?.role === "patient") {
-        return createOrGetConversation({ doctorId: entry.profileId })
-      }
-      if (currentUser?.role === "assistant") {
-        if (entry.role === "doctor") {
-          return createOrGetConversation({ doctorId: entry.profileId })
-        }
-        return createOrGetConversation({ patientId: entry.profileId })
-      }
-      throw new Error("Unsupported role for chat")
-    },
-    onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] })
-      onStartNewChat?.(String(data.id))
-      setIsDialogOpen(false)
-      setSearchQuery("")
-    },
   })
 
   const newChatDialogTitle =

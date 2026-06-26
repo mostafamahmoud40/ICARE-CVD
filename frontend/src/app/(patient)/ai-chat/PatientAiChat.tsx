@@ -52,7 +52,6 @@ const SUGGESTIONS = [
 
 export function PatientAiChat({
   messages,
-  activeContactId,
   onSendMessage,
   isAssistantTyping,
   healthContext,

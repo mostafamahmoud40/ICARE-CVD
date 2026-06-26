@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useMemo, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useAssistantProcedureReportData } from "./useAssistantProcedureReportData"
 import {
   ArrowLeftIcon,
   AlertTriangleIcon,
@@ -40,10 +40,6 @@ import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import { PRIORITY_CONFIG } from "./assistantProcedures.config"
 import { resolveProcedureReport } from "./assistantProcedureReports.mock"
 import type { IntraoperativeComplicationKey, RecoveryStatusKey } from "./assistantProcedureReports.mock"
-import {
-  fetchAssistantProcedureHistory,
-  fetchAssistantProcedureOrders,
-} from "./assistantProcedures.api"
 
 type AssistantProcedureReportPageProps = {
   procedureId: string
@@ -71,14 +67,7 @@ export function AssistantProcedureReportPage({ procedureId }: AssistantProcedure
   const { t, ts } = useAssistantPageTranslations("procedures")
   const [activeTab, setActiveTab] = useState<ReportTab>("clinicalOverview")
 
-  const ordersQuery = useQuery({
-    queryKey: ["assistant-procedures"],
-    queryFn: fetchAssistantProcedureOrders,
-  })
-  const historyQuery = useQuery({
-    queryKey: ["assistant-procedures-history", "all"],
-    queryFn: () => fetchAssistantProcedureHistory("all"),
-  })
+  const { ordersQuery, historyQuery } = useAssistantProcedureReportData()
 
   const order = useMemo(
     () => ordersQuery.data?.find((item) => item.id === procedureId) ?? null,

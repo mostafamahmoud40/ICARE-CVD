@@ -305,7 +305,7 @@ export function ProcedureDetailPanel({
                      <p className="font-serif text-[15px] font-bold text-[#1A1F1E] sm:text-[16px]">Physician Directives</p>
                   </div>
                   <div className="relative rounded-2xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-4 italic sm:p-5">
-                     <div className="absolute top-2 left-2 text-[#1A5345]/10 text-4xl font-serif">"</div>
+                     <div className="absolute top-2 left-2 text-[#1A5345]/10 text-4xl font-serif">&ldquo;</div>
                      <p className="relative z-10 text-[13px] font-medium leading-relaxed text-[#1A1F1E] sm:text-[14px] pl-2">
                        {order.notes}
                      </p>

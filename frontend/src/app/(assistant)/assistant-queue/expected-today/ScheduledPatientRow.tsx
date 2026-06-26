@@ -1,6 +1,6 @@
 "use client"
 
-import { AlertTriangleIcon, ArrowRightIcon, ClockIcon, LogInIcon } from "lucide-react"
+import { AlertTriangleIcon, ArrowRightIcon, LogInIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { QueuePatient } from "../assistantQueue.types"
 import { PRIORITY_CONFIG, VISIT_TYPE_CONFIG } from "../assistantQueue.config"

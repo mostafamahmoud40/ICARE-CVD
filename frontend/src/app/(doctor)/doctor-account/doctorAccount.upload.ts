@@ -1,46 +1,13 @@
-import { apiClient } from "@/lib/api-client"
-import { validatePatientAvatarFile } from "@/app/(assistant)/assistant-patients/addPatient.upload"
+import { validatePatientAvatarFile } from "@/lib/uploads/avatar-validation"
+import { uploadAvatarViaIntent } from "@/lib/uploads/presigned-put"
 
 export { validatePatientAvatarFile }
 
-type UploadIntentResult = {
-  key: string
-  uploadUrl: string
-  publicUrl?: string
-  expiresIn: number
-}
-
 export async function uploadDoctorAccountAvatar(file: File): Promise<string> {
   validatePatientAvatarFile(file)
-
-  const contentType = file.type || "application/octet-stream"
-
-  const intentRes = await apiClient.post<UploadIntentResult>(
+  return uploadAvatarViaIntent(
+    file,
     "/doctor/account/avatar/upload-intent",
-    {
-      fileName: file.name,
-      contentType,
-    },
+    "/doctor/account/avatar",
   )
-
-  const intent = intentRes.data
-
-  const putRes = await fetch(intent.uploadUrl, {
-    method: "PUT",
-    body: file,
-    headers: { "Content-Type": contentType },
-  })
-
-  if (!putRes.ok) {
-    const text = await putRes.text().catch(() => "")
-    throw new Error(
-      text || `Profile photo upload failed (${putRes.status}). Check MinIO configuration and CORS.`,
-    )
-  }
-
-  const { data } = await apiClient.patch<{ avatarUrl: string }>("/doctor/account/avatar", {
-    s3Key: intent.key,
-  })
-
-  return data.avatarUrl
 }

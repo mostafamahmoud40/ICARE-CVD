@@ -5,8 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { useQuery } from "@tanstack/react-query"
-import type { AuthUser } from "@/lib/auth-tokens"
+import { useDoctorInsetHeaderAccount } from "./doctor-account/useDoctorInsetHeaderAccount"
 import {
   BellIcon,
   CalendarClockIcon,
@@ -29,7 +28,7 @@ import {
 import { LanguageSwitcher } from "@/components/shared/language-switcher"
 import { DoctorHeaderSearch } from "./DoctorHeaderSearch"
 import { DoctorNotificationsDropdown } from "./doctor-notifications/DoctorNotificationsDropdown"
-import { fetchDoctorAccount } from "./doctor-account/doctorAccount.api"
+import type { AuthUser } from "@/lib/auth-tokens"
 import { EditDoctorDisplayNameDialog } from "./doctor-account/EditDoctorDisplayNameDialog"
 import { useDoctorDisplayNameEdit } from "./doctor-account/useDoctorDisplayNameEdit"
 import {
@@ -257,11 +256,7 @@ export function DoctorInsetHeader({ user, logout }: DoctorInsetHeaderProps) {
     () => null,
   )
 
-  const accountQuery = useQuery({
-    queryKey: ["doctor", "account"],
-    queryFn: fetchDoctorAccount,
-    staleTime: 5 * 60 * 1000,
-  })
+  const accountQuery = useDoctorInsetHeaderAccount()
 
   const profile = accountQuery.data?.profile ?? cachedProfile
   const displayName = profile?.fullName ?? user?.name ?? "Doctor"

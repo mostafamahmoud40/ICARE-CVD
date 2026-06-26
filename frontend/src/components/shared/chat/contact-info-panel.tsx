@@ -29,7 +29,6 @@ interface ContactInfoPanelProps {
 export function ContactInfoPanel({
   contact,
   messages = [],
-  onClose,
   onInitiateCall,
 }: ContactInfoPanelProps) {
   const t = useTranslations("chat")

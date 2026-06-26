@@ -12,6 +12,7 @@ const visitsData: VisitSummary[] = [
       specialty: "Cardiology",
     },
     recordStatus: "report-ready",
+    reasonForVisit: "Shortness of breath during physical activity",
     vitals: [
       { label: "Blood pressure", value: "142/88", unit: "", status: "elevated", note: "Elevated" },
       { label: "Heart rate", value: "78", unit: "bpm", status: "normal", note: "Normal" },
@@ -123,6 +124,7 @@ const visitsData: VisitSummary[] = [
       specialty: "Cardiology",
     },
     recordStatus: "updated",
+    reasonForVisit: "Routine cardiology follow-up",
     vitals: [
       { label: "Blood pressure", value: "138/85", unit: "", status: "elevated", note: "Slightly elevated" },
       { label: "Heart rate", value: "76", unit: "bpm", status: "normal", note: "Normal" },
@@ -171,6 +173,7 @@ const visitsData: VisitSummary[] = [
       specialty: "Cardiology",
     },
     recordStatus: "report-ready",
+    reasonForVisit: "ECG review and routine check-up",
     vitals: [
       { label: "Blood pressure", value: "135/82", unit: "", status: "elevated", note: "Stable" },
       { label: "Heart rate", value: "72", unit: "bpm", status: "normal", note: "Normal" },
@@ -218,6 +221,7 @@ const visitsData: VisitSummary[] = [
       specialty: "Cardiology",
     },
     recordStatus: "pending-report",
+    reasonForVisit: "Elevated blood pressure and occasional headaches",
     vitals: [
       { label: "Blood pressure", value: "140/88", unit: "", status: "elevated", note: "Elevated" },
       { label: "Heart rate", value: "74", unit: "bpm", status: "normal", note: "Normal" },

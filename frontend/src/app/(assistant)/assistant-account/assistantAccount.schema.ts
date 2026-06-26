@@ -6,7 +6,7 @@ export const assistantProfileEditSchema = z.object({
   phone: z.string().trim().min(8, "Enter a valid phone number").max(24),
   department: z.string().trim().min(2, "Department is required").max(60),
   experienceYears: z.coerce
-    .number({ invalid_type_error: "Enter years of experience" })
+    .number({ error: "Enter years of experience" })
     .int()
     .min(0, "Cannot be negative")
     .max(50),

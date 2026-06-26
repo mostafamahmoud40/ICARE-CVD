@@ -22,28 +22,24 @@ export function PastVisitsStatsSummary({
         icon={HistoryIcon}
         value={total}
         label="Total visits"
-        iconBg="bg-slate-100"
         iconColor="text-slate-600"
       />
       <StatCell
         icon={CheckCircle2Icon}
         value={completed}
         label="Completed"
-        iconBg="bg-emerald-100"
         iconColor="text-emerald-600"
       />
       <StatCell
         icon={XCircleIcon}
         value={noShow}
         label="No show"
-        iconBg="bg-red-100"
         iconColor="text-red-600"
       />
       <StatCell
         icon={XIcon}
         value={cancelled}
         label="Cancelled"
-        iconBg="bg-gray-100"
         iconColor="text-gray-500"
       />
     </div>

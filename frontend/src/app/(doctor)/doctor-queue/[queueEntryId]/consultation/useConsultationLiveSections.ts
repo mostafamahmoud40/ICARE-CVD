@@ -64,7 +64,10 @@ export function useConsultationLiveSections(
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingSaveRef = useRef(false)
   const dataRef = useRef(data)
-  dataRef.current = data
+
+  useEffect(() => {
+    dataRef.current = data
+  }, [data])
 
   const sessionQuery = useQuery({
     queryKey: ["consultation-session", queueEntryId],
@@ -960,7 +963,7 @@ export function useConsultationLiveSections(
     saveNow,
     isSessionLoading: sessionQuery.isLoading,
     isSaving: saveMutation.isPending,
-    isSessionReady: Boolean(consultationIdRef.current) || Boolean(sessionQuery.data),
+    isSessionReady: Boolean(sessionQuery.data?.consultation.id),
     consultationId: sessionQuery.data?.consultation.id ?? null,
     patientId: data?.patientId ?? null,
   }

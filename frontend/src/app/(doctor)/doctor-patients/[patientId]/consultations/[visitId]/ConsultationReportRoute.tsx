@@ -1,9 +1,6 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
-
-import { fetchDoctorPatientRecord } from "../../../doctorPatients.api"
-import { fetchConsultationReport } from "../../../consultationReport.api"
+import { useConsultationReportRoute } from "./useConsultationReportRoute"
 import { ConsultationReportPage } from "./ConsultationReportPage"
 
 export function ConsultationReportRoute({
@@ -13,17 +10,7 @@ export function ConsultationReportRoute({
   patientId: string
   visitId: string
 }) {
-  const patientQuery = useQuery({
-    queryKey: ["doctor-patient-record", patientId],
-    queryFn: () => fetchDoctorPatientRecord(patientId),
-    staleTime: 60_000,
-  })
-
-  const reportQuery = useQuery({
-    queryKey: ["consultation-report", patientId, visitId],
-    queryFn: () => fetchConsultationReport(patientId, visitId),
-    staleTime: 30_000,
-  })
+  const { patientQuery, reportQuery } = useConsultationReportRoute(patientId, visitId)
 
   if (patientQuery.isLoading || reportQuery.isLoading) {
     return (

@@ -67,7 +67,6 @@ export function countActivitiesByType(activities: ActivityEntry[]) {
 export function groupActivitiesByDate(
   activities: ActivityEntry[],
   labelForTimestamp: (iso: string) => string,
-  now = new Date(),
 ) {
   const groups = new Map<string, ActivityEntry[]>()
 

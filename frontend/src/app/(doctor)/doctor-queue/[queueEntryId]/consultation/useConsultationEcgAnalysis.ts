@@ -14,11 +14,7 @@ import {
   type ApiEcgAnalysis,
 } from "./consultationEcg.api"
 import type { EcgReport, EcgResult } from "./ecgAnalysis.types"
-
-const ECG_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_ECG_SERVICE_URL ?? "http://localhost:5050")
-    : "http://localhost:5050"
+import { ecgMlAdapter } from "@/lib/ml"
 
 export type PersistedEcgState = {
   id: string
@@ -32,41 +28,11 @@ export type PersistedEcgState = {
 }
 
 async function inferEcg(heaFile: File, datFile: File): Promise<EcgResult> {
-  const formData = new FormData()
-  formData.append("hea", heaFile)
-  formData.append("dat", datFile)
-
-  const res = await fetch(`${ECG_URL}/infer`, {
-    method: "POST",
-    body: formData,
-  })
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => `HTTP ${res.status}`)
-    throw new Error(text || `HTTP ${res.status}`)
-  }
-
-  const json = (await res.json()) as EcgResult & { error?: string }
-  if ("error" in json && json.error) {
-    throw new Error(json.error)
-  }
-
-  return json
+  return ecgMlAdapter.infer(heaFile, datFile)
 }
 
 async function generateEcgReport(ecgResult: EcgResult): Promise<EcgReport> {
-  const res = await fetch(`${ECG_URL}/report`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ecg_result: ecgResult }),
-  })
-
-  const json = (await res.json()) as { success?: boolean; report?: EcgReport; error?: string }
-  if (!json.success || !json.report) {
-    throw new Error(json.error ?? "Failed to generate report")
-  }
-
-  return json.report
+  return ecgMlAdapter.generateReport(ecgResult)
 }
 
 export function useConsultationEcgAnalysis(

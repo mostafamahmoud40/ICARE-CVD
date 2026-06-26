@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { PauseCircleIcon, RotateCcwIcon, SearchIcon, XIcon } from "lucide-react"
+import { RotateCcwIcon, SearchIcon, XIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import type { ActivityLog, AttendanceLog, DoctorStatus } from "./doctors.types"
 import { getDoctorQueueState, parseTimeValueToDate } from "./doctors.helpers"

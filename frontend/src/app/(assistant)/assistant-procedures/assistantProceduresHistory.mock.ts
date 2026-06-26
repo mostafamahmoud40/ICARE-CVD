@@ -21,7 +21,6 @@ export type ScheduledOperation = {
   priority: ProcedurePriority
   teamStatus: string
   notes?: string
-  patientAvatarUrl?: string | null
 }
 
 export const MOCK_HISTORY_OPERATIONS: ScheduledOperation[] = [

@@ -1,8 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
-import Link from "next/link"
+import { useAssistantProcedureHistory } from "./useAssistantProcedureHistory"
 import { ClockIcon, FileTextIcon, HistoryIcon, Loader2Icon, MapPinIcon, SearchIcon } from "lucide-react"
 
 import { PatientAvatar } from "@/components/shared/PatientAvatar"
@@ -20,7 +19,7 @@ import {
 } from "@/components/ui/breadcrumb"
 
 import { useAssistantPageTranslations } from "../use-assistant-i18n"
-import { fetchAssistantProcedureHistory } from "./assistantProcedures.api"
+import Link from "next/link"
 import { PRIORITY_CONFIG } from "./assistantProcedures.config"
 import type { ProcedurePriority } from "./assistantProcedures.types"
 import {
@@ -47,11 +46,7 @@ export function AssistantProceduresHistory() {
     { key: "all" as const, label: t("history.filterAll") },
   ] as const
 
-  const historyQuery = useQuery({
-    queryKey: ["assistant-procedures-history", dateFilter, searchTerm],
-    queryFn: () => fetchAssistantProcedureHistory(dateFilter, searchTerm),
-    staleTime: 30_000,
-  })
+  const historyQuery = useAssistantProcedureHistory(dateFilter, searchTerm)
 
   const filteredOperations = historyQuery.data ?? []
 

@@ -26,7 +26,7 @@ export async function registerBrowserPush() {
 
   if (Notification.permission === "denied") return false
 
-  let permission = Notification.permission
+  let permission: NotificationPermission = Notification.permission
   if (permission === "default") {
     permission = await Notification.requestPermission()
   }

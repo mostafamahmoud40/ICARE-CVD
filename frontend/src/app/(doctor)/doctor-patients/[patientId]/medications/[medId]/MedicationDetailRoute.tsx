@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useQuery } from "@tanstack/react-query"
 import { ChevronLeftIcon, PillIcon } from "lucide-react"
+import { useDoctorMedicationAdherence } from "./useDoctorMedicationAdherence"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DoctorPatientRecordShell } from "../../../DoctorPatientRecordShell"
-import { fetchDoctorMedicationAdherenceRecord } from "../../../doctorPatientClinical.api"
 import type { MedicationRecord } from "../../../doctorPatients.types"
 
 function fmtDate(iso: string | null | undefined) {
@@ -34,11 +33,7 @@ function MedicationDetailContent({
   patientId: string
   medication: MedicationRecord
 }) {
-  const adherenceQuery = useQuery({
-    queryKey: ["doctor-medication-adherence", medication.id],
-    queryFn: () => fetchDoctorMedicationAdherenceRecord(medication.id),
-    staleTime: 60_000,
-  })
+  const adherenceQuery = useDoctorMedicationAdherence(medication.id)
 
   const takenLogs =
     adherenceQuery.data?.doseLogs.filter((log) => !log.skipped).length ?? 0

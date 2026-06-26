@@ -39,10 +39,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-const ML_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_ML_SERVICE_URL ?? "http://localhost:8000")
-    : "http://localhost:8000"
+import { getMlServiceUrl } from "@/lib/ml"
 
 const ACCEPTED = ".jpg,.jpeg,.png,.bmp,.tiff,.tif"
 
@@ -393,7 +390,7 @@ function ErrorPanel({ message, onRetry }: { message: string; onRetry: () => void
           <p className="mt-1 text-[11px] text-rose-700">{message}</p>
           <p className="mt-2 text-[10px] text-rose-600/90">
             Ensure the ML service is running at{" "}
-            <span className="font-mono font-medium">{ML_URL}</span>
+            <span className="font-mono font-medium">{getMlServiceUrl()}</span>
           </p>
         </div>
         <Button

@@ -658,7 +658,7 @@ export function mapApiReportToVisitSummary(
     },
     recordStatus: api.recordStatus,
     vitals: mapPatientVitals(api),
-    doctorNotes: "",
+    doctorNotes: buildDoctorNotes(api),
     diagnosis: {
       tags: mapDiagnosisTags(api),
       description: buildDiagnosisDescription(api),

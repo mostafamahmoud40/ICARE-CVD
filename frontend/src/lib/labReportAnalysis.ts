@@ -1,5 +1,6 @@
 import type {
   LabAnalysisBundle,
+  LabResultStatus,
   MedicalAnalyzerRawBundle,
 } from "@/app/(doctor)/doctor-queue/[queueEntryId]/consultation/labMaterials.types"
 
@@ -22,7 +23,7 @@ function mapRawBundle(raw: MedicalAnalyzerRawBundle): LabAnalysisBundle {
       value: r.value ?? "",
       unit: r.unit ?? "",
       referenceRange: r.reference_range ?? "",
-      status: r.status ?? "Normal",
+      status: (r.status ?? "Normal") as LabResultStatus,
     })),
     summary: raw.summary ?? "",
   }

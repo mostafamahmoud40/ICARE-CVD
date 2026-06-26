@@ -262,7 +262,6 @@ const appointmentsFilterSelectItemClassName =
 export function MyAppointments({
   appointments,
   upcoming,
-  past,
   onCancelAppointment,
   className,
 }: MyAppointmentsProps) {

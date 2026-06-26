@@ -14,14 +14,9 @@ import {
   ThermometerIcon,
   WindIcon,
   HomeIcon,
-  XIcon,
   CalendarIcon,
   ClockIcon,
-  CheckCircle2Icon,
-  AlertTriangleIcon,
-  ChevronRightIcon,
   LayoutGridIcon,
-  TrendingUpIcon,
 } from "lucide-react"
 import {
   Breadcrumb,
@@ -443,7 +438,7 @@ export function VitalsPage({ patient, vitalReadings: initialReadings }: VitalsPa
                 <div className="rounded-xl border border-dashed border-[#E8E6E0] bg-[#FFFCFA] p-4">
                   <div className="flex gap-2.5 text-[14px] leading-relaxed text-[#6B7870]">
                     <span className="mt-0.5 shrink-0 text-[13px] font-bold text-[#102F27]">Clinical notes:</span>
-                    <p className="italic">"{latest.notes}"</p>
+                    <p className="italic">&ldquo;{latest.notes}&rdquo;</p>
                   </div>
                 </div>
               )}

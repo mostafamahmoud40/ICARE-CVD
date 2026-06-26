@@ -3,16 +3,10 @@
 import * as React from "react"
 import {
   ActivityIcon,
-  AlertCircleIcon,
-  AlertTriangleIcon,
-  ArrowRightIcon,
   CalendarIcon,
   CheckCircle2Icon,
   ChevronRightIcon,
-  ClipboardListIcon,
   DumbbellIcon,
-  FileTextIcon,
-  FlameIcon,
   HeartIcon,
   HistoryIcon,
   InfoIcon,
@@ -59,73 +53,6 @@ interface FamilyHistory {
   condition: string
   ageOfOnset?: string
 }
-
-const MOCK_CONDITIONS: Condition[] = [
-  {
-    id: "c1",
-    name: "Hypertension",
-    status: "chronic",
-    diagnosedDate: "Jan 12, 2020",
-    notes: "Managed with Lisinopril. Regular BP monitoring required.",
-    severity: "moderate",
-  },
-  {
-    id: "c2",
-    name: "Type 2 Diabetes Mellitus",
-    status: "active",
-    diagnosedDate: "Mar 05, 2022",
-    notes: "HbA1c currently 6.8%. Diet and Metformin regimen.",
-    severity: "high",
-  },
-  {
-    id: "c3",
-    name: "Hyperlipidemia",
-    status: "chronic",
-    diagnosedDate: "Nov 20, 2019",
-    notes: "Stable on Atorvastatin 40mg.",
-    severity: "low",
-  },
-]
-
-const MOCK_SURGERIES: Surgery[] = [
-  {
-    id: "s1",
-    procedure: "Coronary Artery Bypass Graft (CABG)",
-    date: "Aug 15, 2024",
-    hospital: "Mayo Clinic",
-    surgeon: "Dr. Robert Chen",
-    outcome: "Successful, following cardiac rehab",
-  },
-  {
-    id: "s2",
-    procedure: "Appendectomy",
-    date: "May 10, 2010",
-    hospital: "City General Hospital",
-    surgeon: "Dr. Sarah Lee",
-    outcome: "Routine, no complications",
-  },
-]
-
-const MOCK_ALLERGIES: Allergy[] = [
-  {
-    id: "a1",
-    allergen: "Penicillin",
-    reaction: "Urticaria and anaphylaxis risk",
-    severity: "severe",
-  },
-  {
-    id: "a2",
-    allergen: "Latex",
-    reaction: "Contact dermatitis",
-    severity: "mild",
-  },
-]
-
-const MOCK_FAMILY_HISTORY: FamilyHistory[] = [
-  { relation: "Father", condition: "Myocardial Infarction", ageOfOnset: "52" },
-  { relation: "Mother", condition: "Type 2 Diabetes", ageOfOnset: "60" },
-  { relation: "Brother", condition: "Hypertension", ageOfOnset: "45" },
-]
 
 export function MedicalHistory({
   conditions = [],

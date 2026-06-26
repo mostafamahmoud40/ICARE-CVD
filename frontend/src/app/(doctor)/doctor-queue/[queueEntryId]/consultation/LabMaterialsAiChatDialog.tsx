@@ -21,8 +21,7 @@ import {
   SparklesIcon,
 } from "lucide-react"
 
-/** Internal Next.js proxy route — the Flask service is never exposed to the browser. */
-const CHAT_ROUTE = "/api/medical-analyzer/chat"
+import { medicalAnalyzerMlAdapter } from "@/lib/ml"
 
 const LAB_SUGGESTIONS = [
   "Summarize abnormal values",
@@ -132,22 +131,13 @@ export function LabMaterialsAiChatDialog({
     abortRef.current = ctrl
 
     try {
-      const res = await fetch(CHAT_ROUTE, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: ctrl.signal,
-        body: JSON.stringify({
+      const data = (await medicalAnalyzerMlAdapter.chat(
+        {
           history: [...toApiHistory(messages), { role: "user", content: trimmed }],
           context: analysis ?? {},
-        }),
-      })
-
-      if (!res.ok) {
-        const body = await res.text().catch(() => `HTTP ${res.status}`)
-        throw new Error(body || `HTTP ${res.status}`)
-      }
-
-      const data = await res.json() as { success: boolean; reply?: string; error?: string }
+        },
+        { signal: ctrl.signal },
+      )) as { success: boolean; reply?: string; error?: string }
       if (!data.success) throw new Error(data.error ?? "Request failed")
 
       setMessages((m) => [

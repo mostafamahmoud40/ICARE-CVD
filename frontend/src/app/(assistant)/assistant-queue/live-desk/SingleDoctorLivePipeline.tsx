@@ -9,6 +9,7 @@ import {
   UsersIcon,
 } from "lucide-react"
 import type { DoctorLiveSnapshot } from "../assistantQueue.liveBoard"
+import type { QueuePatient } from "../assistantQueue.types"
 import { formatShortTime } from "../assistantQueue.liveBoard"
 import { PipelineRow } from "./PipelineRow"
 import { PipelineSectionHeader } from "./PipelineSectionHeader"
@@ -71,7 +72,7 @@ export function SingleDoctorLivePipeline({
             <div className="flex-1 flex flex-col divide-y divide-[#E8E6E0]/40">
               {displaySnapshot.inConsultation.length > 0 ? (
                 <>
-                  {displaySnapshot.inConsultation.map((p: any) => (
+                  {displaySnapshot.inConsultation.map((p: QueuePatient) => (
                     <PipelineRow
                       key={p.queueEntryId}
                       patient={p}
@@ -136,13 +137,13 @@ export function SingleDoctorLivePipeline({
                 icon={UsersIcon}
                 iconClass="text-amber-600"
                 title="Waiting queue"
-                count={displaySnapshot.waitingOrdered.filter((p: any) => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length}
+                count={displaySnapshot.waitingOrdered.filter((p: QueuePatient) => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length}
               />
             </div>
             <div className="flex-1 flex flex-col divide-y divide-[#E8E6E0]/40">
-              {displaySnapshot.waitingOrdered.filter((p: any) => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length > 0 ? (
+              {displaySnapshot.waitingOrdered.filter((p: QueuePatient) => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length > 0 ? (
                 <>
-                  {displaySnapshot.waitingOrdered.map((p: any) => {
+                  {displaySnapshot.waitingOrdered.map((p: QueuePatient) => {
                     const turn = waitingTurnByQueueId.get(p.queueEntryId) ?? 0
                     if (displaySnapshot.nextPatient?.queueEntryId === p.queueEntryId) return null
                     return (
@@ -176,13 +177,13 @@ export function SingleDoctorLivePipeline({
                 icon={LogInIcon}
                 iconClass="text-blue-600"
                 title="Just arrived"
-                count={displaySnapshot.arrivedOrdered.filter((p: any) => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length}
+                count={displaySnapshot.arrivedOrdered.filter((p: QueuePatient) => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length}
               />
             </div>
             <div className="flex-1 flex flex-col divide-y divide-[#E8E6E0]/40">
-              {displaySnapshot.arrivedOrdered.filter((p: any) => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length > 0 ? (
+              {displaySnapshot.arrivedOrdered.filter((p: QueuePatient) => p.queueEntryId !== displaySnapshot.nextPatient?.queueEntryId).length > 0 ? (
                 <>
-                  {displaySnapshot.arrivedOrdered.map((p: any) => {
+                  {displaySnapshot.arrivedOrdered.map((p: QueuePatient) => {
                     if (displaySnapshot.nextPatient?.queueEntryId === p.queueEntryId) return null
                     return (
                       <PipelineRow
@@ -217,7 +218,7 @@ export function SingleDoctorLivePipeline({
             <div className="flex-1 flex flex-col divide-y divide-[#E8E6E0]/40">
               {displaySnapshot.scheduledOrdered.length > 0 ? (
                 <>
-                  {displaySnapshot.scheduledOrdered.map((p: any) => (
+                  {displaySnapshot.scheduledOrdered.map((p: QueuePatient) => (
                     <PipelineRow
                       key={p.queueEntryId}
                       patient={p}

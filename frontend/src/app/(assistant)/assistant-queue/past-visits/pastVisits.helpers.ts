@@ -126,6 +126,7 @@ export const STATUS_SECTION_META: Record<
   { title: string; className: string }
 > = {
   completed: { title: "Completed", className: "text-[#1A5345]" },
+  "report-pending": { title: "Report pending", className: "text-indigo-600" },
   "no-show": { title: "No show", className: "text-red-600" },
   cancelled: { title: "Cancelled", className: "text-[#6B7870]" },
 }

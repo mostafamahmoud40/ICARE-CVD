@@ -1,5 +1,4 @@
 import { useMemo } from "react"
-import { useLocale } from "next-intl"
 
 import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import {

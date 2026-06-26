@@ -2,10 +2,9 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useQuery } from "@tanstack/react-query"
 import { useAssistantQueue } from "../assistant-queue/useAssistantQueue"
 import { useAssistantAppointments } from "../assistant-appointments/useAssistantAppointments"
-import { fetchAssistantProcedureOrders } from "../assistant-procedures/assistantProcedures.api"
+import { useAssistantDashboardProcedures } from "./useAssistantDashboardProcedures"
 import type { AssistantDashboardData } from "./assistantDashboard.types"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -19,18 +18,12 @@ import {
   CheckCircleIcon,
   ClockIcon,
   UsersIcon,
-  StethoscopeIcon,
-  PlusIcon,
   UserPlusIcon,
-  CheckIcon,
-  VideoIcon,
-  Building2Icon,
   MessageCircleIcon,
   ClipboardListIcon,
   AlertTriangleIcon,
-  HelpCircleIcon,
   UserCheckIcon,
-  SlidersHorizontalIcon
+  SlidersHorizontalIcon,
 } from "lucide-react"
 
 export type AssistantDashboardProps = {
@@ -67,14 +60,10 @@ function formatTimeOnly(iso: string) {
   }).format(date)
 }
 
-export function AssistantDashboard({ data, isLoading, isError, error }: AssistantDashboardProps) {
+export function AssistantDashboard({ isLoading, isError, error }: AssistantDashboardProps) {
   const queue = useAssistantQueue()
   const appointments = useAssistantAppointments()
-  const proceduresQuery = useQuery({
-    queryKey: ["assistant-procedures-orders-dashboard"],
-    queryFn: fetchAssistantProcedureOrders,
-    staleTime: 60_000,
-  })
+  const proceduresQuery = useAssistantDashboardProcedures()
 
   const patientsInClinic =
     (queue.stats.arrived ?? 0) + (queue.stats.inWaiting ?? 0) + (queue.stats.inConsultation ?? 0)
@@ -195,8 +184,6 @@ export function AssistantDashboard({ data, isLoading, isError, error }: Assistan
     )
   }
 
-  const assistantName = data?.assistant.fullName || "Assistant"
-
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
       
@@ -223,7 +210,7 @@ export function AssistantDashboard({ data, isLoading, isError, error }: Assistan
           <div className="mt-2 flex flex-col gap-3 sm:mt-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
             <div className="min-w-0 space-y-1">
               <h1 className="font-serif text-[24px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[26px] lg:text-[28px] flex items-center gap-2">
-                Today's Command Center
+                Today&apos;s Command Center
               </h1>
               <p className="text-[13px] font-medium text-[#6B7870] sm:text-[14px]">
                 Real-time clinic operations, scheduling, and triage management system
@@ -392,7 +379,7 @@ export function AssistantDashboard({ data, isLoading, isError, error }: Assistan
                 <div className="flex items-center gap-2">
                   <span className="size-2 rounded-full bg-[#1A5345]" />
                   <h2 className="font-serif text-[18px] font-bold text-[#1A1F1E]">
-                    Today's Schedule
+                    Today&apos;s Schedule
                   </h2>
                 </div>
                 <span className="rounded-lg bg-[#1A5345] px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm">

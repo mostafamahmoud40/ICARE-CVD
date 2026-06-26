@@ -22,8 +22,6 @@ import {
   PillIcon,
   PlayCircleIcon,
   Settings2Icon,
-  ShieldCheckIcon,
-  SlidersHorizontalIcon,
   SparklesIcon,
   StethoscopeIcon,
   User2Icon,

@@ -16,11 +16,7 @@ import {
   type XrayMlResult,
   type XrayRiskLevel,
 } from "./consultationXray.api"
-
-const ML_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_ML_SERVICE_URL ?? "http://localhost:8000")
-    : "http://localhost:8000"
+import { medicalAnalyzerMlAdapter } from "@/lib/ml"
 
 export type XrayAnalysisStatus = "idle" | "processing" | "done" | "error"
 
@@ -170,20 +166,15 @@ export function useConsultationXrayAnalysis(
     setErrorMsg("")
 
     try {
-      const formData = new FormData()
-      formData.append("file", xrayFile)
-
-      const res = await fetch(`${ML_URL}/api/v1/xray/analyze`, {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => `HTTP ${res.status}`)
-        throw new Error(text || `HTTP ${res.status}`)
+      const json = (await medicalAnalyzerMlAdapter.analyzeXray(xrayFile)) as {
+        findings: XrayMlResult["findings"]
+        risk_level: XrayMlResult["riskLevel"]
+        interpretation: string[]
+        original_b64: string
+        annotated_b64: string
+        total_detections: number
+        inference_time_ms: number
       }
-
-      const json = await res.json()
       const ml: XrayMlResult = {
         findings: json.findings,
         riskLevel: json.risk_level,

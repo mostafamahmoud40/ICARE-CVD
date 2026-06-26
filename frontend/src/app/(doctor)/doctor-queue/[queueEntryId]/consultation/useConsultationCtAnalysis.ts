@@ -17,11 +17,7 @@ import {
   uploadCtFileToStorage,
   type ApiCtAnalysis,
 } from "./consultationCt.api"
-
-const ML_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_ML_SERVICE_URL ?? "http://localhost:8000")
-    : "http://localhost:8000"
+import { medicalAnalyzerMlAdapter } from "@/lib/ml"
 
 export type AnalysisStatus = "idle" | "processing" | "done" | "error"
 
@@ -126,7 +122,7 @@ export function useConsultationCtAnalysis(
       throw new Error("delete failed")
     }
     setSavedStudy(null)
-  }, [consultationId, patientId, queryClient, savedStudy?.id])
+  }, [consultationId, patientId, queryClient, savedStudy])
 
   const handleFileSelected = useCallback(
     (file: File) => {
@@ -239,20 +235,10 @@ export function useConsultationCtAnalysis(
     setStatus("processing")
 
     try {
-      const formData = new FormData()
-      formData.append("file", ctFile)
-
-      const res = await fetch(`${ML_URL}/api/v1/ct/segment`, {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => `HTTP ${res.status}`)
-        throw new Error(text || `HTTP ${res.status}`)
-      }
-
-      const json = await res.json()
+      const json = (await medicalAnalyzerMlAdapter.segmentCt(ctFile)) as Record<
+        string,
+        unknown
+      >
       const ml = mlJsonToCtResult(json)
 
       const liveResult: SegmentationResult = {

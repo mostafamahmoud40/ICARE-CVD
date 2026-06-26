@@ -226,7 +226,7 @@ export function useConsultationEchoAnalysis(
     patientId,
     queryClient,
     reportMutation,
-    savedEcho?.id,
+    savedEcho,
   ])
 
   return {

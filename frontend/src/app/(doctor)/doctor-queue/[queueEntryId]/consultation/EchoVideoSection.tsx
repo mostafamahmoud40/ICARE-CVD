@@ -6,7 +6,6 @@ import {
   ActivityIcon,
   CheckCircle2Icon,
   FilmIcon,
-  HeartPulseIcon,
   Loader2Icon,
   MessageCircleIcon,
   SendIcon,

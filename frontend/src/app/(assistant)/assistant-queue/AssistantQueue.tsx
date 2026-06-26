@@ -57,15 +57,11 @@ export type AssistantQueueProps = {
 export function AssistantQueue({
   patients,
   stats,
-  filter: _filter,
-  setFilter: _setFilter,
   searchTerm,
   setSearchTerm,
-  tabCounts: _tabCounts,
   selectedPatient,
   selectPatient,
   clearSelection,
-  inClinicPatients: _inClinicPatients,
   doctorLiveSnapshots,
   waitingTurnByQueueId,
   liveBoardLoading,
@@ -190,11 +186,10 @@ export function AssistantQueue({
           <div className="min-h-0 flex-1 overflow-y-auto p-2">
             {patients.length > 0 ? (
               <div className="space-y-2">
-                {patients.map((p, idx) => (
+                {patients.map((p) => (
                   <QueueRow
                     key={p.queueEntryId}
                     patient={p}
-                    position={idx}
                     waitingTurn={
                       p.status === "waiting"
                         ? (waitingTurnByQueueId.get(p.queueEntryId) ?? null)

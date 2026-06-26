@@ -7,7 +7,6 @@ import type {
   FamilyHistoryItem,
   HomeMeasurement,
   PhysicalExamFindings,
-  PrescriptionEntry,
   ProcedureDetails,
   ReferralEntry,
   TestOrder,

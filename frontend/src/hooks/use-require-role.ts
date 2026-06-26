@@ -4,6 +4,7 @@ import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import axios from "axios";
 import { apiClient } from "@/lib/api-client";
 import {
   clearAuthTokens,
@@ -42,8 +43,8 @@ export function useRequireRole(role: Role) {
         }
         setAuthTokens({ accessToken: token, user: res.data });
       })
-      .catch((error: any) => {
-        if (error.response?.status === 401) {
+      .catch((error: unknown) => {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
           toast.error("Session expired. Please log in again.");
         } else {
           toast.error("Authentication failed. Please log in again.");

@@ -85,7 +85,9 @@ export function computeAvailableSlotsForDay(params: {
     params.doctorArrivalTime ? timeToMinutes(params.doctorArrivalTime) : null
 
   for (const period of effectiveDay.periods) {
-    if (paused.has(period.id)) continue
+    const periodId =
+      "id" in period && typeof period.id === "string" ? period.id : undefined
+    if (periodId && paused.has(periodId)) continue
 
     const [p0, p1] = blockMinutes(period)
 

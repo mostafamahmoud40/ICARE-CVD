@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { useQuery } from "@tanstack/react-query"
 import { cn } from "@/lib/utils"
 import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import {
@@ -11,28 +10,20 @@ import {
   CheckCircle2Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  ClipboardPlusIcon,
   ClockIcon,
-  FileIcon,
-  FileTextIcon,
   HistoryIcon,
   LayoutGridIcon,
   ListIcon,
   Loader2Icon,
   MapPinIcon,
-  SearchIcon,
-  UserIcon,
-  XIcon,
 } from "lucide-react"
-import { Input } from "@/components/ui/input"
 import { AssistantProceduresOperations } from "./AssistantProceduresOperations"
 import { AssistantProceduresHistory } from "./AssistantProceduresHistory"
 import type { ProcedureConsentSavePayload } from "./ProcedureConsentDialog"
 import type { ScheduledOperation } from "./assistantProceduresHistory.mock"
-import { fetchAssistantProcedureSchedule } from "./assistantProcedures.api"
+import { useAssistantProcedureSchedule } from "./useAssistantProcedureSchedule"
 import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import type {
   ProcedureFilter,
   ProcedureOrder,
@@ -133,11 +124,7 @@ function ScheduleView() {
   const [viewMode, setViewMode] = useState<"list" | "timeline">("list")
   const dateKey = formatDateKey(selectedDate)
 
-  const scheduleQuery = useQuery({
-    queryKey: ["assistant-procedures-schedule", dateKey],
-    queryFn: () => fetchAssistantProcedureSchedule(dateKey),
-    staleTime: 30_000,
-  })
+  const scheduleQuery = useAssistantProcedureSchedule(dateKey)
 
   const scheduledOperations = scheduleQuery.data ?? []
 

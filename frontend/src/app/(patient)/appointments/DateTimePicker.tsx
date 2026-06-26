@@ -5,8 +5,6 @@ import type { DayOption, TimeSlot } from "./appointments.types"
 import { cn } from "@/lib/utils"
 import { StepHeading, appointmentsBookingCardClassName } from "./shared"
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
   CheckIcon,
   InfoIcon,
   CalendarIcon,
