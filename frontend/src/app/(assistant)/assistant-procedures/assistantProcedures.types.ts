@@ -60,3 +60,26 @@ export type ProcedureStats = {
   inProgress: number
   completed: number
 }
+
+export type ScheduledOperation = {
+  id: string
+  time?: string
+  startTime: string
+  endTime: string
+  endTimeActual?: string
+  endTimeExpected?: string
+  patientName: string
+  patientId: string
+  patientAvatarUrl?: string | null
+  age: number
+  gender: "M" | "F"
+  procedureName: string
+  riskScore: string
+  location: string
+  riskTags: string[]
+  duration: string
+  status: "completed" | "pending" | "in-progress"
+  priority: ProcedurePriority
+  teamStatus: string
+  notes?: string
+}

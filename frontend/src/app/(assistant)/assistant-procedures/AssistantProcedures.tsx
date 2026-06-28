@@ -20,7 +20,7 @@ import {
 import { AssistantProceduresOperations } from "./AssistantProceduresOperations"
 import { AssistantProceduresHistory } from "./AssistantProceduresHistory"
 import type { ProcedureConsentSavePayload } from "./ProcedureConsentDialog"
-import type { ScheduledOperation } from "./assistantProceduresHistory.mock"
+import type { ScheduledOperation } from "./assistantProcedures.types"
 import { useAssistantProcedureSchedule } from "./useAssistantProcedureSchedule"
 import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import { Button } from "@/components/ui/button"

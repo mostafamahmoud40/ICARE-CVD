@@ -1,5 +1,4 @@
-import type { ConsultationData, PatientSummary } from "./consultation.types"
-import { createConsultationDataFromPatient } from "./consultation.template"
+import type { PatientSummary } from "./consultation.types"
 
 /** Demo patient summary for AI briefing mock content only. */
 export const mockBriefingPatientSummary: PatientSummary = {
@@ -46,47 +45,4 @@ export const mockBriefingPatientSummary: PatientSummary = {
     { id: "ec2", name: "Type 2 Diabetes Mellitus", details: "HbA1c 7.2%", diagnosedAt: "2020-02-20" },
     { id: "ec3", name: "Dyslipidemia", details: "LDL 160 mg/dL", diagnosedAt: "2019-06-10" },
   ],
-}
-
-export { mockAiSuggestions } from "./consultation.ai.mock"
-
-/** Full mock consultation used by AI briefing demo only. */
-export const mockConsultationData: ConsultationData = {
-  ...createConsultationDataFromPatient("p-001", mockBriefingPatientSummary),
-  medicalHistory: {
-    noCardiacHistory: false,
-    cardiacAnswers: {
-      pastHypertension: "Yes",
-      pastMI: "No",
-      pastHeartFailure: "No",
-      pastArrhythmias: "Not sure",
-    },
-    cardiacNotes: "",
-    cardiacReviewed: false,
-    noNonCardiacHistory: false,
-    nonCardiacAnswers: {
-      pastCKD: "No",
-      pastLungDisease: "No",
-    },
-    nonCardiacNotes: "",
-    nonCardiacReviewed: false,
-    noKnownAllergies: false,
-    noChronicConditions: false,
-  },
-  lastVitalReading: {
-    id: "vr-latest",
-    date: "2026-06-12",
-    time: "07:45",
-    source: "home",
-    systolicBP: 142,
-    diastolicBP: 88,
-    heartRate: 74,
-    oxygenSaturation: 98,
-    temperature: 36.6,
-    respiratoryRate: 16,
-    weight: 87,
-    heightCm: 172,
-    bloodSugar: 128,
-    notes: "Morning reading before breakfast",
-  },
 }

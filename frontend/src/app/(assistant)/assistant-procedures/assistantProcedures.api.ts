@@ -1,6 +1,6 @@
 import { apiClient } from "@/lib/api-client"
 import type { ProcedureOrder, ProcedureStats } from "./assistantProcedures.types"
-import type { ScheduledOperation } from "./assistantProceduresHistory.mock"
+import type { ScheduledOperation } from "./assistantProcedures.types"
 
 export async function fetchAssistantProcedureOrders(): Promise<ProcedureOrder[]> {
   const { data } = await apiClient.get<ProcedureOrder[]>("/assistant/procedures")

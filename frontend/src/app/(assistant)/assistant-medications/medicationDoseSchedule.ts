@@ -323,13 +323,3 @@ export function buildMedicationAdherenceTimeline(input: {
 export function buildDoseTimesFromFrequency(frequencyLabel: string): DoseTimeSlot[] {
   return buildDoseSchedule({ frequency: frequencyLabel });
 }
-
-/** @deprecated Mock-only helper; do not use with live data. */
-export function mockDoseStatus(dayIndex: number, doseIndex: number, frequencyLabel: string) {
-  const seed = dayIndex * 17 + doseIndex * 31;
-  const freq = frequencyLabel.trim().toUpperCase();
-  if (freq.includes("Q3H")) {
-    return seed % 5 !== 0 ? "taken" : "missed";
-  }
-  return seed % 7 !== 0 ? "taken" : "missed";
-}

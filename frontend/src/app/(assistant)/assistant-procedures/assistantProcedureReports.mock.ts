@@ -1,5 +1,5 @@
 import type { ProcedureOrder } from "./assistantProcedures.types"
-import type { ScheduledOperation } from "./assistantProceduresHistory.mock"
+import type { ScheduledOperation } from "./assistantProcedures.types"
 
 export type ProcedureTeamMember = {
   roleKey:
