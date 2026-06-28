@@ -37,6 +37,7 @@ const PATCHES = [
     "linked_at" timestamp with time zone DEFAULT now() NOT NULL
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "doctor_assistant_unique" ON "doctor_assistant" ("doctor_id", "assistant_id")`,
+  `ALTER TABLE "doctor_assistant" ADD COLUMN IF NOT EXISTS "weekly_shifts" jsonb DEFAULT '[]'::jsonb NOT NULL`,
   `ALTER TABLE "doctor" ADD COLUMN IF NOT EXISTS "title" varchar(120)`,
   `ALTER TABLE "doctor" ADD COLUMN IF NOT EXISTS "about" text`,
   `ALTER TABLE "doctor" ADD COLUMN IF NOT EXISTS "clinic_name" varchar(200)`,

@@ -1,12 +1,8 @@
 import { z } from "zod"
 
-export const createDoctorAssistantSchema = z.object({
+const doctorAssistantBaseSchema = z.object({
   fullName: z.string().trim().min(3, "Full name must be at least 3 characters."),
   email: z.string().trim().email("Enter a valid email address."),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters.")
-    .max(128, "Password must be at most 128 characters."),
   phoneNumber: z
     .string()
     .trim()
@@ -17,14 +13,9 @@ export const createDoctorAssistantSchema = z.object({
     .int()
     .min(0, "Experience must be at least 0 years.")
     .max(60, "Experience must be at most 60 years."),
-  avatarUrl: z.string().min(1, "Please select an avatar."),
+  avatarUrl: z.string().trim(),
 })
 
-export const updateDoctorAssistantSchema = createDoctorAssistantSchema.extend({
-  password: z
-    .string()
-    .max(128, "Password must be at most 128 characters.")
-    .refine((value) => value === "" || value.length >= 8, {
-      message: "Password must be at least 8 characters.",
-    }),
-})
+export const createDoctorAssistantSchema = doctorAssistantBaseSchema
+
+export const updateDoctorAssistantSchema = doctorAssistantBaseSchema

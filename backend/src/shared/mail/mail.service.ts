@@ -244,6 +244,69 @@ export class MailService {
     });
   }
 
+  async sendAssistantAccountCreatedEmail(
+    to: string,
+    fullName: string,
+    email: string,
+    temporaryPassword: string,
+  ): Promise<void> {
+    const loginUrl = this.resolveFrontendLoginUrl();
+    const safeName = this.escapeHtml(fullName);
+    const safeEmail = this.escapeHtml(email);
+    const safePassword = this.escapeHtml(temporaryPassword);
+    const safeLoginUrl = this.escapeHtml(loginUrl);
+
+    await this.send({
+      to,
+      subject: 'Your ICARE CVD assistant account has been created',
+      text: [
+        `Hello ${fullName},`,
+        '',
+        'A clinic assistant account has been created for you on ICARE CVD.',
+        '',
+        `Email: ${email}`,
+        `Temporary password: ${temporaryPassword}`,
+        '',
+        `Sign in: ${loginUrl}`,
+        '',
+        'Please change your password after your first login.',
+      ].join('\n'),
+      html: `
+        <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1A1F1E">
+          <div style="background:#1A5345;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0">
+            <h1 style="margin:0;font-size:22px;font-weight:700">ICARE CVD</h1>
+            <p style="margin:8px 0 0;font-size:14px;opacity:0.9">Your assistant account is ready</p>
+          </div>
+          <div style="background:#F9F8F5;padding:24px;border:1px solid #E8E6E0;border-top:none;border-radius:0 0 12px 12px">
+            <p style="margin:0 0 16px;font-size:15px">Hello <strong>${safeName}</strong>,</p>
+            <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#374151">
+              Your doctor has added you to their clinic team. Use the credentials below to sign in.
+            </p>
+            <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #E8E6E0;border-radius:10px;overflow:hidden">
+              <tr>
+                <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#6B7870;border-bottom:1px solid #E8E6E0">Email</td>
+                <td style="padding:12px 16px;font-size:14px;font-weight:600;color:#1A1F1E;border-bottom:1px solid #E8E6E0">${safeEmail}</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#6B7870">Temporary password</td>
+                <td style="padding:12px 16px;font-size:14px;font-family:monospace;font-weight:700;color:#1A5345;letter-spacing:0.5px">${safePassword}</td>
+              </tr>
+            </table>
+            <p style="margin:20px 0">
+              <a href="${safeLoginUrl}" style="display:inline-block;padding:12px 24px;background:#1A5345;color:#fff;border-radius:999px;text-decoration:none;font-size:14px;font-weight:700">
+                Sign in to ICARE CVD
+              </a>
+            </p>
+            <p style="margin:0;font-size:12px;line-height:1.6;color:#6B7870">
+              For your security, please change this password after your first login.
+              If you did not expect this email, contact your clinic.
+            </p>
+          </div>
+        </div>
+      `,
+    });
+  }
+
   private resolveFrontendLoginUrl(): string {
     const explicit = process.env.FRONTEND_URL?.trim();
     if (explicit) {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { isAxiosError } from "axios"
 import type { ZodIssue } from "zod"
@@ -13,15 +13,16 @@ import {
   updateDoctorAssistantSchema,
 } from "./doctorAssistants.schema"
 import type {
+  CreateDoctorAssistantResponse,
   DoctorAssistantFieldErrors,
   DoctorAssistantFormValues,
   DoctorAssistantMember,
 } from "./doctorAssistants.types"
+import { uploadDoctorAssistantAvatar } from "./doctorAssistants.upload"
 
 const defaultValues: DoctorAssistantFormValues = {
   fullName: "",
   email: "",
-  password: "",
   phoneNumber: "",
   department: "",
   experienceYears: "",
@@ -44,6 +45,18 @@ export function useDoctorAssistants() {
   const [fieldErrors, setFieldErrors] = useState<DoctorAssistantFieldErrors>({})
   const [editingMemberId, setEditingMemberId] = useState<number | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null)
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!pendingAvatarFile) {
+      setAvatarPreviewUrl(null)
+      return
+    }
+    const objectUrl = URL.createObjectURL(pendingAvatarFile)
+    setAvatarPreviewUrl(objectUrl)
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [pendingAvatarFile])
 
   const { data: assistants = [], isLoading } = useQuery({
     queryKey: ["doctor-assistants"],
@@ -59,33 +72,67 @@ export function useDoctorAssistants() {
     setValues(defaultValues)
     setFieldErrors({})
     setEditingMemberId(null)
+    setPendingAvatarFile(null)
   }
 
   const createMutation = useMutation({
-    mutationFn: async (formValues: DoctorAssistantFormValues) => {
+    mutationFn: async ({
+      formValues,
+      avatarFile,
+    }: {
+      formValues: DoctorAssistantFormValues
+      avatarFile: File | null
+    }) => {
+      const presetAvatarUrl = avatarFile
+        ? undefined
+        : formValues.avatarUrl.trim() || undefined
+
       const payload = {
         fullName: formValues.fullName,
         email: formValues.email,
-        password: formValues.password,
         phoneNumber: formValues.phoneNumber,
         department: formValues.department || undefined,
         experienceYears:
           formValues.experienceYears === "" ? 0 : formValues.experienceYears,
-        avatarUrl: formValues.avatarUrl,
+        avatarUrl: presetAvatarUrl,
       }
-      const { data } = await apiClient.post<DoctorAssistantMember>(
+      const { data } = await apiClient.post<CreateDoctorAssistantResponse>(
         "/doctor/assistants",
         payload,
       )
+
+      if (avatarFile) {
+        try {
+          await uploadDoctorAssistantAvatar(data.id, avatarFile)
+        } catch (err) {
+          throw new Error(
+            err instanceof Error
+              ? `Assistant added but profile photo could not be uploaded. ${err.message}`
+              : "Assistant added but profile photo could not be uploaded.",
+          )
+        }
+      }
+
       return data
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["doctor-assistants"] })
       resetForm()
       setDialogOpen(false)
-      toast.success("Assistant added", {
-        description: "The assistant can now sign in with their credentials.",
-      })
+      if (data.credentialsEmailSent) {
+        toast.success("Assistant added", {
+          description: "Login credentials were sent to their email address.",
+        })
+      } else {
+        toast.success("Assistant added", {
+          description: "The assistant account was created successfully.",
+        })
+        toast.error("Login email not sent", {
+          description:
+            data.credentialsEmailError ??
+            "Check BREVO_API_KEY and BREVO_FROM_EMAIL in backend/.env, then restart the API.",
+        })
+      }
     },
     onError: (error) => {
       const message =
@@ -98,8 +145,15 @@ export function useDoctorAssistants() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: async (formValues: DoctorAssistantFormValues) => {
-      if (!editingMemberId) return
+    mutationFn: async ({
+      formValues,
+      avatarFile,
+      memberId,
+    }: {
+      formValues: DoctorAssistantFormValues
+      avatarFile: File | null
+      memberId: number
+    }) => {
       const payload = {
         fullName: formValues.fullName,
         email: formValues.email,
@@ -107,12 +161,21 @@ export function useDoctorAssistants() {
         department: formValues.department || undefined,
         experienceYears:
           formValues.experienceYears === "" ? 0 : formValues.experienceYears,
-        avatarUrl: formValues.avatarUrl,
-        ...(formValues.password.trim()
-          ? { password: formValues.password }
-          : {}),
+        ...(avatarFile ? {} : { avatarUrl: formValues.avatarUrl.trim() || undefined }),
       }
-      await apiClient.patch(`/doctor/assistants/${editingMemberId}`, payload)
+      await apiClient.patch(`/doctor/assistants/${memberId}`, payload)
+
+      if (avatarFile) {
+        try {
+          await uploadDoctorAssistantAvatar(memberId, avatarFile)
+        } catch (err) {
+          throw new Error(
+            err instanceof Error
+              ? `Changes saved but profile photo could not be uploaded. ${err.message}`
+              : "Changes saved but profile photo could not be uploaded.",
+          )
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["doctor-assistants"] })
@@ -193,9 +256,13 @@ export function useDoctorAssistants() {
     }
 
     if (editingMemberId) {
-      updateMutation.mutate(values)
+      updateMutation.mutate({
+        formValues: values,
+        avatarFile: pendingAvatarFile,
+        memberId: editingMemberId,
+      })
     } else {
-      createMutation.mutate(values)
+      createMutation.mutate({ formValues: values, avatarFile: pendingAvatarFile })
     }
   }
 
@@ -216,13 +283,13 @@ export function useDoctorAssistants() {
     setValues({
       fullName: member.fullName,
       email: member.email,
-      password: "",
       phoneNumber: member.phone ?? "",
       department: member.department ?? "",
       experienceYears: member.experienceYears,
       avatarUrl: member.avatarUrl ?? "",
     })
     setFieldErrors({})
+    setPendingAvatarFile(null)
     setEditingMemberId(member.id)
     setDialogOpen(true)
   }
@@ -230,6 +297,24 @@ export function useDoctorAssistants() {
   const cancelEdit = () => {
     resetForm()
     setDialogOpen(false)
+  }
+
+  const onAvatarFileSelect = (file: File | null) => {
+    setPendingAvatarFile(file)
+    if (file) {
+      setValues((prev) => ({ ...prev, avatarUrl: "" }))
+      setFieldErrors((prev) => ({ ...prev, avatarUrl: undefined }))
+    }
+  }
+
+  const onAvatarPresetSelect = (url: string) => {
+    setPendingAvatarFile(null)
+    updateField("avatarUrl", url)
+  }
+
+  const onClearAvatar = () => {
+    setPendingAvatarFile(null)
+    updateField("avatarUrl", "")
   }
 
   const activeMutation = editingMemberId ? updateMutation : createMutation
@@ -244,6 +329,11 @@ export function useDoctorAssistants() {
     editingMemberId,
     dialogOpen,
     setDialogOpen,
+    pendingAvatarFile,
+    avatarPreviewUrl,
+    onAvatarFileSelect,
+    onAvatarPresetSelect,
+    onClearAvatar,
     updateField,
     submit,
     deleteMember,

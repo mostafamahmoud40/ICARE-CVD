@@ -1,7 +1,6 @@
 export type DoctorAssistantFormValues = {
   fullName: string
   email: string
-  password: string
   phoneNumber: string
   department: string
   experienceYears: number | ""
@@ -19,6 +18,11 @@ export type DoctorAssistantMember = {
   experienceYears: number
   linkedAt: string
   createdAt: string
+}
+
+export type CreateDoctorAssistantResponse = DoctorAssistantMember & {
+  credentialsEmailSent?: boolean
+  credentialsEmailError?: string | null
 }
 
 export type DoctorAssistantFieldErrors = Partial<

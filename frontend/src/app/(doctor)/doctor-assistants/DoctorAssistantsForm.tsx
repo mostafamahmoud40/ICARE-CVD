@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react"
-import { EyeIcon, EyeOffIcon, Loader2Icon } from "lucide-react"
+import { useRef } from "react"
+import { CameraIcon, Loader2Icon, UserRoundIcon } from "lucide-react"
+import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
+import { validatePatientAvatarFile } from "@/lib/uploads/avatar-validation"
 
 import type {
   DoctorAssistantFieldErrors,
@@ -14,11 +16,18 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 
+const AVATAR_OPTIONS = Array.from({ length: 6 }, (_, i) => `/avatars/avatar-${i + 1}.svg`)
+
 type DoctorAssistantsFormProps = {
   values: DoctorAssistantFormValues
   fieldErrors: DoctorAssistantFieldErrors
   isSubmitting: boolean
   editingMemberId: number | null
+  pendingAvatarFile: File | null
+  avatarPreviewUrl: string | null
+  onAvatarFileSelect: (file: File | null) => void
+  onAvatarPresetSelect: (url: string) => void
+  onClearAvatar: () => void
   updateField: <T extends keyof DoctorAssistantFormValues>(
     field: T,
     value: DoctorAssistantFormValues[T],
@@ -32,13 +41,32 @@ export function DoctorAssistantsForm({
   fieldErrors,
   isSubmitting,
   editingMemberId,
+  pendingAvatarFile,
+  avatarPreviewUrl,
+  onAvatarFileSelect,
+  onAvatarPresetSelect,
+  onClearAvatar,
   updateField,
   submit,
   onCancel,
 }: DoctorAssistantsFormProps) {
-  const [showPassword, setShowPassword] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const displayAvatarSrc = avatarPreviewUrl || values.avatarUrl || null
 
-  const avatars = Array.from({ length: 6 }, (_, i) => `/avatars/avatar-${i + 1}.svg`)
+  const handleAvatarFileChange = (files: FileList | null) => {
+    const file = files?.[0]
+    if (!file) return
+    try {
+      validatePatientAvatarFile(file)
+      onAvatarFileSelect(file)
+    } catch (err) {
+      onAvatarFileSelect(null)
+      toast.error("Invalid profile photo", {
+        description: err instanceof Error ? err.message : "Please try another image.",
+      })
+    }
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
 
   return (
     <form
@@ -50,29 +78,80 @@ export function DoctorAssistantsForm({
     >
       <div className="space-y-6 px-6 py-5">
         <div>
-          <h3 className="mb-3 text-[12px] font-bold uppercase tracking-wider text-[#6B7870]">
-            Avatar Profile
+          <h3 className="mb-2 text-[12px] font-bold uppercase tracking-wider text-[#6B7870]">
+            Avatar profile
           </h3>
-          <div className="mb-6 flex flex-wrap gap-4">
-            {avatars.map((avatar) => (
-              <button
-                key={avatar}
-                type="button"
-                onClick={() => updateField("avatarUrl", avatar)}
-                className={cn(
-                  "relative flex size-14 items-center justify-center rounded-full border-2 transition-all hover:scale-105",
-                  values.avatarUrl === avatar
-                    ? "border-[#1A5345] ring-2 ring-[#1A5345]/20 ring-offset-2"
-                    : "border-transparent bg-slate-50 hover:bg-slate-100",
+          <p className="mb-3 text-[12px] text-muted-foreground">
+            Choose a preset avatar or upload a photo (JPEG, PNG, WebP, or GIF, max 5 MB).
+          </p>
+
+          <div className="flex flex-col gap-4 rounded-xl border border-[#E8E6E0]/60 bg-[#FAFAF8] p-4 sm:flex-row sm:items-start">
+            <div className="flex shrink-0 flex-col items-center gap-2 sm:items-start">
+              <div className="relative size-20 overflow-hidden rounded-full border-2 border-[#E8E6E0] bg-white shadow-sm">
+                {displayAvatarSrc ? (
+                  <img src={displayAvatarSrc} alt="" className="size-full object-cover" />
+                ) : (
+                  <div className="flex size-full items-center justify-center bg-slate-50">
+                    <UserRoundIcon className="size-9 text-slate-300" aria-hidden />
+                  </div>
                 )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="sr-only"
+                onChange={(e) => handleAvatarFileChange(e.target.files)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-full border-[#E8E6E0] px-3 text-[12px] font-semibold text-[#1A5345] hover:bg-white"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isSubmitting}
               >
-                <img src={avatar} alt="Avatar option" className="size-full rounded-full object-cover" />
-              </button>
-            ))}
+                <CameraIcon className="mr-1.5 size-3.5" aria-hidden />
+                Upload photo
+              </Button>
+            </div>
+
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={onClearAvatar}
+                  className={cn(
+                    "flex size-12 items-center justify-center rounded-full border-2 bg-slate-50 transition-colors",
+                    !displayAvatarSrc
+                      ? "border-[#1A5345] ring-2 ring-[#1A5345]/20"
+                      : "border-[#E8E6E0] hover:border-[#1A5345]/40",
+                  )}
+                  aria-label="No profile photo"
+                >
+                  <UserRoundIcon className="size-5 text-slate-400" />
+                </button>
+                {AVATAR_OPTIONS.map((avatar) => (
+                  <button
+                    key={avatar}
+                    type="button"
+                    onClick={() => onAvatarPresetSelect(avatar)}
+                    className={cn(
+                      "size-12 overflow-hidden rounded-full border-2 transition-colors",
+                      values.avatarUrl === avatar && !pendingAvatarFile
+                        ? "border-[#1A5345] ring-2 ring-[#1A5345]/20"
+                        : "border-[#E8E6E0] hover:border-[#1A5345]/40",
+                    )}
+                  >
+                    <img src={avatar} alt="" className="size-full object-cover" />
+                  </button>
+                ))}
+              </div>
+              {fieldErrors.avatarUrl ? (
+                <p className="text-[11px] text-red-600">{fieldErrors.avatarUrl}</p>
+              ) : null}
+            </div>
           </div>
-          {fieldErrors.avatarUrl ? (
-            <p className="mt-1 text-[11px] text-red-600">{fieldErrors.avatarUrl}</p>
-          ) : null}
         </div>
 
         <Separator className="bg-[#E8E6E0]/60" />
@@ -117,7 +196,7 @@ export function DoctorAssistantsForm({
               ) : null}
             </Field>
 
-            <Field>
+            <Field className="sm:col-span-2">
               <FieldLabel htmlFor="assistant-phoneNumber" className="text-[12px] font-bold text-[#1A1F1E]">
                 Phone number
               </FieldLabel>
@@ -131,45 +210,6 @@ export function DoctorAssistantsForm({
               />
               {fieldErrors.phoneNumber ? (
                 <p className="text-[11px] text-red-600">{fieldErrors.phoneNumber}</p>
-              ) : null}
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="assistant-password" className="text-[12px] font-bold text-[#1A1F1E]">
-                Password
-              </FieldLabel>
-              <div className="relative">
-                <Input
-                  id="assistant-password"
-                  type={showPassword ? "text" : "password"}
-                  value={values.password}
-                  onChange={(e) => updateField("password", e.target.value)}
-                  placeholder={
-                    editingMemberId
-                      ? "Leave blank to keep current password"
-                      : "Min. 8 characters"
-                  }
-                  autoComplete="new-password"
-                  className="h-9 rounded-lg border-[#E8E6E0] bg-white pr-9 text-[13px] focus-visible:border-[#1A5345]/40 focus-visible:ring-[#1A5345]/20"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0.5 top-1/2 size-8 -translate-y-1/2 border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-[#1A5345]"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  onClick={() => setShowPassword((v) => !v)}
-                  disabled={isSubmitting}
-                >
-                  {showPassword ? (
-                    <EyeOffIcon className="size-3.5" aria-hidden />
-                  ) : (
-                    <EyeIcon className="size-3.5" aria-hidden />
-                  )}
-                </Button>
-              </div>
-              {fieldErrors.password ? (
-                <p className="text-[11px] text-red-600">{fieldErrors.password}</p>
               ) : null}
             </Field>
           </div>

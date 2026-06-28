@@ -1,6 +1,14 @@
-import { pgTable, timestamp, uuid, uniqueIndex } from 'drizzle-orm/pg-core';
+import { jsonb, pgTable, timestamp, uuid, uniqueIndex } from 'drizzle-orm/pg-core';
 import { assistant } from './assistant.schema';
 import { doctor } from './doctor.schema';
+
+export type AssistantWeeklyShiftDayRow = {
+  weekday: string;
+  status: 'active' | 'half-day' | 'holiday';
+  startTime: string | null;
+  endTime: string | null;
+  note?: string | null;
+};
 
 /** Links assistants to the doctors who manage them. */
 export const doctorAssistant = pgTable(
@@ -13,6 +21,10 @@ export const doctorAssistant = pgTable(
     assistantId: uuid('assistant_id')
       .references(() => assistant.id, { onDelete: 'cascade' })
       .notNull(),
+    weeklyShifts: jsonb('weekly_shifts')
+      .$type<AssistantWeeklyShiftDayRow[]>()
+      .notNull()
+      .default([]),
     linkedAt: timestamp('linked_at', { withTimezone: true })
       .defaultNow()
       .notNull(),

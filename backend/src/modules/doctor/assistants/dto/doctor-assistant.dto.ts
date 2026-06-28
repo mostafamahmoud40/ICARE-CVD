@@ -5,8 +5,6 @@ import {
   IsOptional,
   IsString,
   MaxLength,
-  MinLength,
-  ValidateIf,
 } from 'class-validator';
 
 export class CreateDoctorAssistantDto {
@@ -23,14 +21,9 @@ export class CreateDoctorAssistantDto {
   @MaxLength(30)
   phoneNumber!: string;
 
+  @IsOptional()
   @IsString()
-  @MinLength(8)
-  @MaxLength(128)
-  password!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  avatarUrl!: string;
+  avatarUrl?: string;
 
   @IsOptional()
   @IsString()
@@ -55,13 +48,6 @@ export class UpdateDoctorAssistantDto {
   @IsNotEmpty()
   @MaxLength(30)
   phoneNumber!: string;
-
-  @IsOptional()
-  @ValidateIf((_, value) => value !== undefined && value !== '')
-  @IsString()
-  @MinLength(8)
-  @MaxLength(128)
-  password?: string;
 
   @IsOptional()
   @IsString()
