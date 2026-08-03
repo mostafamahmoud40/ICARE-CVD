@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { EyeIcon, EyeOffIcon, Loader2Icon } from "lucide-react"
+import { Loader2Icon } from "lucide-react"
 
 import type {
   AddStaffFieldErrors,
@@ -46,7 +45,6 @@ export function AddStaffForm({
   submit,
   onCancel,
 }: AddStaffFormProps) {
-  const [showPassword, setShowPassword] = useState(false)
   const isDoctorRole = values.role === "doctor"
 
   const avatars = Array.from({ length: 6 }, (_, i) => `/avatars/avatar-${i + 1}.svg`)
@@ -128,7 +126,7 @@ export function AddStaffForm({
               ) : null}
             </Field>
 
-            <Field>
+            <Field className="sm:col-span-2">
               <FieldLabel htmlFor="phoneNumber" className="text-[12px] font-bold text-[#1A1F1E]">
                 Phone number
               </FieldLabel>
@@ -142,41 +140,6 @@ export function AddStaffForm({
               />
               {fieldErrors.phoneNumber ? (
                 <p className="text-[11px] text-red-600">{fieldErrors.phoneNumber}</p>
-              ) : null}
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="password" className="text-[12px] font-bold text-[#1A1F1E]">
-                Password
-              </FieldLabel>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={values.password}
-                  onChange={(e) => updateField("password", e.target.value)}
-                  placeholder={editingMemberId ? "New password (min. 8 chars)" : "Min. 8 characters"}
-                  autoComplete="new-password"
-                  className="h-9 rounded-lg border-[#E8E6E0] bg-white pr-9 text-[13px] focus-visible:border-[#1A5345]/40 focus-visible:ring-[#1A5345]/20"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0.5 top-1/2 size-8 -translate-y-1/2 border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-[#1A5345]"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  onClick={() => setShowPassword((v) => !v)}
-                  disabled={isSubmitting}
-                >
-                  {showPassword ? (
-                    <EyeOffIcon className="size-3.5" aria-hidden />
-                  ) : (
-                    <EyeIcon className="size-3.5" aria-hidden />
-                  )}
-                </Button>
-              </div>
-              {fieldErrors.password ? (
-                <p className="text-[11px] text-red-600">{fieldErrors.password}</p>
               ) : null}
             </Field>
           </div>

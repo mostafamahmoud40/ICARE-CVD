@@ -6,7 +6,7 @@ export type DoctorAcceptedVisitModes = "clinic" | "virtual" | "both"
 export type AddStaffFormValues = {
   fullName: string
   email: string
-  password: string
+  password?: string
   phoneNumber: string
   role: StaffRole
   specialty: string

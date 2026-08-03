@@ -5,6 +5,7 @@
 const { Client } = require('pg');
 
 const PATCHES = [
+  `CREATE EXTENSION IF NOT EXISTS vector`,
   `ALTER TABLE "doctor_schedule" ADD COLUMN IF NOT EXISTS "paused_period_ids" jsonb DEFAULT '[]'::jsonb NOT NULL`,
   `ALTER TABLE "doctor_schedule" ADD COLUMN IF NOT EXISTS "doctor_arrival_by_weekday" jsonb DEFAULT '{}'::jsonb NOT NULL`,
   `CREATE TABLE IF NOT EXISTS "schedule_day_extra" (
@@ -125,14 +126,25 @@ async function main() {
   await client.connect();
 
   try {
+    let applied = 0;
+    let skipped = 0;
     for (const sql of PATCHES) {
-      await client.query(sql);
+      try {
+        await client.query(sql);
+        applied++;
+      } catch (err) {
+        if (err.code === '42P01') {
+          console.log(`Skipping patch (relation/table does not exist yet): ${sql.trim().split('\n')[0]}`);
+          skipped++;
+        } else {
+          throw err;
+        }
+      }
     }
+    console.log(`Applied ${applied} schema patch(es), skipped ${skipped} patch(es).`);
   } finally {
     await client.end();
   }
-
-  console.log(`Applied ${PATCHES.length} schema patch(es).`);
 }
 
 main().catch((err) => {

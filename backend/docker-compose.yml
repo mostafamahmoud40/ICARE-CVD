@@ -63,9 +63,6 @@ services:
       BREVO_FROM_EMAIL: ${BREVO_FROM_EMAIL:-}
       BREVO_FROM_NAME: ${BREVO_FROM_NAME:-iCare}
       FRONTEND_URL: ${FRONTEND_URL:-}
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -74,7 +71,7 @@ services:
       chroma:
         condition: service_started
       embeddings:
-        condition: service_healthy
+        condition: service_started
       minio:
         condition: service_healthy
 
@@ -100,8 +97,8 @@ services:
       test: [ "CMD-SHELL", "curl -fsS http://127.0.0.1:80/health || exit 1" ]
       interval: 15s
       timeout: 10s
-      retries: 30
-      start_period: 300s
+      retries: 60
+      start_period: 1200s
 
   chroma:
     image: chromadb/chroma:latest

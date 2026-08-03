@@ -74,7 +74,7 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-xs font-medium text-[#6B7870]">Emergency Call</p>
-                    <p className="font-bold text-[#1A1F1E]">(+86) 1208 1091 86</p>
+                    <p className="font-bold text-[#1A1F1E]">(+20) 100 123 4567</p>
                   </div>
                 </div>
               </div>
@@ -280,7 +280,7 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-xs text-[#6B7870] uppercase tracking-widest mb-1">Call</p>
-                <p className="font-bold text-lg text-[#1A1F1E]">(+86) 1208 1091 86</p>
+                <p className="font-bold text-lg text-[#1A1F1E]">(+20) 100 123 4567</p>
                 <div className="flex gap-4 mt-1 text-xs text-[#6B7870]">
                   <span>M-F: 08:00 - 18:00</span>
                   <span>S-S: 09:00 - 16:00</span>
@@ -453,7 +453,7 @@ export default function Home() {
             <h4 className="text-[#1A1F1E] font-bold text-lg mb-6">Support</h4>
             <ul className="space-y-4">
                <li className="flex items-center gap-3">
-                  <PhoneCall className="size-4 text-[#CC5533]" /> (+86) 1208 1091 86
+                  <PhoneCall className="size-4 text-[#CC5533]" /> (+20) 100 123 4567
                </li>
                <li className="flex items-center gap-3">
                   <Mail className="size-4 text-[#1A5345]" /> Healthca@gmail.com

@@ -1,9 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 import { DRIZZLE, type Database } from '../../database/drizzle.provider';
 import { appointment, doctor, patient, user } from '../../database/schema';
 import { NotificationsService } from '../notifications/notifications.service';
+import { MailService } from '../../shared/mail/mail.service';
 
 export type AppointmentPatientNotifyEvent =
   | 'booked'
@@ -21,6 +23,7 @@ export class AppointmentPatientNotificationService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly notificationsService: NotificationsService,
+    private readonly mailService: MailService,
   ) {}
 
   async notifyBooked(appointmentId: string, options?: { bookedBy?: 'clinic' }) {
@@ -101,21 +104,48 @@ export class AppointmentPatientNotificationService {
         confirmationCode: code,
       },
     });
+
+    if (event === 'booked' && ctx.patientEmail) {
+      try {
+        await this.mailService.sendAppointmentBookedEmail(
+          ctx.patientEmail,
+          ctx.patientName,
+          ctx.doctorName,
+          when,
+          ctx.visitType,
+          ctx.reason,
+          code,
+        );
+      } catch (err) {
+        console.error(
+          `Failed to send booking confirmation email to ${ctx.patientEmail}:`,
+          err,
+        );
+      }
+    }
   }
 
   private async loadContext(appointmentId: string) {
+    const patientUser = alias(user, 'patient_user');
+    const doctorUser = alias(user, 'doctor_user');
+
     const rows = await this.db
       .select({
         patientUserId: patient.userId,
-        doctorName: user.name,
+        patientName: patientUser.name,
+        patientEmail: patientUser.email,
+        doctorName: doctorUser.name,
         confirmationCode: appointment.confirmationCode,
         scheduledAt: appointment.scheduledAt,
         appointmentId: appointment.id,
+        visitType: appointment.visitType,
+        reason: appointment.reason,
       })
       .from(appointment)
       .innerJoin(patient, eq(appointment.patientId, patient.id))
+      .innerJoin(patientUser, eq(patient.userId, patientUser.id))
       .innerJoin(doctor, eq(appointment.doctorId, doctor.id))
-      .innerJoin(user, eq(doctor.userId, user.id))
+      .innerJoin(doctorUser, eq(doctor.userId, doctorUser.id))
       .where(eq(appointment.id, appointmentId))
       .limit(1);
 

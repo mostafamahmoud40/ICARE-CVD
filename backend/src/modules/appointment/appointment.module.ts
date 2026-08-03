@@ -7,6 +7,7 @@ import {
 } from '../../shared/ports/appointment.port';
 import { MinioModule } from '../../shared/storage/minio.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { MailModule } from '../../shared/mail/mail.module';
 import { DoctorAvailabilityService } from './doctor-availability.service';
 import { AppointmentCommandsService } from './appointment-commands.service';
 import { AppointmentReaderService } from './appointment-reader.service';
@@ -19,7 +20,7 @@ import { DoctorAppointmentController } from './doctor-appointment.controller';
 import { DoctorAppointmentService } from './doctor-appointment.service';
 
 @Module({
-  imports: [DoctorVerifierModule, MinioModule, NotificationsModule],
+  imports: [DoctorVerifierModule, MinioModule, NotificationsModule, MailModule],
   controllers: [AppointmentController, DoctorAppointmentController],
   providers: [
     AppointmentService,

@@ -280,7 +280,7 @@ export class MailService {
           <div style="background:#F9F8F5;padding:24px;border:1px solid #E8E6E0;border-top:none;border-radius:0 0 12px 12px">
             <p style="margin:0 0 16px;font-size:15px">Hello <strong>${safeName}</strong>,</p>
             <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#374151">
-              Your doctor has added you to their clinic team. Use the credentials below to sign in.
+              You have been added to the clinic team. Use the credentials below to sign in.
             </p>
             <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #E8E6E0;border-radius:10px;overflow:hidden">
               <tr>
@@ -299,8 +299,158 @@ export class MailService {
             </p>
             <p style="margin:0;font-size:12px;line-height:1.6;color:#6B7870">
               For your security, please change this password after your first login.
-              If you did not expect this email, contact your clinic.
+              If you did not expect this email, contact your clinic or administrator.
             </p>
+          </div>
+        </div>
+      `,
+    });
+  }
+
+  async sendDoctorAccountCreatedEmail(
+    to: string,
+    fullName: string,
+    email: string,
+    temporaryPassword: string,
+  ): Promise<void> {
+    const loginUrl = this.resolveFrontendLoginUrl();
+    const safeName = this.escapeHtml(fullName);
+    const safeEmail = this.escapeHtml(email);
+    const safePassword = this.escapeHtml(temporaryPassword);
+    const safeLoginUrl = this.escapeHtml(loginUrl);
+
+    await this.send({
+      to,
+      subject: 'Your ICARE CVD doctor account has been created',
+      text: [
+        `Hello ${fullName},`,
+        '',
+        'A doctor account has been created for you on ICARE CVD.',
+        '',
+        `Email: ${email}`,
+        `Temporary password: ${temporaryPassword}`,
+        '',
+        `Sign in: ${loginUrl}`,
+        '',
+        'Please change your password after your first login.',
+      ].join('\n'),
+      html: `
+        <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1A1F1E">
+          <div style="background:#1A5345;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0">
+            <h1 style="margin:0;font-size:22px;font-weight:700">ICARE CVD</h1>
+            <p style="margin:8px 0 0;font-size:14px;opacity:0.9">Your doctor account is ready</p>
+          </div>
+          <div style="background:#F9F8F5;padding:24px;border:1px solid #E8E6E0;border-top:none;border-radius:0 0 12px 12px">
+            <p style="margin:0 0 16px;font-size:15px">Hello Dr. <strong>${safeName}</strong>,</p>
+            <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#374151">
+              Your administrator has created a doctor account for you on the ICARE CVD platform. Use the credentials below to sign in.
+            </p>
+            <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #E8E6E0;border-radius:10px;overflow:hidden">
+              <tr>
+                <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#6B7870;border-bottom:1px solid #E8E6E0">Email</td>
+                <td style="padding:12px 16px;font-size:14px;font-weight:600;color:#1A1F1E;border-bottom:1px solid #E8E6E0">${safeEmail}</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#6B7870">Temporary password</td>
+                <td style="padding:12px 16px;font-size:14px;font-family:monospace;font-weight:700;color:#1A5345;letter-spacing:0.5px">${safePassword}</td>
+              </tr>
+            </table>
+            <p style="margin:20px 0">
+              <a href="${safeLoginUrl}" style="display:inline-block;padding:12px 24px;background:#1A5345;color:#fff;border-radius:999px;text-decoration:none;font-size:14px;font-weight:700">
+                Sign in to ICARE CVD
+              </a>
+            </p>
+            <p style="margin:0;font-size:12px;line-height:1.6;color:#6B7870">
+              For your security, please change this password after your first login.
+              If you did not expect this email, contact your administrator.
+            </p>
+          </div>
+        </div>
+      `,
+    });
+  }
+
+  async sendAppointmentBookedEmail(
+    to: string,
+    patientName: string,
+    doctorName: string,
+    when: string,
+    visitType: string,
+    reason: string | null,
+    confirmationCode: string,
+  ): Promise<void> {
+    const loginUrl = this.resolveFrontendLoginUrl();
+    const safePatientName = this.escapeHtml(patientName);
+    const safeDoctorName = this.escapeHtml(doctorName);
+    const safeWhen = this.escapeHtml(when);
+    const safeVisitType = this.escapeHtml(visitType);
+    const safeReason = reason ? this.escapeHtml(reason) : '';
+    const safeCode = this.escapeHtml(confirmationCode);
+    const safePortalUrl = this.escapeHtml(loginUrl);
+
+    await this.send({
+      to,
+      subject: 'Your ICARE CVD appointment has been booked',
+      text: [
+        `Hello ${patientName},`,
+        '',
+        'Your appointment has been successfully booked on ICARE CVD.',
+        '',
+        `Doctor: Dr. ${doctorName}`,
+        `Date & Time: ${when}`,
+        `Visit Type: ${visitType}`,
+        reason ? `Reason: ${reason}` : '',
+        `Confirmation Code: ${confirmationCode}`,
+        '',
+        `Sign in to your portal: ${loginUrl}`,
+      ].filter(Boolean).join('\n'),
+      html: `
+        <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1A1F1E;border:1px solid #E8E6E0;border-radius:12px;overflow:hidden">
+          <div style="background:#1A5345;color:#fff;padding:20px 24px;text-align:center">
+            <h1 style="margin:0;font-size:22px;font-weight:700">ICARE CVD</h1>
+            <p style="margin:8px 0 0;font-size:14px;opacity:0.9">Appointment Booking Confirmation</p>
+          </div>
+          <div style="background:#F9F8F5;padding:24px;line-height:1.6">
+            <p style="margin:0 0 16px;font-size:15px">Hello <strong>${safePatientName}</strong>,</p>
+            <p style="margin:0 0 20px;font-size:14px;color:#374151">
+              Your appointment has been successfully booked. Please find the details of your booking below:
+            </p>
+            <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #E8E6E0;border-radius:10px;overflow:hidden;margin-bottom:20px">
+              <tr>
+                <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#6B7870;border-bottom:1px solid #E8E6E0;width:35%">Doctor</td>
+                <td style="padding:12px 16px;font-size:14px;font-weight:600;color:#1A1F1E;border-bottom:1px solid #E8E6E0">Dr. ${safeDoctorName}</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#6B7870;border-bottom:1px solid #E8E6E0">Date & Time</td>
+                <td style="padding:12px 16px;font-size:14px;font-weight:600;color:#1A1F1E;border-bottom:1px solid #E8E6E0">${safeWhen}</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#6B7870;border-bottom:1px solid #E8E6E0">Visit Type</td>
+                <td style="padding:12px 16px;font-size:14px;font-weight:600;color:#1A1F1E;border-bottom:1px solid #E8E6E0;text-transform:capitalize">${safeVisitType}</td>
+              </tr>
+              ${safeReason ? `
+              <tr>
+                <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#6B7870;border-bottom:1px solid #E8E6E0">Reason</td>
+                <td style="padding:12px 16px;font-size:14px;font-weight:600;color:#1A1F1E;border-bottom:1px solid #E8E6E0">${safeReason}</td>
+              </tr>
+              ` : ''}
+              <tr>
+                <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#6B7870">Confirmation Code</td>
+                <td style="padding:12px 16px;font-size:14px;font-family:monospace;font-weight:700;color:#1A5345;letter-spacing:0.5px">${safeCode}</td>
+              </tr>
+            </table>
+            <p style="margin:20px 0;text-align:center">
+              <a href="${safePortalUrl}" style="display:inline-block;padding:12px 24px;background:#1A5345;color:#fff;border-radius:999px;text-decoration:none;font-size:14px;font-weight:700">
+                Access Your Patient Portal
+              </a>
+            </p>
+            <p style="margin:0;font-size:12px;line-height:1.6;color:#6B7870">
+              Please arrive 10-15 minutes prior to your scheduled time. If you need to cancel or reschedule, please contact the clinic or sign in to your portal.
+            </p>
+          </div>
+          <div style="background:#E8E6E0;padding:12px;text-align:center;font-size:11px;color:#6B7870">
+            © 2026 ICARE CVD. All rights reserved. <br>
+            This is an automated notification, please do not reply directly to this email.
           </div>
         </div>
       `,
