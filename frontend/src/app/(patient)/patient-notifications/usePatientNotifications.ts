@@ -7,16 +7,9 @@ import {
   markAllNotificationsRead as markAllNotificationsReadApi,
   markNotificationRead as markNotificationReadApi,
 } from "@/lib/notifications/notifications.api"
-import {
-  isLivePatientNotificationId,
-  isPatientNotificationLiveKind,
-} from "./patientNotifications.config"
-import { getPatientNotificationsMock } from "./patientNotifications.mock"
-import { mergePatientNotifications } from "./patientNotifications.merge"
 import type { PatientNotification, PatientNotificationKind } from "./patientNotifications.types"
 
-const MOCK_SEED = getPatientNotificationsMock()
-let notifications: PatientNotification[] = mergePatientNotifications(MOCK_SEED, [])
+let notifications: PatientNotification[] = []
 let hydratedFromApi = false
 
 const listeners = new Set<() => void>()
@@ -26,7 +19,7 @@ function emit() {
 }
 
 function setNotifications(next: PatientNotification[]) {
-  notifications = mergePatientNotifications(MOCK_SEED, next.filter((item) => isPatientNotificationLiveKind(item.kind)))
+  notifications = next
   emit()
 }
 
@@ -39,24 +32,15 @@ export function getPatientNotificationsSnapshot() {
   return notifications
 }
 
-const patientNotificationsServerSnapshot = mergePatientNotifications(MOCK_SEED, [])
-
 export function getPatientNotificationsServerSnapshot() {
-  return patientNotificationsServerSnapshot
+  return notifications
 }
 
 export function prependPatientRealtimeNotification(item: PatientNotification) {
   if (!item.id) return
-  if (!isPatientNotificationLiveKind(item.kind)) return
   if (notifications.some((n) => n.id === item.id)) return
 
-  const liveItems = [
-    item,
-    ...notifications.filter(
-      (n) => isPatientNotificationLiveKind(n.kind) && n.id !== item.id,
-    ),
-  ]
-  setNotifications(liveItems)
+  setNotifications([item, ...notifications.filter((n) => n.id !== item.id)])
 }
 
 export function markAllPatientNotificationsRead() {
@@ -76,7 +60,7 @@ export function markPatientNotificationRead(id: string) {
   )
   emit()
 
-  if (isLivePatientNotificationId(id)) {
+  if (isLiveNotificationId(id)) {
     void markNotificationReadApi(id).catch(() => undefined)
   }
 }
@@ -105,14 +89,15 @@ const PATIENT_KINDS: PatientNotificationKind[] = [
   "prescription",
   "ai_insight",
   "system",
+  "message",
+  "procedure",
 ]
 
 function mapKind(kind: string): PatientNotificationKind {
   if (PATIENT_KINDS.includes(kind as PatientNotificationKind)) {
     return kind as PatientNotificationKind
   }
-  if (kind === "medication_flag" || kind === "prescription") return "medication"
-  if (kind === "vitals_alert") return "vitals_alert"
+  if (kind === "medication_flag") return "medication"
   return "system"
 }
 
@@ -136,6 +121,10 @@ function mapApiNotification(row: {
   }
 }
 
+function isLiveNotificationId(id: string) {
+  return /^\d+$/.test(id)
+}
+
 async function hydrateFromApi() {
   if (hydratedFromApi) return
   await refreshPatientNotificationsFromApi()
@@ -144,10 +133,7 @@ async function hydrateFromApi() {
 export async function refreshPatientNotificationsFromApi() {
   try {
     const rows = await fetchNotifications()
-    const liveItems = rows
-      .map(mapApiNotification)
-      .filter((item) => isPatientNotificationLiveKind(item.kind))
-    setNotifications(liveItems)
+    setNotifications(rows.map(mapApiNotification))
   } catch {
     /* keep current list when API unavailable */
   } finally {

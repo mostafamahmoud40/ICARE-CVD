@@ -4,6 +4,16 @@ export type AppointmentStatus =
   | "completed"
   | "cancelled"
 
+export type QueueStatus =
+  | "scheduled"
+  | "arrived"
+  | "waiting"
+  | "in-consultation"
+  | "report-pending"
+  | "completed"
+  | "no-show"
+  | "cancelled"
+
 export type VisitType = "clinic" | "virtual"
 
 export type PatientInfo = {
@@ -25,6 +35,8 @@ export type DoctorAppointment = {
   notes?: string | null
   visitType: VisitType
   status: AppointmentStatus
+  queueId: string | null
+  queueStatus: QueueStatus | null
   cancelledAt: string | null
   createdAt: string
 }

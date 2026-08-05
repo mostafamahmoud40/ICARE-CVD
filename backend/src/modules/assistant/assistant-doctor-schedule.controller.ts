@@ -21,7 +21,10 @@ import { AssistantDoctorsService } from './assistant-doctors.service';
 import { AssistantGuard } from './assistant.guard';
 import { CreateScheduleDayExtraDto } from './dto/schedule-day-extra.dto';
 import { SetDoctorArrivalDto } from './dto/set-doctor-arrival.dto';
-import { ScheduleAiAnalyzeDto, ScheduleAiChatDto } from './dto/schedule-ai-chat.dto';
+import {
+  ScheduleAiAnalyzeDto,
+  ScheduleAiChatDto,
+} from './dto/schedule-ai-chat.dto';
 
 @Controller('assistant/doctors')
 @UseGuards(AccessTokenGuard, AssistantGuard)

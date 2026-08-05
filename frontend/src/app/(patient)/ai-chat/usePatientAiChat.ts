@@ -39,18 +39,6 @@ type ApiChatResponse = {
 
 type HistoryItem = { role: "user" | "assistant"; content: string }
 
-const initialAssistant: AiChatMessage = {
-  id: "welcome",
-  role: "assistant",
-  greeting: "ICARE Care Agent",
-  text: "I'm your clinic agent — I can check your appointments, book, cancel, reschedule, and answer care questions using your live records.\n\nTry: **ما هي مواعيدي؟** or **Book me a follow-up**.",
-  actions: [
-    { id: "view-appointments", label: "My appointments", icon: "calendar", href: "/appointments" },
-    { id: "book", label: "Book a visit", icon: "calendar", href: "/doctor-directory" },
-  ],
-  sentAt: new Date(),
-}
-
 function buildAssistantActions(response: ApiChatResponse): AiChatMessage["actions"] {
   if (response.booking) {
     return [
@@ -76,11 +64,11 @@ function buildAssistantActions(response: ApiChatResponse): AiChatMessage["action
 }
 
 export function usePatientAiChat() {
-  const [messages, setMessages] = useState<AiChatMessage[]>([initialAssistant])
+  const [messages, setMessages] = useState<AiChatMessage[]>([])
   const showTimes = useClientTimesReady()
   const queryClient = useQueryClient()
 
-  const messagesRef = useRef<AiChatMessage[]>([initialAssistant])
+  const messagesRef = useRef<AiChatMessage[]>([])
 
   function appendMessages(msgs: AiChatMessage[]) {
     messagesRef.current = [...messagesRef.current, ...msgs]
@@ -93,7 +81,7 @@ export function usePatientAiChat() {
       if (!text) return null
 
       const history: HistoryItem[] = messagesRef.current
-        .slice(1, -1)
+        .slice(0, -1)
         .filter((m) => m.role === "user" || m.role === "assistant")
         .map((m) => ({ role: m.role as "user" | "assistant", content: m.text }))
 

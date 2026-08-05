@@ -2,7 +2,7 @@ const RING_ON_MS = 1000
 const RING_OFF_MS = 3000
 
 let audioContext: AudioContext | null = null
-let ringTimer: ReturnType<typeof setInterval> | null = null
+let ringTimer: number | null = null
 let activeOscillators: OscillatorNode[] = []
 
 function getAudioContext() {

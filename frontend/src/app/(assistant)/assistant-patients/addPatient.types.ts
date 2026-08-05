@@ -49,6 +49,8 @@ export type AddPatientFormValues = {
   chiefComplaint: string
   otherChiefComplaint: string
   medicalHistoryNotes: string
+  /** Preset avatar path (e.g. /avatars/avatar-1.svg) or empty when using a custom upload. */
+  avatarUrl: string
   /** Structured medication entries matching database schema. */
   medications: MedicationItem[]
   /** Structured allergy entries matching database schema. */
@@ -56,7 +58,7 @@ export type AddPatientFormValues = {
 }
 
 export type CreatedPatient = {
-  id: number
+  id: string
   fullName: string
   email: string
   phone: string | null
@@ -69,14 +71,21 @@ export type CreatedPatient = {
   weightKg: number | null
   smokingStatus: string | null
   chiefComplaint: string | null
+  avatarUrl: string | null
   createdAt: string
+  maritalStatus?: string | null
+  occupation?: string | null
+  riskLevel?: "low" | "moderate" | "high" | null
+  condition?: string | null
+  lastVisitDate?: string | null
+  department?: string | null
 }
 
 export type AddPatientFieldErrors = Partial<Record<keyof AddPatientFormValues, string>>
 
 export type AddPatientApiResponse = {
   patient: {
-    id: number
+    id: string
     fullName: string
     email: string
     phone: string | null
@@ -84,4 +93,6 @@ export type AddPatientApiResponse = {
     gender: string | null
     nationalId: string | null
   }
+  credentialsEmailSent?: boolean
+  credentialsEmailError?: string | null
 }

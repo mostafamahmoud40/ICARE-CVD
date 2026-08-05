@@ -40,11 +40,7 @@ type StepDocumentsUploadProps = {
 };
 
 /**
- * StepDocumentsUpload - Component for document uploads to S3
- * SOLID: Single Responsibility - UI for document upload workflow
- * - Delegates upload logic to useDocumentUpload hook
- * - Manages local file selection state
- * - Coordinates S3 uploads with form state
+ * StepDocumentsUpload — document uploads to MinIO during registration.
  */
 export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending }: StepDocumentsUploadProps) {
   const doc = documentsValues as RegisterDocumentsValues;
@@ -82,7 +78,7 @@ export function StepDocumentsUpload({ documentsValues, onFieldChange, isPending 
   );
 
   /**
-   * Upload a specific file to S3
+   * Upload a specific file to MinIO
    * SOLID: Single Responsibility - orchestrate one file upload
    */
   const handleUploadFile = useCallback(

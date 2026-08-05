@@ -41,7 +41,6 @@ import type {
   Doctor,
   DoctorAvailability,
   DoctorAvailabilityFilter,
-  DoctorVisitChannels,
   Specialty,
 } from "./doctorDirectory.types"
 import { DOCTOR_SORT_OPTIONS, DOCTOR_VISIT_CHANNELS_LABELS } from "./doctorDirectory.utils"
@@ -101,7 +100,9 @@ function SpecialtyIcon({ specialty }: { specialty: Specialty }) {
   }
   const Icon = iconMap[specialty.icon] || StethoscopeIcon
   return (
-    <Icon className="size-3 shrink-0" style={{ color: specialty.color }} aria-hidden />
+    <span className="inline-flex shrink-0" style={{ color: specialty.color }} aria-hidden>
+      <Icon className="size-3" />
+    </span>
   )
 }
 

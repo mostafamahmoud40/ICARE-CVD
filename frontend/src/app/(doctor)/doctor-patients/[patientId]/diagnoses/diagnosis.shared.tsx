@@ -2,7 +2,6 @@
 
 import type { ElementType, ReactNode } from "react"
 import type { DiagnosisRecord, VisitRecord } from "../../doctorPatients.types"
-import { mockConsultationReports } from "../../doctorPatients.mock"
 import { cn } from "@/lib/utils"
 import type { DiagnosisFormValues } from "./diagnosisForm.types"
 
@@ -209,20 +208,18 @@ export type RelatedConsultationVisit = VisitRecord & { hasFullReport: boolean }
 
 export function findRelatedConsultationVisits(icdCode: string, visits: VisitRecord[]): RelatedConsultationVisit[] {
   const normalizedCode = icdCode.trim().toUpperCase()
-  const matchingVisitIds = new Set<string>()
-
-  for (const [visitId, report] of Object.entries(mockConsultationReports)) {
-    if (report.diagnoses.some((entry) => entry.icdCode.trim().toUpperCase() === normalizedCode)) {
-      matchingVisitIds.add(visitId)
-    }
-  }
+  if (!normalizedCode) return []
 
   return visits
-    .filter((visit) => matchingVisitIds.has(visit.id))
+    .filter((visit) => {
+      const summary = visit.diagnosisSummary.toUpperCase()
+      const notes = visit.notes.toUpperCase()
+      return summary.includes(normalizedCode) || notes.includes(normalizedCode)
+    })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .map((visit) => ({
       ...visit,
-      hasFullReport: Boolean(mockConsultationReports[visit.id]),
+      hasFullReport: true,
     }))
 }
 

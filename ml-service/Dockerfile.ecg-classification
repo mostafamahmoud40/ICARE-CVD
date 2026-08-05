@@ -1,0 +1,30 @@
+# ICARE-CVD — MaxViT ECG image classifier (FastAPI :8503, GPU)
+FROM pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DEFAULT_TIMEOUT=300
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgomp1 libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /service
+
+COPY app/ml_env.py ./ml_env.py
+COPY app/ecg-classification/requirements.txt ./requirements.txt
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install \
+        fastapi uvicorn python-multipart \
+    && pip install -r requirements.txt
+
+COPY app/ecg-classification/api.py ./api.py
+COPY app/ecg-classification/model_loader.py ./model_loader.py
+COPY app/ecg-classification/wfdb_io.py ./wfdb_io.py
+
+ENV ECG_CLASSIFICATION_MODEL_PATH=/service/models/maxvit_ecg_98.pth
+
+EXPOSE 8503
+
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8503", "--workers", "1"]

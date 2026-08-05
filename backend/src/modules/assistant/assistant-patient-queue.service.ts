@@ -4,7 +4,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, count, desc, eq, gte, inArray, lte, ne, or, sql } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  lte,
+  ne,
+  or,
+  sql,
+} from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import {
@@ -28,6 +39,7 @@ import type {
   QueuePriority,
   QueueStatus,
 } from './dto/patient-queue.dto';
+import { QueueNotificationService } from '../notifications/queue-notification.service';
 
 export type QueuePatientDocumentCategory =
   | 'lab_report'
@@ -39,7 +51,10 @@ export type QueuePatientDocumentCategory =
 
 @Injectable()
 export class AssistantPatientQueueService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly queueNotifications: QueueNotificationService,
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*  Stats                                                              */
@@ -171,8 +186,13 @@ export class AssistantPatientQueueService {
 
     if (!row.length) throw new NotFoundException('Queue entry not found');
 
-    const { patientId, appointmentId, queueStatus, doctorName, doctorSpecialty } =
-      row[0];
+    const {
+      patientId,
+      appointmentId,
+      queueStatus,
+      doctorName,
+      doctorSpecialty,
+    } = row[0];
 
     const cons = await this.db.query.consultation.findFirst({
       where: eq(consultation.appointmentId, appointmentId),
@@ -188,18 +208,18 @@ export class AssistantPatientQueueService {
     });
 
     let prescriptionItems: {
-      id: string
-      name: string
-      dose: string
-      frequency: string
-      duration: string | null
-      instructions: string | null
+      id: string;
+      name: string;
+      dose: string;
+      frequency: string;
+      duration: string | null;
+      instructions: string | null;
     }[] = [];
 
     let reportDiagnoses: {
-      icdCode: string
-      description: string
-      type: string
+      icdCode: string;
+      description: string;
+      type: string;
     }[] = [];
 
     if (cons) {
@@ -235,7 +255,10 @@ export class AssistantPatientQueueService {
           type: consultationDiagnosis.type,
         })
         .from(consultationDiagnosis)
-        .innerJoin(diagnosis, eq(consultationDiagnosis.diagnosisId, diagnosis.id))
+        .innerJoin(
+          diagnosis,
+          eq(consultationDiagnosis.diagnosisId, diagnosis.id),
+        )
         .where(eq(consultationDiagnosis.consultationId, cons.id));
 
       reportDiagnoses = dxRows.map((d) => ({
@@ -249,11 +272,11 @@ export class AssistantPatientQueueService {
       prescriptionItems.length > 0 || Boolean(prescriptionDoc);
     const hasReportContent = Boolean(
       cons &&
-        (cons.chiefComplaint?.trim() ||
-          cons.plan?.trim() ||
-          cons.physicalExam?.trim() ||
-          cons.notes?.trim() ||
-          reportDiagnoses.length > 0),
+      (cons.chiefComplaint?.trim() ||
+        cons.plan?.trim() ||
+        cons.physicalExam?.trim() ||
+        cons.notes?.trim() ||
+        reportDiagnoses.length > 0),
     );
     const consultationCompleted = cons?.status === 'completed';
 
@@ -455,6 +478,10 @@ export class AssistantPatientQueueService {
       .values(values)
       .returning();
 
+    void this.queueNotifications
+      .notifyAfterAdd(created.id)
+      .catch(() => undefined);
+
     return this.getQueueEntry(created.id);
   }
 
@@ -483,7 +510,10 @@ export class AssistantPatientQueueService {
         const others = await this.db
           .select({ id: patientQueue.id })
           .from(patientQueue)
-          .innerJoin(appointment, eq(patientQueue.appointmentId, appointment.id))
+          .innerJoin(
+            appointment,
+            eq(patientQueue.appointmentId, appointment.id),
+          )
           .where(
             and(
               eq(appointment.doctorId, appt.doctorId),
@@ -522,6 +552,10 @@ export class AssistantPatientQueueService {
       .update(patientQueue)
       .set(updates)
       .where(eq(patientQueue.id, queueId));
+
+    void this.queueNotifications
+      .notifyAfterStatusChange(queueId, existing.status, status)
+      .catch(() => undefined);
 
     return this.getQueueEntry(queueId);
   }

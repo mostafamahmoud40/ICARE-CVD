@@ -9,6 +9,7 @@ export type DoctorPatient = {
   fullName: string
   condition: string
   lastSeenAt: string
+  avatarUrl?: string | null
 }
 
 export type AppointmentStatus = "scheduled" | "confirmed" | "completed"
@@ -18,6 +19,7 @@ export type DoctorAppointment = {
   scheduledAt: string
   department: string
   patientName: string
+  patientAvatarUrl?: string | null
   location: string
   status: AppointmentStatus
 }
@@ -33,6 +35,12 @@ export type VitalAlert = {
   at: string
 }
 
+export type WeeklyWorkloadPoint = {
+  date: string
+  scheduled: number
+  completed: number
+}
+
 export type DoctorDashboardData = {
   doctor: DoctorInfo
   assignedPatients: DoctorPatient[]
@@ -42,4 +50,5 @@ export type DoctorDashboardData = {
     patientsPerWeek: number
     hoursAvailable: number
   }
+  weeklyWorkload: WeeklyWorkloadPoint[]
 }

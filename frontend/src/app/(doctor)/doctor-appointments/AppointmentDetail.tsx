@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react"
 import type { DoctorAppointment, AppointmentStatus } from "./doctorAppointments.types"
 import type { DoctorAvailableSlot } from "./useDoctorAppointments"
+import {
+  DISPLAY_STATUS_LABELS,
+  DISPLAY_STATUS_STYLES,
+  isTerminalDisplayStatus,
+  resolveAppointmentDisplayStatus,
+} from "./appointmentDisplayStatus"
 import { cn } from "@/lib/utils"
 import {
   Building2Icon,
@@ -31,25 +37,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 
-const STATUS_LABELS: Record<AppointmentStatus, string> = {
-  scheduled: "Scheduled",
-  confirmed: "Confirmed",
-  completed: "Completed",
-  cancelled: "Cancelled",
-}
-
-const STATUS_STYLES: Record<AppointmentStatus, string> = {
-  scheduled: "border-0 bg-amber-500 text-white hover:bg-amber-500",
-  confirmed: "border-0 bg-blue-500 text-white hover:bg-blue-500",
-  completed: "border-0 bg-emerald-500 text-white hover:bg-emerald-500",
-  cancelled: "border-0 bg-rose-500 text-white hover:bg-rose-500",
-}
-
-function getAvatarUrl(name: string, id: string): string {
-  const raw = (name.trim() || id || "x").replace(/\s+/g, "")
-  return `https://i.pravatar.cc/150?u=${encodeURIComponent(raw)}`
-}
+const STATUS_LABELS = DISPLAY_STATUS_LABELS
+const STATUS_STYLES = DISPLAY_STATUS_STYLES
 
 function formatDateTime(iso: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -87,6 +78,7 @@ type AppointmentDetailProps = {
   onUpdateStatus: (params: { appointmentId: string; status: AppointmentStatus; notes?: string }) => Promise<void>
   onUpdateNotes: (params: { appointmentId: string; notes: string }) => Promise<void>
   onReschedule: (params: { appointmentId: string; scheduledAt: string }) => Promise<void>
+  onMarkNoShow: (appointmentId: string) => Promise<void>
   fetchAvailableSlots: (date: string, excludeAppointmentId?: string) => Promise<DoctorAvailableSlot[]>
   isUpdating?: boolean
 }
@@ -97,6 +89,7 @@ export function AppointmentDetail({
   onUpdateStatus,
   onUpdateNotes,
   onReschedule,
+  onMarkNoShow,
   fetchAvailableSlots,
   isUpdating = false,
 }: AppointmentDetailProps) {
@@ -161,10 +154,15 @@ export function AppointmentDetail({
   if (!appointment) return null
 
   const isVirtual = appointment.visitType === "virtual"
-  const canTakeAction =
-    appointment.status !== "cancelled" && appointment.status !== "completed"
-  const isPastSlot = new Date(appointment.scheduledAt) < new Date()
-  const status = appointment.status as AppointmentStatus
+  const displayStatus = resolveAppointmentDisplayStatus(appointment)
+  const canTakeAction = !isTerminalDisplayStatus(displayStatus)
+  const canMarkOutcome =
+    displayStatus === "overdue" ||
+    displayStatus === "waiting" ||
+    displayStatus === "arrived" ||
+    displayStatus === "report-pending" ||
+    displayStatus === "in-consultation" ||
+    displayStatus === "scheduled"
 
   const handleSaveNotes = () => {
     onUpdateNotes({ appointmentId: appointment.id, notes })
@@ -172,6 +170,11 @@ export function AppointmentDetail({
 
   const handleComplete = () => {
     onUpdateStatus({ appointmentId: appointment.id, status: "completed", notes })
+    onClose()
+  }
+
+  const handleNoShow = async () => {
+    await onMarkNoShow(appointment.id)
     onClose()
   }
 
@@ -209,10 +212,10 @@ export function AppointmentDetail({
                 variant="default"
                 className={cn(
                   "shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-bold shadow-sm",
-                  STATUS_STYLES[status] ?? STATUS_STYLES.scheduled,
+                  STATUS_STYLES[displayStatus] ?? STATUS_STYLES.scheduled,
                 )}
               >
-                {STATUS_LABELS[status] ?? status}
+                {STATUS_LABELS[displayStatus] ?? displayStatus}
               </Badge>
             </div>
             <DialogDescription className="text-[12px] font-medium text-[#6B7870]">
@@ -226,10 +229,9 @@ export function AppointmentDetail({
           {/* Patient */}
           <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0] bg-[#F9F8F5]/50 p-3.5">
               <div className="relative size-11 shrink-0 overflow-hidden rounded-full border border-[#E8E6E0] bg-white shadow-sm">
-                <img
-                  src={appointment.patient.avatar || getAvatarUrl(appointment.patient.name, appointment.patient.id)}
-                  alt=""
-                  className="size-full object-cover"
+                <PatientAvatar
+                  name={appointment.patient.name}
+                  avatarUrl={appointment.patient.avatar}
                 />
               </div>
               <div className="min-w-0 flex-1">
@@ -340,15 +342,28 @@ export function AppointmentDetail({
               />
             </div>
 
+            {displayStatus === "overdue" && (
+              <div className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-slate-700">
+                <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+                <p className="text-[12px] font-medium leading-relaxed">
+                  This slot has passed without a recorded outcome. Mark the visit as completed if the patient was seen, or no-show if they did not attend.
+                </p>
+              </div>
+            )}
+
             {/* Cancelled Info */}
-            {appointment.status === "cancelled" && appointment.cancelledAt && (
+            {(displayStatus === "cancelled" || displayStatus === "no-show") && (
               <div className="flex items-start gap-2 text-red-600">
                 <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
                 <div>
-                  <p className="text-[12px] font-bold">Appointment cancelled</p>
-                  <p className="text-[11px] font-medium text-red-500/90">
-                    Cancelled on {formatDateTime(appointment.cancelledAt)}
+                  <p className="text-[12px] font-bold">
+                    {displayStatus === "no-show" ? "Patient marked as no-show" : "Appointment cancelled"}
                   </p>
+                  {appointment.cancelledAt ? (
+                    <p className="text-[11px] font-medium text-red-500/90">
+                      Cancelled on {formatDateTime(appointment.cancelledAt)}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             )}
@@ -454,14 +469,24 @@ export function AppointmentDetail({
 
             {/* Action Buttons */}
             {canTakeAction && !showCancelConfirm && !showReschedule && (
-              <div className="flex items-center justify-end gap-2 pt-1">
-                {isPastSlot && appointment.status === "confirmed" && (
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                {canMarkOutcome && displayStatus !== "in-consultation" && (
                   <Button
                     className="h-8 rounded-lg bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm hover:bg-[#133F34]"
                     onClick={handleComplete}
                     disabled={isUpdating}
                   >
                     Mark completed
+                  </Button>
+                )}
+                {canMarkOutcome && (displayStatus === "overdue" || displayStatus === "waiting" || displayStatus === "arrived") && (
+                  <Button
+                    variant="outline"
+                    className="h-8 rounded-lg border-red-200 px-4 text-[12px] font-bold text-red-600 hover:bg-red-50"
+                    onClick={() => void handleNoShow()}
+                    disabled={isUpdating}
+                  >
+                    Mark no-show
                   </Button>
                 )}
                 <Button

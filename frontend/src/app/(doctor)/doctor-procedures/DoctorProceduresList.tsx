@@ -1,6 +1,6 @@
 "use client"
 
-import Image from "next/image"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -181,14 +181,7 @@ export function DoctorProceduresList() {
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
-                                      <Image
-                                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(order.patientId)}`}
-                                        alt=""
-                                        width={44}
-                                        height={44}
-                                        unoptimized
-                                        className="size-full object-cover"
-                                      />
+                                      <PatientAvatar name={order.patientName} avatarUrl={null} />
                                     </div>
                                     <div className="min-w-0">
                                       <p className="truncate font-serif text-[15px] font-bold leading-snug text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">

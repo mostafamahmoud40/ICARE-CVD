@@ -63,7 +63,16 @@ export const patientRecreationalDrugUseEnum = pgEnum(
 
 export const patientExerciseFrequencyEnum = pgEnum(
   'patient_exercise_frequency',
-  ['none', '1-2', '3-4', '5+'],
+  [
+    'none',
+    'rarely-monthly',
+    'occasional-monthly',
+    '1-week',
+    '1-2',
+    '3-4',
+    '5+',
+    'daily',
+  ],
 );
 
 export const patientExerciseDurationEnum = pgEnum('patient_exercise_duration', [
@@ -108,6 +117,8 @@ export const patientRiskLevelEnum = pgEnum('patient_risk_level', [
 /** One profile per `user` with role patient; `user_id` matches `user.id` (serial). */
 export const patient = pgTable('patient', {
   id: uuid('id').defaultRandom().primaryKey(),
+  /** Human-readable patient ID, e.g. P-001 (patients only). */
+  patientNumber: varchar('patient_number', { length: 20 }).notNull().unique(),
   userId: integer('user_id')
     .references(() => user.id, { onDelete: 'cascade' })
     .notNull()

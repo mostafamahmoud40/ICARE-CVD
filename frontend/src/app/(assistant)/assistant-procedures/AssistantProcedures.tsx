@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { cn } from "@/lib/utils"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import {
   ActivityIcon,
   AlertTriangleIcon,
@@ -9,26 +10,20 @@ import {
   CheckCircle2Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  ClipboardPlusIcon,
   ClockIcon,
-  FileIcon,
-  FileTextIcon,
   HistoryIcon,
   LayoutGridIcon,
   ListIcon,
+  Loader2Icon,
   MapPinIcon,
-  SearchIcon,
-  UserIcon,
-  XIcon,
 } from "lucide-react"
-import { Input } from "@/components/ui/input"
 import { AssistantProceduresOperations } from "./AssistantProceduresOperations"
 import { AssistantProceduresHistory } from "./AssistantProceduresHistory"
 import type { ProcedureConsentSavePayload } from "./ProcedureConsentDialog"
 import type { ScheduledOperation } from "./assistantProceduresHistory.mock"
+import { useAssistantProcedureSchedule } from "./useAssistantProcedureSchedule"
 import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import type {
   ProcedureFilter,
   ProcedureOrder,
@@ -60,8 +55,11 @@ function isSameDay(a: Date, b: Date): boolean {
     a.getDate() === b.getDate()
 }
 
-function pravatarAvatarUrl(id: string): string {
-  return `https://i.pravatar.cc/150?u=${encodeURIComponent(id)}`
+function formatDateKey(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
 }
 
 /* ---------- Types ---------- */
@@ -107,102 +105,6 @@ type AssistantProceduresProps = {
   viewMode: ViewMode
 }
 
-/* ---------- Mock Schedule Data ---------- */
-
-const SCHEDULED_OPERATIONS: ScheduledOperation[] = [
-  {
-    id: "op-1",
-    startTime: "07:30",
-    endTime: "09:45",
-    endTimeActual: "09:45",
-    patientName: "Khaled Mostafa",
-    patientId: "CARD-00471",
-    age: 63,
-    gender: "M",
-    procedureName: "CABG — Triple Vessel",
-    riskScore: "EuroSCORE II: 4.2%",
-    location: "Cardiac OR-1",
-    riskTags: ["Shah Scale: Mid"],
-    duration: "2h 15m",
-    status: "completed",
-    priority: "normal",
-    teamStatus: "Started Early",
-  },
-  {
-    id: "op-2",
-    startTime: "10:00",
-    endTime: "11:30",
-    endTimeActual: "11:30",
-    patientName: "Sarah Ahmed Najar",
-    patientId: "CARD-00389",
-    age: 58,
-    gender: "F",
-    procedureName: "TAVI — Aortic Valve Replacement",
-    riskScore: "EuroSCORE II: 3.1%",
-    location: "Hybrid Lab",
-    riskTags: ["Shah Scale: Low"],
-    duration: "1h 30m",
-    status: "completed",
-    priority: "normal",
-    teamStatus: "On Schedule",
-  },
-  {
-    id: "op-3",
-    startTime: "13:00",
-    endTime: "16:00",
-    endTimeExpected: "16:00",
-    patientName: "Mohammed Eid",
-    patientId: "CARD-00512",
-    age: 71,
-    gender: "M",
-    procedureName: "MVR — Mitral Valve Repair",
-    riskScore: "EuroSCORE II: 6.8%",
-    location: "Cardiac OR-2",
-    riskTags: ["Shah Scale: High"],
-    duration: "3h",
-    status: "in-progress",
-    priority: "urgent",
-    teamStatus: "Running Late",
-    notes: "Extra hour added",
-  },
-  {
-    id: "op-4",
-    startTime: "16:30",
-    endTime: "18:00",
-    endTimeExpected: "18:00",
-    patientName: "Fatima Ali Hussein",
-    patientId: "CARD-00445",
-    age: 55,
-    gender: "F",
-    procedureName: "ICD — Defibrillator Implant",
-    riskScore: "EuroSCORE II: 1.9%",
-    location: "Cardiac OR-1",
-    riskTags: ["Shah Scale: Low"],
-    duration: "1h 30m",
-    status: "pending",
-    priority: "normal",
-    teamStatus: "Room Ready",
-  },
-  {
-    id: "op-5",
-    startTime: "18:30",
-    endTime: "21:30",
-    endTimeExpected: "21:30",
-    patientName: "Omar Samy Darwish",
-    patientId: "CARD-00601",
-    age: 67,
-    gender: "M",
-    procedureName: "CABG + AVR — Combined",
-    riskScore: "EuroSCORE II: 8.3%",
-    location: "Cardiac OR-2",
-    riskTags: ["Shah Scale: High"],
-    duration: "3h",
-    status: "pending",
-    priority: "emergency",
-    teamStatus: "Extra Time Needed",
-  },
-]
-
 const STATUS_CFG = {
   completed: { dot: "bg-[#1A5345]", badge: "bg-[#1A5345] text-white shadow-sm", border: "border-l-[#1A5345]", label: "Completed" },
   "in-progress": { dot: "bg-amber-600", badge: "bg-amber-600 text-white shadow-sm", border: "border-l-amber-600", label: "In progress" },
@@ -220,6 +122,11 @@ function ScheduleView() {
   const [selectedDate, setSelectedDate] = useState<Date>(today)
   const [weekOffset, setWeekOffset] = useState(0)
   const [viewMode, setViewMode] = useState<"list" | "timeline">("list")
+  const dateKey = formatDateKey(selectedDate)
+
+  const scheduleQuery = useAssistantProcedureSchedule(dateKey)
+
+  const scheduledOperations = scheduleQuery.data ?? []
 
   const days = useMemo(() => {
     const base = new Date(today)
@@ -228,11 +135,11 @@ function ScheduleView() {
   }, [weekOffset, today])
 
   const stats = useMemo(() => ({
-    total: SCHEDULED_OPERATIONS.length,
-    done: SCHEDULED_OPERATIONS.filter((o) => o.status === "completed").length,
-    active: SCHEDULED_OPERATIONS.filter((o) => o.status === "in-progress").length,
-    pending: SCHEDULED_OPERATIONS.filter((o) => o.status === "pending").length,
-  }), [])
+    total: scheduledOperations.length,
+    done: scheduledOperations.filter((o) => o.status === "completed").length,
+    active: scheduledOperations.filter((o) => o.status === "in-progress").length,
+    pending: scheduledOperations.filter((o) => o.status === "pending").length,
+  }), [scheduledOperations])
 
   const formattedDate = selectedDate.toLocaleDateString("en-US", {
     weekday: "long",
@@ -387,10 +294,14 @@ function ScheduleView() {
       {/* ── Content ── */}
       <div className="flex-1 overflow-auto">
         <div className="w-full">
-          {viewMode === "list" ? (
-            <ScheduleListView scheduledOperations={SCHEDULED_OPERATIONS} />
+          {scheduleQuery.isLoading ? (
+            <div className="flex flex-col items-center justify-center py-24">
+              <Loader2Icon className="size-8 animate-spin text-[#1A5345]" aria-hidden />
+            </div>
+          ) : viewMode === "list" ? (
+            <ScheduleListView scheduledOperations={scheduledOperations} />
           ) : (
-            <ScheduleTimelineView scheduledOperations={SCHEDULED_OPERATIONS} />
+            <ScheduleTimelineView scheduledOperations={scheduledOperations} />
           )}
         </div>
       </div>
@@ -434,11 +345,11 @@ function ScheduleListView({ scheduledOperations }: { scheduledOperations: Schedu
 
               {/* 3. Patient Info */}
               <div className="flex min-w-0 flex-1 items-center gap-4">
-                <div className="relative size-12 shrink-0 rounded-full border border-[#E8E6E0]/60 bg-[#F5F5F3] p-0.5">
-                  <img 
-                    src={pravatarAvatarUrl(op.patientId)} 
-                    alt="" 
-                    className="size-full rounded-full object-cover"
+                <div className="relative size-12 shrink-0 overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F5F5F3] p-0.5">
+                  <PatientAvatar
+                    name={op.patientName}
+                    avatarUrl={op.patientAvatarUrl}
+                    sizes="48px"
                   />
                 </div>
                 <div className="min-w-0 space-y-0.5">
@@ -603,11 +514,12 @@ function ScheduleTimelineView({ scheduledOperations }: { scheduledOperations: Sc
                     >
                       <div className="flex flex-col h-full">
                         <div className="flex items-start gap-2.5 mb-auto">
-                          <div className="size-8 shrink-0 rounded-full border border-black/5 overflow-hidden shadow-sm">
-                            <img 
-                              src={pravatarAvatarUrl(op.patientId)} 
-                              alt="" 
-                              className="size-full object-cover" 
+                          <div className="size-8 shrink-0 overflow-hidden rounded-full border border-black/5 shadow-sm">
+                            <PatientAvatar
+                              name={op.patientName}
+                              avatarUrl={op.patientAvatarUrl}
+                              sizes="32px"
+                              initialsClassName="text-[9px]"
                             />
                           </div>
                           <div className="min-w-0">

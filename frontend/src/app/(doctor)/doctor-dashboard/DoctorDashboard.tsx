@@ -10,6 +10,7 @@ import type {
   VitalSeverity,
 } from "./doctorDashboard.types"
 
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -37,15 +38,6 @@ import {
   UsersIcon,
   VideoIcon,
 } from "lucide-react"
-
-const workloadChartData = [
-  { date: "Mon", scheduled: 42, completed: 26 },
-  { date: "Tue", scheduled: 36, completed: 33 },
-  { date: "Wed", scheduled: 50, completed: 19 },
-  { date: "Thu", scheduled: 22, completed: 41 },
-  { date: "Fri", scheduled: 54, completed: 30 },
-  { date: "Sat", scheduled: 44, completed: 35 },
-]
 
 const workloadChartConfig = {
   scheduled: { label: "Scheduled", color: "#7BA393" },
@@ -152,11 +144,7 @@ function PatientCard({ patient }: { patient: DoctorPatient }) {
       className="group flex items-start gap-3 rounded-xl border border-[#E8E6E0]/60 bg-white p-3.5 transition-all hover:shadow-md"
     >
       <div className="size-9 shrink-0 overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F3F4F6]">
-        <img
-          src={`https://i.pravatar.cc/150?u=${encodeURIComponent(patient.fullName)}`}
-          alt=""
-          className="size-full object-cover"
-        />
+        <PatientAvatar name={patient.fullName} avatarUrl={patient.avatarUrl} sizes="36px" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
@@ -186,10 +174,10 @@ function AppointmentCard({ appt }: { appt: DoctorAppointment }) {
     <div className="group rounded-xl border border-[#E8E6E0]/60 bg-white p-3.5 transition-all hover:shadow-md">
       <div className="flex items-start gap-3">
         <div className="size-9 shrink-0 overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F3F4F6]">
-          <img
-            src={`https://i.pravatar.cc/150?u=${encodeURIComponent(appt.patientName)}`}
-            alt=""
-            className="size-full object-cover"
+          <PatientAvatar
+            name={appt.patientName}
+            avatarUrl={appt.patientAvatarUrl}
+            sizes="36px"
           />
         </div>
         <div className="min-w-0 flex-1">
@@ -208,14 +196,12 @@ function AppointmentCard({ appt }: { appt: DoctorAppointment }) {
             <span
               className={cn(
                 "rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest",
-                appt.status === "confirmed"
-                  ? "bg-emerald-50 text-emerald-700"
-                  : appt.status === "completed"
-                    ? "bg-blue-50 text-blue-700"
-                    : "bg-amber-50 text-amber-700",
+                appt.status === "completed"
+                  ? "bg-blue-50 text-blue-700"
+                  : "bg-amber-50 text-amber-700",
               )}
             >
-              {appt.status}
+              {appt.status === "confirmed" ? "scheduled" : appt.status}
             </span>
             <span className="flex items-center gap-1 font-bold text-[#1A5345]">
               {isVirtual ? <VideoIcon className="size-3" /> : <StethoscopeIcon className="size-3" />}
@@ -314,10 +300,11 @@ function DoctorDashboardContent({ data }: { data: DoctorDashboardData }) {
   ).length
 
   const chartData = React.useMemo(() => {
-    if (activeRange === "1D") return workloadChartData.slice(0, 1)
-    if (activeRange === "1M") return [...workloadChartData, ...workloadChartData]
-    return workloadChartData
-  }, [activeRange])
+    const base = data.weeklyWorkload
+    if (activeRange === "1D") return base.slice(0, 1)
+    if (activeRange === "1M") return [...base, ...base]
+    return base
+  }, [activeRange, data.weeklyWorkload])
 
   const utilizationRate = Math.min(
     100,
@@ -337,7 +324,7 @@ function DoctorDashboardContent({ data }: { data: DoctorDashboardData }) {
               detail={
                 <span className="flex items-center gap-1.5 text-emerald-700">
                   <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-                  {todayAppointments.filter((a) => a.status === "confirmed").length} confirmed
+                  {todayAppointments.filter((a) => a.status === "scheduled" || a.status === "confirmed").length} scheduled
                 </span>
               }
               icon={CalendarClockIcon}
@@ -381,7 +368,13 @@ function DoctorDashboardContent({ data }: { data: DoctorDashboardData }) {
               </div>
 
               <div className="grid gap-4">
-                {priorityAlerts.map((alert) => {
+                {priorityAlerts.length === 0 ? (
+                  <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-8 text-center text-muted-foreground">
+                    <AlertCircleIcon className="mx-auto mb-2 size-8 opacity-40" />
+                    <p className="text-[13px] font-bold">No priority alerts right now.</p>
+                  </div>
+                ) : (
+                  priorityAlerts.map((alert) => {
                   const tone = severityTone(alert.severity)
                   return (
                     <div
@@ -440,7 +433,8 @@ function DoctorDashboardContent({ data }: { data: DoctorDashboardData }) {
                       </div>
                     </div>
                   )
-                })}
+                })
+                )}
               </div>
             </div>
 

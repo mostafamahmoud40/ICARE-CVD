@@ -200,12 +200,12 @@ export type PatientCareGoal = {
 }
 
 export type ConsultationVitals = {
-  systolicBP: number
-  diastolicBP: number
-  heartRate: number
-  oxygenSaturation: number
-  temperature: number
-  weight: number
+  systolicBP: number | null
+  diastolicBP: number | null
+  heartRate: number | null
+  oxygenSaturation: number | null
+  temperature: number | null
+  weight: number | null
   bloodSugar: number | null
 }
 
@@ -222,6 +222,30 @@ export type Referral = {
   specialty: string
   reason: string
   urgency: "routine" | "urgent"
+}
+
+export type ConsultationReportAiStudy = {
+  id: string
+  modality: string
+  title: string
+  fileName: string | null
+  summary: string
+  details: string | null
+  createdAt: string
+}
+
+export type ConsultationReportSessionTestOrder = {
+  id: string
+  tests: string[]
+  priority: string
+  status: string
+  notes: string | null
+}
+
+export type ConsultationReportHomeMeasurement = {
+  metric: string
+  frequency: string
+  notes: string | null
 }
 
 export type ConsultationReport = {
@@ -242,8 +266,20 @@ export type ConsultationReport = {
   labOrders: string[]
   referrals: Referral[]
   plan: string
+  clinicalNotes: string
+  assessmentAndPlan: string
+  medicalHistorySummary: string
+  procedureDetailsSummary: string
+  homeMeasurements: ConsultationReportHomeMeasurement[]
+  sessionTestOrders: ConsultationReportSessionTestOrder[]
+  aiStudies: ConsultationReportAiStudy[]
   followUp: { timeframe: string; instructions: string }
   notes: string
+  patientInstructions: {
+    diagnosisSummary: string
+    lifestyleAdvice: string
+    dangerSigns: string
+  }
 }
 
 export type PatientFullRecord = {

@@ -1,10 +1,19 @@
 import type { MinioStorageCategory } from './minio.constants';
+import type { PatientDocumentCategory } from './minio-patient-path';
 
 export type MinioUploadIntentInput = {
   fileName: string;
   contentType: string;
   category: MinioStorageCategory;
-  conversationId: number;
+  /** Required for chat attachments when no patientNumber is set. */
+  conversationId?: number;
+  /** Patient UUID — kept for DB linkage in callers. */
+  patientId?: string;
+  /** Human-readable MRN (e.g. P-001) — used for object key paths. */
+  patientNumber?: string;
+  /** Doctor or assistant UUID — used for staff avatar paths. */
+  staffId?: string;
+  staffRole?: 'doctor' | 'assistant';
 };
 
 export type MinioUploadIntentResult = {
@@ -16,4 +25,12 @@ export type MinioUploadIntentResult = {
 
 export type MinioDownloadUrlInput = {
   key: string;
+};
+
+export type MinioDocumentUploadIntentInput = {
+  fileName: string;
+  contentType: string;
+  category: PatientDocumentCategory;
+  /** When omitted, files go under `registration/documents/` (e.g. signup flow). */
+  patientNumber?: string;
 };

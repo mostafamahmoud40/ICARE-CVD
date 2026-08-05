@@ -23,7 +23,7 @@ export function LoginForm({ submit, fieldErrors, isPending }: LoginFormProps) {
 
   const emailPasswordMap: Record<string, string> = {
     "admin@icare-cvd.local": "Admin123456",
-    "patient@gmail.com": "patient23@",
+    "haidiqadri9@gmail.com": "haidiqadri9",
     "doctor@gmail.com": "doctor@23",
     "assistant@gmail.com": "assistant@23",
   };
@@ -75,7 +75,7 @@ export function LoginForm({ submit, fieldErrors, isPending }: LoginFormProps) {
                 name="email"
                 type="email"
                 autoComplete="email"
-                list="email-suggestions"
+                list="login-email-suggestions"
                 placeholder="your@email.com"
                 value={email}
                 onChange={handleEmailChange}
@@ -84,10 +84,10 @@ export function LoginForm({ submit, fieldErrors, isPending }: LoginFormProps) {
                 disabled={isPending}
                 className="h-11 rounded-xl border-[#E8E6E0] bg-[#FAFAF8] pl-10 text-[14px] text-[#152a24] placeholder:text-muted-foreground/60 hover:border-[#d9e5e1] focus-visible:border-[#d9e5e1] focus-visible:ring-1 focus-visible:ring-[#1A5345]/30 focus-visible:ring-offset-0"
               />
-              <datalist id="email-suggestions">
+              <datalist id="login-email-suggestions">
                 <option value="assistant@gmail.com" />
                 <option value="doctor@gmail.com" />
-                <option value="patient@gmail.com" />
+                <option value="haidiqadri9@gmail.com" />
                 <option value="admin@icare-cvd.local" />
               </datalist>
             </div>

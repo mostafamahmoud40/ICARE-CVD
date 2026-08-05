@@ -2,9 +2,9 @@
 
 import { cn } from "@/lib/utils"
 import { CalendarDaysIcon } from "lucide-react"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import { PRIORITY_CONFIG } from "./assistantProcedures.config"
 import type { ProcedureOrder } from "./assistantProcedures.types"
-import Image from "next/image"
 
 type ProcedureOrderRowProps = {
   order: ProcedureOrder
@@ -30,11 +30,10 @@ export function ProcedureOrderRow({ order, isSelected, onSelect }: ProcedureOrde
       {/* Avatar */}
       <div className="relative shrink-0">
         <div className="relative size-10 overflow-hidden rounded-full border border-[#E8E6E0] bg-[#F5F5F3]">
-          <Image
-            src={`https://i.pravatar.cc/150?u=${order.patientId}`}
-            alt={order.patientName}
-            fill
-            className="object-cover"
+          <PatientAvatar
+            name={order.patientName}
+            avatarUrl={order.patientAvatarUrl}
+            sizes="40px"
           />
         </div>
         {priority === "emergency" && (

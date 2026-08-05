@@ -10,6 +10,15 @@ import {
 } from "lucide-react"
 
 import type { AssistantNotificationKind, AssistantNotificationMeta } from "./assistantNotifications.types"
+import type { NotificationListItemModel } from "@/components/shared/notifications/notification-list-item.types"
+
+const ICON_FIRST_KINDS = new Set<AssistantNotificationKind>([
+  "emergency",
+  "procedure",
+  "checklist",
+  "document",
+  "system",
+])
 
 const META: Record<AssistantNotificationKind, AssistantNotificationMeta> = {
   emergency: { icon: AlertTriangleIcon, accent: "#E11D48" },
@@ -39,4 +48,24 @@ export function formatAssistantNotificationTime(iso: string) {
   if (diffDays < 7) return `${diffDays}d ago`
 
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date)
+}
+
+export function toAssistantNotificationListItem(
+  notification: import("./assistantNotifications.types").AssistantNotification,
+): NotificationListItemModel {
+  const { icon, accent } = getAssistantNotificationMeta(notification.kind)
+  return {
+    id: notification.id,
+    title: notification.title,
+    body: notification.body,
+    createdAtLabel: formatAssistantNotificationTime(notification.createdAt),
+    read: notification.read,
+    href: notification.href,
+    useIconPresentation:
+      !notification.sender || ICON_FIRST_KINDS.has(notification.kind),
+    icon,
+    accent,
+    sender: notification.sender,
+    actions: notification.actions,
+  }
 }

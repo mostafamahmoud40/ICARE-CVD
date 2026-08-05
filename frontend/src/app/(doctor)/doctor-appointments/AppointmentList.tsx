@@ -1,6 +1,11 @@
 "use client"
 
 import type { DoctorAppointment } from "./doctorAppointments.types"
+import {
+  DISPLAY_STATUS_LABELS,
+  DISPLAY_STATUS_STYLES,
+  resolveAppointmentDisplayStatus,
+} from "./appointmentDisplayStatus"
 import { cn } from "@/lib/utils"
 import {
   CalendarDaysIcon,
@@ -10,6 +15,7 @@ import {
   ChevronRightIcon,
 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 
 function formatTimeOnly(iso: string) {
   return new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(new Date(iso))
@@ -23,29 +29,20 @@ function formatDateShort(iso: string) {
   }).format(new Date(iso))
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  scheduled: "border-0 bg-amber-500 text-white hover:bg-amber-500",
-  confirmed: "border-0 bg-blue-500 text-white hover:bg-blue-500",
-  completed: "border-0 bg-emerald-500 text-white hover:bg-emerald-500",
-  cancelled: "border-0 bg-rose-500 text-white hover:bg-rose-500",
-}
+const STATUS_STYLES = DISPLAY_STATUS_STYLES
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ appointment }: { appointment: DoctorAppointment }) {
+  const displayStatus = resolveAppointmentDisplayStatus(appointment)
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize",
-        STATUS_STYLES[status] ?? STATUS_STYLES.scheduled,
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+        STATUS_STYLES[displayStatus] ?? STATUS_STYLES.scheduled,
       )}
     >
-      {status}
+      {DISPLAY_STATUS_LABELS[displayStatus]}
     </span>
   )
-}
-
-function getAvatarUrl(name: string, id: string) {
-  const raw = (name || id || "x").replace(/\s+/g, "")
-  return `https://i.pravatar.cc/150?u=${encodeURIComponent(raw)}`
 }
 
 type AppointmentListProps = {
@@ -121,9 +118,14 @@ export function AppointmentList({
               ) : (
                 appointments.map((appointment) => {
                   const date = new Date(appointment.scheduledAt)
+                  const displayStatus = resolveAppointmentDisplayStatus(appointment)
                   const isVirtual = appointment.visitType === "virtual"
-                  const isCancelled = appointment.status === "cancelled"
-                  const isPast = date < new Date() && appointment.status !== "cancelled"
+                  const isCancelled = displayStatus === "cancelled" || displayStatus === "no-show"
+                  const isPast =
+                    date < new Date() &&
+                    displayStatus !== "cancelled" &&
+                    displayStatus !== "completed" &&
+                    displayStatus !== "no-show"
 
                   return (
                     <tr
@@ -138,10 +140,9 @@ export function AppointmentList({
                       <td className="py-3.5 pr-4 pl-6 align-middle">
                         <div className="flex items-center gap-3">
                           <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
-                            <img
-                              src={appointment.patient.avatar || getAvatarUrl(appointment.patient.name, appointment.patient.id)}
-                              alt=""
-                              className="size-full object-cover"
+                            <PatientAvatar
+                              name={appointment.patient.name}
+                              avatarUrl={appointment.patient.avatar}
                             />
                           </div>
                           <div className="min-w-0">
@@ -195,7 +196,7 @@ export function AppointmentList({
                         </div>
                       </td>
                       <td className="py-3.5 px-4 align-middle">
-                        <StatusBadge status={appointment.status} />
+                        <StatusBadge appointment={appointment} />
                       </td>
                       <td className="py-3.5 pl-4 pr-6 text-right align-middle">
                         <div className="flex justify-end">

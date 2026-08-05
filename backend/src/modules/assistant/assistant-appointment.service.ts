@@ -8,15 +8,28 @@ import { count, desc, eq, gte, lt, ne, and } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
-import { appointment, doctor, patient, user } from '../../database/schema';
+import {
+  appointment,
+  doctor,
+  patient,
+  patientQueue,
+  user,
+} from '../../database/schema';
 import type {
   CreateAssistantAppointmentDto,
   PatchAssistantAppointmentDto,
 } from './dto/create-appointment.dto';
 import { AppointmentService } from '../appointment/appointment.service';
 import { AppointmentPatientNotificationService } from '../appointment/appointment-patient-notification.service';
+import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
+import { findPatientByIdentifier } from '../../shared/patient/patient-identifier';
 
-type DoctorRow = { id: string; name: string; specialty: string | null; avatarUrl: string | null };
+type DoctorRow = {
+  id: string;
+  name: string;
+  specialty: string | null;
+  avatarUrl: string | null;
+};
 
 const doctorUser = alias(user, 'doctor_user');
 
@@ -26,6 +39,7 @@ export class AssistantAppointmentService {
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly appointmentService: AppointmentService,
     private readonly appointmentPatientNotifications: AppointmentPatientNotificationService,
+    private readonly avatarUrlResolver: AvatarUrlResolver,
   ) {}
 
   async getStats() {
@@ -63,6 +77,8 @@ export class AssistantAppointmentService {
   }
 
   async listAppointments() {
+    await this.appointmentService.autoMarkStaleNoShows();
+
     const rows = await this.db
       .select({
         id: appointment.id,
@@ -74,6 +90,7 @@ export class AssistantAppointmentService {
         notes: appointment.notes,
         createdAt: appointment.createdAt,
         patientId: appointment.patientId,
+        patientNumber: patient.patientNumber,
         patientName: user.name,
         patientPhone: user.phone,
         patientEmail: user.email,
@@ -84,48 +101,59 @@ export class AssistantAppointmentService {
         doctorId: doctor.id,
         doctorSpecialty: doctor.specialty,
         doctorAvatarUrl: doctorUser.avatarUrl,
+        queueId: patientQueue.id,
+        queueStatus: patientQueue.status,
       })
       .from(appointment)
       .innerJoin(patient, eq(appointment.patientId, patient.id))
       .innerJoin(user, eq(patient.userId, user.id))
       .innerJoin(doctor, eq(appointment.doctorId, doctor.id))
       .innerJoin(doctorUser, eq(doctor.userId, doctorUser.id))
+      .leftJoin(patientQueue, eq(patientQueue.appointmentId, appointment.id))
       .orderBy(desc(appointment.scheduledAt));
 
     const doctorIdSet = new Set(rows.map((r) => r.doctorId));
     const doctorNames = await this.batchDoctorNames([...doctorIdSet]);
 
-    return rows.map((row) => ({
-      id: row.id,
-      confirmationCode: row.confirmationCode,
-      patientId: row.patientId,
-      patientName: row.patientName,
-      patientPhone: row.patientPhone,
-      patientEmail: row.patientEmail,
-      patientAge: this.computeAge(row.patientDateOfBirth),
-      patientGender: row.patientGender,
-      patientAvatarUrl: this.resolveAvatarUrl(
-        row.patientAvatarUrl,
-        row.patientUserAvatarUrl,
-      ),
-      doctorId: row.doctorId,
-      doctorName: doctorNames.get(row.doctorId) ?? 'Unknown',
-      doctorAvatarUrl: this.resolveAvatarUrl(row.doctorAvatarUrl, null),
-      department: row.doctorSpecialty ?? 'Cardiology',
-      scheduledAt: row.scheduledAt.toISOString(),
-      visitType: row.visitType,
-      reason: row.reason,
-      notes: row.notes ?? null,
-      status: row.status,
-      createdAt: row.createdAt.toISOString(),
-    }));
+    return Promise.all(
+      rows.map(async (row) => ({
+        id: row.id,
+        confirmationCode: row.confirmationCode,
+        patientId: row.patientNumber,
+        patientName: row.patientName,
+        patientPhone: row.patientPhone,
+        patientEmail: row.patientEmail,
+        patientAge: this.computeAge(row.patientDateOfBirth),
+        patientGender: row.patientGender,
+        patientAvatarUrl: await this.resolveStoredAvatarUrl(
+          row.patientAvatarUrl,
+          row.patientUserAvatarUrl,
+        ),
+        doctorId: row.doctorId,
+        doctorName: doctorNames.get(row.doctorId) ?? 'Unknown',
+        doctorAvatarUrl: await this.resolveStoredAvatarUrl(
+          row.doctorAvatarUrl,
+          null,
+        ),
+        department: row.doctorSpecialty ?? 'Cardiology',
+        scheduledAt: row.scheduledAt.toISOString(),
+        visitType: row.visitType,
+        reason: row.reason,
+        notes: row.notes ?? null,
+        status: row.status,
+        createdAt: row.createdAt.toISOString(),
+        queueId: row.queueId ?? null,
+        queueStatus: row.queueStatus ?? null,
+      })),
+    );
   }
 
   async getAppointment(appointmentId: string) {
     const rows = await this.db
       .select({
         id: appointment.id,
-        patientId: appointment.patientId,
+        patientUuid: appointment.patientId,
+        patientNumber: patient.patientNumber,
         confirmationCode: appointment.confirmationCode,
         scheduledAt: appointment.scheduledAt,
         visitType: appointment.visitType,
@@ -145,12 +173,15 @@ export class AssistantAppointmentService {
         doctorId: doctor.id,
         doctorSpecialty: doctor.specialty,
         doctorAvatarUrl: doctorUser.avatarUrl,
+        queueId: patientQueue.id,
+        queueStatus: patientQueue.status,
       })
       .from(appointment)
       .innerJoin(patient, eq(appointment.patientId, patient.id))
       .innerJoin(user, eq(patient.userId, user.id))
       .innerJoin(doctor, eq(appointment.doctorId, doctor.id))
       .innerJoin(doctorUser, eq(doctor.userId, doctorUser.id))
+      .leftJoin(patientQueue, eq(patientQueue.appointmentId, appointment.id))
       .where(eq(appointment.id, appointmentId))
       .limit(1);
 
@@ -161,7 +192,7 @@ export class AssistantAppointmentService {
 
     return {
       id: a.id,
-      patientId: a.patientId,
+      patientId: a.patientNumber,
       doctorId: a.doctorId,
       confirmationCode: a.confirmationCode,
       patientName: a.patientName,
@@ -169,12 +200,15 @@ export class AssistantAppointmentService {
       patientEmail: a.patientEmail,
       patientAge: this.computeAge(a.patientDateOfBirth),
       patientGender: a.patientGender,
-      patientAvatarUrl: this.resolveAvatarUrl(
+      patientAvatarUrl: await this.resolveStoredAvatarUrl(
         a.patientAvatarUrl,
         a.patientUserAvatarUrl,
       ),
       doctorName: doctorNames.get(a.doctorId) ?? 'Unknown',
-      doctorAvatarUrl: this.resolveAvatarUrl(a.doctorAvatarUrl, null),
+      doctorAvatarUrl: await this.resolveStoredAvatarUrl(
+        a.doctorAvatarUrl,
+        null,
+      ),
       department: a.doctorSpecialty ?? 'Cardiology',
       scheduledAt: a.scheduledAt.toISOString(),
       visitType: a.visitType,
@@ -184,6 +218,8 @@ export class AssistantAppointmentService {
       status: a.status,
       cancelledAt: a.cancelledAt?.toISOString() ?? null,
       createdAt: a.createdAt.toISOString(),
+      queueId: a.queueId ?? null,
+      queueStatus: a.queueStatus ?? null,
     };
   }
 
@@ -274,8 +310,7 @@ export class AssistantAppointmentService {
     const updates: Record<string, unknown> = {
       updatedAt: new Date(),
     };
-    if (dto.scheduledAt !== undefined)
-      updates.scheduledAt = nextScheduledAt;
+    if (dto.scheduledAt !== undefined) updates.scheduledAt = nextScheduledAt;
     if (dto.doctorId !== undefined) updates.doctorId = nextDoctorId;
     if (dto.visitType !== undefined) updates.visitType = dto.visitType;
     if (dto.reason !== undefined) updates.reason = dto.reason;
@@ -336,10 +371,7 @@ export class AssistantAppointmentService {
   }
 
   async createAppointment(dto: CreateAssistantAppointmentDto) {
-    const patientRow = await this.db.query.patient.findFirst({
-      where: eq(patient.id, dto.patientId),
-    });
-    if (!patientRow) throw new NotFoundException('Patient not found');
+    const patientRow = await findPatientByIdentifier(this.db, dto.patientId);
 
     const doctorRow = await this.db.query.doctor.findFirst({
       where: eq(doctor.id, dto.doctorId),
@@ -349,6 +381,9 @@ export class AssistantAppointmentService {
     const requestedAt = new Date(dto.scheduledAt);
     if (Number.isNaN(requestedAt.getTime())) {
       throw new BadRequestException('Invalid scheduledAt');
+    }
+    if (requestedAt.getTime() <= Date.now()) {
+      throw new BadRequestException('Cannot book a slot in the past');
     }
     const requestedDate = this.toDateOnly(requestedAt);
     const requestedTime = this.toHHMM(requestedAt);
@@ -394,7 +429,7 @@ export class AssistantAppointmentService {
       .insert(appointment)
       .values({
         confirmationCode: code,
-        patientId: dto.patientId,
+        patientId: patientRow.id,
         doctorId: dto.doctorId,
         scheduledAt: new Date(dto.scheduledAt),
         visitType: dto.visitType,
@@ -454,30 +489,37 @@ export class AssistantAppointmentService {
   async listPatients() {
     const rows = await this.db
       .select({
-        id: patient.id,
+        id: patient.patientNumber,
         name: user.name,
         phone: user.phone,
         patientAvatarUrl: patient.avatarUrl,
+        patientNumber: patient.patientNumber,
         userAvatarUrl: user.avatarUrl,
       })
       .from(patient)
       .innerJoin(user, eq(patient.userId, user.id))
       .where(eq(user.role, 'patient'));
 
-    return rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      phone: row.phone,
-      avatarUrl: this.resolveAvatarUrl(row.patientAvatarUrl, row.userAvatarUrl),
-    }));
+    return Promise.all(
+      rows.map(async (row) => ({
+        id: row.id,
+        name: row.name,
+        phone: row.phone,
+        avatarUrl: await this.resolveStoredAvatarUrl(
+          row.patientAvatarUrl,
+          row.userAvatarUrl,
+        ),
+      })),
+    );
   }
 
-  private resolveAvatarUrl(
+  private async resolveStoredAvatarUrl(
     primary: string | null | undefined,
     fallback: string | null | undefined,
-  ): string | null {
-    const value = primary?.trim() || fallback?.trim() || null;
-    return value || null;
+  ): Promise<string | null> {
+    const raw = primary?.trim() || fallback?.trim() || null;
+    if (!raw) return null;
+    return this.avatarUrlResolver.resolve(raw);
   }
 
   private async batchDoctorNames(

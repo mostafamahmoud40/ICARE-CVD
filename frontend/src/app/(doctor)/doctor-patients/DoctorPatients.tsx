@@ -15,9 +15,10 @@ import {
   ShieldAlertIcon,
   XIcon,
 } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -35,10 +36,6 @@ const riskConfig: Record<DoctorPatientsPagePatient["riskLevel"], { label: string
 function fmtShort(iso: string | null | undefined) {
   if (!iso) return "—"
   return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso))
-}
-
-function patientAvatarUrl(patient: DoctorPatientsPagePatient) {
-  return patient.profileImageUrl ?? `https://i.pravatar.cc/150?u=${encodeURIComponent(patient.id)}`
 }
 
 function calcAge(dob: string) {
@@ -85,18 +82,19 @@ function PatientCard({ patient }: { patient: DoctorPatientsPagePatient }) {
       <Card className="group relative h-full gap-0 overflow-hidden rounded-3xl border border-[#E8E6E0]/60 bg-white py-0 shadow-sm ring-0 transition-all hover:border-[#A8C4BC]/60 hover:shadow-md">
         <CardContent className="flex h-full flex-col p-5">
           <div className="mb-4 flex w-full items-center justify-between gap-2">
-            <RiskBadge level={patient.riskLevel} />
             <span className="shrink-0 text-[10px] font-bold tracking-wide text-[#1A5345]/70 tabular-nums">
               {patientDisplayId(patient)}
             </span>
+            <RiskBadge level={patient.riskLevel} />
           </div>
 
           <div className="mb-4 flex flex-col items-center gap-2.5">
             <div className="relative size-16 overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF] shadow-sm">
-              <img
-                src={patientAvatarUrl(patient)}
-                alt=""
-                className="size-full object-cover"
+              <PatientAvatar
+                name={patient.fullName}
+                avatarUrl={patient.profileImageUrl}
+                sizes="64px"
+                initialsClassName="text-[18px]"
               />
             </div>
             <div className="flex flex-col items-center text-center">
@@ -161,7 +159,7 @@ function PatientListRow({ patient }: { patient: DoctorPatientsPagePatient }) {
       <td className="py-4 pl-4 pr-4">
         <Link href={`/doctor-patients/${patient.id}`} className="flex items-center gap-3">
           <div className="relative size-11 shrink-0 overflow-hidden rounded-full border border-[#E8E6E0] shadow-sm">
-            <img src={patientAvatarUrl(patient)} alt="" className="size-full object-cover" />
+            <PatientAvatar name={patient.fullName} avatarUrl={patient.profileImageUrl} />
           </div>
           <div className="min-w-0">
             <p className="truncate text-[14px] font-bold text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">

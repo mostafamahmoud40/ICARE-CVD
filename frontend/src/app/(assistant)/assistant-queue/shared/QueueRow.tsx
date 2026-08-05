@@ -8,13 +8,11 @@ import Image from "next/image"
 
 export function QueueRow({
   patient,
-  position,
   waitingTurn,
   isSelected,
   onSelect,
 }: {
   patient: QueuePatient
-  position: number
   waitingTurn?: number | null
   isSelected: boolean
   onSelect: () => void

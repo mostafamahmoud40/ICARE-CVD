@@ -78,10 +78,11 @@ export function AppointmentCalendarGrid({
             day={dayButtonProps.day}
             modifiers={dayButtonProps.modifiers}
             className={dayButtonProps.className}
-            children={dayButtonProps.children}
             onClick={dayButtonProps.onClick}
             disabled={dayButtonProps.disabled}
-          />
+          >
+            {dayButtonProps.children}
+          </CalendarDayWithDots>
         ),
       }}
       className="rounded-xl border border-[#E5EEEA] bg-white"

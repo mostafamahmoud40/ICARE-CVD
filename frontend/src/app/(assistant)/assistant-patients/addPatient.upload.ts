@@ -1,51 +1,42 @@
-import { apiClient } from "@/lib/api-client"
 import {
   studyKindToPayload,
   type StudyKind,
 } from "../assistant-queue/assistantQueue.documents.types"
+import { validatePatientAvatarFile } from "@/lib/uploads/avatar-validation"
+import {
+  uploadAvatarViaIntent,
+  uploadDocumentViaIntent,
+} from "@/lib/uploads/presigned-put"
 
-type UploadIntentResult = {
-  key: string
-  uploadUrl: string
-  publicUrl?: string
-  expiresIn: number
+export { validatePatientAvatarFile }
+
+export async function uploadPatientAvatar(
+  patientId: string,
+  file: File,
+): Promise<string> {
+  validatePatientAvatarFile(file)
+  return uploadAvatarViaIntent(
+    file,
+    `/assistant/patients/${patientId}/avatar/upload-intent`,
+    `/assistant/patients/${patientId}/avatar`,
+  )
 }
 
 export async function uploadAssistantPatientDocument(
-  patientUserId: number,
+  patientId: string,
   file: File,
   studyKind: StudyKind,
 ) {
-  const { intentCategory, registerCategory, title } = studyKindToPayload(studyKind, file.name)
-  const contentType = file.type || "application/octet-stream"
+  const { intentCategory, registerCategory, title } = studyKindToPayload(
+    studyKind,
+    file.name,
+  )
 
-  const intentRes = await apiClient.post<UploadIntentResult>("/documents/upload-intent", {
-    fileName: file.name,
-    contentType,
-    category: intentCategory,
-  })
-
-  const intent = intentRes.data
-
-  const putRes = await fetch(intent.uploadUrl, {
-    method: "PUT",
-    body: file,
-    headers: { "Content-Type": contentType },
-  })
-
-  if (!putRes.ok) {
-    const text = await putRes.text().catch(() => "")
-    throw new Error(
-      text || `File storage failed (${putRes.status}). Check S3 configuration and CORS.`,
-    )
-  }
-
-  await apiClient.post(`/assistant/patients/${patientUserId}/documents`, {
-    fileName: file.name,
-    contentType,
-    category: registerCategory,
-    title,
-    fileSize: file.size,
-    s3Key: intent.key,
-  })
+  await uploadDocumentViaIntent(
+    file,
+    "/documents/upload-intent",
+    `/assistant/patients/${patientId}/documents`,
+    { category: intentCategory },
+    { category: registerCategory, title },
+  )
 }

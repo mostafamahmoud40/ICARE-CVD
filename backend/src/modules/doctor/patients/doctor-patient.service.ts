@@ -1,4 +1,10 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, ne, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../../../database/drizzle.provider';
 import type { Database } from '../../../database/drizzle.provider';
@@ -20,12 +26,22 @@ import {
   patientCareGoal,
 } from '../../../database/schema';
 import { DoctorVerifierService } from '../../../shared/doctor/doctor-verifier.service';
+import { AvatarUrlResolver } from '../../../shared/storage/avatar-url.resolver';
+import { MinioService } from '../../../shared/storage/minio.service';
+import { PATIENT_AVATAR_MIME_TYPES } from '../../../shared/storage/minio.constants';
+import {
+  buildMinioObjectPrefix,
+  isPatientProfileStorageKey,
+} from '../../../shared/storage/minio-patient-path';
+import { findPatientByIdentifier } from '../../../shared/patient/patient-identifier';
 import type { UpdateDoctorPatientProfileDto } from './dto/update-doctor-patient-profile.dto';
 import type {
   CreatePatientCareGoalDto,
   CreatePatientClinicalNoteDto,
   UpdatePatientCareGoalDto,
 } from './dto/patient-profile-extras.dto';
+import type { CreatePatientAllergyDto } from './dto/patient-allergy.dto';
+import type { CreatePatientFamilyHistoryDto } from './dto/patient-family-history.dto';
 
 function toIsoString(value: Date | string | null | undefined): string | null {
   if (value == null) return null;
@@ -39,6 +55,8 @@ export class DoctorPatientService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly doctorVerifier: DoctorVerifierService,
+    private readonly avatarUrlResolver: AvatarUrlResolver,
+    private readonly minioService: MinioService,
   ) {}
 
   async listDoctorPatients(doctorUserId: number) {
@@ -48,7 +66,7 @@ export class DoctorPatientService {
 
     const rows = await this.db
       .select({
-        id: patient.id,
+        id: patient.patientNumber,
         fullName: user.name,
         dateOfBirth: patient.dateOfBirth,
         gender: patient.gender,
@@ -62,6 +80,7 @@ export class DoctorPatientService {
         occupation: patient.occupation,
         maritalStatus: patient.maritalStatus,
         nationalId: patient.nationalId,
+        patientNumber: patient.patientNumber,
         avatarUrl: patient.avatarUrl,
         patientSince: patient.createdAt,
         activeMedications: sql<number>`(
@@ -119,14 +138,17 @@ export class DoctorPatientService {
       .where(inArray(patient.id, patientIds))
       .orderBy(user.name);
 
-    return rows.map((r) => ({
-      ...r,
-      activeMedications: Number(r.activeMedications),
-      poorComplianceCount: Number(r.poorComplianceCount),
-      totalVisits: Number(r.totalVisits),
-      allergyCount: Number(r.allergyCount),
-      lastVisitDate: toIsoString(r.lastVisitDate),
-    }));
+    return Promise.all(
+      rows.map(async (r) => ({
+        ...r,
+        avatarUrl: await this.avatarUrlResolver.resolve(r.avatarUrl),
+        activeMedications: Number(r.activeMedications),
+        poorComplianceCount: Number(r.poorComplianceCount),
+        totalVisits: Number(r.totalVisits),
+        allergyCount: Number(r.allergyCount),
+        lastVisitDate: toIsoString(r.lastVisitDate),
+      })),
+    );
   }
 
   async getDoctorPatientStats(doctorUserId: number) {
@@ -162,14 +184,19 @@ export class DoctorPatientService {
     };
   }
 
-  async getPatientFullRecord(doctorUserId: number, patientId: string) {
+  async getPatientFullRecord(doctorUserId: number, patientIdentifier: string) {
     const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+    const resolvedPatient = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
+    const patientId = resolvedPatient.id;
 
     await this.verifyDoctorPatientAccess(doctorRow.id, patientId);
 
     const patientRow = await this.db
       .select({
-        id: patient.id,
+        id: patient.patientNumber,
         fullName: user.name,
         dateOfBirth: patient.dateOfBirth,
         gender: patient.gender,
@@ -183,6 +210,7 @@ export class DoctorPatientService {
         occupation: patient.occupation,
         maritalStatus: patient.maritalStatus,
         nationalId: patient.nationalId,
+        patientNumber: patient.patientNumber,
         avatarUrl: patient.avatarUrl,
         patientSince: patient.createdAt,
       })
@@ -309,6 +337,7 @@ export class DoctorPatientService {
     return {
       patient: {
         ...p,
+        avatarUrl: await this.avatarUrlResolver.resolve(p.avatarUrl),
         dateOfBirth: toIsoString(p.dateOfBirth) ?? String(p.dateOfBirth),
         patientSince: toIsoString(p.patientSince) ?? String(p.patientSince),
         allergies: allergies.map((a) => ({
@@ -389,10 +418,15 @@ export class DoctorPatientService {
 
   async updatePatientProfile(
     doctorUserId: number,
-    patientId: string,
+    patientIdentifier: string,
     dto: UpdateDoctorPatientProfileDto,
   ) {
     const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+    const resolvedPatient = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
+    const patientId = resolvedPatient.id;
     await this.verifyDoctorPatientAccess(doctorRow.id, patientId);
 
     const patientRow = await this.db.query.patient.findFirst({
@@ -423,22 +457,20 @@ export class DoctorPatientService {
 
     const userUpdate: Partial<typeof user.$inferInsert> = {};
     if (dto.fullName !== undefined) userUpdate.name = dto.fullName.trim();
-    if (dto.email !== undefined) userUpdate.email = dto.email.toLowerCase().trim();
+    if (dto.email !== undefined)
+      userUpdate.email = dto.email.toLowerCase().trim();
     if (dto.phone !== undefined) userUpdate.phone = dto.phone.trim() || null;
-
-    if (Object.keys(userUpdate).length > 0) {
-      await this.db
-        .update(user)
-        .set(userUpdate)
-        .where(eq(user.id, patientRow.userId));
-    }
 
     const patientUpdate: Partial<typeof patient.$inferInsert> = {};
     if (dto.address !== undefined) {
       patientUpdate.address = dto.address.trim() || null;
     }
     if (dto.avatarUrl !== undefined) {
-      patientUpdate.avatarUrl = dto.avatarUrl.trim() || null;
+      const normalizedAvatar = this.normalizePatientAvatarStorageValue(
+        dto.avatarUrl,
+      );
+      patientUpdate.avatarUrl = normalizedAvatar;
+      userUpdate.avatarUrl = normalizedAvatar;
     }
     if (dto.gender !== undefined) patientUpdate.gender = dto.gender;
     if (dto.bloodType !== undefined) {
@@ -457,6 +489,13 @@ export class DoctorPatientService {
       patientUpdate.smokingStatus = dto.smokingStatus || null;
     }
 
+    if (Object.keys(userUpdate).length > 0) {
+      await this.db
+        .update(user)
+        .set(userUpdate)
+        .where(eq(user.id, patientRow.userId));
+    }
+
     if (Object.keys(patientUpdate).length > 0) {
       await this.db
         .update(patient)
@@ -464,16 +503,115 @@ export class DoctorPatientService {
         .where(eq(patient.id, patientId));
     }
 
-    return this.getPatientFullRecord(doctorUserId, patientId);
+    return this.getPatientFullRecord(
+      doctorUserId,
+      resolvedPatient.patientNumber,
+    );
   }
 
-  async assignPatient(doctorUserId: number, patientId: string, notes?: string) {
+  private normalizePatientAvatarStorageValue(
+    avatarUrl: string | null | undefined,
+  ): string | null {
+    const trimmed = avatarUrl?.trim();
+    if (!trimmed) return null;
+
+    if (trimmed.startsWith('/avatars/')) {
+      return trimmed;
+    }
+
+    const extractedKey =
+      this.avatarUrlResolver.extractPatientAvatarKey(trimmed);
+    if (extractedKey && isPatientProfileStorageKey(extractedKey)) {
+      return extractedKey;
+    }
+
+    if (isPatientProfileStorageKey(trimmed)) {
+      return trimmed.split('?')[0] ?? trimmed;
+    }
+
+    throw new BadRequestException('Invalid profile photo reference');
+  }
+
+  async createPatientAvatarUploadIntent(
+    doctorUserId: number,
+    patientIdentifier: string,
+    fileName: string,
+    contentType: string,
+  ) {
     const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+    const resolvedPatient = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
+    await this.verifyDoctorPatientAccess(doctorRow.id, resolvedPatient.id);
+
+    const mimeType = contentType.trim().toLowerCase();
+    if (!PATIENT_AVATAR_MIME_TYPES.has(mimeType)) {
+      throw new BadRequestException('Unsupported profile photo file type');
+    }
+
+    return this.minioService.createUploadIntent({
+      fileName,
+      contentType: mimeType,
+      category: 'patient_avatar',
+      patientId: resolvedPatient.id,
+      patientNumber: resolvedPatient.patientNumber,
+    });
+  }
+
+  async setPatientAvatar(
+    doctorUserId: number,
+    patientIdentifier: string,
+    s3Key: string,
+  ) {
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+    const resolvedPatient = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
+    await this.verifyDoctorPatientAccess(doctorRow.id, resolvedPatient.id);
 
     const patientRow = await this.db.query.patient.findFirst({
-      where: eq(patient.id, patientId),
+      where: eq(patient.id, resolvedPatient.id),
     });
-    if (!patientRow) throw new NotFoundException('Patient not found');
+    if (!patientRow) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    const key = s3Key.trim();
+    const expectedPrefix = `${buildMinioObjectPrefix('patient_avatar', patientRow.patientNumber)}/`;
+    if (
+      !key.startsWith(expectedPrefix) &&
+      !isPatientProfileStorageKey(key, patientRow.patientNumber)
+    ) {
+      throw new BadRequestException('Invalid profile photo storage key');
+    }
+
+    await this.db
+      .update(user)
+      .set({ avatarUrl: key })
+      .where(eq(user.id, patientRow.userId));
+
+    await this.db
+      .update(patient)
+      .set({ avatarUrl: key })
+      .where(eq(patient.id, patientRow.id));
+
+    return { avatarUrl: await this.avatarUrlResolver.resolve(key) };
+  }
+
+  async assignPatient(
+    doctorUserId: number,
+    patientIdentifier: string,
+    notes?: string,
+  ) {
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+
+    const patientRow = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
+    const patientId = patientRow.id;
 
     const existing = await this.db.query.doctorPatient.findFirst({
       where: and(
@@ -513,13 +651,14 @@ export class DoctorPatientService {
     dto: CreatePatientClinicalNoteDto,
   ) {
     const doctorRow = await this.doctorVerifier.verify(doctorUserId);
-    await this.verifyDoctorPatientAccess(doctorRow.id, patientId);
+    const patientUuid = await this.resolvePatientUuid(patientId);
+    await this.verifyDoctorPatientAccess(doctorRow.id, patientUuid);
 
     const body = dto.body.trim();
     const [note] = await this.db
       .insert(patientClinicalNote)
       .values({
-        patientId,
+        patientId: patientUuid,
         authorUserId: doctorUserId,
         body,
       })
@@ -544,12 +683,13 @@ export class DoctorPatientService {
     noteId: string,
   ) {
     const doctorRow = await this.doctorVerifier.verify(doctorUserId);
-    await this.verifyDoctorPatientAccess(doctorRow.id, patientId);
+    const patientUuid = await this.resolvePatientUuid(patientId);
+    await this.verifyDoctorPatientAccess(doctorRow.id, patientUuid);
 
     const existing = await this.db.query.patientClinicalNote.findFirst({
       where: and(
         eq(patientClinicalNote.id, noteId),
-        eq(patientClinicalNote.patientId, patientId),
+        eq(patientClinicalNote.patientId, patientUuid),
       ),
     });
     if (!existing) throw new NotFoundException('Clinical note not found');
@@ -567,12 +707,13 @@ export class DoctorPatientService {
     dto: CreatePatientCareGoalDto,
   ) {
     const doctorRow = await this.doctorVerifier.verify(doctorUserId);
-    await this.verifyDoctorPatientAccess(doctorRow.id, patientId);
+    const patientUuid = await this.resolvePatientUuid(patientId);
+    await this.verifyDoctorPatientAccess(doctorRow.id, patientUuid);
 
     const [goal] = await this.db
       .insert(patientCareGoal)
       .values({
-        patientId,
+        patientId: patientUuid,
         createdByUserId: doctorUserId,
         metric: dto.metric.trim(),
         target: dto.target.trim(),
@@ -599,12 +740,13 @@ export class DoctorPatientService {
     dto: UpdatePatientCareGoalDto,
   ) {
     const doctorRow = await this.doctorVerifier.verify(doctorUserId);
-    await this.verifyDoctorPatientAccess(doctorRow.id, patientId);
+    const patientUuid = await this.resolvePatientUuid(patientId);
+    await this.verifyDoctorPatientAccess(doctorRow.id, patientUuid);
 
     const existing = await this.db.query.patientCareGoal.findFirst({
       where: and(
         eq(patientCareGoal.id, goalId),
-        eq(patientCareGoal.patientId, patientId),
+        eq(patientCareGoal.patientId, patientUuid),
       ),
     });
     if (!existing) throw new NotFoundException('Care goal not found');
@@ -641,17 +783,140 @@ export class DoctorPatientService {
     goalId: string,
   ) {
     const doctorRow = await this.doctorVerifier.verify(doctorUserId);
-    await this.verifyDoctorPatientAccess(doctorRow.id, patientId);
+    const patientUuid = await this.resolvePatientUuid(patientId);
+    await this.verifyDoctorPatientAccess(doctorRow.id, patientUuid);
 
     const existing = await this.db.query.patientCareGoal.findFirst({
       where: and(
         eq(patientCareGoal.id, goalId),
-        eq(patientCareGoal.patientId, patientId),
+        eq(patientCareGoal.patientId, patientUuid),
       ),
     });
     if (!existing) throw new NotFoundException('Care goal not found');
 
     await this.db.delete(patientCareGoal).where(eq(patientCareGoal.id, goalId));
+
+    return { success: true };
+  }
+
+  async createPatientAllergy(
+    doctorUserId: number,
+    patientId: string,
+    dto: CreatePatientAllergyDto,
+  ) {
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+    const patientUuid = await this.resolvePatientUuid(patientId);
+    await this.verifyDoctorPatientAccess(doctorRow.id, patientUuid);
+
+    const patientRow = await this.db.query.patient.findFirst({
+      where: eq(patient.id, patientUuid),
+    });
+    if (!patientRow) throw new NotFoundException('Patient not found');
+
+    const [created] = await this.db
+      .insert(allergy)
+      .values({
+        userId: patientRow.userId,
+        category: dto.category,
+        allergen: dto.allergen.trim(),
+        reaction: dto.reaction?.trim() || null,
+      })
+      .returning();
+
+    return {
+      id: created.id,
+      category: created.category,
+      allergen: created.allergen,
+      reaction: created.reaction ?? '',
+    };
+  }
+
+  async deletePatientAllergy(
+    doctorUserId: number,
+    patientId: string,
+    allergyId: string,
+  ) {
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+    const patientUuid = await this.resolvePatientUuid(patientId);
+    await this.verifyDoctorPatientAccess(doctorRow.id, patientUuid);
+
+    const patientRow = await this.db.query.patient.findFirst({
+      where: eq(patient.id, patientUuid),
+    });
+    if (!patientRow) throw new NotFoundException('Patient not found');
+
+    const existing = await this.db.query.allergy.findFirst({
+      where: and(
+        eq(allergy.id, allergyId),
+        eq(allergy.userId, patientRow.userId),
+      ),
+    });
+    if (!existing) throw new NotFoundException('Allergy not found');
+
+    await this.db.delete(allergy).where(eq(allergy.id, allergyId));
+
+    return { success: true };
+  }
+
+  async createPatientFamilyHistory(
+    doctorUserId: number,
+    patientId: string,
+    dto: CreatePatientFamilyHistoryDto,
+  ) {
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+    const patientUuid = await this.resolvePatientUuid(patientId);
+    await this.verifyDoctorPatientAccess(doctorRow.id, patientUuid);
+
+    const patientRow = await this.db.query.patient.findFirst({
+      where: eq(patient.id, patientUuid),
+    });
+    if (!patientRow) throw new NotFoundException('Patient not found');
+
+    const [created] = await this.db
+      .insert(familyHistory)
+      .values({
+        userId: patientRow.userId,
+        hasFamilyHistory: true,
+        relationship: dto.relationship.trim(),
+        condition: dto.condition.trim(),
+        details: dto.details?.trim() || null,
+      })
+      .returning();
+
+    return {
+      id: created.id,
+      relationship: created.relationship,
+      condition: created.condition,
+      details: created.details ?? '',
+    };
+  }
+
+  async deletePatientFamilyHistory(
+    doctorUserId: number,
+    patientId: string,
+    familyHistoryId: string,
+  ) {
+    const doctorRow = await this.doctorVerifier.verify(doctorUserId);
+    const patientUuid = await this.resolvePatientUuid(patientId);
+    await this.verifyDoctorPatientAccess(doctorRow.id, patientUuid);
+
+    const patientRow = await this.db.query.patient.findFirst({
+      where: eq(patient.id, patientUuid),
+    });
+    if (!patientRow) throw new NotFoundException('Patient not found');
+
+    const existing = await this.db.query.familyHistory.findFirst({
+      where: and(
+        eq(familyHistory.id, familyHistoryId),
+        eq(familyHistory.userId, patientRow.userId),
+      ),
+    });
+    if (!existing)
+      throw new NotFoundException('Family history entry not found');
+
+    await this.db
+      .delete(familyHistory)
+      .where(eq(familyHistory.id, familyHistoryId));
 
     return { success: true };
   }
@@ -689,29 +954,32 @@ export class DoctorPatientService {
   private async getAccessiblePatientIds(doctorId: string): Promise<string[]> {
     const [assigned, fromAppointments, fromConsultations, fromQueue] =
       await Promise.all([
-      this.db
-        .select({ patientId: doctorPatient.patientId })
-        .from(doctorPatient)
-        .where(
-          and(
-            eq(doctorPatient.doctorId, doctorId),
-            eq(doctorPatient.status, 'active'),
+        this.db
+          .select({ patientId: doctorPatient.patientId })
+          .from(doctorPatient)
+          .where(
+            and(
+              eq(doctorPatient.doctorId, doctorId),
+              eq(doctorPatient.status, 'active'),
+            ),
           ),
-        ),
-      this.db
-        .selectDistinct({ patientId: appointment.patientId })
-        .from(appointment)
-        .where(eq(appointment.doctorId, doctorId)),
-      this.db
-        .selectDistinct({ patientId: consultation.patientId })
-        .from(consultation)
-        .where(eq(consultation.doctorId, doctorId)),
-      this.db
-        .selectDistinct({ patientId: appointment.patientId })
-        .from(patientQueue)
-        .innerJoin(appointment, eq(patientQueue.appointmentId, appointment.id))
-        .where(eq(appointment.doctorId, doctorId)),
-    ]);
+        this.db
+          .selectDistinct({ patientId: appointment.patientId })
+          .from(appointment)
+          .where(eq(appointment.doctorId, doctorId)),
+        this.db
+          .selectDistinct({ patientId: consultation.patientId })
+          .from(consultation)
+          .where(eq(consultation.doctorId, doctorId)),
+        this.db
+          .selectDistinct({ patientId: appointment.patientId })
+          .from(patientQueue)
+          .innerJoin(
+            appointment,
+            eq(patientQueue.appointmentId, appointment.id),
+          )
+          .where(eq(appointment.doctorId, doctorId)),
+      ]);
 
     return [
       ...new Set([
@@ -723,9 +991,20 @@ export class DoctorPatientService {
     ];
   }
 
-  private async verifyDoctorPatientAccess(doctorId: string, patientId: string) {
+  private async resolvePatientUuid(patientIdentifier: string): Promise<string> {
+    const patientRow = await findPatientByIdentifier(
+      this.db,
+      patientIdentifier,
+    );
+    return patientRow.id;
+  }
+
+  private async verifyDoctorPatientAccess(
+    doctorId: string,
+    patientUuid: string,
+  ) {
     const accessibleIds = await this.getAccessiblePatientIds(doctorId);
-    if (!accessibleIds.includes(patientId)) {
+    if (!accessibleIds.includes(patientUuid)) {
       throw new NotFoundException(
         'Patient not found or not assigned to this doctor',
       );

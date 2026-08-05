@@ -10,6 +10,7 @@ import type { AuthUser } from "@/lib/auth-tokens"
 import {
   AlertTriangleIcon,
   BellIcon,
+  BotIcon,
   CalendarClockIcon,
   CalendarDaysIcon,
   ChevronDownIcon,
@@ -169,6 +170,12 @@ function DoctorLayoutContent({
       label: "Messages",
       icon: MessageCircleIcon,
       isActive: pathname.startsWith("/doctor-chat"),
+    },
+    {
+      href: "/doctor-ai-chat",
+      label: "AI Assistant",
+      icon: BotIcon,
+      isActive: pathname.startsWith("/doctor-ai-chat"),
     },
   ] as const
 

@@ -2,6 +2,7 @@
 
 import { PatientAiChat } from "./PatientAiChat"
 import { usePatientAiChat } from "./usePatientAiChat"
+import { usePatientAiChatContext } from "./usePatientAiChatContext"
 
 const SCROLLBAR_STYLE = `
 .custom-scrollbar::-webkit-scrollbar { width: 5px; }
@@ -17,6 +18,7 @@ const SCROLLBAR_STYLE = `
 
 export default function PatientAiChatPage() {
   const { messages, activeContactId, sendMessage, isAssistantTyping } = usePatientAiChat()
+  const { context, isLoading: isHealthContextLoading } = usePatientAiChatContext()
 
   return (
     <>
@@ -25,6 +27,8 @@ export default function PatientAiChatPage() {
         activeContactId={activeContactId}
         onSendMessage={sendMessage}
         isAssistantTyping={isAssistantTyping}
+        healthContext={context}
+        isHealthContextLoading={isHealthContextLoading}
       />
       <style dangerouslySetInnerHTML={{ __html: SCROLLBAR_STYLE }} />
     </>

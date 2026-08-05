@@ -1,22 +1,23 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, sql } from 'drizzle-orm';
+import { notifyPatientDataChanged } from '../../shared/patient-data-notifier';
 
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import {
   medication,
   doseLog,
-  medicationRefill,
   patient,
   user,
   doctor,
 } from '../../database/schema';
+import { AvatarUrlResolver } from '../../shared/storage/avatar-url.resolver';
+import { NotificationsService } from '../notifications/notifications.service';
 import type {
   CreateMedicationDto,
   UpdateMedicationDto,
@@ -24,7 +25,11 @@ import type {
 
 @Injectable()
 export class MedicationService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly avatarUrlResolver: AvatarUrlResolver,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   // ===================== PATIENT ENDPOINTS =====================
 
@@ -54,7 +59,9 @@ export class MedicationService {
       .from(medication)
       .leftJoin(doctor, eq(medication.prescribedBy, doctor.id))
       .leftJoin(user, eq(doctor.userId, user.id))
-      .where(eq(medication.userId, userId))
+      .where(
+        and(eq(medication.userId, userId), isNotNull(medication.prescribedBy)),
+      )
       .orderBy(desc(medication.createdAt));
 
     return rows.map((row) => ({
@@ -70,6 +77,7 @@ export class MedicationService {
       where: and(
         eq(medication.id, medicationId),
         eq(medication.userId, userId),
+        isNotNull(medication.prescribedBy),
       ),
     });
 
@@ -86,6 +94,7 @@ export class MedicationService {
       where: and(
         eq(medication.id, medicationId),
         eq(medication.userId, userId),
+        isNotNull(medication.prescribedBy),
       ),
     });
 
@@ -105,12 +114,56 @@ export class MedicationService {
     });
   }
 
+  /** Adherence record for medication detail dialog (last 30 days). */
+  async getMedicationAdherenceRecord(medicationId: string) {
+    const med = await this.db.query.medication.findFirst({
+      where: eq(medication.id, medicationId),
+    });
+
+    if (!med) {
+      throw new NotFoundException('Medication not found');
+    }
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const logs = await this.db.query.doseLog.findMany({
+      where: and(
+        eq(doseLog.medicationId, medicationId),
+        sql`${doseLog.takenAt} >= ${thirtyDaysAgo.toISOString()}`,
+      ),
+      orderBy: desc(doseLog.takenAt),
+    });
+
+    return {
+      medication: {
+        id: med.id,
+        name: med.name,
+        dose: med.dose,
+        frequency: med.frequency,
+        instructions: med.instructions,
+        timeOfDay: med.timeOfDay ?? [],
+        startDate: med.startDate ? String(med.startDate).slice(0, 10) : null,
+        adherencePercent: med.adherencePercent,
+      },
+      doseLogs: logs.map((log) => ({
+        id: log.id,
+        takenAt:
+          log.takenAt instanceof Date
+            ? log.takenAt.toISOString()
+            : String(log.takenAt),
+        skipped: log.skipped,
+      })),
+    };
+  }
+
   /** Patient marks a medication as taken or skipped. */
   async logDose(userId: number, medicationId: string, skipped: boolean) {
     const med = await this.db.query.medication.findFirst({
       where: and(
         eq(medication.id, medicationId),
         eq(medication.userId, userId),
+        isNotNull(medication.prescribedBy),
       ),
     });
 
@@ -132,7 +185,7 @@ export class MedicationService {
       .returning();
 
     // Update last taken and recalculate adherence
-    await this.recalculateAdherence(medicationId, userId);
+    await this.recalculateAdherence(medicationId);
 
     return log;
   }
@@ -156,6 +209,7 @@ export class MedicationService {
         fullName: user.name,
         dateOfBirth: patient.dateOfBirth,
         gender: patient.gender,
+        avatarUrl: patient.avatarUrl,
       })
       .from(patient)
       .innerJoin(user, eq(patient.userId, user.id))
@@ -179,20 +233,23 @@ export class MedicationService {
     const uuidToUserId = new Map(patientUserMap.map((p) => [p.id, p.userId]));
     const countMap = new Map(medCounts.map((c) => [c.userId, c]));
 
-    return patients.map((p) => {
-      const userId = uuidToUserId.get(p.id);
-      const counts = userId
-        ? (countMap.get(userId) ?? { activeCount: 0, poorComplianceCount: 0 })
-        : { activeCount: 0, poorComplianceCount: 0 };
-      return {
-        patientId: p.id,
-        fullName: p.fullName,
-        dateOfBirth: p.dateOfBirth,
-        gender: p.gender,
-        activeMedications: Number(counts.activeCount),
-        poorComplianceCount: Number(counts.poorComplianceCount),
-      };
-    });
+    return Promise.all(
+      patients.map(async (p) => {
+        const userId = uuidToUserId.get(p.id);
+        const counts = userId
+          ? (countMap.get(userId) ?? { activeCount: 0, poorComplianceCount: 0 })
+          : { activeCount: 0, poorComplianceCount: 0 };
+        return {
+          patientId: p.id,
+          fullName: p.fullName,
+          dateOfBirth: p.dateOfBirth,
+          gender: p.gender,
+          avatarUrl: await this.avatarUrlResolver.resolve(p.avatarUrl),
+          activeMedications: Number(counts.activeCount),
+          poorComplianceCount: Number(counts.poorComplianceCount),
+        };
+      }),
+    );
   }
 
   /** List all medications for a specific patient (doctor view). */
@@ -286,6 +343,25 @@ export class MedicationService {
       })
       .returning();
 
+    const [doctorUser] = await this.db
+      .select({ name: user.name })
+      .from(user)
+      .where(eq(user.id, doctorUserId))
+      .limit(1);
+
+    void this.notificationsService
+      .dispatch({
+        userId: patientUserId,
+        kind: 'prescription',
+        title: 'New prescription',
+        body: `Dr. ${doctorUser?.name ?? 'Your doctor'} prescribed ${newMed.name} ${newMed.dose}.`,
+        href: '/medications',
+        metadata: { medicationId: newMed.id, patientId },
+      })
+      .catch(() => undefined);
+
+    notifyPatientDataChanged(patientId, 'medication');
+
     return newMed;
   }
 
@@ -313,6 +389,10 @@ export class MedicationService {
       })
       .where(eq(medication.id, medicationId))
       .returning();
+
+    void this.db.query.patient
+      .findFirst({ where: eq(patient.userId, existing.userId) })
+      .then((p) => p && notifyPatientDataChanged(p.id, 'medication'));
 
     return updated;
   }
@@ -350,6 +430,10 @@ export class MedicationService {
       .set(updates)
       .where(eq(medication.id, medicationId))
       .returning();
+
+    void this.db.query.patient
+      .findFirst({ where: eq(patient.userId, existing.userId) })
+      .then((p) => p && notifyPatientDataChanged(p.id, 'medication'));
 
     return updated;
   }
@@ -406,7 +490,7 @@ export class MedicationService {
     return doctorRow;
   }
 
-  private async recalculateAdherence(medicationId: string, _userId: number) {
+  private async recalculateAdherence(medicationId: string) {
     // Calculate adherence over the last 7 days
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);

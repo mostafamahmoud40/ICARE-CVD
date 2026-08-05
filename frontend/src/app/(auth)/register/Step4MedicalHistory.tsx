@@ -976,13 +976,6 @@ export function Step4MedicalHistory({
   onNext,
 }: Step4MedicalHistoryProps) {
   const familySaveResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [newMedication, setNewMedication] = useState({
-    name: "",
-    dose: "",
-    frequency: "",
-    type: "",
-    category: "",
-  });
   useEffect(() => {
     return () => {
       if (familySaveResetRef.current) clearTimeout(familySaveResetRef.current);
@@ -1038,27 +1031,6 @@ export function Step4MedicalHistory({
   };
 
   const hpiB = { v, arr, setField, toggleArray };
-  const addFamilyMember = () => {
-    const family = arr<FamilyMember>("familyHistory");
-    setField("familyHistory", [
-      ...family,
-      { id: crypto.randomUUID(), relationship: "", condition: "", details: "", hasCondition: true, ageAtDiagnosis: "" },
-    ]);
-  };
-  const removeFamilyMember = (id: string) => {
-    setField(
-      "familyHistory",
-      arr<FamilyMember>("familyHistory").filter((member) => member.id !== id)
-    );
-  };
-  const updateFamily = (id: string, field: string, value: string | boolean) => {
-    setField(
-      "familyHistory",
-      arr<FamilyMember>("familyHistory").map((member) =>
-        member.id === id ? { ...member, [field]: value } : member
-      )
-    );
-  };
 
   // remove unused familySaveResetRef usage
   void familySaveResetRef;

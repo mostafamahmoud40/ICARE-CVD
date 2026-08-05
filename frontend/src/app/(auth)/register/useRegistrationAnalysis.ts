@@ -3,12 +3,11 @@
 import { useEffect, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-import type { RegisterMedicalValues, RegisterProfileValues, RegisterValues } from "./register.types";
+import type { RegisterProfileValues, RegisterValues } from "./register.types";
 
 type RegistrationAnalysisInput = {
   accountValues: RegisterValues;
   profileValues: RegisterProfileValues;
-  medicalValues: RegisterMedicalValues;
 };
 
 type RegistrationAnalyzeRequest = {
@@ -31,10 +30,6 @@ type RegistrationAnalyzeRequest = {
   medical: {
     chiefComplaint: string;
     otherComplaint: string;
-    hpiData?: Record<string, unknown>;
-    pastCardiacHistory?: Record<string, unknown>;
-    pastNonCardiacHistory?: Record<string, unknown>;
-    cardiovascularRiskFactors?: Record<string, unknown>;
   };
 };
 
@@ -51,13 +46,6 @@ export type UseRegistrationAnalysisOptions = {
   /** When true (e.g. review step), the first non-empty analysis is POSTed to persist text + embedding server-side. */
   persistToPatientRecord?: boolean;
 };
-
-function toRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-  return value as Record<string, unknown>;
-}
 
 function buildRequest(input: RegistrationAnalysisInput): RegistrationAnalyzeRequest {
   return {
@@ -78,12 +66,8 @@ function buildRequest(input: RegistrationAnalysisInput): RegistrationAnalyzeRequ
       weightKg: input.profileValues.weightKg,
     },
     medical: {
-      chiefComplaint: typeof input.medicalValues.chiefComplaint === "string" ? input.medicalValues.chiefComplaint : "",
-      otherComplaint: typeof input.medicalValues.otherComplaint === "string" ? input.medicalValues.otherComplaint : "",
-      hpiData: toRecord(input.medicalValues.hpiData),
-      pastCardiacHistory: toRecord(input.medicalValues.pastCardiacHistory),
-      pastNonCardiacHistory: toRecord(input.medicalValues.pastNonCardiacHistory),
-      cardiovascularRiskFactors: toRecord(input.medicalValues.cardiovascularRiskFactors),
+      chiefComplaint: "",
+      otherComplaint: "",
     },
   };
 }

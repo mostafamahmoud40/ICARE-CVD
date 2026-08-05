@@ -1,26 +1,19 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
-import { AccessTokenGuard } from '../auth/access-token.guard';
-import { AuthJwtService } from '../auth/jwt';
-import { PatientGuard } from '../patient/patient.guard';
-import { DoctorGuard } from '../doctor/doctor.guard';
 import { MedicationService } from './medication.service';
 import { PatientMedicationController } from './patient-medication.controller';
 import { DoctorMedicationController } from './doctor-medication.controller';
+import { AssistantMedicationController } from './assistant-medication.controller';
+import { AssistantMedicationService } from './assistant-medication.service';
+import { MinioModule } from '../../shared/storage/minio.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [
-    JwtModule.register({
-      secret: process.env.JWT_ACCESS_SECRET,
-    }),
+  imports: [MinioModule, NotificationsModule],
+  controllers: [
+    PatientMedicationController,
+    DoctorMedicationController,
+    AssistantMedicationController,
   ],
-  controllers: [PatientMedicationController, DoctorMedicationController],
-  providers: [
-    MedicationService,
-    PatientGuard,
-    DoctorGuard,
-    AuthJwtService,
-    AccessTokenGuard,
-  ],
+  providers: [MedicationService, AssistantMedicationService],
 })
 export class MedicationModule {}

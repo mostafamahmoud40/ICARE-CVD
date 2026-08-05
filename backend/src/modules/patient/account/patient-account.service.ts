@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -9,11 +10,22 @@ import { eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../../database/drizzle.provider';
 import type { Database } from '../../../database/drizzle.provider';
 import { patient, user } from '../../../database/schema';
+import { AvatarUrlResolver } from '../../../shared/storage/avatar-url.resolver';
+import { MinioService } from '../../../shared/storage/minio.service';
+import { PATIENT_AVATAR_MIME_TYPES } from '../../../shared/storage/minio.constants';
+import {
+  buildMinioObjectPrefix,
+  isPatientProfileStorageKey,
+} from '../../../shared/storage/minio-patient-path';
 import { UpdatePatientAccountDto } from './dto/update-patient-account.dto';
 
 @Injectable()
 export class PatientAccountService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly minioService: MinioService,
+    private readonly avatarUrlResolver: AvatarUrlResolver,
+  ) {}
 
   async getAccount(userId: number) {
     const patientRow = await this.findPatientByUserId(userId);
@@ -50,7 +62,8 @@ export class PatientAccountService {
 
     const userUpdate: Partial<typeof user.$inferInsert> = {};
     if (dto.fullName !== undefined) userUpdate.name = dto.fullName.trim();
-    if (dto.email !== undefined) userUpdate.email = dto.email.toLowerCase().trim();
+    if (dto.email !== undefined)
+      userUpdate.email = dto.email.toLowerCase().trim();
     if (dto.phone !== undefined) userUpdate.phone = dto.phone.trim() || null;
     if (dto.avatarUrl !== undefined) {
       userUpdate.avatarUrl = dto.avatarUrl.trim() || null;
@@ -82,6 +95,50 @@ export class PatientAccountService {
     }
 
     return this.getAccount(userId);
+  }
+
+  async createAvatarUploadIntent(
+    userId: number,
+    fileName: string,
+    contentType: string,
+  ) {
+    const patientRow = await this.findPatientByUserId(userId);
+    const mimeType = contentType.trim().toLowerCase();
+    if (!PATIENT_AVATAR_MIME_TYPES.has(mimeType)) {
+      throw new BadRequestException('Unsupported profile photo file type');
+    }
+
+    return this.minioService.createUploadIntent({
+      fileName,
+      contentType: mimeType,
+      category: 'patient_avatar',
+      patientId: patientRow.id,
+      patientNumber: patientRow.patientNumber,
+    });
+  }
+
+  async setAvatar(userId: number, s3Key: string) {
+    const patientRow = await this.findPatientByUserId(userId);
+    const key = s3Key.trim();
+    const expectedPrefix = `${buildMinioObjectPrefix('patient_avatar', patientRow.patientNumber)}/`;
+    if (
+      !key.startsWith(expectedPrefix) &&
+      !isPatientProfileStorageKey(key, patientRow.patientNumber)
+    ) {
+      throw new BadRequestException('Invalid profile photo storage key');
+    }
+
+    await this.db
+      .update(user)
+      .set({ avatarUrl: key })
+      .where(eq(user.id, userId));
+
+    await this.db
+      .update(patient)
+      .set({ avatarUrl: key })
+      .where(eq(patient.id, patientRow.id));
+
+    return { avatarUrl: await this.avatarUrlResolver.resolve(key) };
   }
 
   private async findPatientByUserId(userId: number) {
@@ -129,7 +186,10 @@ export class PatientAccountService {
     const today = new Date();
     let age = today.getFullYear() - dob.getFullYear();
     const monthDelta = today.getMonth() - dob.getMonth();
-    if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < dob.getDate())) {
+    if (
+      monthDelta < 0 ||
+      (monthDelta === 0 && today.getDate() < dob.getDate())
+    ) {
       age -= 1;
     }
     return age;

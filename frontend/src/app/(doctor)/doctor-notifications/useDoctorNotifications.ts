@@ -5,11 +5,11 @@ import { useEffect, useSyncExternalStore } from "react"
 import {
   fetchNotifications,
   markAllNotificationsRead as markAllNotificationsReadApi,
+  markNotificationRead as markNotificationReadApi,
 } from "@/lib/notifications/notifications.api"
-import { getDoctorNotificationsMock } from "./doctorNotifications.mock"
-import type { DoctorNotification } from "./doctorNotifications.types"
+import type { DoctorNotification, DoctorNotificationKind } from "./doctorNotifications.types"
 
-let notifications: DoctorNotification[] = getDoctorNotificationsMock()
+let notifications: DoctorNotification[] = []
 let hydratedFromApi = false
 
 const listeners = new Set<() => void>()
@@ -27,13 +27,12 @@ export function getDoctorNotificationsSnapshot() {
   return notifications
 }
 
-const doctorNotificationsServerSnapshot = getDoctorNotificationsMock()
-
 export function getDoctorNotificationsServerSnapshot() {
-  return doctorNotificationsServerSnapshot
+  return notifications
 }
 
 export function prependRealtimeNotification(item: DoctorNotification) {
+  if (!item.id) return
   if (notifications.some((n) => n.id === item.id)) return
   notifications = [item, ...notifications]
   emit()
@@ -55,6 +54,10 @@ export function markDoctorNotificationRead(id: string) {
     notification.id === id ? { ...notification, read: true } : notification,
   )
   emit()
+
+  if (isLiveNotificationId(id)) {
+    void markNotificationReadApi(id).catch(() => undefined)
+  }
 }
 
 export function resolveDoctorNotificationAction(notificationId: string, actionId: string) {
@@ -71,6 +74,27 @@ export function resolveDoctorNotificationAction(notificationId: string, actionId
   return { notificationId, actionId }
 }
 
+const DOCTOR_KINDS: DoctorNotificationKind[] = [
+  "queue",
+  "lab_result",
+  "archive_request",
+  "appointment",
+  "vitals_alert",
+  "prescription",
+  "ai_insight",
+  "system",
+  "medication_flag",
+  "message",
+]
+
+function mapKind(kind: string): DoctorNotificationKind {
+  if (DOCTOR_KINDS.includes(kind as DoctorNotificationKind)) {
+    return kind as DoctorNotificationKind
+  }
+  if (kind === "procedure" || kind === "consultation") return "system"
+  return "system"
+}
+
 function mapApiNotification(row: {
   id: string
   kind: string
@@ -82,13 +106,17 @@ function mapApiNotification(row: {
 }): DoctorNotification {
   return {
     id: row.id,
-    kind: (row.kind as DoctorNotification["kind"]) ?? "system",
+    kind: mapKind(row.kind),
     title: row.title,
     body: row.body,
     href: row.href,
     createdAt: row.createdAt,
     read: row.read,
   }
+}
+
+function isLiveNotificationId(id: string) {
+  return /^\d+$/.test(id)
 }
 
 async function hydrateFromApi() {
@@ -99,12 +127,10 @@ async function hydrateFromApi() {
 export async function refreshDoctorNotificationsFromApi() {
   try {
     const rows = await fetchNotifications()
-    if (rows.length > 0) {
-      notifications = rows.map(mapApiNotification)
-      emit()
-    }
+    notifications = rows.map(mapApiNotification)
+    emit()
   } catch {
-    /* keep mock seed when API unavailable */
+    /* keep current list when API unavailable */
   } finally {
     hydratedFromApi = true
   }

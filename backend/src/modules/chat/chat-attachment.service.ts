@@ -5,9 +5,9 @@ import {
   CHAT_FILE_MIME_TYPES,
   CHAT_IMAGE_MAX_BYTES,
   CHAT_IMAGE_MIME_TYPES,
-  MINIO_CATEGORY_PREFIX,
   type MinioStorageCategory,
 } from '../../shared/storage/minio.constants';
+import { isMinioKeyForCategory } from '../../shared/storage/minio-patient-path';
 import { MinioService } from '../../shared/storage/minio.service';
 import type { ChatUploadIntentDto } from './dto/send-message.dto';
 
@@ -15,7 +15,11 @@ import type { ChatUploadIntentDto } from './dto/send-message.dto';
 export class ChatAttachmentService {
   constructor(private readonly minioService: MinioService) {}
 
-  async createUploadIntent(conversationId: number, dto: ChatUploadIntentDto) {
+  async createUploadIntent(
+    conversationId: number,
+    dto: ChatUploadIntentDto,
+    patientNumber?: string,
+  ) {
     const contentType = dto.contentType.trim().toLowerCase();
     const category = this.resolveCategory(dto.attachmentType, contentType);
 
@@ -24,6 +28,7 @@ export class ChatAttachmentService {
       contentType,
       category,
       conversationId,
+      patientNumber,
     });
   }
 
@@ -42,21 +47,24 @@ export class ChatAttachmentService {
   validateUploadedAttachment(
     conversationId: number,
     input: {
-    attachmentType: 'image' | 'file';
-    mimeType: string;
-    sizeBytes: number;
-    s3Key: string;
-  },
+      attachmentType: 'image' | 'file';
+      mimeType: string;
+      sizeBytes: number;
+      s3Key: string;
+    },
+    patientNumber?: string,
   ) {
     const mimeType = input.mimeType.trim().toLowerCase();
     const category = this.resolveCategory(input.attachmentType, mimeType);
-    const expectedPrefix = `${buildChatConversationPrefix(conversationId, category)}/`;
-    const legacyPrefix = `${MINIO_CATEGORY_PREFIX[category]}/`;
 
-    if (
-      !input.s3Key.startsWith(expectedPrefix) &&
-      !input.s3Key.startsWith(legacyPrefix)
-    ) {
+    const validPatientKey =
+      patientNumber &&
+      isMinioKeyForCategory(input.s3Key, category, patientNumber);
+    const validLegacyConversationKey = input.s3Key.startsWith(
+      `${buildChatConversationPrefix(conversationId, category)}/`,
+    );
+
+    if (!validPatientKey && !validLegacyConversationKey) {
       throw new BadRequestException('Invalid attachment storage key');
     }
 

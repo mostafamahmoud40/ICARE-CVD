@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AccessTokenGuard } from '../../auth/access-token.guard';
 import { CurrentUser } from '../../auth/current-user.decorator';
 import type { TokenPayload } from '../../auth/jwt';
@@ -11,6 +20,12 @@ import {
   UpdatePatientCareGoalDto,
 } from './dto/patient-profile-extras.dto';
 import { UpdateDoctorPatientProfileDto } from './dto/update-doctor-patient-profile.dto';
+import { CreatePatientAllergyDto } from './dto/patient-allergy.dto';
+import { CreatePatientFamilyHistoryDto } from './dto/patient-family-history.dto';
+import {
+  PatientAvatarUploadIntentDto,
+  SetPatientAvatarDto,
+} from '../../assistant/dto/patient-avatar.dto';
 
 @Controller('doctor/patients')
 @UseGuards(AccessTokenGuard, DoctorGuard)
@@ -42,6 +57,29 @@ export class DoctorPatientController {
     @Body() dto: UpdateDoctorPatientProfileDto,
   ) {
     return this.service.updatePatientProfile(user.sub, patientId, dto);
+  }
+
+  @Post(':patientId/avatar/upload-intent')
+  createPatientAvatarUploadIntent(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Body() dto: PatientAvatarUploadIntentDto,
+  ) {
+    return this.service.createPatientAvatarUploadIntent(
+      user.sub,
+      patientId,
+      dto.fileName,
+      dto.contentType,
+    );
+  }
+
+  @Patch(':patientId/avatar')
+  setPatientAvatar(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Body() dto: SetPatientAvatarDto,
+  ) {
+    return this.service.setPatientAvatar(user.sub, patientId, dto.s3Key);
   }
 
   @Post(':patientId/assign')
@@ -97,5 +135,45 @@ export class DoctorPatientController {
     @Param('goalId') goalId: string,
   ) {
     return this.service.deleteCareGoal(user.sub, patientId, goalId);
+  }
+
+  @Post(':patientId/allergies')
+  createAllergy(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Body() dto: CreatePatientAllergyDto,
+  ) {
+    return this.service.createPatientAllergy(user.sub, patientId, dto);
+  }
+
+  @Delete(':patientId/allergies/:allergyId')
+  deleteAllergy(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Param('allergyId') allergyId: string,
+  ) {
+    return this.service.deletePatientAllergy(user.sub, patientId, allergyId);
+  }
+
+  @Post(':patientId/family-history')
+  createFamilyHistory(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Body() dto: CreatePatientFamilyHistoryDto,
+  ) {
+    return this.service.createPatientFamilyHistory(user.sub, patientId, dto);
+  }
+
+  @Delete(':patientId/family-history/:familyHistoryId')
+  deleteFamilyHistory(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Param('familyHistoryId') familyHistoryId: string,
+  ) {
+    return this.service.deletePatientFamilyHistory(
+      user.sub,
+      patientId,
+      familyHistoryId,
+    );
   }
 }

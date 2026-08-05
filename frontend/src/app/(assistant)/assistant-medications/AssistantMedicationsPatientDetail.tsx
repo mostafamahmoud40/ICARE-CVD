@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { PatientAvatar } from "@/components/shared/PatientAvatar";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
@@ -53,8 +53,6 @@ import {
   PatientMedicationsTableSection,
   type PastMedicationTableRow,
 } from "./PatientMedicationsTableSection";
-import { mapPastMedicationToRow } from "./assistantPatientMedications.mapper";
-import { MOCK_PAST_MEDICATIONS } from "../assistant-patients/[patientId]/assistantPatientProfile.mock";
 import { useAssistantMedications } from "./useAssistantMedications";
 import { FlagMedicationDialog } from "./FlagMedicationDialog";
 import { MedicationReminderDialog } from "./MedicationReminderDialog";
@@ -77,11 +75,14 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
 
   const [flagMedId, setFlagMedId] = useState<string | null>(null);
   const [editLine, setEditLine] = useState<MedicationLine | null>(null);
-  const [recordMedName, setRecordMedName] = useState<string | null>(null);
-  const [recordMedStrength, setRecordMedStrength] = useState<string | null>(null);
+  const [recordMedicationId, setRecordMedicationId] = useState<string | null>(null);
   const [recordMedType, setRecordMedType] = useState<MedicationLine["type"] | undefined>(undefined);
-  const [recordMedDosage, setRecordMedDosage] = useState<string | null>(null);
-  const [recordMedFrequency, setRecordMedFrequency] = useState<string | null>(null);
+  const [recordMedFallback, setRecordMedFallback] = useState<{
+    name: string;
+    strength?: string;
+    dosageInstructions?: string;
+    frequencyLabel?: string;
+  } | null>(null);
   const [reminderOpen, setReminderOpen] = useState(false);
   const [reminderMedSummary, setReminderMedSummary] = useState<string | null>(null);
   const [escalateOpen, setEscalateOpen] = useState(false);
@@ -90,24 +91,36 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
   const [medicationsTab, setMedicationsTab] = useState<"active" | "past">("active");
 
   const pastMedications = useMemo(
-    () => MOCK_PAST_MEDICATIONS.map(mapPastMedicationToRow),
-    [],
+    () =>
+      (vm.selectedProfile?.pastMedications ?? []).map((med) => ({
+        id: med.id,
+        name: med.name,
+        strength: med.strength,
+        dosageInstructions: med.dosageInstructions,
+        statusLabel: med.statusLabel,
+      })),
+    [vm.selectedProfile?.pastMedications],
   );
 
   const openMedRecord = (med: MedicationLine) => {
-    setRecordMedName(med.name);
-    setRecordMedStrength(med.strength);
+    setRecordMedicationId(med.id);
     setRecordMedType(med.type);
-    setRecordMedDosage(med.dosageInstructions);
-    setRecordMedFrequency(med.frequencyLabel);
+    setRecordMedFallback({
+      name: med.name,
+      strength: med.strength,
+      dosageInstructions: med.dosageInstructions,
+      frequencyLabel: med.frequencyLabel,
+    });
   };
 
   const openPastMedRecord = (row: PastMedicationTableRow) => {
-    setRecordMedName(row.name);
-    setRecordMedStrength(row.strength);
+    setRecordMedicationId(row.id);
     setRecordMedType("pill");
-    setRecordMedDosage(row.dosageInstructions);
-    setRecordMedFrequency("");
+    setRecordMedFallback({
+      name: row.name,
+      strength: row.strength,
+      dosageInstructions: row.dosageInstructions,
+    });
   };
 
   const flagMedication = useMemo(() => 
@@ -191,14 +204,12 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
               {/* Detail Header */}
               <div className="z-10 flex flex-wrap items-center justify-between gap-4 border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-8 py-6">
                  <div className="flex items-center gap-4">
-                    <div className="size-12 rounded-2xl bg-white flex items-center justify-center border border-[#E8E6E0]/60 overflow-hidden shadow-sm">
-                       <Image
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(vm.selectedProfile.fullName.replace(/\s+/g, ""))}`}
-                          alt=""
-                          width={48}
-                          height={48}
-                          unoptimized
-                          className="size-full object-cover"
+                    <div className="size-12 overflow-hidden rounded-2xl border border-[#E8E6E0]/60 bg-white shadow-sm">
+                       <PatientAvatar
+                          name={vm.selectedProfile.fullName}
+                          avatarUrl={vm.selectedProfile.avatarUrl}
+                          sizes="48px"
+                          initialsClassName="text-[14px]"
                        />
                     </div>
                     <div>
@@ -567,15 +578,21 @@ export function AssistantMedicationsPatientDetail({ patientId: patientIdFromRout
         />
       )}
 
-      {recordMedName && (
+      {recordMedicationId && (
         <MedicationRecordDialog
           open={true}
-          onOpenChange={(v) => !v && setRecordMedName(null)}
-          medicationName={recordMedName}
-          strength={recordMedStrength ?? undefined}
+          onOpenChange={(v) => {
+            if (!v) {
+              setRecordMedicationId(null);
+              setRecordMedFallback(null);
+            }
+          }}
+          medicationId={recordMedicationId}
+          medicationName={recordMedFallback?.name}
+          strength={recordMedFallback?.strength}
           type={recordMedType}
-          dosageInstructions={recordMedDosage ?? undefined}
-          frequencyLabel={recordMedFrequency ?? undefined}
+          dosageInstructions={recordMedFallback?.dosageInstructions}
+          frequencyLabel={recordMedFallback?.frequencyLabel}
         />
       )}
 

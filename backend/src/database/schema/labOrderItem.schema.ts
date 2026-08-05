@@ -1,11 +1,4 @@
-import {
-  integer,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-  varchar,
-} from 'drizzle-orm/pg-core';
+import { pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { labOrder } from './labOrder.schema';
 
 /** One ordered test within a lab order. */

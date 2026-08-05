@@ -12,6 +12,7 @@ export const DOCTOR_NOTIFICATION_KIND_LABELS: Record<DoctorNotificationKind, str
   ai_insight: "AI insights",
   system: "System",
   medication_flag: "Medication flags",
+  message: "Messages",
 }
 
 export const DOCTOR_NOTIFICATION_KIND_OPTIONS: {

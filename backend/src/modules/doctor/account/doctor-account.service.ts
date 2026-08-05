@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  BadRequestException,
   Inject,
   Injectable,
   NotFoundException,
@@ -10,6 +11,13 @@ import { DRIZZLE } from '../../../database/drizzle.provider';
 import type { Database } from '../../../database/drizzle.provider';
 import { appointment, doctor, user } from '../../../database/schema';
 import { DoctorVerifierService } from '../../../shared/doctor/doctor-verifier.service';
+import { AvatarUrlResolver } from '../../../shared/storage/avatar-url.resolver';
+import { MinioService } from '../../../shared/storage/minio.service';
+import { PATIENT_AVATAR_MIME_TYPES } from '../../../shared/storage/minio.constants';
+import {
+  buildStaffAvatarPrefix,
+  isStaffAvatarStorageKey,
+} from '../../../shared/storage/minio-staff-path';
 import { UpdateDoctorAccountDto } from './dto/update-doctor-account.dto';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'] as const;
@@ -19,6 +27,8 @@ export class DoctorAccountService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly doctorVerifier: DoctorVerifierService,
+    private readonly minioService: MinioService,
+    private readonly avatarUrlResolver: AvatarUrlResolver,
   ) {}
 
   async getAccount(userId: number) {
@@ -30,7 +40,7 @@ export class DoctorAccountService {
       throw new NotFoundException('User not found');
     }
 
-    const profile = this.mapProfile(doctorRow, userRow);
+    const profile = await this.mapProfile(doctorRow, userRow);
     const practiceStats = await this.getPracticeStats(doctorRow.id);
     const weeklySnapshot = await this.getWeeklySnapshot(doctorRow.id);
 
@@ -46,46 +56,151 @@ export class DoctorAccountService {
       throw new NotFoundException('User not found');
     }
 
-    const normalizedEmail = dto.email.toLowerCase().trim();
-    if (userRow.email !== normalizedEmail) {
-      const emailTaken = await this.db.query.user.findFirst({
-        where: eq(user.email, normalizedEmail),
-      });
-      if (emailTaken) {
-        throw new ConflictException('Email already exists');
-      }
+    const userUpdate: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      avatarUrl?: string | null;
+    } = {};
+
+    if (dto.fullName !== undefined) {
+      userUpdate.name = dto.fullName.trim();
     }
 
-    const avatarUrl = dto.avatarUrl?.trim() ? dto.avatarUrl.trim() : null;
+    if (dto.email !== undefined) {
+      const normalizedEmail = dto.email.toLowerCase().trim();
+      if (userRow.email !== normalizedEmail) {
+        const emailTaken = await this.db.query.user.findFirst({
+          where: eq(user.email, normalizedEmail),
+        });
+        if (emailTaken) {
+          throw new ConflictException('Email already exists');
+        }
+      }
+      userUpdate.email = normalizedEmail;
+    }
 
-    await this.db
-      .update(user)
-      .set({
-        name: dto.fullName.trim(),
-        email: normalizedEmail,
-        phone: dto.phone.trim(),
-        avatarUrl,
-      })
-      .where(eq(user.id, userId));
+    if (dto.phone !== undefined) {
+      userUpdate.phone = dto.phone.trim();
+    }
 
-    await this.db
-      .update(doctor)
-      .set({
-        specialty: dto.specialty.trim(),
-        title: dto.title.trim(),
-        experienceYears: dto.experienceYears,
-        about: dto.about.trim() || null,
-        clinicName: dto.clinicName.trim(),
-        clinicLocation: dto.clinicLocation.trim(),
-        clinicConsultationFee: dto.clinicConsultationFee,
-        onlineConsultationFee: dto.onlineConsultationFee,
-      })
-      .where(eq(doctor.id, doctorRow.id));
+    if (dto.avatarUrl !== undefined) {
+      userUpdate.avatarUrl = this.normalizeAvatarStorageValue(dto.avatarUrl);
+    }
+
+    if (Object.keys(userUpdate).length > 0) {
+      await this.db.update(user).set(userUpdate).where(eq(user.id, userId));
+    }
+
+    const doctorUpdate: {
+      specialty?: string;
+      title?: string;
+      experienceYears?: number;
+      about?: string | null;
+      clinicName?: string;
+      clinicLocation?: string;
+      clinicConsultationFee?: number;
+      onlineConsultationFee?: number;
+    } = {};
+
+    if (dto.specialty !== undefined) {
+      doctorUpdate.specialty = dto.specialty.trim();
+    }
+    if (dto.title !== undefined) {
+      doctorUpdate.title = dto.title.trim();
+    }
+    if (dto.experienceYears !== undefined) {
+      doctorUpdate.experienceYears = dto.experienceYears;
+    }
+    if (dto.about !== undefined) {
+      doctorUpdate.about = dto.about.trim() || null;
+    }
+    if (dto.clinicName !== undefined) {
+      doctorUpdate.clinicName = dto.clinicName.trim();
+    }
+    if (dto.clinicLocation !== undefined) {
+      doctorUpdate.clinicLocation = dto.clinicLocation.trim();
+    }
+    if (dto.clinicConsultationFee !== undefined) {
+      doctorUpdate.clinicConsultationFee = dto.clinicConsultationFee;
+    }
+    if (dto.onlineConsultationFee !== undefined) {
+      doctorUpdate.onlineConsultationFee = dto.onlineConsultationFee;
+    }
+
+    if (Object.keys(doctorUpdate).length > 0) {
+      await this.db
+        .update(doctor)
+        .set(doctorUpdate)
+        .where(eq(doctor.id, doctorRow.id));
+    }
 
     return this.getAccount(userId);
   }
 
-  private mapProfile(
+  async createAvatarUploadIntent(
+    userId: number,
+    fileName: string,
+    contentType: string,
+  ) {
+    const doctorRow = await this.doctorVerifier.verify(userId);
+    const mimeType = contentType.trim().toLowerCase();
+    if (!PATIENT_AVATAR_MIME_TYPES.has(mimeType)) {
+      throw new BadRequestException('Unsupported profile photo file type');
+    }
+
+    return this.minioService.createUploadIntent({
+      fileName,
+      contentType: mimeType,
+      category: 'staff_avatar',
+      staffId: doctorRow.id,
+      staffRole: 'doctor',
+    });
+  }
+
+  async setAvatar(userId: number, s3Key: string) {
+    const doctorRow = await this.doctorVerifier.verify(userId);
+    const key = s3Key.trim();
+    const expectedPrefix = `${buildStaffAvatarPrefix('doctor', doctorRow.id)}/`;
+    if (
+      !key.startsWith(expectedPrefix) &&
+      !isStaffAvatarStorageKey(key, doctorRow.id)
+    ) {
+      throw new BadRequestException('Invalid profile photo storage key');
+    }
+
+    await this.db
+      .update(user)
+      .set({ avatarUrl: key })
+      .where(eq(user.id, userId));
+
+    return { avatarUrl: await this.avatarUrlResolver.resolve(key) };
+  }
+
+  private normalizeAvatarStorageValue(
+    avatarUrl: string | null | undefined,
+  ): string | null {
+    const trimmed = avatarUrl?.trim();
+    if (!trimmed) return null;
+
+    if (trimmed.startsWith('/avatars/')) {
+      return trimmed;
+    }
+
+    const extractedKey =
+      this.avatarUrlResolver.extractPatientAvatarKey(trimmed);
+    if (extractedKey) {
+      return extractedKey.split('?')[0] ?? extractedKey;
+    }
+
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      throw new BadRequestException('Invalid profile photo reference');
+    }
+
+    throw new BadRequestException('Invalid profile photo reference');
+  }
+
+  private async mapProfile(
     doctorRow: typeof doctor.$inferSelect,
     userRow: typeof user.$inferSelect,
   ) {
@@ -97,7 +212,7 @@ export class DoctorAccountService {
       fullName: userRow.name,
       email: userRow.email,
       phone: userRow.phone ?? '',
-      avatarUrl: userRow.avatarUrl,
+      avatarUrl: await this.avatarUrlResolver.resolve(userRow.avatarUrl),
       specialty,
       title,
       experienceYears: doctorRow.experienceYears ?? 0,

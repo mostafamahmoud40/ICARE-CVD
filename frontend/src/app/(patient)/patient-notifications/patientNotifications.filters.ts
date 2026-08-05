@@ -12,6 +12,8 @@ export const PATIENT_NOTIFICATION_KIND_LABELS: Record<PatientNotificationKind, s
   prescription: "Prescriptions",
   ai_insight: "Care agent",
   system: "System",
+  message: "Messages",
+  procedure: "Procedures",
 }
 
 export const PATIENT_NOTIFICATION_KIND_OPTIONS: {

@@ -9,6 +9,7 @@ export type ScheduledOperation = {
   endTimeExpected?: string
   patientName: string
   patientId: string
+  patientAvatarUrl?: string | null
   age: number
   gender: "M" | "F"
   procedureName: string

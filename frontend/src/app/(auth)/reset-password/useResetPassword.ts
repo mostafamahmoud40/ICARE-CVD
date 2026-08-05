@@ -2,25 +2,29 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
 
 import { resetPasswordSchema } from "./reset-password.schema";
 import type {
-  ResetPasswordPayload,
   ResetPasswordResponse,
   ResetPasswordValues,
 } from "./reset-password.types";
 
-export function useResetPassword(token: string | null) {
+export function useResetPassword(resetToken: string | null) {
+  const router = useRouter();
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof ResetPasswordValues, string>>>(
     {}
   );
 
   const mutation = useMutation({
-    mutationFn: (payload: ResetPasswordPayload) =>
-      apiClient.post<ResetPasswordResponse>("/auth/reset-password", payload).then((res) => res.data),
+    mutationFn: (payload: { resetToken: string; password: string }) =>
+      apiClient
+        .post<ResetPasswordResponse>("/auth/reset-password-with-token", payload)
+        .then((res) => res.data),
   });
 
   const submit = useCallback(
@@ -38,28 +42,34 @@ export function useResetPassword(token: string | null) {
         return;
       }
 
-      if (!token) {
+      if (!resetToken) {
         return;
       }
 
       setFieldErrors({});
       mutation.mutate({
-        token,
+        resetToken,
         password: result.data.password,
       });
     },
-    [mutation, token]
+    [mutation, resetToken]
   );
 
-  const serverErrorMessage =
-    !token
-      ? "Reset link is invalid or missing token."
-      : mutation.isError && isAxiosError(mutation.error)
-        ? (mutation.error.response?.data as { message?: string } | undefined)?.message ??
-          mutation.error.message
-        : mutation.isError
-          ? "Something went wrong. Try again."
-          : null;
+  useEffect(() => {
+    if (mutation.isSuccess) {
+      toast.success("Password updated! You can now log in with your new password.");
+      setTimeout(() => router.push("/auth/login"), 2000);
+    }
+  }, [mutation.isSuccess, router]);
+
+  const serverErrorMessage = !resetToken
+    ? "Reset token is missing. Please restart the password reset process."
+    : mutation.isError && isAxiosError(mutation.error)
+      ? (mutation.error.response?.data as { message?: string } | undefined)?.message ??
+        mutation.error.message
+      : mutation.isError
+        ? "Something went wrong. Try again."
+        : null;
 
   return {
     submit,

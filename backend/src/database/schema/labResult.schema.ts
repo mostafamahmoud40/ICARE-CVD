@@ -20,7 +20,7 @@ export const labResultStatusEnum = pgEnum('lab_result_status', [
 /**
  * Individual lab result values.
  * - Linked to a `lab_order_item` when coming from an order.
- * - Optionally linked to a document (PDF report) uploaded to S3.
+ * Optionally linked to a document (PDF report) stored in MinIO.
  */
 export const labResult = pgTable('lab_result', {
   id: uuid('id').defaultRandom().primaryKey(),

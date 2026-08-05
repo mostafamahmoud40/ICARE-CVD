@@ -17,6 +17,7 @@ export type BriefingRiskTier = "high" | "moderate-high" | "moderate"
 
 export type PatientBriefingReport = {
   patientName: string
+  avatarUrl: string | null
   demographicsLine: string
   executiveSummary: string
   riskTier: BriefingRiskTier
@@ -158,6 +159,7 @@ function buildReport(summary: PatientSummary): PatientBriefingReport {
 
   return {
     patientName: demographics.fullName,
+    avatarUrl: demographics.avatarUrl,
     demographicsLine: `${demographics.age} years · ${demographics.gender} · ${demographics.bloodType} · ${demographics.occupation}`,
     executiveSummary,
     riskTier: tier,

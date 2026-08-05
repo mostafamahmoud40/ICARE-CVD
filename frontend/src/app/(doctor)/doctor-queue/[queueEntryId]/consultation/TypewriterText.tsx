@@ -12,7 +12,10 @@ type TypewriterTextProps = {
 export function TypewriterText({ text, speed = 12, onComplete, className }: TypewriterTextProps) {
   const [displayedLength, setDisplayedLength] = useState(0)
   const onCompleteRef = useRef(onComplete)
-  onCompleteRef.current = onComplete
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
 
   const isComplete = displayedLength >= text.length
 

@@ -41,7 +41,7 @@ export function useDoctorSchedule() {
 
   const saveMutation = useMutation({
     mutationFn: persistSchedule,
-    onSuccess: async (data) => {
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: QUERY_KEY })
       toast.success("Schedule saved", {
         description: "Your weekly availability has been updated.",

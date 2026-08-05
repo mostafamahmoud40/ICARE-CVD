@@ -70,6 +70,7 @@ export class PatientAiChatService {
       todayStr,
       clinicContext,
       pipeline.fallbackLiveContext.appointments,
+      pipeline.fallbackLiveContext.patientContext,
       pipeline.intentPromptAddon,
     );
 
@@ -120,7 +121,9 @@ export class PatientAiChatService {
       }
 
       this.logger.error('Patient AI chat failed', error);
-      throw new ServiceUnavailableException('AI service temporarily unavailable');
+      throw new ServiceUnavailableException(
+        'AI service temporarily unavailable',
+      );
     }
   }
 
@@ -129,6 +132,7 @@ export class PatientAiChatService {
     todayStr: string,
     clinicContext: string,
     myAppointmentsContext: string,
+    patientMedicalContext: string,
     intentPromptAddon: string,
   ): string {
     return `You are ICARE Care Agent — an autonomous clinic coordinator for patient "${patientName}".
@@ -141,9 +145,13 @@ ${intentPromptAddon}
 - Capabilities: book, cancel (one or all), reschedule, change visit type, answer care questions from live data.
 - Speak naturally in Arabic or English — match the patient's language (Egyptian dialect is fine).
 - Never invent doctors, dates, or appointment codes. Use ONLY the clinic data below.
+- You have full access to this patient's medical record below — use it to give accurate, personalised answers.
+- NEVER reveal or reference data from any other patient. All data below belongs exclusively to "${patientName}".
 
 ## Patient's upcoming appointments
 ${myAppointmentsContext}
+
+${patientMedicalContext}
 
 ## Clinic knowledge (live)
 ${clinicContext}
@@ -157,7 +165,10 @@ ${clinicContext}
 
   private isGroqRateLimit(error: unknown): boolean {
     if (!error || typeof error !== 'object') return false;
-    const err = error as { status?: number; error?: { error?: { code?: string } } };
+    const err = error as {
+      status?: number;
+      error?: { error?: { code?: string } };
+    };
     return (
       err.status === 429 ||
       err.status === 413 ||

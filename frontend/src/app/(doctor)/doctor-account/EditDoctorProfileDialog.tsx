@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Loader2Icon } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { CameraIcon, Loader2Icon, UserRoundIcon } from "lucide-react"
 
 import {
   Dialog,
@@ -14,9 +14,14 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
+import { showIcareErrorToast } from "@/components/shared/icare-toast"
 import { cn } from "@/lib/utils"
 import { doctorProfileEditSchema } from "./doctorAccount.schema"
 import type { DoctorProfileEditValues } from "./doctorAccount.schema"
+import {
+  uploadDoctorAccountAvatar,
+  validatePatientAvatarFile,
+} from "./doctorAccount.upload"
 
 const SPECIALTY_OPTIONS = [
   "Cardiology",
@@ -50,17 +55,38 @@ export function EditDoctorProfileDialog({
 }: EditDoctorProfileDialogProps) {
   const [form, setForm] = useState(initialValues)
   const [errors, setErrors] = useState<FieldErrors>({})
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null)
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null)
+  const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (open) {
-      const avatarUrl =
+      const presetAvatar =
         initialValues.avatarUrl && AVATAR_OPTIONS.includes(initialValues.avatarUrl)
           ? initialValues.avatarUrl
           : ""
-      setForm({ ...initialValues, avatarUrl })
+      setForm({ ...initialValues, avatarUrl: presetAvatar })
       setErrors({})
+      setPendingAvatarFile(null)
+      setUploadedAvatarUrl(
+        initialValues.avatarUrl && !AVATAR_OPTIONS.includes(initialValues.avatarUrl)
+          ? initialValues.avatarUrl
+          : null,
+      )
     }
   }, [open, initialValues])
+
+  useEffect(() => {
+    if (!pendingAvatarFile) {
+      setAvatarPreviewUrl(null)
+      return
+    }
+    const objectUrl = URL.createObjectURL(pendingAvatarFile)
+    setAvatarPreviewUrl(objectUrl)
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [pendingAvatarFile])
 
   const setField = <K extends keyof DoctorProfileEditValues>(
     key: K,
@@ -69,6 +95,29 @@ export function EditDoctorProfileDialog({
     setForm((prev) => ({ ...prev, [key]: value }))
     setErrors((prev) => ({ ...prev, [key]: undefined }))
   }
+
+  const handleAvatarFileChange = (fileList: FileList | null) => {
+    const file = fileList?.item(0)
+    if (!file) return
+    try {
+      validatePatientAvatarFile(file)
+      setPendingAvatarFile(file)
+      setUploadedAvatarUrl(null)
+    } catch (err) {
+      showIcareErrorToast(
+        "Invalid profile photo",
+        err instanceof Error ? err.message : "Could not use this image.",
+      )
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  const displayAvatarSrc =
+    avatarPreviewUrl ||
+    uploadedAvatarUrl ||
+    (form.avatarUrl && AVATAR_OPTIONS.includes(form.avatarUrl) ? form.avatarUrl : null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -91,8 +140,32 @@ export function EditDoctorProfileDialog({
       })
       return
     }
-    await onSubmit(parsed.data)
+
+    try {
+      let avatarAlreadySaved = false
+      if (pendingAvatarFile) {
+        setIsUploading(true)
+        await uploadDoctorAccountAvatar(pendingAvatarFile)
+        avatarAlreadySaved = true
+        setPendingAvatarFile(null)
+        setUploadedAvatarUrl(null)
+      }
+
+      await onSubmit({
+        ...parsed.data,
+        avatarUrl: avatarAlreadySaved ? undefined : parsed.data.avatarUrl,
+      })
+    } catch (err) {
+      showIcareErrorToast(
+        "Could not save profile photo",
+        err instanceof Error ? err.message : "Please try again.",
+      )
+    } finally {
+      setIsUploading(false)
+    }
   }
+
+  const busy = isPending || isUploading
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -106,24 +179,63 @@ export function EditDoctorProfileDialog({
         <form className="flex flex-col" onSubmit={handleSubmit}>
           <div className="max-h-[min(70vh,560px)] space-y-6 overflow-y-auto px-6 py-5">
             <div>
-              <h3 className="mb-3 text-[12px] font-bold uppercase tracking-wider text-[#6B7870]">
+              <h3 className="mb-2 text-[12px] font-bold uppercase tracking-wider text-[#6B7870]">
                 Avatar profile
               </h3>
-              <div className="mb-2 flex flex-wrap gap-4">
+              <p className="mb-3 text-[12px] text-muted-foreground">
+                Choose a preset avatar or upload a photo (JPEG, PNG, WebP, or GIF, max 5 MB).
+              </p>
+
+              <div className="mb-3 flex items-center gap-3">
+                <div className="relative size-16 overflow-hidden rounded-full border-2 border-[#E8E6E0] bg-white shadow-sm">
+                  {displayAvatarSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={displayAvatarSrc} alt="" className="size-full object-cover" />
+                  ) : (
+                    <div className="flex size-full items-center justify-center bg-slate-50">
+                      <UserRoundIcon className="size-8 text-slate-300" aria-hidden />
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="sr-only"
+                  onChange={(e) => handleAvatarFileChange(e.target.files)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-full border-[#E8E6E0] px-3 text-[12px] font-semibold text-[#1A5345] hover:bg-white"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={busy}
+                >
+                  <CameraIcon className="mr-1.5 size-3.5" aria-hidden />
+                  Upload photo
+                </Button>
+              </div>
+
+              <div className="mb-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
                 {AVATAR_OPTIONS.map((avatar) => (
                   <button
                     key={avatar}
                     type="button"
-                    onClick={() => setField("avatarUrl", avatar)}
+                    onClick={() => {
+                      setPendingAvatarFile(null)
+                      setUploadedAvatarUrl(null)
+                      setField("avatarUrl", avatar)
+                    }}
                     className={cn(
-                      "relative flex size-14 items-center justify-center rounded-full border-2 transition-all hover:scale-105",
-                      form.avatarUrl === avatar
-                        ? "border-[#1A5345] ring-2 ring-[#1A5345]/20"
-                        : "border-[#E8E6E0]",
+                      "overflow-hidden rounded-xl border-2 bg-white p-1 transition-colors",
+                      form.avatarUrl === avatar && !pendingAvatarFile
+                        ? "border-[#1A5345]"
+                        : "border-[#E8E6E0]/80 hover:border-[#1A5345]/40",
                     )}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={avatar} alt="" className="size-12 rounded-full object-cover" />
+                    <img src={avatar} alt="" className="size-full rounded-lg object-cover" />
                   </button>
                 ))}
               </div>
@@ -346,16 +458,16 @@ export function EditDoctorProfileDialog({
               variant="outline"
               className="h-9 rounded-lg border-[#E8E6E0] bg-white text-[13px] font-semibold"
               onClick={() => onOpenChange(false)}
-              disabled={isPending}
+              disabled={busy}
             >
               Cancel
             </Button>
             <Button
               type="submit"
               className="h-9 rounded-lg bg-[#1A5345] text-[13px] font-semibold text-white hover:bg-[#164436]"
-              disabled={isPending}
+              disabled={busy}
             >
-              {isPending ? (
+              {busy ? (
                 <>
                   <Loader2Icon className="size-4 animate-spin" aria-hidden />
                   Saving…

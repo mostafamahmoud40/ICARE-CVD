@@ -361,7 +361,9 @@ const DEFAULT_TEAM: ProcedureTeamMember[] = [
   { roleKey: "perfusionist", name: "Eng. Youssef Kamal" },
 ]
 
-const MOCK_REPORTS: Record<string, ProcedureReportData> = {
+type MockReportCore = Omit<ProcedureReportData, keyof PostOpCareSlice>
+
+const MOCK_REPORTS: Record<string, MockReportCore> = {
   "hist-1": {
     procedureDate: "2026-05-08T07:30:00",
     duration: "2h 15m",

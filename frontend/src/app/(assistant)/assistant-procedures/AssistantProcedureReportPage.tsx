@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useMemo, useState } from "react"
+import { useAssistantProcedureReportData } from "./useAssistantProcedureReportData"
 import {
   ArrowLeftIcon,
   AlertTriangleIcon,
@@ -39,8 +40,6 @@ import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import { PRIORITY_CONFIG } from "./assistantProcedures.config"
 import { resolveProcedureReport } from "./assistantProcedureReports.mock"
 import type { IntraoperativeComplicationKey, RecoveryStatusKey } from "./assistantProcedureReports.mock"
-import { MOCK_HISTORY_OPERATIONS } from "./assistantProceduresHistory.mock"
-import { mockProcedureOrders } from "./assistantProcedures.mock"
 
 type AssistantProcedureReportPageProps = {
   procedureId: string
@@ -68,13 +67,15 @@ export function AssistantProcedureReportPage({ procedureId }: AssistantProcedure
   const { t, ts } = useAssistantPageTranslations("procedures")
   const [activeTab, setActiveTab] = useState<ReportTab>("clinicalOverview")
 
+  const { ordersQuery, historyQuery } = useAssistantProcedureReportData()
+
   const order = useMemo(
-    () => mockProcedureOrders.find((item) => item.id === procedureId) ?? null,
-    [procedureId],
+    () => ordersQuery.data?.find((item) => item.id === procedureId) ?? null,
+    [ordersQuery.data, procedureId],
   )
   const history = useMemo(
-    () => MOCK_HISTORY_OPERATIONS.find((item) => item.id === procedureId) ?? null,
-    [procedureId],
+    () => historyQuery.data?.find((item) => item.id === procedureId) ?? null,
+    [historyQuery.data, procedureId],
   )
   const report = useMemo(
     () => resolveProcedureReport(procedureId, order, history),

@@ -9,7 +9,7 @@ import {
   PATIENT_CARE_TASKS_STORAGE_KEY,
 } from "@/lib/patientCareTimelineBridge"
 
-import { mockPatientDashboard } from "./dashboard.mock"
+import { fetchPatientDashboard } from "./patientDashboard.api"
 import type { PatientDashboardData } from "./dashboard.types"
 
 export function usePatientDashboard() {
@@ -29,11 +29,12 @@ export function usePatientDashboard() {
   return useQuery<PatientDashboardData, Error>({
     queryKey: ["patient-dashboard"],
     queryFn: async () => {
-      const orderedTasks = listPatientCareTasks(mockPatientDashboard.patient.id)
+      const dashboard = await fetchPatientDashboard()
+      const orderedTasks = listPatientCareTasks(dashboard.patient.id)
 
       return {
-        ...mockPatientDashboard,
-        careTimeline: mergeCareTimelineItems(mockPatientDashboard.careTimeline, orderedTasks),
+        ...dashboard,
+        careTimeline: mergeCareTimelineItems(dashboard.careTimeline, orderedTasks),
       }
     },
     staleTime: 30_000,

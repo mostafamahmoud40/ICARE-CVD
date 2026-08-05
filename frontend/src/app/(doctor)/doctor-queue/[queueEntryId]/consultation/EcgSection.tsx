@@ -25,66 +25,12 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import type { BeatResult, EcgMeta, EcgReport, EcgResult, SummaryEntry } from "./ecgAnalysis.types"
+import type { PersistedEcgState } from "./useConsultationEcgAnalysis"
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
 type AnalysisStatus = "idle" | "processing" | "done" | "error"
-
-interface BeatProbs {
-  N: number
-  S: number
-  V: number
-  F: number
-  Q: number
-}
-
-interface BeatResult {
-  beat: number
-  class: string
-  label: string
-  color: string
-  suspicious: boolean
-  confidence: number
-  probs: BeatProbs
-  waveform: number[]
-  waveform_min: number
-  waveform_max: number
-}
-
-interface SummaryEntry {
-  class: string
-  label: string
-  color: string
-  count: number
-  pct: number
-}
-
-interface EcgMeta {
-  record: string
-  fs: number
-  leads: string[]
-  used_lead: string
-  total_samples: number
-  duration_sec: number
-  r_peaks_found: number
-  valid_beats: number
-  suspicious_beats: number
-  normal_beats: number
-}
-
-interface EcgResult {
-  meta: EcgMeta
-  beats: BeatResult[]
-  summary: SummaryEntry[]
-}
-
-interface EcgReport {
-  overall_assessment: string
-  risk_level: "Low" | "Moderate" | "High"
-  findings: string[]
-  recommendations: string[]
-  clinical_notes: string
-}
 
 interface ChatMessage {
   id: string
@@ -127,10 +73,7 @@ function waveformToPath(waveform: number[]): string {
     .join(" ")
 }
 
-const ECG_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_ECG_SERVICE_URL ?? "http://localhost:5050")
-    : "http://localhost:5050"
+import { ecgMlAdapter, getEcgServiceUrl } from "@/lib/ml"
 
 const SECTION_CARD = "rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm"
 const RESULT_SECTION =
@@ -270,7 +213,7 @@ function FileRow({
   onRemove,
 }: {
   label: string
-  file: File
+  file: { name: string; size: number }
   status: AnalysisStatus
   elapsed: number
   onRemove: () => void
@@ -587,7 +530,7 @@ function ErrorPanel({ message, onRetry }: { message: string; onRetry: () => void
           <p className="mt-1 text-[12px] text-rose-700">{message}</p>
           <p className="mt-2 text-[12px] text-rose-600/90">
             Make sure the ECG ML service is running at{" "}
-            <span className="font-mono font-medium">{ECG_URL}</span>
+            <span className="font-mono font-medium">{getEcgServiceUrl()}</span>
           </p>
         </div>
         <Button
@@ -762,34 +705,15 @@ function ClinicalRichText({
 
 // ─── AI report ───────────────────────────────────────────────────────────────
 
-function EcgAiReport({ ecgResult }: { ecgResult: EcgResult }) {
-  const [report, setReport] = useState<EcgReport | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    setError("")
-    setReport(null)
-
-    fetch(`${ECG_URL}/report`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ecg_result: ecgResult }),
-    })
-      .then((r) => r.json())
-      .then((j) => {
-        if (cancelled) return
-        if (j.success) setReport(j.report)
-        else setError(j.error ?? "Failed to generate report")
-      })
-      .catch((e) => { if (!cancelled) setError(e.message) })
-      .finally(() => { if (!cancelled) setLoading(false) })
-
-    return () => { cancelled = true }
-  }, [ecgResult])
-
+function EcgAiReport({
+  report,
+  loading,
+  error,
+}: {
+  report: EcgReport | null
+  loading: boolean
+  error: string
+}) {
   const riskCfg = {
     Low:      { bg: "bg-emerald-50/60", border: "border-emerald-200", text: "text-emerald-800", badge: "bg-emerald-500 text-white hover:bg-emerald-500", icon: ShieldCheckIcon },
     Moderate: { bg: "bg-amber-50/60", border: "border-amber-200", text: "text-amber-800", badge: "bg-amber-500 text-white hover:bg-amber-500", icon: ShieldAlertIcon },
@@ -952,21 +876,16 @@ function EcgChatPanel({ ecgResult }: { ecgResult: EcgResult }) {
     setIsReplying(true)
 
     try {
-      const res = await fetch(`${ECG_URL}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          history: history.map((m) => ({ role: m.role, content: m.content })),
-          ecg_context: ecgResult,
-        }),
+      const { reply } = await ecgMlAdapter.chat({
+        history: history.map((m) => ({ role: m.role, content: m.content })),
+        ecg_context: ecgResult,
       })
-      const j = await res.json()
       setMessages((prev) => [
         ...prev,
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: j.reply ?? j.error ?? "Error",
+          content: reply,
         },
       ])
     } catch {
@@ -1110,89 +1029,108 @@ function EcgChatPanel({ ecgResult }: { ecgResult: EcgResult }) {
 export type EcgSectionProps = {
   heaFile: File | null
   datFile: File | null
-  onHeaFileChange: (file: File | null) => void
-  onDatFileChange: (file: File | null) => void
+  savedEcg: PersistedEcgState | null
+  analysisResult: EcgResult | null
+  report: EcgReport | null
+  isLoading: boolean
+  isAnalyzing: boolean
+  isGeneratingReport: boolean
+  analyzeError: string | null
+  reportError: string | null
+  onHeaFileSelected: (file: File | null) => void
+  onDatFileSelected: (file: File | null) => void
+  onRemove: () => void
+  onAnalyze: () => void
 }
 
-export function EcgSection({ heaFile, datFile, onHeaFileChange, onDatFileChange }: EcgSectionProps) {
-  const [status, setStatus] = useState<AnalysisStatus>("idle")
-  const [result, setResult] = useState<EcgResult | null>(null)
-  const [errorMsg, setErrorMsg] = useState("")
+export function EcgSection({
+  heaFile,
+  datFile,
+  savedEcg,
+  analysisResult,
+  report,
+  isLoading,
+  isAnalyzing,
+  isGeneratingReport,
+  analyzeError,
+  reportError,
+  onHeaFileSelected,
+  onDatFileSelected,
+  onRemove,
+  onAnalyze,
+}: EcgSectionProps) {
   const [elapsed, setElapsed] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const status: AnalysisStatus = isAnalyzing
+    ? "processing"
+    : analyzeError
+      ? "error"
+      : analysisResult
+        ? "done"
+        : "idle"
+
+  const errorMsg = analyzeError ?? ""
+
+  const heaDisplay = heaFile
+    ? { name: heaFile.name, size: heaFile.size }
+    : savedEcg
+      ? { name: savedEcg.heaFileName, size: savedEcg.heaSize }
+      : null
+
+  const datDisplay = datFile
+    ? { name: datFile.name, size: datFile.size }
+    : savedEcg
+      ? { name: savedEcg.datFileName, size: savedEcg.datSize }
+      : null
+
+  const hasFiles = Boolean(heaDisplay && datDisplay)
+  const showUpload = (!heaDisplay || !datDisplay) && !isLoading
 
   useEffect(() => {
     if (status === "processing") {
       setElapsed(0)
       timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000)
-    } else {
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current)
+    }
+    return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
-    return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [status])
 
-  const reset = () => {
-    setStatus("idle")
-    setResult(null)
-    setErrorMsg("")
-    setElapsed(0)
-  }
-
   const handleHeaSelected = (file: File) => {
-    reset()
-    onHeaFileChange(file)
+    onHeaFileSelected(file)
   }
 
   const handleDatSelected = (file: File) => {
-    reset()
-    onDatFileChange(file)
+    onDatFileSelected(file)
   }
 
   const handleRemoveHea = () => {
-    reset()
-    onHeaFileChange(null)
+    if (savedEcg && !heaFile && !datFile) {
+      onRemove()
+      return
+    }
+    onHeaFileSelected(null)
   }
 
   const handleRemoveDat = () => {
-    reset()
-    onDatFileChange(null)
-  }
-
-  const handleAnalyze = async () => {
-    if (!heaFile || !datFile) return
-    reset()
-    setStatus("processing")
-
-    try {
-      const formData = new FormData()
-      formData.append("hea", heaFile)
-      formData.append("dat", datFile)
-
-      const res = await fetch(`${ECG_URL}/infer`, {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => `HTTP ${res.status}`)
-        throw new Error(text || `HTTP ${res.status}`)
-      }
-
-      const json: EcgResult = await res.json()
-
-      if ("error" in json) {
-        throw new Error((json as unknown as { error: string }).error)
-      }
-
-      setResult(json)
-      setStatus("done")
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Unknown error")
-      setStatus("error")
+    if (savedEcg && !heaFile && !datFile) {
+      onRemove()
+      return
     }
+    onDatFileSelected(null)
   }
 
-  const hasFiles = heaFile && datFile
+  const handleClearAll = () => {
+    if (savedEcg || analysisResult) {
+      onRemove()
+      return
+    }
+    onHeaFileSelected(null)
+    onDatFileSelected(null)
+  }
 
   return (
     <div className={SECTION_CARD}>
@@ -1215,7 +1153,7 @@ export function EcgSection({ heaFile, datFile, onHeaFileChange, onDatFileChange 
       </div>
 
       <div className="space-y-4">
-        {(!heaFile || !datFile) && (
+        {showUpload && (
           <EcgUploadZone
             heaFile={heaFile}
             datFile={datFile}
@@ -1224,34 +1162,41 @@ export function EcgSection({ heaFile, datFile, onHeaFileChange, onDatFileChange 
           />
         )}
 
-        {heaFile && (
+        {isLoading && !hasFiles ? (
+          <div className="flex items-center justify-center gap-2 py-6 text-[13px] text-muted-foreground">
+            <Loader2Icon className="size-4 animate-spin text-[#1A5345]" aria-hidden />
+            Loading saved ECG study…
+          </div>
+        ) : null}
+
+        {heaDisplay && (
           <FileRow
             label=".hea"
-            file={heaFile}
+            file={heaDisplay}
             status={status}
             elapsed={elapsed}
             onRemove={handleRemoveHea}
           />
         )}
-        {datFile && (
+        {datDisplay && (
           <FileRow
             label=".dat"
-            file={datFile}
+            file={datDisplay}
             status={status}
             elapsed={elapsed}
             onRemove={handleRemoveDat}
           />
         )}
 
-        {hasFiles && status !== "done" && status !== "error" && (
+        {hasFiles && !analysisResult && status !== "error" && (
           <Button
             type="button"
             size="sm"
-            disabled={status === "processing"}
-            onClick={handleAnalyze}
+            disabled={isAnalyzing}
+            onClick={onAnalyze}
             className="h-10 w-full gap-2 rounded-lg bg-[#1A5345] text-[13px] font-semibold hover:bg-[#133F34]"
           >
-            {status === "processing" ? (
+            {isAnalyzing ? (
               <>
                 <Loader2Icon className="size-4 animate-spin" aria-hidden />
                 Classifying beats… {elapsed > 0 && `(${formatElapsed(elapsed)})`}
@@ -1265,23 +1210,27 @@ export function EcgSection({ heaFile, datFile, onHeaFileChange, onDatFileChange 
           </Button>
         )}
 
-        {status === "done" && result && (
+        {analysisResult && (
           <div className="space-y-4">
-            <SummaryStats meta={result.meta} summary={result.summary} />
-            <BeatList beats={result.beats} />
-            <EcgAiReport ecgResult={result} />
-            <EcgChatPanel ecgResult={result} />
+            <SummaryStats meta={analysisResult.meta} summary={analysisResult.summary} />
+            <BeatList beats={analysisResult.beats} />
+            <EcgAiReport
+              report={report}
+              loading={isGeneratingReport}
+              error={reportError ?? ""}
+            />
+            <EcgChatPanel ecgResult={analysisResult} />
           </div>
         )}
 
         {status === "error" && (
-          <ErrorPanel message={errorMsg} onRetry={handleAnalyze} />
+          <ErrorPanel message={errorMsg} onRetry={onAnalyze} />
         )}
 
-        {(status === "done" || status === "error") && (
+        {(analysisResult || status === "error") && (
           <button
             type="button"
-            onClick={() => { reset(); onHeaFileChange(null); onDatFileChange(null) }}
+            onClick={handleClearAll}
             className="w-full rounded-xl border border-dashed border-[#E8E6E0] py-3 text-[13px] font-semibold text-[#1A5345] transition-colors hover:border-[#1A5345]/40 hover:bg-[#F9F8F5]"
           >
             Upload a different recording

@@ -60,6 +60,10 @@ export class DoctorAssistantController {
     @Param('assistantUserId', ParseIntPipe) assistantUserId: number,
     @Body('isActive') isActive: boolean,
   ) {
-    return this.service.updateAssistantStatus(user.sub, assistantUserId, isActive);
+    return this.service.updateAssistantStatus(
+      user.sub,
+      assistantUserId,
+      isActive,
+    );
   }
 }

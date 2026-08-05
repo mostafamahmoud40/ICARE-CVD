@@ -4,7 +4,7 @@ export type ResetPasswordValues = {
 };
 
 export type ResetPasswordPayload = {
-  token: string;
+  resetToken: string;
   password: string;
 };
 

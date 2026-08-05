@@ -71,6 +71,25 @@ async function rescheduleAppointment({
   return data
 }
 
+export type CreateDoctorAppointmentPayload = {
+  patientId: string
+  scheduledAt: string
+  visitType: "clinic" | "virtual"
+  reason: string
+  symptoms?: string
+  notes?: string
+}
+
+async function createDoctorAppointment(payload: CreateDoctorAppointmentPayload) {
+  const { data } = await apiClient.post("/doctor/appointments", payload)
+  return data
+}
+
+async function markAppointmentNoShow(appointmentId: string) {
+  const { data } = await apiClient.patch(`/doctor/appointments/${appointmentId}/no-show`)
+  return data
+}
+
 export function useDoctorAvailableSlots(
   date: string,
   options?: { enabled?: boolean; excludeAppointmentId?: string },
@@ -121,6 +140,16 @@ export function useDoctorAppointments() {
     onSuccess: invalidateAll,
   })
 
+  const createMutation = useMutation({
+    mutationFn: createDoctorAppointment,
+    onSuccess: invalidateAll,
+  })
+
+  const noShowMutation = useMutation({
+    mutationFn: markAppointmentNoShow,
+    onSuccess: invalidateAll,
+  })
+
   return {
     stats: statsQuery.data ?? { today: 0, upcoming: 0, completed: 0, cancelled: 0 },
     appointments: appointmentsQuery.data ?? [],
@@ -129,7 +158,11 @@ export function useDoctorAppointments() {
     updateStatus: statusMutation.mutateAsync,
     updateNotes: notesMutation.mutateAsync,
     reschedule: rescheduleMutation.mutateAsync,
+    createAppointment: createMutation.mutateAsync,
+    markNoShow: noShowMutation.mutateAsync,
     fetchAvailableSlots,
     isUpdating: statusMutation.isPending || notesMutation.isPending || rescheduleMutation.isPending,
+    isCreating: createMutation.isPending,
+    isMarkingNoShow: noShowMutation.isPending,
   }
 }

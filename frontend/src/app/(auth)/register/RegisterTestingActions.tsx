@@ -12,12 +12,12 @@ export function RegisterTestingActions() {
   const isPending = useRegisterStore((state) => state.isPending);
   const fillTestingData = useRegisterStore((state) => state.fillTestingData);
 
-  if (step !== 2 && step !== 3) return null;
+  if (step !== 3) return null;
 
   function handleFillTestingData() {
     fillTestingData();
     toast.success("Test data filled", {
-      description: "Profile and medical fields were filled for this test run.",
+      description: "Profile fields were filled for this test run.",
     });
   }
 
@@ -27,7 +27,7 @@ export function RegisterTestingActions() {
         <div className="space-y-1 text-left">
           <p className="text-sm font-bold text-[#1A5345]">Testing shortcut</p>
           <p className="text-sm text-[#6B7870]">
-            One click fills profile and medical test values. Refreshing the page clears them again.
+            One click fills profile test values. Refreshing the page clears them again.
           </p>
         </div>
 

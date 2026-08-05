@@ -1,7 +1,7 @@
 "use client"
 
+import { useConsultationReportRoute } from "./useConsultationReportRoute"
 import { ConsultationReportPage } from "./ConsultationReportPage"
-import { mockDoctorPatientsData, mockPatientFullRecord, mockConsultationReports } from "../../../doctorPatients.mock"
 
 export function ConsultationReportRoute({
   patientId,
@@ -10,10 +10,17 @@ export function ConsultationReportRoute({
   patientId: string
   visitId: string
 }) {
-  const patient = mockDoctorPatientsData.patients.find((p) => p.id === patientId)
-  const report = mockConsultationReports[visitId]
+  const { patientQuery, reportQuery } = useConsultationReportRoute(patientId, visitId)
 
-  if (!patient) {
+  if (patientQuery.isLoading || reportQuery.isLoading) {
+    return (
+      <main className="flex flex-1 items-center justify-center bg-[#F9F8F5]">
+        <p className="text-[14px] font-medium text-muted-foreground">Loading consultation report…</p>
+      </main>
+    )
+  }
+
+  if (patientQuery.isError || !patientQuery.data) {
     return (
       <main className="flex flex-1 items-center justify-center bg-[#F9F8F5]">
         <div className="text-center">
@@ -24,27 +31,25 @@ export function ConsultationReportRoute({
     )
   }
 
-  if (!report) {
-    const visit = mockPatientFullRecord.visits.find((v) => v.id === visitId)
-    if (!visit) {
-      return (
-        <main className="flex flex-1 items-center justify-center bg-[#F9F8F5]">
-          <div className="text-center">
-            <p className="text-[14px] font-semibold text-[#102F27]">Report not found</p>
-            <p className="mt-1 text-[12px] text-muted-foreground">
-              No detailed report available for this consultation.
-            </p>
-          </div>
-        </main>
-      )
-    }
+  if (reportQuery.isError || !reportQuery.data) {
+    return (
+      <main className="flex flex-1 items-center justify-center bg-[#F9F8F5]">
+        <div className="text-center">
+          <p className="text-[14px] font-semibold text-[#102F27]">Report not found</p>
+          <p className="mt-1 text-[12px] text-muted-foreground">
+            No detailed report is available for this consultation yet.
+          </p>
+        </div>
+      </main>
+    )
   }
 
   return (
     <ConsultationReportPage
       patientId={patientId}
-      patientName={patient.fullName}
-      report={report}
+      visitId={visitId}
+      patientName={patientQuery.data.patient.fullName}
+      report={reportQuery.data}
     />
   )
 }

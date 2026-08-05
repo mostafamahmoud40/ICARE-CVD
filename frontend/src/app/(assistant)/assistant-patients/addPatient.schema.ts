@@ -47,6 +47,7 @@ export const addPatientSchema = z
     chiefComplaint: z.string().trim(),
     otherChiefComplaint: z.string().trim(),
     medicalHistoryNotes: z.string().trim(),
+    avatarUrl: z.string().trim(),
     medications: z.array(medicationItemSchema).max(40),
     allergies: z.array(allergyItemSchema).max(50),
   })

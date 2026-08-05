@@ -92,7 +92,7 @@ function toChatMessage(row: MessageApiRow, currentUserRole?: string): ChatMessag
   }
 }
 
-function callEventToMessage(event: PersistedCallEvent, currentUserRole?: string): ChatMessage {
+function callEventToMessage(event: PersistedCallEvent): ChatMessage {
   return {
     id: event.id,
     contactId: event.conversationId,
@@ -109,7 +109,7 @@ function mergeMessagesWithCallEvents(
   currentUserRole?: string,
 ): ChatMessage[] {
   const apiMessages = apiRows.map((row) => toChatMessage(row, currentUserRole))
-  const eventMessages = events.map((event) => callEventToMessage(event, currentUserRole))
+  const eventMessages = events.map((event) => callEventToMessage(event))
   const seen = new Set(apiMessages.map((message) => message.id))
   const merged = [
     ...apiMessages,
@@ -143,7 +143,7 @@ async function fetchConversationMessages(conversationId: string) {
 type IncomingSocketMessage = MessageApiRow & { recipientUserIds?: number[] }
 
 function normalizeSocketMessage(raw: IncomingSocketMessage): MessageApiRow {
-  const { recipientUserIds: _r, ...msg } = raw
+  const msg = raw as MessageApiRow
   return {
     ...msg,
     attachments: msg.attachments ?? [],

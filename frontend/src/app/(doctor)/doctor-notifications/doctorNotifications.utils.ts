@@ -4,6 +4,7 @@ import {
   FlagIcon,
   FlaskConicalIcon,
   HeartPulseIcon,
+  MessageSquareIcon,
   PillIcon,
   ShieldAlertIcon,
   SparklesIcon,
@@ -11,6 +12,15 @@ import {
 } from "lucide-react"
 
 import type { DoctorNotificationKind, DoctorNotificationMeta } from "./doctorNotifications.types"
+import type { NotificationListItemModel } from "@/components/shared/notifications/notification-list-item.types"
+
+const ICON_FIRST_KINDS = new Set<DoctorNotificationKind>([
+  "medication_flag",
+  "ai_insight",
+  "system",
+  "lab_result",
+  "vitals_alert",
+])
 
 const META: Record<DoctorNotificationKind, DoctorNotificationMeta> = {
   queue: { icon: UsersIcon, accent: "#1A5345" },
@@ -22,6 +32,7 @@ const META: Record<DoctorNotificationKind, DoctorNotificationMeta> = {
   ai_insight: { icon: SparklesIcon, accent: "#7C3AED" },
   system: { icon: ShieldAlertIcon, accent: "#E89042" },
   medication_flag: { icon: FlagIcon, accent: "#E11D48" },
+  message: { icon: MessageSquareIcon, accent: "#2563EB" },
 }
 
 export function getDoctorNotificationMeta(kind: DoctorNotificationKind): DoctorNotificationMeta {
@@ -41,4 +52,24 @@ export function formatNotificationTime(iso: string) {
   if (diffDays < 7) return `${diffDays}d ago`
 
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date)
+}
+
+export function toDoctorNotificationListItem(
+  notification: import("./doctorNotifications.types").DoctorNotification,
+): NotificationListItemModel {
+  const { icon, accent } = getDoctorNotificationMeta(notification.kind)
+  return {
+    id: notification.id,
+    title: notification.title,
+    body: notification.body,
+    createdAtLabel: formatNotificationTime(notification.createdAt),
+    read: notification.read,
+    href: notification.href,
+    useIconPresentation:
+      !notification.sender || ICON_FIRST_KINDS.has(notification.kind),
+    icon,
+    accent,
+    sender: notification.sender,
+    actions: notification.actions,
+  }
 }

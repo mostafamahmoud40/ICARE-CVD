@@ -1,9 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 
-import { mockProcedureOrders } from "@/app/(assistant)/assistant-procedures/assistantProcedures.mock"
-import { MOCK_HISTORY_OPERATIONS } from "@/app/(assistant)/assistant-procedures/assistantProceduresHistory.mock"
+import { fetchAssistantProcedureHistory } from "@/app/(assistant)/assistant-procedures/assistantProcedures.api"
+
 import {
   resolveProcedureReport,
   type ProcedureReportData,
@@ -86,9 +87,14 @@ export function useDoctorProcedureReport(procedureId: string) {
   const { getOrderById, isLoading: ordersLoading } = useDoctorProcedures()
   const order = getOrderById(procedureId)
 
+  const historyQuery = useQuery({
+    queryKey: ["assistant-procedures-history", "all"],
+    queryFn: () => fetchAssistantProcedureHistory("all"),
+  })
+
   const history = useMemo(
-    () => MOCK_HISTORY_OPERATIONS.find((item) => item.id === procedureId) ?? null,
-    [procedureId],
+    () => historyQuery.data?.find((item) => item.id === procedureId) ?? null,
+    [historyQuery.data, procedureId],
   )
 
   const seedReport = useMemo(() => {
@@ -154,7 +160,7 @@ export function useDoctorProcedureReport(procedureId: string) {
     resetToSeed,
     isFinalized,
     isLoading: ordersLoading || !isHydrated,
-    hasOrder: Boolean(order) || Boolean(history) || mockProcedureOrders.some((o) => o.id === procedureId),
+    hasOrder: Boolean(order) || Boolean(history),
   }
 }
 

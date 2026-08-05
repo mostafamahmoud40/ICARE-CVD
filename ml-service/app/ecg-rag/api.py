@@ -22,7 +22,12 @@ from fastapi.responses import JSONResponse
 
 sys.path.append(os.path.dirname(__file__))
 
-from preprocessing import read_raw_ecg, save_wfdb_upload
+from preprocessing import (
+    assess_signal_quality,
+    read_raw_ecg,
+    save_wfdb_upload,
+    validate_wfdb_upload,
+)
 from rag_impl import (
     create_embeddings,
     extract_features,
@@ -253,6 +258,7 @@ async def analyze(
     """
     dat_bytes = await dat_file.read()
     hea_bytes = await hea_file.read()
+    upload_warnings = validate_wfdb_upload(hea_bytes, dat_bytes)
 
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -263,6 +269,11 @@ async def analyze(
                 ecg_signal, raw_signal=raw_signal, sig_names=sig_names, sampling_rate=fs
             )
             full_feat = extract_full_features(ecg_signal, raw_signal, sig_names, sampling_rate=fs)
+            signal_warnings = assess_signal_quality(
+                raw_signal,
+                float(full_feat.get("quality", {}).get("mean_quality", 0.0)),
+            )
+            warnings = upload_warnings + signal_warnings
             retrieved = retrieve_similar_cases(str(legacy_feat), _state["collection"])
 
             total_sec = raw_signal.shape[0] / fs
@@ -340,6 +351,7 @@ async def analyze(
             "full_features":    _make_serializable(full_feat),
             "legacy_features":  _make_serializable(legacy_feat),
             "retrieved":        str(retrieved),
+            "warnings":         warnings,
             "ecg_plot_b64":     ecg_plot_b64,
             "hospital_plot_b64": hospital_plot_b64,
             "cleaned_plot_b64": cleaned_plot_b64,

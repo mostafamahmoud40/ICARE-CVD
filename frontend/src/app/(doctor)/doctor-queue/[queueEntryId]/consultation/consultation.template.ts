@@ -1,5 +1,6 @@
 import type { ConsultationData, PatientSummary } from "./consultation.types"
 import { mockAiSuggestions } from "./consultation.ai.mock"
+import { emptyChiefComplaintStructured } from "./consultationChiefComplaint.utils"
 import { emptyVitalSigns } from "./consultationVitals.utils"
 
 const emptyMedicalHistory: ConsultationData["medicalHistory"] = {
@@ -54,15 +55,20 @@ export function createConsultationDataFromPatient(
     lastVitalReading: null,
     chiefComplaint: "",
     structuredComplaint: "",
+    chiefComplaintStructured: emptyChiefComplaintStructured(),
     physicalExam: { ...emptyPhysicalExam },
     diagnoses: [],
     prescriptions: [],
     testOrders: [],
+    referrals: [],
     homeMeasurements: [],
     clinicalNotes: "",
     assessmentAndPlan: "",
     followUpDate: "",
     followUpNotes: "",
+    patientDiagnosisSummary: "",
+    patientLifestyleAdvice: "",
+    patientDangerSigns: "",
     aiSuggestions: mockAiSuggestions.map((suggestion) => ({ ...suggestion })),
   }
 }

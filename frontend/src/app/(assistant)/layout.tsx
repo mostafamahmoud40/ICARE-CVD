@@ -17,14 +17,11 @@ import {
   ClipboardPlusIcon,
   CreditCardIcon,
   HistoryIcon,
-  InboxIcon,
   LayoutDashboardIcon,
   LogOutIcon,
   PillIcon,
   PlayCircleIcon,
   Settings2Icon,
-  ShieldCheckIcon,
-  SlidersHorizontalIcon,
   SparklesIcon,
   StethoscopeIcon,
   User2Icon,
@@ -141,12 +138,6 @@ function AssistantLayoutContent({
       label: t("nav.commandCenter"),
       icon: LayoutDashboardIcon,
       isActive: pathname === "/assistant-dashboard",
-    },
-    {
-      href: "/assistant-inbox",
-      label: t("nav.inbox"),
-      icon: InboxIcon,
-      isActive: pathname === "/assistant-inbox",
     },
     {
       href: "/assistant-chats",
@@ -441,16 +432,7 @@ function AssistantLayoutContent({
                       render={
                         <Link href={item.href} aria-label={item.label}>
                           <Icon className="size-4" />
-                          {isCollapsed ? null : (
-                            <>
-                              <span>{item.label}</span>
-                              {item.href === "/assistant-inbox" ? (
-                                <span className="ms-auto rounded-full bg-[#6D5DD3] px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                                  3
-                                </span>
-                              ) : null}
-                            </>
-                          )}
+                          {isCollapsed ? null : <span>{item.label}</span>}
                         </Link>
                       }
                     />

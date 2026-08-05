@@ -3,10 +3,13 @@
 import Link from "next/link"
 import {
   Activity,
+  AlertTriangle,
+  Apple,
   ClipboardList,
   Download,
-  FileText,
+  HeartPulse,
   Lock,
+  MessageSquareText,
   Pill,
   Stethoscope,
 } from "lucide-react"
@@ -22,6 +25,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import type { VisitSummary } from "./consultations.types"
+import { REPORT_EMPTY_MESSAGES } from "@/lib/consultation-report.mapper"
 import { ClinicalOrdersPanel } from "./ClinicalOrdersPanel"
 import {
   ConsultationRecordStatusBadge,
@@ -66,7 +70,7 @@ export function VisitDetail({ visit }: VisitDetailProps) {
           {/* Controls above the "Paper" */}
           <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
             <h1 className="font-serif text-[24px] font-bold text-[#1A1F1E] sm:text-[28px]">
-              Clinical Summary
+              Your Visit Summary
             </h1>
             <div className="flex items-center gap-3">
               <ConsultationRecordStatusBadge status={visit.recordStatus} className="shadow-sm" />
@@ -135,29 +139,105 @@ export function VisitDetail({ visit }: VisitDetailProps) {
               </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row">
-              {/* Left Column (Main Clinical Info) */}
-              <div className="flex-1 border-b border-dashed border-[#E8E6E0] p-6 sm:p-10 lg:border-b-0 lg:border-r">
-                {/* Clinical Notes */}
-                <div className="mb-10">
-                  <h3 className="mb-4 flex items-center gap-2 font-serif text-[18px] font-bold text-[#1A1F1E]">
-                    <FileText className="size-5 text-[#6B7870]" />
-                    Clinical Notes
-                  </h3>
-                  <div className="rounded-xl bg-[#F9F8F5] p-5">
-                    <p className="whitespace-pre-line text-[14.5px] leading-relaxed text-[#2D3633] font-medium">
-                      {visit.doctorNotes}
+            <div className="border-b border-dashed border-[#E8E6E0] px-6 py-6 sm:px-10 sm:py-8">
+              <h3 className="mb-4 flex items-center gap-2 font-serif text-[18px] font-bold text-[#1A1F1E]">
+                <MessageSquareText className="size-5 text-[#1A5345]" />
+                Reason for visit
+              </h3>
+              <div className="rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] p-5">
+                <p
+                  className={cn(
+                    "whitespace-pre-line text-[15px] leading-relaxed font-medium",
+                    visit.reasonForVisit === REPORT_EMPTY_MESSAGES.reasonForVisit
+                      ? "text-[#6B7870] italic"
+                      : "text-[#2D3633]",
+                  )}
+                >
+                  {visit.reasonForVisit}
+                </p>
+              </div>
+            </div>
+
+            {visit.patientInstructions ? (
+              <div className="border-b border-dashed border-[#E8E6E0] px-6 py-6 sm:px-10 sm:py-8">
+                <h3 className="mb-2 flex items-center gap-2 font-serif text-[18px] font-bold text-[#1A1F1E]">
+                  <HeartPulse className="size-5 text-[#1A5345]" />
+                  What your doctor shared with you
+                </h3>
+                <p className="mb-5 text-[13px] font-medium text-muted-foreground">
+                  Your diagnosis, daily guidance, and when to seek emergency care.
+                </p>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] p-5">
+                    <h4 className="mb-2 flex items-center gap-2 text-[13px] font-bold uppercase tracking-wide text-[#1A5345]">
+                      <Stethoscope className="size-4" aria-hidden />
+                      Your diagnosis
+                    </h4>
+                    <p
+                      className={cn(
+                        "whitespace-pre-line text-[14px] leading-relaxed font-medium",
+                        visit.patientInstructions.diagnosisSummary ===
+                          REPORT_EMPTY_MESSAGES.patientDiagnosisSummary
+                          ? "text-[#6B7870] italic"
+                          : "text-[#2D3633]",
+                      )}
+                    >
+                      {visit.patientInstructions.diagnosisSummary}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5] p-5">
+                    <h4 className="mb-2 flex items-center gap-2 text-[13px] font-bold uppercase tracking-wide text-[#1A5345]">
+                      <Apple className="size-4" aria-hidden />
+                      Lifestyle & diet
+                    </h4>
+                    <p
+                      className={cn(
+                        "whitespace-pre-line text-[14px] leading-relaxed font-medium",
+                        visit.patientInstructions.lifestyleAdvice ===
+                          REPORT_EMPTY_MESSAGES.patientLifestyleAdvice
+                          ? "text-[#6B7870] italic"
+                          : "text-[#2D3633]",
+                      )}
+                    >
+                      {visit.patientInstructions.lifestyleAdvice}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-red-200/80 bg-red-50/40 p-5 lg:col-span-2">
+                    <h4 className="mb-2 flex items-center gap-2 text-[13px] font-bold uppercase tracking-wide text-red-800">
+                      <AlertTriangle className="size-4" aria-hidden />
+                      Go to emergency immediately if
+                    </h4>
+                    <p
+                      className={cn(
+                        "whitespace-pre-line text-[14px] leading-relaxed font-medium",
+                        visit.patientInstructions.dangerSigns ===
+                          REPORT_EMPTY_MESSAGES.patientDangerSigns
+                          ? "text-red-900/50 italic"
+                          : "text-red-950",
+                      )}
+                    >
+                      {visit.patientInstructions.dangerSigns}
                     </p>
                   </div>
                 </div>
+              </div>
+            ) : null}
 
-                {/* Orders */}
+            <div className="flex flex-col lg:flex-row">
+              {/* Left Column — orders & follow-up */}
+              <div className="flex-1 border-b border-dashed border-[#E8E6E0] p-6 sm:p-10 lg:border-b-0 lg:border-r">
                 <div>
                   <h3 className="mb-4 flex items-center gap-2 font-serif text-[18px] font-bold text-[#1A1F1E]">
                     <ClipboardList className="size-5 text-[#6B7870]" />
                     Orders
                   </h3>
-                  <ClinicalOrdersPanel orders={visit.orders} layout="grid" />
+                  <ClinicalOrdersPanel
+                    orders={visit.orders}
+                    layout="grid"
+                    emptyMessage="No orders or follow-up tasks were recorded for this visit."
+                  />
                 </div>
 
               </div>
@@ -177,6 +257,11 @@ export function VisitDetail({ visit }: VisitDetailProps) {
                     </Button>
                   </div>
                   <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-[#E8E6E0]/60">
+                    {visit.medications.length === 0 ? (
+                      <p className="px-4 py-5 text-[13px] font-medium italic text-[#6B7870]">
+                        No prescriptions were recorded for this visit.
+                      </p>
+                    ) : (
                     <ul className="divide-y divide-[#E8E6E0]/60">
                       {visit.medications.map((med, idx) => {
                         const isDiscontinued = med.status === "discontinued"
@@ -218,6 +303,7 @@ export function VisitDetail({ visit }: VisitDetailProps) {
                         )
                       })}
                     </ul>
+                    )}
                   </div>
                 </div>
 

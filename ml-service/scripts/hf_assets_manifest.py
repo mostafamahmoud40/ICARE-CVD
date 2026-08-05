@@ -14,17 +14,20 @@ DEFAULT_FILES: list[str] = [
     "app/echo-dynamic/deeplabv3_resnet50_random.pt",
     "app/echo-dynamic/r2plus1d_18_32_2_pretrained.pt",
     "app/CT/coronary_segmentation_model.pth",
+    "app/xray/yolo12s.pt",
     "app/ecg/ecgtransform_mit_best.pt",
+    "app/Ecg_Classification/best_maxvit_ecg_model 98.pth",
     "segmentation.nii.gz",
     # RAG: needed to build Chroma if you do not download chroma_db from Hub
     "app/ecg-rag/database/paper03.pdf",
     "app/ecg-rag/database/paper04.pdf",
 ]
 
-# Large demo videos (echo) — optional
+# Reference / demo assets — optional
 OPTIONAL_FILES: list[str] = [
     "app/echo-dynamic/samples/Mildly_Reduced_EF47.1_0X7FF6111130FB1E5E.avi",
     "app/echo-dynamic/samples/Normal_EF68.2_0X2728207F531EE47D.avi",
+    "app/ecg/ECGTransForm/misc/ECGTransForm_paper.pdf",
 ]
 
 # Large trees — optional; not required for minimal ECG inference (only ecgtransform_mit_best.pt).

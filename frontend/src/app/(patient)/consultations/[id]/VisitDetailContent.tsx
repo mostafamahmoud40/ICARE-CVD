@@ -3,16 +3,24 @@
 import { notFound } from "next/navigation"
 
 import { VisitDetail } from "../VisitDetail"
-import { getVisitById } from "../consultations.mock"
+import { usePatientConsultation } from "../usePatientConsultations"
 
 type VisitDetailContentProps = {
   visitId: string
 }
 
 export function VisitDetailContent({ visitId }: VisitDetailContentProps) {
-  const visit = getVisitById(visitId)
+  const { data: visit, isLoading, isError } = usePatientConsultation(visitId)
 
-  if (!visit) {
+  if (isLoading) {
+    return (
+      <div className="flex h-full w-full min-h-0 flex-col items-center justify-center overflow-hidden bg-[#F4F3EF]">
+        <p className="text-[14px] font-medium text-muted-foreground">Loading visit summary…</p>
+      </div>
+    )
+  }
+
+  if (isError || !visit) {
     notFound()
   }
 

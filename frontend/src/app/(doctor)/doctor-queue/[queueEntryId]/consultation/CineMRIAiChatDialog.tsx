@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { cn } from "@/lib/utils"
 import { AlertCircleIcon, CheckIcon, Loader2Icon, SendHorizontalIcon, SparklesIcon, XIcon } from "lucide-react"
 
-const CHAT_ROUTE = "/api/medical-analyzer/chat"
+import { medicalAnalyzerMlAdapter } from "@/lib/ml"
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -109,11 +109,8 @@ export function CineMRIAiChatDialog({ open, onOpenChange, result }: CineMRIAiCha
 
     void (async () => {
       try {
-        const res = await fetch(CHAT_ROUTE, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal: ctrl.signal,
-          body: JSON.stringify({
+        const data = (await medicalAnalyzerMlAdapter.chat(
+          {
             history: [
               {
                 role: "user",
@@ -122,9 +119,9 @@ export function CineMRIAiChatDialog({ open, onOpenChange, result }: CineMRIAiCha
               },
             ],
             context: buildContext(result),
-          }),
-        })
-        const data = (await res.json()) as { success: boolean; reply?: string }
+          },
+          { signal: ctrl.signal },
+        )) as { success: boolean; reply?: string }
         if (!data.success || !data.reply) throw new Error("No reply")
         setMessages([{ id: "summary", role: "assistant", content: data.reply }])
         setSummaryPhase("done")
@@ -181,14 +178,10 @@ export function CineMRIAiChatDialog({ open, onOpenChange, result }: CineMRIAiCha
         role: m.role,
         content: m.content,
       }))
-      const res = await fetch(CHAT_ROUTE, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: ctrl.signal,
-        body: JSON.stringify({ history, context: buildContext(result) }),
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = (await res.json()) as { success: boolean; reply?: string; error?: string }
+      const data = (await medicalAnalyzerMlAdapter.chat(
+        { history, context: buildContext(result) },
+        { signal: ctrl.signal },
+      )) as { success: boolean; reply?: string; error?: string }
       if (!data.success) throw new Error(data.error ?? "Request failed")
       setMessages((m) => [
         ...m,

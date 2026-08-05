@@ -10,6 +10,7 @@ export type PatientDemographics = {
   address: string
   occupation: string
   maritalStatus: string
+  avatarUrl: string | null
 }
 
 export type Allergy = {
@@ -126,7 +127,23 @@ export type AISuggestion = {
 
 export type TestOrder = {
   id: string
-  testType: "blood" | "imaging" | "ecg" | "echocardiogram" | "stress_test" | "cardiac_catheterization" | "pulmonary_function" | "urinalysis" | "other"
+  testType:
+    | "blood"
+    | "imaging"
+    | "ecg"
+    | "echocardiogram"
+    | "holter_monitor"
+    | "stress_test"
+    | "nuclear_stress_test"
+    | "ct_coronary_angiography"
+    | "cardiac_mri"
+    | "cardiac_catheterization"
+    | "carotid_doppler"
+    | "tilt_table_test"
+    | "pulmonary_function"
+    | "sleep_study"
+    | "urinalysis"
+    | "other"
   testName: string
   urgency: "routine" | "urgent" | "stat"
   notes: string
@@ -136,9 +153,27 @@ export type TestOrder = {
   fastingRequired: boolean
 }
 
+export type ReferralEntry = {
+  id: string
+  specialty: string
+  reason: string
+  urgency: "routine" | "urgent"
+}
+
 export type HomeMeasurement = {
   id: string
-  metric: "blood_pressure" | "heart_rate" | "weight" | "blood_sugar" | "oxygen_saturation" | "temperature" | "other"
+  metric:
+    | "blood_pressure"
+    | "heart_rate"
+    | "weight"
+    | "blood_sugar"
+    | "oxygen_saturation"
+    | "temperature"
+    | "symptom_log"
+    | "single_lead_ecg"
+    | "physical_activity"
+    | "sleep_quality"
+    | "other"
   metricLabel: string
   frequency: string
   timesOfDay: string[]
@@ -147,10 +182,17 @@ export type HomeMeasurement = {
   instructions: string
 }
 
-/** Staged lab document uploads on the consultation form (browser `File` handles). */
+/** Staged or persisted lab document on the consultation form. */
 export type LabMaterialFile = {
   id: string
-  file: File
+  /** Present only before the file is uploaded to object storage. */
+  file?: File
+  fileName: string
+  fileSize: number
+  documentId?: string
+  panelId?: string
+  uploadPhase?: "uploading" | "ready" | "error"
+  uploadError?: string
 }
 
 export type ProcedurePriority = "elective" | "urgent" | "emergency"
@@ -181,6 +223,18 @@ export type ConsultationMedicalHistory = {
   noChronicConditions: boolean
 }
 
+export type ChiefComplaintStructured = {
+  primaryComplaint: string
+  onset: string
+  duration: string
+  severity: string
+  character: string
+  aggravating: string[]
+  relieving: string[]
+  associatedSymptoms: string[]
+  otherComplaintDetail: string
+}
+
 export type ConsultationData = {
   /** Matches `doctor-patients` mock IDs (e.g. `p-001`) for profile navigation */
   patientId: string
@@ -191,15 +245,20 @@ export type ConsultationData = {
   procedureDetails: ProcedureDetails
   chiefComplaint: string
   structuredComplaint: string
+  chiefComplaintStructured: ChiefComplaintStructured
   physicalExam: PhysicalExamFindings
   diagnoses: DiagnosisEntry[]
   prescriptions: PrescriptionEntry[]
   testOrders: TestOrder[]
+  referrals: ReferralEntry[]
   homeMeasurements: HomeMeasurement[]
   clinicalNotes: string
   assessmentAndPlan: string
   followUpDate: string
   followUpNotes: string
+  patientDiagnosisSummary: string
+  patientLifestyleAdvice: string
+  patientDangerSigns: string
   aiSuggestions: AISuggestion[]
 }
 

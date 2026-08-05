@@ -9,7 +9,9 @@ import {
 } from 'class-validator';
 
 export class CreateAssistantAppointmentDto {
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(40)
   patientId!: string;
 
   @IsUUID()

@@ -4,11 +4,17 @@ import {
   UnauthorizedException,
   NotFoundException,
 } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { count, desc, eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
-import { user, doctor, assistant } from '../../database/schema';
-import { hashPassword, verifyPassword } from '../auth/password';
+import {
+  assistant,
+  doctor,
+  patient,
+  pendingRegistration,
+  user,
+} from '../../database/schema';
+import { hashPassword } from '../auth/password';
 import { AuthJwtService } from '../auth/jwt';
 import {
   AddStaffDto,
@@ -22,6 +28,170 @@ export class AdminService {
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly jwtService: AuthJwtService,
   ) {}
+
+  async getDashboard(adminUserId: number) {
+    const adminUser = await this.db.query.user.findFirst({
+      where: eq(user.id, adminUserId),
+    });
+    if (!adminUser) {
+      throw new NotFoundException('Admin user not found');
+    }
+
+    const [
+      totalUsersRow,
+      doctorsRow,
+      patientsRow,
+      assistantsRow,
+      adminsRow,
+      pendingRow,
+      recentPatients,
+      recentDoctors,
+      recentAssistants,
+      recentPending,
+    ] = await Promise.all([
+      this.db.select({ count: count() }).from(user),
+      this.db
+        .select({ count: count() })
+        .from(user)
+        .where(eq(user.role, StaffRole.Doctor)),
+      this.db
+        .select({ count: count() })
+        .from(user)
+        .where(eq(user.role, 'patient')),
+      this.db
+        .select({ count: count() })
+        .from(user)
+        .where(eq(user.role, 'assistant')),
+      this.db
+        .select({ count: count() })
+        .from(user)
+        .where(eq(user.role, 'admin')),
+      this.db.select({ count: count() }).from(pendingRegistration),
+      this.db
+        .select({
+          userId: user.id,
+          fullName: user.name,
+          email: user.email,
+          isActive: user.isActive,
+          joinedAt: patient.createdAt,
+        })
+        .from(patient)
+        .innerJoin(user, eq(patient.userId, user.id))
+        .orderBy(desc(patient.createdAt))
+        .limit(5),
+      this.db
+        .select({
+          userId: user.id,
+          fullName: user.name,
+          email: user.email,
+          isActive: user.isActive,
+          joinedAt: doctor.createdAt,
+        })
+        .from(doctor)
+        .innerJoin(user, eq(doctor.userId, user.id))
+        .orderBy(desc(doctor.createdAt))
+        .limit(5),
+      this.db
+        .select({
+          userId: user.id,
+          fullName: user.name,
+          email: user.email,
+          isActive: user.isActive,
+          joinedAt: assistant.createdAt,
+        })
+        .from(assistant)
+        .innerJoin(user, eq(assistant.userId, user.id))
+        .orderBy(desc(assistant.createdAt))
+        .limit(5),
+      this.db
+        .select({
+          id: pendingRegistration.id,
+          fullName: pendingRegistration.name,
+          email: pendingRegistration.email,
+          joinedAt: pendingRegistration.createdAt,
+        })
+        .from(pendingRegistration)
+        .orderBy(desc(pendingRegistration.createdAt))
+        .limit(5),
+    ]);
+
+    const recentSignups = [
+      ...recentPatients.map((row) => ({
+        id: `USR-${row.userId}`,
+        fullName: row.fullName,
+        email: row.email,
+        role: 'patient' as const,
+        status: row.isActive ? ('active' as const) : ('suspended' as const),
+        joinedAt: row.joinedAt.toISOString(),
+      })),
+      ...recentDoctors.map((row) => ({
+        id: `USR-${row.userId}`,
+        fullName: row.fullName,
+        email: row.email,
+        role: 'doctor' as const,
+        status: row.isActive ? ('active' as const) : ('suspended' as const),
+        joinedAt: row.joinedAt.toISOString(),
+      })),
+      ...recentAssistants.map((row) => ({
+        id: `USR-${row.userId}`,
+        fullName: row.fullName,
+        email: row.email,
+        role: 'assistant' as const,
+        status: row.isActive ? ('active' as const) : ('suspended' as const),
+        joinedAt: row.joinedAt.toISOString(),
+      })),
+      ...recentPending.map((row) => ({
+        id: `PND-${row.id}`,
+        fullName: row.fullName,
+        email: row.email,
+        role: 'patient' as const,
+        status: 'pending' as const,
+        joinedAt: row.joinedAt.toISOString(),
+      })),
+    ]
+      .sort((a, b) => Date.parse(b.joinedAt) - Date.parse(a.joinedAt))
+      .slice(0, 8);
+
+    const recentActivity = [
+      ...recentPending.map((row) => ({
+        id: `pending-${row.id}`,
+        summary: 'Registration awaiting email verification',
+        actor: row.fullName,
+        at: row.joinedAt.toISOString(),
+      })),
+      ...recentPatients.slice(0, 3).map((row) => ({
+        id: `patient-${row.userId}`,
+        summary: 'New patient profile created',
+        actor: row.fullName,
+        at: row.joinedAt.toISOString(),
+      })),
+      ...recentDoctors.slice(0, 3).map((row) => ({
+        id: `doctor-${row.userId}`,
+        summary: 'New doctor profile created',
+        actor: row.fullName,
+        at: row.joinedAt.toISOString(),
+      })),
+    ]
+      .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
+      .slice(0, 8);
+
+    return {
+      admin: {
+        fullName: adminUser.name,
+        email: adminUser.email,
+      },
+      counts: {
+        totalUsers: totalUsersRow[0]?.count ?? 0,
+        doctors: doctorsRow[0]?.count ?? 0,
+        patients: patientsRow[0]?.count ?? 0,
+        assistants: assistantsRow[0]?.count ?? 0,
+        admins: adminsRow[0]?.count ?? 0,
+        pendingVerifications: pendingRow[0]?.count ?? 0,
+      },
+      recentSignups,
+      recentActivity,
+    };
+  }
 
   async addStaff(dto: AddStaffDto) {
     const normalizedEmail = dto.email.toLowerCase().trim();
@@ -176,8 +346,7 @@ export class AdminService {
         specialty: docDetail?.specialty ?? assDetail?.department ?? null,
         experienceYears:
           docDetail?.experienceYears ?? assDetail?.experienceYears ?? 0,
-        acceptedVisitModes:
-          docDetail?.acceptedVisitModes ?? null,
+        acceptedVisitModes: docDetail?.acceptedVisitModes ?? null,
         createdAt:
           (docDetail?.createdAt ?? assDetail?.createdAt)?.toISOString() ??
           new Date().toISOString(),
@@ -232,12 +401,17 @@ export class AdminService {
       throw new UnauthorizedException('Failed to update staff member');
     }
 
-    const roleChanged = existing.role !== dto.role;
+    const roleChanged = (existing.role as StaffRole) !== dto.role;
 
     if (roleChanged) {
-      await this.handleRoleChange(existing.role, dto.role, id, dto);
+      await this.handleRoleChange(
+        existing.role as StaffRole,
+        dto.role,
+        id,
+        dto,
+      );
     } else {
-      await this.updateRoleSpecificProfile(existing.role, id, dto);
+      await this.updateRoleSpecificProfile(existing.role as StaffRole, id, dto);
     }
 
     return {
@@ -247,8 +421,8 @@ export class AdminService {
   }
 
   private async handleRoleChange(
-    previousRole: string,
-    newRole: string,
+    previousRole: StaffRole,
+    newRole: StaffRole,
     userId: number,
     dto: AddStaffDto,
   ): Promise<void> {
@@ -257,7 +431,7 @@ export class AdminService {
   }
 
   private async deleteRoleSpecificProfile(
-    role: string,
+    role: StaffRole,
     userId: number,
   ): Promise<void> {
     if (role === StaffRole.Doctor) {
@@ -268,7 +442,7 @@ export class AdminService {
   }
 
   private async createRoleSpecificProfile(
-    role: string,
+    role: StaffRole,
     userId: number,
     dto: AddStaffDto,
   ): Promise<void> {
@@ -290,7 +464,7 @@ export class AdminService {
   }
 
   private async updateRoleSpecificProfile(
-    role: string,
+    role: StaffRole,
     userId: number,
     dto: AddStaffDto,
   ): Promise<void> {
@@ -341,10 +515,7 @@ export class AdminService {
       throw new NotFoundException('Staff member not found');
     }
 
-    await this.db
-      .update(user)
-      .set({ isActive })
-      .where(eq(user.id, id));
+    await this.db.update(user).set({ isActive }).where(eq(user.id, id));
 
     return {
       message: 'Staff member status updated successfully',

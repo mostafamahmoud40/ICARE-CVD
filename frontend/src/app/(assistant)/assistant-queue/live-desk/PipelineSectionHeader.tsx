@@ -8,13 +8,11 @@ export function PipelineSectionHeader({
   iconClass,
   title,
   count,
-  countStyle,
 }: {
   icon: React.ElementType
   iconClass: string
   title: string
   count?: number
-  countStyle?: string
 }) {
   return (
     <div className="flex items-center gap-2">

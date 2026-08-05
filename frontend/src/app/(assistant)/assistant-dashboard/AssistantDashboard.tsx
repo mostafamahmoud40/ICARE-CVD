@@ -2,16 +2,10 @@
 
 import * as React from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { useAssistantQueue } from "../assistant-queue/useAssistantQueue"
 import { useAssistantAppointments } from "../assistant-appointments/useAssistantAppointments"
-export type AssistantDashboardProps = {
-  data: any
-  isLoading: boolean
-  isError: boolean
-  error: Error | null
-}
-
+import { useAssistantDashboardProcedures } from "./useAssistantDashboardProcedures"
+import type { AssistantDashboardData } from "./assistantDashboard.types"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -23,21 +17,30 @@ import {
   CalendarClockIcon,
   CheckCircleIcon,
   ClockIcon,
-  InboxIcon,
   UsersIcon,
-  StethoscopeIcon,
-  PlusIcon,
   UserPlusIcon,
-  CheckIcon,
-  VideoIcon,
-  Building2Icon,
   MessageCircleIcon,
   ClipboardListIcon,
   AlertTriangleIcon,
-  HelpCircleIcon,
   UserCheckIcon,
-  SlidersHorizontalIcon
+  SlidersHorizontalIcon,
 } from "lucide-react"
+
+export type AssistantDashboardProps = {
+  data: AssistantDashboardData | undefined
+  isLoading: boolean
+  isError: boolean
+  error: Error | null
+}
+
+type UrgentTask = {
+  id: string
+  type: "danger" | "warning" | "info"
+  title: string
+  description: string
+  actionLabel: string
+  link: string
+}
 
 function formatTodayHeading() {
   return new Intl.DateTimeFormat(undefined, {
@@ -57,109 +60,76 @@ function formatTimeOnly(iso: string) {
   }).format(date)
 }
 
-// ─── Mock data for design review ───────────────────────────────────
-const USE_MOCK = true
-
-function buildMockTodayISO(hour: number, minute: number) {
-  const d = new Date()
-  d.setHours(hour, minute, 0, 0)
-  return d.toISOString()
-}
-
-const MOCK_TODAY_APPOINTMENTS = [
-  { id: "ma-1", patientName: "Sara Ahmed", doctorName: "Dr. Mahmoud Ali", scheduledAt: buildMockTodayISO(9, 0), visitType: "clinic" as const, reason: "Hypertension follow-up — BP log review", status: "confirmed" as const },
-  { id: "ma-2", patientName: "Omar Hassan", doctorName: "Dr. Hana Farid", scheduledAt: buildMockTodayISO(9, 30), visitType: "clinic" as const, reason: "Post-MI cardiac rehabilitation assessment", status: "scheduled" as const },
-  { id: "ma-3", patientName: "Laila Nasser", doctorName: "Dr. Mahmoud Ali", scheduledAt: buildMockTodayISO(10, 0), visitType: "virtual" as const, reason: "Lipid panel review & statin adjustment", status: "scheduled" as const },
-  { id: "ma-4", patientName: "Kamal Al-Fayed", doctorName: "Dr. Karim El-Sayed", scheduledAt: buildMockTodayISO(10, 30), visitType: "clinic" as const, reason: "Arrhythmia monitoring — Holter results", status: "scheduled" as const },
-  { id: "ma-5", patientName: "Fatima Hassan", doctorName: "Dr. Hana Farid", scheduledAt: buildMockTodayISO(11, 0), visitType: "clinic" as const, reason: "Echocardiogram — structural follow-up", status: "scheduled" as const },
-  { id: "ma-6", patientName: "Ahmed Mohamed", doctorName: "Dr. Mahmoud Ali", scheduledAt: buildMockTodayISO(11, 30), visitType: "clinic" as const, reason: "Chest pain assessment — new symptom", status: "scheduled" as const },
-  { id: "ma-7", patientName: "Nadia Selim", doctorName: "Dr. Karim El-Sayed", scheduledAt: buildMockTodayISO(12, 0), visitType: "virtual" as const, reason: "Thyroid & dyslipidemia co-management", status: "scheduled" as const },
-  { id: "ma-8", patientName: "Hassan Mahmoud", doctorName: "Dr. Mahmoud Ali", scheduledAt: buildMockTodayISO(14, 0), visitType: "clinic" as const, reason: "Routine hypertension — weight review", status: "scheduled" as const },
-]
-
-const MOCK_URGENT_TASKS = [
-  {
-    id: "urgent-triage",
-    type: "danger" as const,
-    title: "Urgent Priority Patient Waiting",
-    description: "Kamal Al-Fayed has urgent status and has been waiting for 18 mins. Please route to consulting room immediately.",
-    actionLabel: "Assign Doctor",
-    link: "/assistant-queue/live-desk",
-  },
-  {
-    id: "incomplete-procedure",
-    type: "warning" as const,
-    title: "Incomplete Procedure Setup",
-    description: "Omar Hassan is scheduled for Echocardiogram at 11:30 AM. Missing signed clinical consent form — requires patient signature.",
-    actionLabel: "Upload Consent",
-    link: "/assistant-procedures?view=operations",
-  },
-  {
-    id: "potential-no-show",
-    type: "info" as const,
-    title: "Attendance Review Needed",
-    description: "Ali Seif has not checked in for the 10:15 AM appointment yet. Administrative confirmation call recommended.",
-    actionLabel: "Contact Patient",
-    link: "/assistant-appointments",
-  },
-  {
-    id: "critical-medication",
-    type: "warning" as const,
-    title: "Critical Medication Safety Check",
-    description: "Fatima Hassan has an active Amiodarone + Warfarin regimen. High-risk interaction flagged — verify INR before consult.",
-    actionLabel: "Log Vitals",
-    link: "/assistant-medications",
-  },
-]
-
-const MOCK_STATS = { patientsInClinic: 14, averageWaitTime: 12, completedToday: 7, noShowsToday: 2, inWaiting: 6, inConsultation: 3 }
-
-// ─── Component ─────────────────────────────────────────────────────
-export function AssistantDashboard({ data, isLoading, isError, error }: AssistantDashboardProps) {
+export function AssistantDashboard({ isLoading, isError, error }: AssistantDashboardProps) {
   const queue = useAssistantQueue()
   const appointments = useAssistantAppointments()
+  const proceduresQuery = useAssistantDashboardProcedures()
 
-  // Calculate stats dynamically from Queue and Appointments hooks — with mock fallback
-  const hasRealQueueData = !queue.isLoading && !queue.isError && queue.patients.length > 0
-  const patientsInClinic = hasRealQueueData
-    ? (queue.stats.arrived ?? 0) + (queue.stats.inWaiting ?? 0) + (queue.stats.inConsultation ?? 0)
-    : USE_MOCK ? MOCK_STATS.patientsInClinic : 0
-  const averageWaitTime = hasRealQueueData ? (queue.stats.avgWaitMin ?? 12) : USE_MOCK ? MOCK_STATS.averageWaitTime : 0
-  const completedToday = hasRealQueueData ? (queue.stats.completed ?? 0) : USE_MOCK ? MOCK_STATS.completedToday : 0
-  const noShowsToday = hasRealQueueData ? (queue.stats.noShow ?? 0) : USE_MOCK ? MOCK_STATS.noShowsToday : 0
-  const inWaitingStat = hasRealQueueData ? (queue.stats.inWaiting ?? 0) : USE_MOCK ? MOCK_STATS.inWaiting : 0
-  const inConsultStat = hasRealQueueData ? (queue.stats.inConsultation ?? 0) : USE_MOCK ? MOCK_STATS.inConsultation : 0
+  const patientsInClinic =
+    (queue.stats.arrived ?? 0) + (queue.stats.inWaiting ?? 0) + (queue.stats.inConsultation ?? 0)
+  const averageWaitTime = queue.stats.avgWaitMin ?? 0
+  const completedToday = queue.stats.completed ?? 0
+  const noShowsToday = queue.stats.noShow ?? 0
+  const inWaitingStat = queue.stats.inWaiting ?? 0
+  const inConsultStat = queue.stats.inConsultation ?? 0
 
-  // Get upcoming appointments scheduled for today — with mock fallback
   const todayAppointments = React.useMemo(() => {
     const todayStr = new Date().toISOString().split("T")[0]
-    const real = appointments.appointments
-      .filter(app => app.scheduledAt.startsWith(todayStr) && app.status !== "cancelled")
+    return appointments.appointments
+      .filter((app) => app.scheduledAt.startsWith(todayStr) && app.status !== "cancelled")
       .sort((a, b) => Date.parse(a.scheduledAt) - Date.parse(b.scheduledAt))
-    if (real.length > 0) return real
-    if (USE_MOCK) return MOCK_TODAY_APPOINTMENTS as any[]
-    return []
   }, [appointments.appointments])
 
-  // Urgent tasks — with mock fallback
   const urgentTasks = React.useMemo(() => {
-    if (USE_MOCK) return MOCK_URGENT_TASKS
-    const tasks: typeof MOCK_URGENT_TASKS = []
-    const waitingPatients = queue.patients.filter(p => p.status === "waiting" || p.status === "arrived")
-    const urgentWaiting = waitingPatients.find(p => p.priority === "emergency" || p.priority === "urgent")
+    const tasks: UrgentTask[] = []
+    const waitingPatients = queue.patients.filter(
+      (patient) => patient.status === "waiting" || patient.status === "arrived",
+    )
+    const urgentWaiting = waitingPatients.find(
+      (patient) => patient.priority === "emergency" || patient.priority === "urgent",
+    )
     if (urgentWaiting) {
-      tasks.push({ id: "urgent-triage", type: "danger", title: "Urgent Priority Patient Waiting", description: `${urgentWaiting.fullName} has urgent priority and is currently in wait list. Please route to a consulting room.`, actionLabel: "Assign Doctor", link: "/assistant-queue/live-desk" })
+      tasks.push({
+        id: "urgent-triage",
+        type: "danger",
+        title: "Urgent Priority Patient Waiting",
+        description: `${urgentWaiting.fullName} has urgent priority and is currently in the wait list. Please route to a consulting room.`,
+        actionLabel: "Open Live Desk",
+        link: "/assistant-queue/live-desk",
+      })
     }
-    tasks.push({ id: "incomplete-procedure", type: "warning", title: "Incomplete Procedure Setup", description: "Omar Hassan is scheduled for Echocardiogram at 11:30 AM. Status: Missing signed clinical consent form.", actionLabel: "Upload Consent", link: "/assistant-procedures?view=operations" })
-    const scheduledNext = todayAppointments.find((app: any) => app.status === "scheduled")
-    if (scheduledNext) {
-      tasks.push({ id: "potential-no-show", type: "info", title: "Upcoming Attendance Check", description: `Appointment for ${(scheduledNext as any).patientName} starts shortly. Patient has not arrived at the reception desk yet.`, actionLabel: "Contact Patient", link: "/assistant-appointments" })
-    }
-    tasks.push({ id: "critical-medication", type: "warning", title: "Critical Medication Safety Check", description: "Sarah Jenkins has an active Amiodarone regimen. High risk alert: Please verify vitals compliance first.", actionLabel: "Log Vitals", link: "/assistant-medications" })
-    return tasks
-  }, [queue.patients, todayAppointments])
 
-  const combinedLoading = USE_MOCK ? false : (isLoading || queue.isLoading || appointments.isLoading)
+    const incompleteProcedure = proceduresQuery.data?.find((order) =>
+      order.requirements.some((requirement) => requirement.kind === "consent" && !requirement.isDone),
+    )
+    if (incompleteProcedure) {
+      tasks.push({
+        id: `incomplete-procedure-${incompleteProcedure.id}`,
+        type: "warning",
+        title: "Incomplete Procedure Setup",
+        description: `${incompleteProcedure.patientName} — ${incompleteProcedure.procedureName} is missing signed clinical consent.`,
+        actionLabel: "Upload Consent",
+        link: "/assistant-procedures?view=operations",
+      })
+    }
+
+    const scheduledNext = todayAppointments.find((app) => app.status === "scheduled")
+    if (scheduledNext) {
+      tasks.push({
+        id: "potential-no-show",
+        type: "info",
+        title: "Upcoming Attendance Check",
+        description: `Appointment for ${scheduledNext.patientName} starts soon. Confirm arrival at reception.`,
+        actionLabel: "Contact Patient",
+        link: "/assistant-appointments",
+      })
+    }
+
+    return tasks
+  }, [proceduresQuery.data, queue.patients, todayAppointments])
+
+  const combinedLoading =
+    isLoading || queue.isLoading || appointments.isLoading || proceduresQuery.isLoading
 
   if (combinedLoading) {
     return (
@@ -197,21 +167,22 @@ export function AssistantDashboard({ data, isLoading, isError, error }: Assistan
     )
   }
 
-  if (!USE_MOCK && (isError || queue.isError || appointments.isError)) {
+  if (isError || queue.isError || appointments.isError || proceduresQuery.isError) {
     return (
       <main className="w-full min-w-0 flex-1 bg-[#F9F8F5] p-6 sm:p-8">
         <Alert variant="destructive" className="w-full max-w-none rounded-xl">
           <AlertCircleIcon className="size-4" />
-          <AlertTitle>Error loading Today's Command Center</AlertTitle>
+          <AlertTitle>Error loading Today&apos;s Command Center</AlertTitle>
           <AlertDescription>
-            {error?.message || queue.isError || appointments.isError || "An error occurred while loading clinic live operations data."}
+            {error?.message ||
+              (appointments.error instanceof Error ? appointments.error.message : null) ||
+              (proceduresQuery.error instanceof Error ? proceduresQuery.error.message : null) ||
+              "An error occurred while loading clinic live operations data."}
           </AlertDescription>
         </Alert>
       </main>
     )
   }
-
-  const assistantName = data?.assistant.fullName || "Amira Hassan"
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
@@ -239,7 +210,7 @@ export function AssistantDashboard({ data, isLoading, isError, error }: Assistan
           <div className="mt-2 flex flex-col gap-3 sm:mt-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
             <div className="min-w-0 space-y-1">
               <h1 className="font-serif text-[24px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[26px] lg:text-[28px] flex items-center gap-2">
-                Today's Command Center
+                Today&apos;s Command Center
               </h1>
               <p className="text-[13px] font-medium text-[#6B7870] sm:text-[14px]">
                 Real-time clinic operations, scheduling, and triage management system
@@ -341,7 +312,13 @@ export function AssistantDashboard({ data, isLoading, isError, error }: Assistan
               </div>
 
               <div className="grid gap-4">
-                {urgentTasks.map((task) => (
+                {urgentTasks.length === 0 ? (
+                  <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-8 text-center text-muted-foreground">
+                    <CheckCircleIcon className="mx-auto mb-2 size-8 text-emerald-600 opacity-80" />
+                    <p className="text-[13px] font-bold">No urgent actions right now.</p>
+                  </div>
+                ) : (
+                  urgentTasks.map((task) => (
                   <div
                     key={task.id}
                     className={cn(
@@ -391,7 +368,8 @@ export function AssistantDashboard({ data, isLoading, isError, error }: Assistan
                       </Button>
                     </div>
                   </div>
-                ))}
+                ))
+                )}
               </div>
             </div>
 
@@ -401,7 +379,7 @@ export function AssistantDashboard({ data, isLoading, isError, error }: Assistan
                 <div className="flex items-center gap-2">
                   <span className="size-2 rounded-full bg-[#1A5345]" />
                   <h2 className="font-serif text-[18px] font-bold text-[#1A1F1E]">
-                    Today's Schedule
+                    Today&apos;s Schedule
                   </h2>
                 </div>
                 <span className="rounded-lg bg-[#1A5345] px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm">

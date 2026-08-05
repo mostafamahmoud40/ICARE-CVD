@@ -21,7 +21,7 @@ export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number];
 import { Type } from 'class-transformer';
 
 /**
- * Document file metadata - sent from frontend after S3 upload completes
+ * Document file metadata — sent from frontend after MinIO upload completes
  * SOLID: Single responsibility - represents document data structure
  * Flexible: Accepts both 'name'/'fileName' and 'size'/'fileSize' field names
  */
@@ -52,11 +52,11 @@ export class DocumentFileDto {
 
   @Allow()
   @IsOptional()
-  s3Key?: string; // S3 object key
+  s3Key?: string; // MinIO object key
 
   @Allow()
   @IsOptional()
-  s3Url?: string; // Public S3 URL
+  s3Url?: string; // Public object URL
 
   @Allow()
   @IsOptional()
@@ -65,7 +65,7 @@ export class DocumentFileDto {
 
 /**
  * Step 4 DTO - Document upload completion
- * Expects: Files already uploaded to S3, this validates and saves metadata
+ * Expects: files already uploaded to MinIO; validates and saves metadata
  * SOLID: Interface Segregation - focused on document registration
  */
 export class RegisterStep4Dto {

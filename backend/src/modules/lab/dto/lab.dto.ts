@@ -1,5 +1,6 @@
 import {
   IsEnum,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -103,4 +104,63 @@ export class CreateLabResultDto {
   @IsOptional()
   @IsEnum(LabResultStatus)
   status?: LabResultStatus;
+}
+
+export class ImportLabReportPanelDto {
+  @IsUUID()
+  documentId!: string;
+
+  @IsOptional()
+  @IsUUID()
+  labOrderId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  consultationId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  panelTitle?: string;
+
+  @IsObject()
+  analysis!: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  orderedBy?: string;
+}
+
+export class PatientLabReportDocumentDto {
+  @IsString()
+  fileName!: string;
+
+  @IsString()
+  contentType!: string;
+
+  @IsString()
+  s3Key!: string;
+
+  fileSize!: number;
+}
+
+export class PatientLabReportUploadIntentDto {
+  @IsString()
+  fileName!: string;
+
+  @IsString()
+  contentType!: string;
+}
+
+export class PatientSubmitLabReportDto {
+  @IsUUID()
+  documentId!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  panelTitle?: string;
+
+  @IsObject()
+  analysis!: Record<string, unknown>;
 }

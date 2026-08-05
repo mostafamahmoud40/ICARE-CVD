@@ -22,10 +22,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { analyzeLabReportFile } from "@/lib/labReportAnalysis"
 
-import { mockPatientLabOrders } from "./labOrders.mock"
 import type { PatientLabOrder } from "./labOrders.types"
+import { usePatientLabOrders } from "./usePatientLabOrders"
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -68,7 +67,7 @@ function statusBadge(order: PatientLabOrder) {
 }
 
 export function PatientLabOrders() {
-  const [orders, setOrders] = useState<PatientLabOrder[]>(mockPatientLabOrders)
+  const { orders, isLoading, isError, uploadReport, isUploading } = usePatientLabOrders()
   const [uploadOrder, setUploadOrder] = useState<PatientLabOrder | null>(null)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [uploadPhase, setUploadPhase] = useState<"idle" | "analyzing" | "done" | "error">("idle")
@@ -86,12 +85,7 @@ export function PatientLabOrders() {
     setUploadError(null)
 
     try {
-      await analyzeLabReportFile(uploadFile)
-      setOrders((prev) =>
-        prev.map((order) =>
-          order.id === uploadOrder.id ? { ...order, status: "uploaded" } : order,
-        ),
-      )
+      await uploadReport(uploadOrder.id, uploadFile)
       setUploadPhase("done")
       setTimeout(() => {
         setUploadOrder(null)
@@ -125,79 +119,99 @@ export function PatientLabOrders() {
       </div>
 
       <div className="flex-1 overflow-auto px-6 py-6 sm:px-8 custom-scrollbar">
-        {pending.length > 0 ? (
-          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[12px] font-medium text-amber-900">
-            <strong>{pending.length}</strong> order{pending.length === 1 ? "" : "s"} need your
-            attention — upload results when ready.
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2Icon className="size-8 animate-spin text-[#1A5345]" aria-hidden />
           </div>
-        ) : null}
-
-        <div className="space-y-4">
-          {orders.map((order) => (
-            <div
-              key={order.id}
-              className={cn(
-                "overflow-hidden rounded-2xl border bg-white shadow-sm",
-                order.status === "missing" ? "border-rose-200" : "border-[#E8E6E0]/70",
-              )}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8E6E0]/50 bg-[#F4F3ED]/40 px-4 py-3 sm:px-5">
-                <div className="flex items-center gap-2">
-                  <FlaskConicalIcon className="size-4 text-violet-600" aria-hidden />
-                  <h2 className="font-serif text-[16px] font-bold text-[#1A1F1E]">{order.title}</h2>
-                </div>
-                {statusBadge(order)}
+        ) : isError ? (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] font-medium text-rose-800">
+            Could not load lab orders. Please try again.
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="rounded-xl border-2 border-dashed border-[#E5EEEA] bg-white py-12 text-center">
+            <FlaskConicalIcon className="mx-auto size-10 text-muted-foreground" aria-hidden />
+            <p className="mt-3 text-[14px] font-bold text-[#1A1F1E]">No lab orders yet</p>
+            <p className="mt-1 text-[12px] font-medium text-muted-foreground">
+              When your doctor orders tests, they will appear here.
+            </p>
+          </div>
+        ) : (
+          <>
+            {pending.length > 0 ? (
+              <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[12px] font-medium text-amber-900">
+                <strong>{pending.length}</strong> order{pending.length === 1 ? "" : "s"} need your
+                attention — upload results when ready.
               </div>
+            ) : null}
 
-              <div className="space-y-3 px-4 py-4 sm:px-5">
-                <p className="text-[12px] font-medium text-muted-foreground">
-                  Ordered by {order.doctorName} · {formatDate(order.orderedAt)}
-                </p>
-                <p className="text-[12px] font-medium text-[#1A1F1E]">
-                  Complete by <span className="font-bold">{formatDate(order.dueAt)}</span>
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {order.tests.map((test) => (
-                    <span
-                      key={test}
-                      className="rounded-lg bg-[#F4F3EF] px-2 py-0.5 text-[11px] font-medium text-[#1A1F1E]"
-                    >
-                      {test}
-                    </span>
-                  ))}
+            <div className="space-y-4">
+              {orders.map((order) => (
+                <div
+                  key={order.id}
+                  className={cn(
+                    "overflow-hidden rounded-2xl border bg-white shadow-sm",
+                    order.status === "missing" ? "border-rose-200" : "border-[#E8E6E0]/70",
+                  )}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8E6E0]/50 bg-[#F4F3ED]/40 px-4 py-3 sm:px-5">
+                    <div className="flex items-center gap-2">
+                      <FlaskConicalIcon className="size-4 text-violet-600" aria-hidden />
+                      <h2 className="font-serif text-[16px] font-bold text-[#1A1F1E]">{order.title}</h2>
+                    </div>
+                    {statusBadge(order)}
+                  </div>
+
+                  <div className="space-y-3 px-4 py-4 sm:px-5">
+                    <p className="text-[12px] font-medium text-muted-foreground">
+                      Ordered by {order.doctorName} · {formatDate(order.orderedAt)}
+                    </p>
+                    <p className="text-[12px] font-medium text-[#1A1F1E]">
+                      Complete by <span className="font-bold">{formatDate(order.dueAt)}</span>
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {order.tests.map((test) => (
+                        <span
+                          key={test}
+                          className="rounded-lg bg-[#F4F3EF] px-2 py-0.5 text-[11px] font-medium text-[#1A1F1E]"
+                        >
+                          {test}
+                        </span>
+                      ))}
+                    </div>
+                    {order.notes ? (
+                      <p className="rounded-lg bg-[#FFF8EB] px-3 py-2 text-[12px] leading-relaxed text-[#8C5B1E]">
+                        {order.notes}
+                      </p>
+                    ) : null}
+
+                    {order.status === "ordered" || order.status === "missing" ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-9 gap-2 rounded-lg border-0 bg-[#1A5345] text-[12px] font-bold text-white hover:bg-[#133F34]"
+                        onClick={() => {
+                          setUploadOrder(order)
+                          setUploadFile(null)
+                          setUploadPhase("idle")
+                          setUploadError(null)
+                        }}
+                      >
+                        <UploadIcon className="size-3.5" aria-hidden />
+                        Upload report
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
-                {order.notes ? (
-                  <p className="rounded-lg bg-[#FFF8EB] px-3 py-2 text-[12px] leading-relaxed text-[#8C5B1E]">
-                    {order.notes}
-                  </p>
-                ) : null}
-
-                {order.status === "ordered" || order.status === "missing" ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-9 gap-2 rounded-lg border-0 bg-[#1A5345] text-[12px] font-bold text-white hover:bg-[#133F34]"
-                    onClick={() => {
-                      setUploadOrder(order)
-                      setUploadFile(null)
-                      setUploadPhase("idle")
-                      setUploadError(null)
-                    }}
-                  >
-                    <UploadIcon className="size-3.5" aria-hidden />
-                    Upload report
-                  </Button>
-                ) : null}
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </div>
 
       <Dialog
         open={uploadOrder !== null}
         onOpenChange={(open) => {
-          if (!open && uploadPhase !== "analyzing") {
+          if (!open && uploadPhase !== "analyzing" && !isUploading) {
             setUploadOrder(null)
             setUploadFile(null)
             setUploadPhase("idle")
@@ -216,7 +230,7 @@ export function PatientLabOrders() {
           </DialogHeader>
 
           <div className="space-y-4 px-5 py-5">
-            {uploadPhase === "analyzing" ? (
+            {uploadPhase === "analyzing" || isUploading ? (
               <div className="flex flex-col items-center gap-3 py-6 text-center">
                 <Loader2Icon className="size-8 animate-spin text-violet-600" aria-hidden />
                 <p className="text-[14px] font-bold text-[#1A1F1E]">Analyzing your report…</p>

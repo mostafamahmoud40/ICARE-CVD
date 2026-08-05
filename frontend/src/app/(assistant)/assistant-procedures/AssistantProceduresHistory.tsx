@@ -1,10 +1,10 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { ClockIcon, FileTextIcon, HistoryIcon, MapPinIcon, SearchIcon } from "lucide-react"
+import { useState } from "react"
+import { useAssistantProcedureHistory } from "./useAssistantProcedureHistory"
+import { ClockIcon, FileTextIcon, HistoryIcon, Loader2Icon, MapPinIcon, SearchIcon } from "lucide-react"
 
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -19,8 +19,8 @@ import {
 } from "@/components/ui/breadcrumb"
 
 import { useAssistantPageTranslations } from "../use-assistant-i18n"
+import Link from "next/link"
 import { PRIORITY_CONFIG } from "./assistantProcedures.config"
-import { MOCK_HISTORY_OPERATIONS } from "./assistantProceduresHistory.mock"
 import type { ProcedurePriority } from "./assistantProcedures.types"
 import {
   proceduresListSearchInputClassName,
@@ -46,16 +46,9 @@ export function AssistantProceduresHistory() {
     { key: "all" as const, label: t("history.filterAll") },
   ] as const
 
-  const filteredOperations = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase()
-    if (!q) return MOCK_HISTORY_OPERATIONS
-    return MOCK_HISTORY_OPERATIONS.filter(
-      (op) =>
-        op.patientName.toLowerCase().includes(q) ||
-        op.procedureName.toLowerCase().includes(q) ||
-        op.patientId.toLowerCase().includes(q),
-    )
-  }, [searchTerm])
+  const historyQuery = useAssistantProcedureHistory(dateFilter, searchTerm)
+
+  const filteredOperations = historyQuery.data ?? []
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F9F8F5] animate-in fade-in duration-500">
@@ -141,6 +134,11 @@ export function AssistantProceduresHistory() {
 
       <div className="relative flex-1 overflow-auto bg-[#F9F8F5] px-6 sm:px-8">
         <div className="custom-scrollbar w-full pb-6 pt-4">
+          {historyQuery.isLoading ? (
+            <div className="flex flex-col items-center justify-center py-24">
+              <Loader2Icon className="size-8 animate-spin text-[#1A5345]" aria-hidden />
+            </div>
+          ) : (
           <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/70 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)]">
             <div className="overflow-x-auto">
               <table className="min-w-[1040px] w-full border-collapse bg-white text-left">
@@ -176,12 +174,10 @@ export function AssistantProceduresHistory() {
                         <td className="py-4 pl-4 pr-4">
                           <div className="flex items-center gap-3">
                             <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E6E0]/60 bg-[#F4F3EF]">
-                              <Image
-                                src={`https://i.pravatar.cc/150?u=${encodeURIComponent(op.patientId)}`}
-                                alt=""
-                                width={44}
-                                height={44}
-                                className="size-full object-cover"
+                              <PatientAvatar
+                                name={op.patientName}
+                                avatarUrl={op.patientAvatarUrl}
+                                sizes="44px"
                               />
                             </div>
                             <div className="min-w-0">
@@ -254,6 +250,7 @@ export function AssistantProceduresHistory() {
               </table>
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>

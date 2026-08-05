@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
-import type { AppointmentsPageData } from "./appointments.types"
+import type { Appointment, AppointmentsPageData } from "./appointments.types"
 import {
   normalizeAppointmentBookingStatus,
   partitionAppointmentsByBooking,
@@ -24,6 +24,7 @@ type AppointmentApiRow = {
   department: string
   reason?: string
   clinician: string
+  clinicianAvatarUrl?: string | null
   location: string
   locationDetail?: string
   status: string

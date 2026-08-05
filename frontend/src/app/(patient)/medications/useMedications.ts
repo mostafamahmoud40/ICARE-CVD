@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useCallback } from "react"
+import { useCallback } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
 import type {
@@ -89,7 +89,7 @@ function computeStats(medications: Medication[], doseLogs: DoseLog[]): Medicatio
 }
 
 async function fetchMedications(): Promise<MedicationsPageData> {
-  const [medsResult, logsResult] = await Promise.allSettled([
+  const [medsResult] = await Promise.allSettled([
     apiClient.get<MedicationApiRow[]>("/patient/medications"),
     // Fetch dose logs for all medications in parallel after we get them
     Promise.resolve({ data: [] as DoseLogApiRow[] }),

@@ -4,6 +4,10 @@ dist/
 .env
 *.log
 .codex
+*.7z
+
+# Database seed scripts (local/demo only — do not commit)
+seed-database/*.sql
 
 # OS
 .DS_Store

@@ -9,14 +9,34 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
   buildChatConversationPrefix,
-  MINIO_CATEGORY_PREFIX,
   MINIO_DEFAULT_PRESIGN_TTL_SECONDS,
+  type MinioStorageCategory,
 } from './minio.constants';
+import {
+  buildMinioObjectPrefix,
+  buildPatientDocumentPrefix,
+  buildRegistrationDocumentPrefix,
+} from './minio-patient-path';
+import { buildStaffAvatarPrefix } from './minio-staff-path';
 import type {
+  MinioDocumentUploadIntentInput,
   MinioDownloadUrlInput,
   MinioUploadIntentInput,
   MinioUploadIntentResult,
 } from './minio.types';
+
+const PATIENT_SCOPED_CATEGORIES = new Set<MinioStorageCategory>([
+  'lab_report',
+  'patient_avatar',
+  'consultation_xray',
+  'consultation_echo',
+  'consultation_ecg',
+  'consultation_cine_mri',
+  'consultation_ct',
+  'consultation_ecg_cls',
+  'chat_image',
+  'chat_file',
+]);
 
 @Injectable()
 export class MinioService {
@@ -48,17 +68,39 @@ export class MinioService {
   async createUploadIntent(
     input: MinioUploadIntentInput,
   ): Promise<MinioUploadIntentResult> {
+    const prefix = this.resolveObjectPrefix(input);
+    return this.presignUpload({
+      prefix,
+      fileName: input.fileName,
+      contentType: input.contentType,
+    });
+  }
+
+  async createDocumentUploadIntent(
+    input: MinioDocumentUploadIntentInput,
+  ): Promise<MinioUploadIntentResult> {
+    const prefix = input.patientNumber?.trim()
+      ? buildPatientDocumentPrefix(input.patientNumber, input.category)
+      : buildRegistrationDocumentPrefix(input.category);
+    return this.presignUpload({
+      prefix,
+      fileName: input.fileName,
+      contentType: input.contentType,
+    });
+  }
+
+  private async presignUpload(input: {
+    prefix: string;
+    fileName: string;
+    contentType: string;
+  }): Promise<MinioUploadIntentResult> {
     if (!this.bucket || !this.endpoint) {
       throw new InternalServerErrorException(
         'MinIO is not configured (missing bucket/endpoint).',
       );
     }
 
-    const prefix =
-      input.conversationId > 0
-        ? buildChatConversationPrefix(input.conversationId, input.category)
-        : MINIO_CATEGORY_PREFIX[input.category];
-    const key = `${prefix}/${this.buildObjectName(input.fileName, input.contentType)}`;
+    const key = `${input.prefix}/${this.buildObjectName(input.fileName, input.contentType)}`;
 
     const command = new PutObjectCommand({
       Bucket: this.bucket,
@@ -67,7 +109,8 @@ export class MinioService {
     });
 
     const expiresIn = Number(
-      process.env.MINIO_PRESIGN_TTL_SECONDS ?? MINIO_DEFAULT_PRESIGN_TTL_SECONDS,
+      process.env.MINIO_PRESIGN_TTL_SECONDS ??
+        MINIO_DEFAULT_PRESIGN_TTL_SECONDS,
     );
     const uploadUrl = await getSignedUrl(this.presignClient, command, {
       expiresIn,
@@ -121,7 +164,8 @@ export class MinioService {
     });
 
     const expiresIn = Number(
-      process.env.MINIO_PRESIGN_TTL_SECONDS ?? MINIO_DEFAULT_PRESIGN_TTL_SECONDS,
+      process.env.MINIO_PRESIGN_TTL_SECONDS ??
+        MINIO_DEFAULT_PRESIGN_TTL_SECONDS,
     );
 
     return getSignedUrl(this.presignClient, command, { expiresIn });
@@ -139,6 +183,69 @@ export class MinioService {
         Bucket: this.bucket,
         Key: key,
       }),
+    );
+  }
+
+  async putObjectBuffer(input: {
+    key: string;
+    body: Buffer;
+    contentType: string;
+  }): Promise<{ key: string }> {
+    if (!this.bucket || !this.endpoint) {
+      throw new InternalServerErrorException(
+        'MinIO is not configured (missing bucket/endpoint).',
+      );
+    }
+
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: input.key,
+        Body: input.body,
+        ContentType: input.contentType,
+      }),
+    );
+
+    return { key: input.key };
+  }
+
+  private resolveObjectPrefix(input: MinioUploadIntentInput): string {
+    if (
+      (input.category === 'chat_image' || input.category === 'chat_file') &&
+      input.conversationId &&
+      input.conversationId > 0 &&
+      !input.patientNumber?.trim()
+    ) {
+      return buildChatConversationPrefix(input.conversationId, input.category);
+    }
+
+    if (PATIENT_SCOPED_CATEGORIES.has(input.category)) {
+      if (!input.patientNumber?.trim()) {
+        throw new InternalServerErrorException(
+          `patientNumber is required for ${input.category} uploads.`,
+        );
+      }
+      return buildMinioObjectPrefix(input.category, input.patientNumber);
+    }
+
+    if (input.category === 'staff_avatar') {
+      if (!input.staffId?.trim()) {
+        throw new InternalServerErrorException(
+          'staffId is required for staff avatar uploads.',
+        );
+      }
+      return buildStaffAvatarPrefix(input.staffRole ?? 'doctor', input.staffId);
+    }
+
+    if (input.conversationId && input.conversationId > 0) {
+      return buildChatConversationPrefix(
+        input.conversationId,
+        input.category as 'chat_image' | 'chat_file',
+      );
+    }
+
+    throw new InternalServerErrorException(
+      `Could not resolve MinIO prefix for category ${input.category}.`,
     );
   }
 
@@ -171,6 +278,12 @@ export class MinioService {
       'image/png': 'png',
       'image/webp': 'webp',
       'image/gif': 'gif',
+      'video/mp4': 'mp4',
+      'video/webm': 'webm',
+      'video/quicktime': 'mov',
+      'video/x-msvideo': 'avi',
+      'video/avi': 'avi',
+      'video/x-matroska': 'mkv',
       'application/pdf': 'pdf',
       'text/plain': 'txt',
       'application/zip': 'zip',

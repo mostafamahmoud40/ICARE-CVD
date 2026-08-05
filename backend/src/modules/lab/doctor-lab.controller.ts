@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AccessTokenGuard } from '../auth/access-token.guard';
@@ -16,6 +17,7 @@ import { LabService } from './lab.service';
 import {
   CreateLabOrderDto,
   CreateLabResultDto,
+  ImportLabReportPanelDto,
   UpdateLabOrderDto,
 } from './dto/lab.dto';
 
@@ -81,5 +83,36 @@ export class DoctorLabController {
     @Body() dto: CreateLabResultDto,
   ) {
     return this.labService.createLabResult(user.sub, patientId, dto);
+  }
+
+  @Get(':patientId/lab-report-panels')
+  listLabReportPanels(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Query('consultationId') consultationId?: string,
+  ) {
+    return this.labService.listLabReportPanels(
+      user.sub,
+      patientId,
+      consultationId,
+    );
+  }
+
+  @Post(':patientId/lab-report-panels')
+  importLabReportPanel(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Body() dto: ImportLabReportPanelDto,
+  ) {
+    return this.labService.importLabReportPanel(user.sub, patientId, dto);
+  }
+
+  @Delete(':patientId/lab-report-panels/:panelId')
+  deleteLabReportPanel(
+    @CurrentUser() user: TokenPayload,
+    @Param('patientId') patientId: string,
+    @Param('panelId') panelId: string,
+  ) {
+    return this.labService.deleteLabReportPanel(user.sub, patientId, panelId);
   }
 }

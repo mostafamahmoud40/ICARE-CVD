@@ -24,6 +24,7 @@ import {
   XCircleIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 
 function formatTodayHeading() {
   return new Intl.DateTimeFormat(undefined, {
@@ -167,7 +168,10 @@ function QueuePatientCard({
         <div className="flex flex-col items-center gap-2 shrink-0">
           <QueuePositionBadge index={position} status={patient.status} />
           <div className="size-11 rounded-full bg-[#F3F4F6] border border-[#E8E6E0]/60 overflow-hidden shrink-0 mt-1">
-            <img src={`https://i.pravatar.cc/150?u=${encodeURIComponent(patient.fullName)}`} alt="" className="size-full object-cover" />
+            <PatientAvatar
+              name={patient.fullName}
+              avatarUrl={patient.avatarUrl}
+            />
           </div>
         </div>
 
@@ -233,7 +237,7 @@ function QueuePatientCard({
 
           {patient.notes && (
             <div className="mt-3 text-[12px] font-medium text-muted-foreground italic border-l-2 border-[#E8E6E0] pl-3 py-1 bg-white">
-              "{patient.notes}"
+              &ldquo;{patient.notes}&rdquo;
             </div>
           )}
         </div>

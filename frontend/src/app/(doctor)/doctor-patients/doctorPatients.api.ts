@@ -206,7 +206,8 @@ function mapMedication(row: Record<string, unknown>): MedicationRecord {
     prescribedBy: String(row.prescribedBy ?? "Doctor"),
     lastTakenAt: row.lastTakenAt != null ? String(row.lastTakenAt) : null,
     adherencePercent:
-      row.adherencePercent != null ? Number(row.adherencePercent) : undefined,
+      row.adherencePercent != null ? Number(row.adherencePercent) : 0,
+    sideEffects: row.sideEffects != null ? String(row.sideEffects) : null,
   }
 }
 
@@ -314,17 +315,7 @@ function mapFullRecord(data: ApiFullRecord): PatientFullRecord {
   const latest = data.latestVitals ? mapVitalReading(data.latestVitals) : null
   return {
     patient: mapPatientFromFull(data.patient),
-    latestVitals: latest
-      ? {
-          systolicBP: latest.systolicBP ?? 0,
-          diastolicBP: latest.diastolicBP ?? 0,
-          heartRate: latest.heartRate ?? 0,
-          oxygenSaturation: latest.oxygenSaturation ?? 0,
-          temperature: latest.temperature ?? 0,
-          weight: latest.weight ?? 0,
-          bloodSugar: latest.bloodSugar,
-        }
-      : null,
+    latestVitals: latest,
     vitalReadings: data.vitalReadings.map(mapVitalReading),
     medications: data.medications.map(mapMedication),
     diagnoses: data.diagnoses.map(mapDiagnosis),

@@ -2,17 +2,25 @@
 
 import React from "react"
 import type { ConsultationReport } from "../../../doctorPatients.types"
+import {
+  formatBloodPressure,
+  REPORT_EMPTY_MESSAGES,
+  vitalDisplayValue,
+} from "@/lib/consultation-report.mapper"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import {
   ActivityIcon,
+  AlertTriangleIcon,
+  AppleIcon,
   CalendarDaysIcon,
   ClipboardCheckIcon,
   DropletIcon,
   FileTextIcon,
   FlaskConicalIcon,
   HeartPulseIcon,
-  PillIcon,
+  Loader2Icon,
+  PencilIcon,
   ScaleIcon,
   StethoscopeIcon,
   ThermometerIcon,
@@ -32,6 +40,10 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { doctorAvatarUrl } from "../../diagnoses/diagnosis.shared"
+import { ConsultationReportSessionSections } from "./ConsultationReportSessionSections"
+import { EditableReportBlock } from "./EditableReportBlock"
+import { DeleteConsultationDialog } from "../DeleteConsultationDialog"
+import { useConsultationReportEditor } from "./useConsultationReportEditor"
 
 function fmtFull(iso: string | null | undefined) {
   if (!iso) return "—"
@@ -91,11 +103,30 @@ function VitalMiniCard({ icon: Icon, label, value, unit }: {
 
 type ConsultationReportPageProps = {
   patientId: string
+  visitId: string
   patientName: string
   report: ConsultationReport
 }
 
-export function ConsultationReportPage({ patientId, patientName, report }: ConsultationReportPageProps) {
+export function ConsultationReportPage({
+  patientId,
+  visitId,
+  patientName,
+  report,
+}: ConsultationReportPageProps) {
+  const {
+    isEditing,
+    draft,
+    startEditing,
+    cancelEditing,
+    updateDraft,
+    updateAiStudy,
+    removeAiStudy,
+    saveReport,
+    deleteReport,
+    isSaving,
+    isDeleting,
+  } = useConsultationReportEditor(patientId, visitId, report)
   return (
     <main className="flex-1 overflow-y-auto bg-[#F9F8F5] px-4 py-6 sm:px-8 sm:py-8 custom-scrollbar">
       <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -132,10 +163,56 @@ export function ConsultationReportPage({ patientId, patientName, report }: Consu
               Consultation Report
             </h1>
           </div>
-          <Button variant="outline" className="h-9 gap-2 rounded-lg border-[#E8E6E0] bg-white px-4 text-[13px] font-bold text-[#1A1F1E] shadow-sm hover:bg-[#F9F8F5]">
-            <PrinterIcon className="size-4" />
-            <span>Print Report</span>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {isEditing ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isSaving}
+                  className="h-9 rounded-lg border-[#E8E6E0] bg-white px-4 text-[13px] font-bold"
+                  onClick={cancelEditing}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={isSaving}
+                  className="h-9 gap-2 rounded-lg border-0 bg-[#1A5345] px-4 text-[13px] font-bold text-white hover:bg-[#133F34]"
+                  onClick={() => saveReport()}
+                >
+                  {isSaving ? (
+                    <Loader2Icon className="size-4 animate-spin" aria-hidden />
+                  ) : null}
+                  Save changes
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-2 rounded-lg border-[#E8E6E0] bg-white px-4 text-[13px] font-bold text-[#1A1F1E] shadow-sm hover:bg-[#F9F8F5]"
+                  onClick={startEditing}
+                >
+                  <PencilIcon className="size-4" aria-hidden />
+                  Edit report
+                </Button>
+                <Button variant="outline" className="h-9 gap-2 rounded-lg border-[#E8E6E0] bg-white px-4 text-[13px] font-bold text-[#1A1F1E] shadow-sm hover:bg-[#F9F8F5]">
+                  <PrinterIcon className="size-4" />
+                  <span>Print Report</span>
+                </Button>
+                <DeleteConsultationDialog
+                  onConfirm={() => deleteReport()}
+                  isDeleting={isDeleting}
+                  label="Delete"
+                />
+              </>
+            )}
+          </div>
         </div>
 
         {/* 2-Column Grid Layout */}
@@ -191,99 +268,170 @@ export function ConsultationReportPage({ patientId, patientName, report }: Consu
 
             <Section title="Chief Complaint" icon={FileTextIcon}>
               <div className="relative">
-                <p className="pl-3 border-l-2 border-[#1A5345]/30 text-[14px] font-medium leading-relaxed text-[#1A1F1E] md:text-[15px]">
-                  {report.chiefComplaint}
-                </p>
+                <EditableReportBlock
+                  editing={isEditing}
+                  value={draft.chiefComplaint}
+                  onChange={(chiefComplaint) => updateDraft({ chiefComplaint })}
+                  className={cn(
+                    "pl-3 border-l-2 border-[#1A5345]/30 text-[14px] md:text-[15px]",
+                    draft.chiefComplaint === REPORT_EMPTY_MESSAGES.chiefComplaint
+                      ? "text-[#6B7870] italic"
+                      : "text-[#1A1F1E]",
+                  )}
+                  rows={4}
+                />
               </div>
             </Section>
 
             <Section title="History of Present Illness" icon={ClipboardCheckIcon}>
-              <p className="text-[13px] font-medium leading-relaxed text-[#1A1F1E] md:text-[14px] whitespace-pre-wrap">
-                {report.historyOfPresentIllness}
-              </p>
+              <EditableReportBlock
+                editing={isEditing}
+                value={draft.historyOfPresentIllness}
+                onChange={(historyOfPresentIllness) => updateDraft({ historyOfPresentIllness })}
+                className={
+                  draft.historyOfPresentIllness === REPORT_EMPTY_MESSAGES.historyOfPresentIllness
+                    ? "text-[#6B7870] italic"
+                    : "text-[#1A1F1E]"
+                }
+                rows={6}
+              />
             </Section>
 
             <Section title="Physical Examination" icon={StethoscopeIcon}>
-              <p className="text-[13px] font-medium leading-relaxed text-[#1A1F1E] md:text-[14px] whitespace-pre-wrap">
-                {report.physicalExam}
-              </p>
+              <EditableReportBlock
+                editing={isEditing}
+                value={draft.physicalExam}
+                onChange={(physicalExam) => updateDraft({ physicalExam })}
+                className={
+                  draft.physicalExam === REPORT_EMPTY_MESSAGES.physicalExam
+                    ? "text-[#6B7870] italic"
+                    : "text-[#1A1F1E]"
+                }
+                rows={6}
+              />
             </Section>
 
-            <Section title="Plan & Instructions" icon={ClipboardCheckIcon}>
-              <div className="space-y-2">
-                {report.plan.split("\n").map((line, i) => (
-                  <p key={i} className="text-[13px] font-medium leading-relaxed text-[#1A1F1E] md:text-[14px] flex items-start gap-2">
-                     <span className="text-[#1A5345] mt-1.5 size-1.5 rounded-full bg-[#1A5345]/40 shrink-0"></span>
-                     <span>{line}</span>
+            <ConsultationReportSessionSections
+              report={report}
+              draft={draft}
+              isEditing={isEditing}
+              sectionGroup="clinical"
+              onUpdateDraft={updateDraft}
+              onUpdateAiStudy={updateAiStudy}
+              onRemoveAiStudy={removeAiStudy}
+            />
+
+            <Section title="Patient instructions (on report)" icon={HeartPulseIcon}>
+              <div className="space-y-4">
+                <div className="rounded-xl border border-[#E8E6E0]/60 bg-[#FAFAF8] p-4">
+                  <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[#1A5345]">
+                    <StethoscopeIcon className="size-3.5" aria-hidden />
+                    Diagnosis (patient-friendly)
                   </p>
-                ))}
+                  <EditableReportBlock
+                    editing={isEditing}
+                    value={draft.patientDiagnosisSummary}
+                    onChange={(patientDiagnosisSummary) => updateDraft({ patientDiagnosisSummary })}
+                    className={
+                      draft.patientDiagnosisSummary === REPORT_EMPTY_MESSAGES.patientDiagnosisSummary
+                        ? "text-[#6B7870] italic"
+                        : "text-[#1A1F1E]"
+                    }
+                    rows={4}
+                  />
+                </div>
+                <div className="rounded-xl border border-[#E8E6E0]/60 bg-[#FAFAF8] p-4">
+                  <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[#1A5345]">
+                    <AppleIcon className="size-3.5" aria-hidden />
+                    Lifestyle & diet
+                  </p>
+                  <EditableReportBlock
+                    editing={isEditing}
+                    value={draft.patientLifestyleAdvice}
+                    onChange={(patientLifestyleAdvice) => updateDraft({ patientLifestyleAdvice })}
+                    className={
+                      draft.patientLifestyleAdvice === REPORT_EMPTY_MESSAGES.patientLifestyleAdvice
+                        ? "text-[#6B7870] italic"
+                        : "text-[#1A1F1E]"
+                    }
+                    rows={4}
+                  />
+                </div>
+                <div className="rounded-xl border border-red-200/80 bg-red-50/40 p-4">
+                  <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-red-800">
+                    <AlertTriangleIcon className="size-3.5" aria-hidden />
+                    Emergency warning signs
+                  </p>
+                  <EditableReportBlock
+                    editing={isEditing}
+                    value={draft.patientDangerSigns}
+                    onChange={(patientDangerSigns) => updateDraft({ patientDangerSigns })}
+                    className={
+                      draft.patientDangerSigns === REPORT_EMPTY_MESSAGES.patientDangerSigns
+                        ? "text-red-900/50 italic"
+                        : "text-red-950"
+                    }
+                    rows={4}
+                  />
+                </div>
               </div>
             </Section>
 
-            {report.prescriptions.length > 0 && (
-              <Section title="Prescriptions" icon={PillIcon} className="overflow-hidden">
-                <div className="-mx-5 -mb-5 sm:-mx-6 sm:-mb-6 overflow-x-auto custom-scrollbar border-t border-[#E8E6E0]/60 mt-2">
-                  <table className="w-full text-left text-[13px]">
-                    <thead className="bg-[#F9F8F5] border-b border-[#E8E6E0]/60">
-                      <tr>
-                        <th className="px-5 sm:px-6 py-3 font-semibold text-[#1A1F1E]">Medication</th>
-                        <th className="px-4 py-3 font-semibold text-[#1A1F1E]">Dose</th>
-                        <th className="px-4 py-3 font-semibold text-[#1A1F1E]">Frequency</th>
-                        <th className="px-4 py-3 font-semibold text-[#1A1F1E]">Duration</th>
-                        <th className="px-5 sm:px-6 py-3 font-semibold text-[#1A1F1E]">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#E8E6E0]/60">
-                      {report.prescriptions.map((p) => (
-                        <tr key={p.id} className="transition-colors hover:bg-[#F9F8F5]/50 group">
-                          <td className="px-5 sm:px-6 py-4 font-bold text-[#1A1F1E] group-hover:text-[#1A5345] transition-colors">{p.name}</td>
-                          <td className="px-4 py-4 font-medium text-muted-foreground">{p.dose}</td>
-                          <td className="px-4 py-4 font-medium text-muted-foreground">{p.frequency}</td>
-                          <td className="px-4 py-4 font-medium text-muted-foreground">{p.duration}</td>
-                          <td className="px-5 sm:px-6 py-4">
-                            {p.isNew ? (
-                              <span className="inline-flex items-center rounded-lg bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600 ring-1 ring-inset ring-blue-600/20">New</span>
-                            ) : (
-                              <span className="inline-flex items-center rounded-lg bg-[#F3F2F0] px-2 py-0.5 text-[10px] font-bold text-[#6B7870] ring-1 ring-inset ring-gray-500/10">Continued</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Section>
-            )}
-
-            {report.notes && (
-              <Section title="Additional Clinical Notes" icon={FileTextIcon}>
-                <div className="rounded-xl border border-[#E5EEEA]/60 bg-[#FAFAF8] p-4 shadow-sm">
-                  <p className="text-[13px] font-medium leading-relaxed text-[#6B7870] md:text-[14px] whitespace-pre-wrap">
-                    {report.notes}
-                  </p>
-                </div>
-              </Section>
-            )}
+            <ConsultationReportSessionSections
+              report={report}
+              draft={draft}
+              isEditing={isEditing}
+              sectionGroup="orders"
+              onUpdateDraft={updateDraft}
+              onUpdateAiStudy={updateAiStudy}
+              onRemoveAiStudy={removeAiStudy}
+            />
 
           </div>
 
           {/* Right Column - Context & Stats (1/3) */}
           <div className="flex flex-col gap-6 lg:col-span-4">
             
-            {report.vitals && (
-              <Section title="Vitals at Visit" icon={HeartPulseIcon}>
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <VitalMiniCard icon={HeartPulseIcon} label="Blood Pressure" value={`${report.vitals.systolicBP}/${report.vitals.diastolicBP}`} unit="mmHg" />
-                  <VitalMiniCard icon={ActivityIcon} label="Heart Rate" value={report.vitals.heartRate} unit="bpm" />
-                  <VitalMiniCard icon={ThermometerIcon} label="Temperature" value={report.vitals.temperature} unit="°C" />
-                  <VitalMiniCard icon={WindIcon} label="SpO₂" value={report.vitals.oxygenSaturation} unit="%" />
-                  <VitalMiniCard icon={ScaleIcon} label="Weight" value={report.vitals.weight} unit="kg" />
-                  {report.vitals.bloodSugar !== null && (
-                    <VitalMiniCard icon={DropletIcon} label="Blood Sugar" value={report.vitals.bloodSugar} unit="mg/dL" />
-                  )}
-                </div>
-              </Section>
-            )}
+            <Section title="Vitals at Visit" icon={HeartPulseIcon}>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <VitalMiniCard
+                  icon={HeartPulseIcon}
+                  label="Blood Pressure"
+                  value={formatBloodPressure(report.vitals?.systolicBP, report.vitals?.diastolicBP)}
+                  unit="mmHg"
+                />
+                <VitalMiniCard
+                  icon={ActivityIcon}
+                  label="Heart Rate"
+                  value={vitalDisplayValue(report.vitals?.heartRate)}
+                  unit="bpm"
+                />
+                <VitalMiniCard
+                  icon={ThermometerIcon}
+                  label="Temperature"
+                  value={vitalDisplayValue(report.vitals?.temperature)}
+                  unit="°C"
+                />
+                <VitalMiniCard
+                  icon={WindIcon}
+                  label="SpO₂"
+                  value={vitalDisplayValue(report.vitals?.oxygenSaturation)}
+                  unit="%"
+                />
+                <VitalMiniCard
+                  icon={ScaleIcon}
+                  label="Weight"
+                  value={vitalDisplayValue(report.vitals?.weight)}
+                  unit="kg"
+                />
+                <VitalMiniCard
+                  icon={DropletIcon}
+                  label="Blood Sugar"
+                  value={vitalDisplayValue(report.vitals?.bloodSugar)}
+                  unit="mg/dL"
+                />
+              </div>
+            </Section>
 
             {report.diagnoses.length > 0 && (
               <Section title="Diagnoses Discussed" icon={ClipboardCheckIcon}>
@@ -340,14 +488,30 @@ export function ConsultationReportPage({ patientId, patientName, report }: Consu
             )}
 
             <Section title="Follow-Up Schedule" icon={CalendarDaysIcon}>
-              <div className="flex flex-col gap-2 rounded-xl border border-[#1A5345]/15 bg-[#E8F0EE]/30 p-4">
+              <div className="flex flex-col gap-3 rounded-xl border border-[#1A5345]/15 bg-[#E8F0EE]/30 p-4">
                 <div className="flex items-center gap-2">
                   <CalendarDaysIcon className="size-4 text-[#1A5345]" />
-                  <span className="text-[13px] font-bold text-[#1A1F1E]">{report.followUp.timeframe}</span>
+                  <EditableReportBlock
+                    editing={isEditing}
+                    value={draft.followUpTimeframe}
+                    onChange={(followUpTimeframe) => updateDraft({ followUpTimeframe })}
+                    className="text-[13px] font-bold text-[#1A1F1E]"
+                    rows={1}
+                  />
                 </div>
-                <p className="text-[12px] font-medium leading-relaxed text-[#6B7870] mt-1 pl-6">
-                  {report.followUp.instructions}
-                </p>
+                <div className={cn(isEditing ? "" : "pl-6")}>
+                  <EditableReportBlock
+                    editing={isEditing}
+                    value={draft.followUpInstructions}
+                    onChange={(followUpInstructions) => updateDraft({ followUpInstructions })}
+                    className={
+                      draft.followUpInstructions === REPORT_EMPTY_MESSAGES.followUpInstructions
+                        ? "text-[#6B7870] italic"
+                        : "text-[#6B7870]"
+                    }
+                    rows={4}
+                  />
+                </div>
               </div>
             </Section>
 

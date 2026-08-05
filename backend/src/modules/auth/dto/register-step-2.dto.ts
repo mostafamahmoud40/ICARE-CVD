@@ -12,6 +12,17 @@ import {
 const genders = ['male', 'female', 'other'] as const;
 type Gender = (typeof genders)[number];
 
+const exerciseFrequencies = [
+  'none',
+  'rarely-monthly',
+  'occasional-monthly',
+  '1-week',
+  '1-2',
+  '3-4',
+  '5+',
+  'daily',
+] as const;
+
 export class RegisterStep2Dto {
   @IsDateString()
   dateOfBirth!: string;
@@ -76,9 +87,8 @@ export class RegisterStep2Dto {
   recreationalDrugUse?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(10)
-  exerciseFrequency?: string;
+  @IsIn(exerciseFrequencies)
+  exerciseFrequency?: (typeof exerciseFrequencies)[number];
 
   @IsOptional()
   @IsString()

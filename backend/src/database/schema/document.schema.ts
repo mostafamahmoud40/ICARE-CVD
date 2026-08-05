@@ -20,8 +20,7 @@ export const documentCategoryEnum = pgEnum('document_category', [
 ]);
 
 /**
- * Patient document table - stores document metadata for files uploaded to S3
- * SOLID: Single table for single responsibility (document metadata storage)
+ * Patient document table — metadata for files stored in MinIO (`s3_key` = object key).
  */
 export const patientDocument = pgTable('patient_document', {
   id: uuid('id').defaultRandom().primaryKey(),

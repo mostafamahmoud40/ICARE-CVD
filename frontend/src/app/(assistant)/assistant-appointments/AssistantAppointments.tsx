@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import * as React from "react"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useLocale } from "next-intl"
 import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import {
@@ -10,24 +10,16 @@ import {
   CalendarPlus2Icon,
   BanIcon,
   Building2Icon,
-  ClipboardListIcon,
   CalendarCheck2Icon,
   CalendarClockIcon,
-  CalendarDaysIcon,
-  CheckCircle2Icon,
-  MoreHorizontalIcon,
   SearchIcon,
-  SquareArrowOutUpRightIcon,
   UserCircle2Icon,
   UserIcon,
   VideoIcon,
   XIcon,
   FilterIcon,
-  HistoryIcon,
   PlusIcon,
-  ChevronDownIcon,
   DownloadIcon,
-  FileTextIcon,
   MoreVerticalIcon,
   CalendarIcon,
   ClockIcon,
@@ -54,14 +46,11 @@ import {
 } from "date-fns"
 
 import { cn } from "@/lib/utils"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
@@ -93,6 +82,11 @@ import {
 } from "@/components/ui/breadcrumb"
 import { showIcareToast } from "@/components/shared/icare-toast"
 import { AssistantProfileAvatar } from "@/app/(assistant)/AssistantProfileAvatar"
+import {
+  DISPLAY_STATUS_LABELS,
+  DISPLAY_STATUS_STYLES,
+  resolveAppointmentDisplayStatus,
+} from "@/app/(doctor)/doctor-appointments/appointmentDisplayStatus"
 
 import type {
   AssistantAppointment,
@@ -146,12 +140,7 @@ type AssistantAppointmentsProps = {
   defaultCreateDialogOpen?: boolean
 }
 
-const appointmentStatusBadgeClass: Record<AssistantAppointmentStatus, string> = {
-  scheduled: "border-0 bg-amber-500 text-white hover:bg-amber-500",
-  confirmed: "border-0 bg-blue-500 text-white hover:bg-blue-500",
-  completed: "border-0 bg-emerald-500 text-white hover:bg-emerald-500",
-  cancelled: "border-0 bg-rose-500 text-white hover:bg-rose-500",
-}
+
 
 const VISIT_REASON_OPTIONS: readonly string[] = [
   "Follow-up visit",
@@ -226,8 +215,6 @@ export function AssistantAppointments({
   doctorFilterOptions,
   departmentOptions,
   isLoading,
-  isError,
-  error,
   updateStatus,
   isUpdatingStatus,
   createAppointment,
@@ -241,15 +228,7 @@ export function AssistantAppointments({
   const { t, ts } = useAssistantPageTranslations("appointments")
   const locale = useLocale()
 
-  const statusLabel = useMemo(
-    (): Record<AssistantAppointmentStatus, string> => ({
-      scheduled: ts("statusScheduled"),
-      confirmed: ts("statusConfirmed"),
-      completed: ts("statusCompleted"),
-      cancelled: ts("statusCancelled"),
-    }),
-    [ts],
-  )
+
 
   const BOOKING_TYPE_OPTIONS = useMemo(
     (): readonly { value: AssistantAppointmentVisitType; label: string }[] => [
@@ -263,7 +242,6 @@ export function AssistantAppointments({
     () => [
       { id: "all" as const, label: t("allBookings") },
       { id: "scheduled" as const, label: ts("statusScheduled") },
-      { id: "confirmed" as const, label: ts("statusConfirmed") },
       { id: "completed" as const, label: ts("statusCompleted") },
       { id: "cancelled" as const, label: ts("statusCancelled") },
     ],
@@ -349,7 +327,7 @@ export function AssistantAppointments({
       showIcareToast({ title: ts("success"), description: t("toastCancelled"), variant: "success" })
       setCancellingAppointment(null)
       setCancellationReason("")
-    } catch (err) {
+    } catch {
       showIcareToast({ title: ts("error"), description: t("toastCancelFailed"), variant: "destructive" })
     }
   }
@@ -371,7 +349,7 @@ export function AssistantAppointments({
       showIcareToast({ title: ts("success"), description: t("toastCreated"), variant: "success" })
       setBookingDraft({ patientId: "", doctorId: "", visitType: "clinic", date: "", timeSlot: "", reason: "" })
       setIsCreateDialogOpen(false)
-    } catch (err) {
+    } catch {
       showIcareToast({ title: ts("error"), description: t("toastCreateFailed"), variant: "destructive" })
     }
   }
@@ -408,7 +386,7 @@ export function AssistantAppointments({
       showIcareToast({ title: ts("success"), description: t("toastUpdated"), variant: "success" })
       setIsEditDialogOpen(false)
       setSelectedAppointment(null)
-    } catch (err) {
+    } catch {
       showIcareToast({ title: ts("error"), description: t("toastUpdateFailed"), variant: "destructive" })
     }
   }
@@ -754,12 +732,17 @@ export function AssistantAppointments({
                            </span>
                         </td>
                         <td className="py-4 px-4 align-middle">
-                           <Badge variant="default" className={cn(
-                             "rounded-lg px-2 py-0.5 text-[10px] font-bold",
-                             appointmentStatusBadgeClass[appointment.status]
-                           )}>
-                              {statusLabel[appointment.status]}
-                           </Badge>
+                           {(() => {
+                              const displayStatus = resolveAppointmentDisplayStatus(appointment);
+                              return (
+                                 <Badge variant="default" className={cn(
+                                    "rounded-lg px-2 py-0.5 text-[10px] font-bold shadow-sm",
+                                    DISPLAY_STATUS_STYLES[displayStatus] ?? DISPLAY_STATUS_STYLES.scheduled
+                                 )}>
+                                    {DISPLAY_STATUS_LABELS[displayStatus]}
+                                 </Badge>
+                              );
+                           })()}
                         </td>
                         <td className="py-4 px-4 align-middle">
                            <Badge variant="default" className={cn(
@@ -794,13 +777,6 @@ export function AssistantAppointments({
                                     {t("editSchedule")}
                                  </DropdownMenuItem>
                                  <DropdownMenuSeparator className="mx-1 my-1.5 bg-[#E8E6E0]/60" />
-                                 <DropdownMenuItem 
-                                    className="flex cursor-pointer items-center rounded-xl px-3 py-2.5 text-[13px] font-bold text-blue-700 transition-colors focus:bg-blue-50 focus:text-blue-800 data-[disabled]:opacity-50"
-                                    onSelect={() => updateStatus({ appointmentId: appointment.id, status: "confirmed" })} disabled={appointment.status === 'confirmed' || isUpdatingStatus}
-                                 >
-                                    <CheckCircle2Icon className="mr-3 size-[18px]" />
-                                    {t("confirmBooking")}
-                                 </DropdownMenuItem>
                                  <DropdownMenuItem 
                                     className="flex cursor-pointer items-center rounded-xl px-3 py-2.5 text-[13px] font-bold text-emerald-700 transition-colors focus:bg-emerald-50 focus:text-emerald-800 data-[disabled]:opacity-50"
                                     onSelect={() => updateStatus({ appointmentId: appointment.id, status: "completed" })} disabled={appointment.status === 'completed' || isUpdatingStatus}
@@ -883,11 +859,9 @@ export function AssistantAppointments({
                                                 avatarUrl={app.patientAvatarUrl}
                                                 className={cn(
                                                   "size-8 rounded-full border-2 border-white ring-1 ring-black/5 shadow-sm",
-                                                  app.status === "confirmed"
-                                                    ? "ring-[#1A5345]/30"
-                                                    : app.status === "cancelled"
-                                                      ? "ring-red-300"
-                                                      : "ring-amber-200",
+                                                  app.status === "cancelled"
+                                                    ? "ring-red-300"
+                                                    : "ring-amber-200",
                                                 )}
                                                 sizes="32px"
                                                 initialsClassName="text-[10px]"
@@ -909,9 +883,17 @@ export function AssistantAppointments({
                                               <div className="min-w-0">
                                                  <p className="text-[14px] font-bold text-[#1A1F1E] truncate">{app.patientName}</p>
                                                  <p className="text-[11px] font-bold text-muted-foreground mt-0.5">{formatLocalTimeRangeAmPm(app.scheduledAt)} · {app.doctorName}</p>
-                                                 <Badge variant="default" className={cn("mt-2 rounded-lg px-2 py-0.5 text-[10px]", appointmentStatusBadgeClass[app.status])}>
-                                                    {statusLabel[app.status]}
-                                                 </Badge>
+                                                 {(() => {
+                                                    const displayStatus = resolveAppointmentDisplayStatus(app);
+                                                    return (
+                                                       <Badge variant="default" className={cn(
+                                                          "mt-2 rounded-lg px-2 py-0.5 text-[10px]",
+                                                          DISPLAY_STATUS_STYLES[displayStatus] ?? DISPLAY_STATUS_STYLES.scheduled
+                                                       )}>
+                                                          {DISPLAY_STATUS_LABELS[displayStatus]}
+                                                       </Badge>
+                                                    );
+                                                 })()}
                                               </div>
                                            </div>
                                            <div className="mt-4 flex gap-2">
@@ -1061,15 +1043,20 @@ export function AssistantAppointments({
                            </p>
                         </div>
                      </div>
-                     <Badge
-                        variant="default"
-                        className={cn(
-                           "shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-bold shadow-sm",
-                           appointmentStatusBadgeClass[selectedAppointment.status],
-                        )}
-                     >
-                        {statusLabel[selectedAppointment.status]}
-                     </Badge>
+                     {(() => {
+                        const displayStatus = resolveAppointmentDisplayStatus(selectedAppointment);
+                        return (
+                           <Badge
+                              variant="default"
+                              className={cn(
+                                 "shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-bold shadow-sm",
+                                 DISPLAY_STATUS_STYLES[displayStatus] ?? DISPLAY_STATUS_STYLES.scheduled
+                              )}
+                           >
+                              {DISPLAY_STATUS_LABELS[displayStatus]}
+                           </Badge>
+                        );
+                     })()}
                   </div>
                </div>
 

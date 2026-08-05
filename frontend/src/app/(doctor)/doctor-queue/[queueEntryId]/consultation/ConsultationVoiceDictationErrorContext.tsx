@@ -21,7 +21,7 @@ export function useConsultationVoiceDictationError() {
 }
 
 export function ConsultationVoiceDictationErrorProvider({ children }: { children: ReactNode }) {
-  const requestMicAccess = useCallback(async () => {
+  const requestMicAccess = useCallback(async function requestMicAccess() {
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) return
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })

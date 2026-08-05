@@ -61,7 +61,10 @@ export class DoctorScheduleController {
     @CurrentUser() user: TokenPayload,
     @Param('revisionId') revisionId: string,
   ) {
-    return this.scheduleService.getScheduleRevisionForUser(user.sub, revisionId);
+    return this.scheduleService.getScheduleRevisionForUser(
+      user.sub,
+      revisionId,
+    );
   }
 
   @Delete('schedule')

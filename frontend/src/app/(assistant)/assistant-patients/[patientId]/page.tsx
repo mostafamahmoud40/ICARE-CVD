@@ -1,4 +1,4 @@
-import { AssistantPatientProfilePage } from "./AssistantPatientProfilePage"
+import { AssistantPatientProfilePageContainer } from "./AssistantPatientProfilePageContainer"
 
 type PageProps = {
   params: Promise<{ patientId: string }>
@@ -6,5 +6,5 @@ type PageProps = {
 
 export default async function AssistantPatientProfileRoute({ params }: PageProps) {
   const { patientId } = await params
-  return <AssistantPatientProfilePage patientId={patientId} />
+  return <AssistantPatientProfilePageContainer patientId={patientId} />
 }

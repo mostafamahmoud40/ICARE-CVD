@@ -32,11 +32,6 @@ type VisitRowProps = {
   onMarkArrived?: (id: string) => void
 }
 
-const iconBtn =
-  "rounded-md p-1.5 text-[#6B7870] transition-colors hover:bg-black/[0.04] hover:text-[#1A5345]"
-const iconBtnAi = "text-violet-500 hover:bg-violet-50 hover:text-violet-600"
-const iconBtnStrong = "text-[#1A5345] hover:bg-[#E8F0EE]"
-
 export function VisitRow({ patient, onSelect, onMarkArrived }: VisitRowProps) {
   const isCompleted = patient.status === "completed"
   const isNoShow = patient.status === "no-show"

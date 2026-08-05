@@ -1,4 +1,11 @@
-import { pgEnum, pgTable, serial, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import {
+  pgEnum,
+  pgTable,
+  serial,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { assistant } from './assistant.schema';
 import { doctor } from './doctor.schema';
@@ -20,7 +27,9 @@ export const conversation = pgTable(
     assistantId: uuid('assistant_id').references(() => assistant.id, {
       onDelete: 'cascade',
     }),
-    doctorId: uuid('doctor_id').references(() => doctor.id, { onDelete: 'cascade' }),
+    doctorId: uuid('doctor_id').references(() => doctor.id, {
+      onDelete: 'cascade',
+    }),
     patientId: uuid('patient_id').references(() => patient.id, {
       onDelete: 'cascade',
     }),

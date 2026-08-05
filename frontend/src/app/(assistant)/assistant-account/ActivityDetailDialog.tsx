@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { DynamicLucideIcon } from "@/components/shared/DynamicLucideIcon"
 
 import { activityTypeIcon } from "./ActivityTimeline"
 import type { ActivityEntry } from "./assistantAccount.types"
@@ -65,7 +66,6 @@ export function ActivityDetailDialog({ entry, open, onOpenChange }: ActivityDeta
   if (!entry) return null
 
   const meta = typeMeta[entry.type]
-  const Icon = activityTypeIcon(entry.type)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -85,7 +85,11 @@ export function ActivityDetailDialog({ entry, open, onOpenChange }: ActivityDeta
         <div className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5] px-5 py-4 sm:px-6">
           <DialogHeader className="gap-0 space-y-0 text-start">
             <div className="flex items-start gap-3.5 pe-8">
-              <Icon className={cn("mt-0.5 size-6 shrink-0 sm:size-7", meta.iconClass)} aria-hidden />
+              <DynamicLucideIcon
+                icon={activityTypeIcon(entry.type)}
+                className={cn("mt-0.5 size-6 shrink-0 sm:size-7", meta.iconClass)}
+                aria-hidden
+              />
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <DialogTitle className="font-serif text-[20px] font-bold leading-tight text-[#1A1F1E] sm:text-[22px]">

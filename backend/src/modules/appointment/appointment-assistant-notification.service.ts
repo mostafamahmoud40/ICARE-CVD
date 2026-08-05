@@ -31,7 +31,10 @@ export class AppointmentAssistantNotificationService {
     await this.dispatchToAssistants(appointmentId, 'patient_booked');
   }
 
-  async notifyAfterPatientUpdate(before: AppointmentRow, after: AppointmentRow) {
+  async notifyAfterPatientUpdate(
+    before: AppointmentRow,
+    after: AppointmentRow,
+  ) {
     if (before.status !== after.status) {
       if (after.status === 'cancelled') {
         await this.dispatchToAssistants(after.id, 'patient_cancelled');

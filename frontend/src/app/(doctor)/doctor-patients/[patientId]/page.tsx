@@ -1,4 +1,4 @@
-import { PatientProfileRoute } from "./PatientProfileRoute"
+import { PatientProfilePageContainer } from "./PatientProfilePageContainer"
 
 type PageProps = {
   params: Promise<{ patientId: string }>
@@ -6,5 +6,5 @@ type PageProps = {
 
 export default async function PatientDetailPage({ params }: PageProps) {
   const { patientId } = await params
-  return <PatientProfileRoute patientId={patientId} />
+  return <PatientProfilePageContainer patientId={patientId} />
 }

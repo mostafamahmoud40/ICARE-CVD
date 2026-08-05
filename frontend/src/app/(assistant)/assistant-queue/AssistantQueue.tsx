@@ -1,7 +1,6 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { useLocale } from "next-intl"
 import { useAssistantPageTranslations } from "../use-assistant-i18n"
 import {
   AlertTriangleIcon,
@@ -58,15 +57,11 @@ export type AssistantQueueProps = {
 export function AssistantQueue({
   patients,
   stats,
-  filter: _filter,
-  setFilter: _setFilter,
   searchTerm,
   setSearchTerm,
-  tabCounts: _tabCounts,
   selectedPatient,
   selectPatient,
   clearSelection,
-  inClinicPatients: _inClinicPatients,
   doctorLiveSnapshots,
   waitingTurnByQueueId,
   liveBoardLoading,
@@ -80,7 +75,6 @@ export function AssistantQueue({
   pastVisitsLoading,
 }: AssistantQueueProps) {
   const { t, ts } = useAssistantPageTranslations("queue")
-  const locale = useLocale()
   const pageLoading = queueNavMode === "history" ? pastVisitsLoading : isLoading
 
   if (pageLoading) {
@@ -107,37 +101,6 @@ export function AssistantQueue({
 
   return (
     <main className="flex h-full flex-1 flex-col overflow-hidden bg-[#F9F8F5]">
-      {/* Header section matching the Dashboard layout */}
-      <div className="relative z-20 shrink-0 border-b border-[#E8E6E0]/60 bg-gradient-to-br from-white via-[#FFFCFA] to-[#E8F0EE]/30 px-4 py-3 sm:px-6 sm:py-4">
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#1A5345]/15 via-[#CC5533]/35 to-[#1A5345]/15"
-          aria-hidden
-        />
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1A5345] shadow-sm">
-              <UsersIcon className="size-5 text-white" />
-            </div>
-            <div>
-              <h1 className="font-serif text-[18px] font-bold leading-tight tracking-tight text-[#1A1F1E] sm:text-[20px]">
-                {t("title")}
-              </h1>
-              <p className="text-[12px] font-medium text-muted-foreground">
-                {new Intl.DateTimeFormat(locale, { dateStyle: "full" }).format(new Date())}
-              </p>
-            </div>
-          </div>
-
-          <span className="hidden items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm sm:flex">
-            <span className="relative flex size-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white/60 opacity-75"></span>
-              <span className="relative inline-flex rounded-full size-1.5 bg-white"></span>
-            </span>
-            {t("live")}
-          </span>
-        </div>
-      </div>
-
       {/* Stats Bar - Only shown in Operations (Live Desk) mode */}
       {queueNavMode === "operations" && !selectedPatient && (
         <div className="shrink-0 border-b border-[#E8E6E0] bg-[#F9F8F5] p-4 sm:p-5">
@@ -223,11 +186,10 @@ export function AssistantQueue({
           <div className="min-h-0 flex-1 overflow-y-auto p-2">
             {patients.length > 0 ? (
               <div className="space-y-2">
-                {patients.map((p, idx) => (
+                {patients.map((p) => (
                   <QueueRow
                     key={p.queueEntryId}
                     patient={p}
-                    position={idx}
                     waitingTurn={
                       p.status === "waiting"
                         ? (waitingTurnByQueueId.get(p.queueEntryId) ?? null)

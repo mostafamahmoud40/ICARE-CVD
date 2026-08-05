@@ -8,11 +8,7 @@ import {
 import { and, desc, eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../../database/drizzle.provider';
 import type { Database } from '../../../database/drizzle.provider';
-import {
-  assistant,
-  doctorAssistant,
-  user,
-} from '../../../database/schema';
+import { assistant, doctorAssistant, user } from '../../../database/schema';
 import { hashPassword } from '../../auth/password';
 import { DoctorVerifierService } from '../../../shared/doctor/doctor-verifier.service';
 import {

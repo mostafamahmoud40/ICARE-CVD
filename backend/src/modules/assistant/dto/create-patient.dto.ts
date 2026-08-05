@@ -112,6 +112,11 @@ export class CreatePatientDto {
   address?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  avatarUrl?: string;
+
+  @IsOptional()
   @IsNumber()
   @Min(30)
   @Max(300)
@@ -144,7 +149,7 @@ export class CreatePatientDto {
   stressLevel?: string;
 
   @IsOptional()
-  @Transform(({ value }) =>
+  @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' && value.trim() === '' ? undefined : value,
   )
   @IsIn(chiefComplaints)
@@ -159,6 +164,15 @@ export class CreatePatientDto {
   @IsString()
   @MaxLength(20000)
   medicalHistoryNotes?: string;
+
+  @IsOptional()
+  @IsIn(['single', 'married', 'divorced', 'widowed'])
+  maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  occupation?: string;
 
   @IsOptional()
   @IsArray()

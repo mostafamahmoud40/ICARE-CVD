@@ -1,25 +1,29 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
 import {
   clinicSlotToIso,
   formatClinicDateTime,
 } from '../../../common/clinic-time.util';
-import { AppointmentService } from '../../appointment/appointment.service';
+import {
+  APPOINTMENT_READER,
+  type IAppointmentReader,
+} from '../../../shared/ports/appointment.port';
 import {
   ChromaService,
   CHROMA_COLLECTION_CLINIC,
 } from '../chroma/chroma.service';
 import type { QueryUnderstandingResult, RetrievalHit } from './agent.types';
 
-type DoctorRow = Awaited<ReturnType<AppointmentService['listDoctors']>>[number];
+type DoctorRow = Awaited<ReturnType<IAppointmentReader['listDoctors']>>[number];
 type PatientAppt = Awaited<
-  ReturnType<AppointmentService['listPatientAppointments']>
+  ReturnType<IAppointmentReader['listPatientAppointments']>
 >[number];
 
 @Injectable()
 export class AgentRetrievalStage {
   constructor(
-    private readonly appointmentService: AppointmentService,
+    @Inject(APPOINTMENT_READER)
+    private readonly appointmentReader: IAppointmentReader,
     private readonly chromaService: ChromaService,
   ) {}
 
@@ -47,7 +51,7 @@ export class AgentRetrievalStage {
 
   private async safeListDoctors(): Promise<DoctorRow[]> {
     try {
-      return await this.appointmentService.listDoctors();
+      return await this.appointmentReader.listDoctors();
     } catch {
       return [];
     }
@@ -55,12 +59,10 @@ export class AgentRetrievalStage {
 
   private async safeListAppointments(userId: number): Promise<PatientAppt[]> {
     try {
-      const rows =
-        await this.appointmentService.listPatientAppointments(userId);
+      const rows = await this.appointmentReader.listPatientAppointments(userId);
       return rows.filter(
         (a) =>
-          a.status !== 'cancelled' &&
-          new Date(a.scheduledAt) >= new Date(),
+          a.status !== 'cancelled' && new Date(a.scheduledAt) >= new Date(),
       );
     } catch {
       return [];
@@ -78,12 +80,12 @@ export class AgentRetrievalStage {
     const targetDate = params.understanding.entities.find(
       (e) => e.type === 'date',
     )?.normalized;
-    const targetDoctor = params.understanding.entities.find(
-      (e) => e.type === 'doctor_name',
-    )?.normalized?.toLowerCase();
-    const targetSpecialty = params.understanding.entities.find(
-      (e) => e.type === 'specialty',
-    )?.normalized?.toLowerCase();
+    const targetDoctor = params.understanding.entities
+      .find((e) => e.type === 'doctor_name')
+      ?.normalized?.toLowerCase();
+    const targetSpecialty = params.understanding.entities
+      .find((e) => e.type === 'specialty')
+      ?.normalized?.toLowerCase();
 
     for (const appt of params.appointments) {
       const cairo = formatClinicDateTime(appt.scheduledAt);
@@ -94,9 +96,11 @@ export class AgentRetrievalStage {
           (targetDoctor &&
             appt.clinician.toLowerCase().includes(targetDoctor)) ||
           params.understanding.intents.some((i) =>
-            ['list_appointments', 'cancel_appointment', 'reschedule_appointment'].includes(
-              i.id,
-            ),
+            [
+              'list_appointments',
+              'cancel_appointment',
+              'reschedule_appointment',
+            ].includes(i.id),
           )
             ? 0.25
             : 0,
@@ -153,7 +157,7 @@ export class AgentRetrievalStage {
       }
 
       try {
-        const avail = await this.appointmentService.getDoctorAvailability(
+        const avail = await this.appointmentReader.getDoctorAvailability(
           doc.id,
           params.todayStr,
           7,
@@ -172,8 +176,10 @@ export class AgentRetrievalStage {
             const score = this.scoreText(content, terms, {
               boost: 0.2,
               entityBoost:
-                (targetDoctor && doc.name.toLowerCase().includes(targetDoctor)) ||
-                (targetSpecialty && doc.title.toLowerCase().includes(targetSpecialty))
+                (targetDoctor &&
+                  doc.name.toLowerCase().includes(targetDoctor)) ||
+                (targetSpecialty &&
+                  doc.title.toLowerCase().includes(targetSpecialty))
                   ? 0.3
                   : targetDate && day.fullDate === targetDate
                     ? 0.2
@@ -256,9 +262,7 @@ export class AgentRetrievalStage {
       }
     }
 
-    return [...byKey.values()]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 16);
+    return [...byKey.values()].sort((a, b) => b.score - a.score).slice(0, 16);
   }
 
   private buildSearchTerms(understanding: QueryUnderstandingResult): string[] {
@@ -270,7 +274,8 @@ export class AgentRetrievalStage {
       set.add(e.normalized.toLowerCase());
       if (e.raw.length > 1) set.add(e.raw.toLowerCase());
     }
-    const query = understanding.reformulatedQuery || understanding.normalizedQuery;
+    const query =
+      understanding.reformulatedQuery || understanding.normalizedQuery;
     for (const w of query.toLowerCase().split(/[\s,.;:!?،]+/)) {
       if (w.length > 1) set.add(w);
     }

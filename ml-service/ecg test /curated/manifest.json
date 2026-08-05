@@ -1,0 +1,272 @@
+[
+  {
+    "record": "00001_lr",
+    "files": {
+      "hea": "00001_lr.hea",
+      "dat": "00001_lr.dat"
+    },
+    "hea_bytes": 596,
+    "dat_bytes": 24000,
+    "ptbxl_ecg_id": 1,
+    "ptbxl_superclass": "NORM",
+    "ptbxl_description": "Normal ECG — sinus rhythm",
+    "ptbxl_scp_codes": [
+      {
+        "code": "NORM",
+        "description": "normal ECG",
+        "diagnostic_class": "NORM",
+        "likelihood": 100.0
+      },
+      {
+        "code": "LVOLT",
+        "description": "low QRS voltages in the frontal and horizontal leads",
+        "diagnostic_class": "nan",
+        "likelihood": 0.0
+      },
+      {
+        "code": "SR",
+        "description": "sinus rhythm",
+        "diagnostic_class": "nan",
+        "likelihood": 0.0
+      }
+    ],
+    "ptbxl_report": "sinusrhythmus periphere niederspannung",
+    "pipeline": {
+      "heart_rate_bpm": 63.9,
+      "rhythm_classification": "Normal",
+      "rhythm_regular": true,
+      "r_peaks_count": 10,
+      "qrs_duration_ms": 169.0,
+      "qtc_bazett_ms": 415.7,
+      "signal_quality": 0.38,
+      "warnings": [],
+      "lvh_sokolow": false,
+      "mi_stemi_territories": {}
+    },
+    "upload_pair": "Upload 00001_lr.hea + 00001_lr.dat together"
+  },
+  {
+    "record": "00008_lr",
+    "files": {
+      "hea": "00008_lr.hea",
+      "dat": "00008_lr.dat"
+    },
+    "hea_bytes": 594,
+    "dat_bytes": 24000,
+    "ptbxl_ecg_id": 8,
+    "ptbxl_superclass": "MI",
+    "ptbxl_description": "Inferior myocardial infarction (IMI)",
+    "ptbxl_scp_codes": [
+      {
+        "code": "IMI",
+        "description": "inferior myocardial infarction",
+        "diagnostic_class": "MI",
+        "likelihood": 35.0
+      },
+      {
+        "code": "ABQRS",
+        "description": "abnormal QRS",
+        "diagnostic_class": "nan",
+        "likelihood": 0.0
+      },
+      {
+        "code": "SR",
+        "description": "sinus rhythm",
+        "diagnostic_class": "nan",
+        "likelihood": 0.0
+      }
+    ],
+    "ptbxl_report": "sinusrhythmus linkstyp qrs(t) abnormal    inferiorer infarkt     alter unbest.",
+    "pipeline": {
+      "heart_rate_bpm": 73.8,
+      "rhythm_classification": "Normal",
+      "rhythm_regular": true,
+      "r_peaks_count": 12,
+      "qrs_duration_ms": 135.5,
+      "qtc_bazett_ms": 444.4,
+      "signal_quality": 0.61,
+      "warnings": [],
+      "lvh_sokolow": false,
+      "mi_stemi_territories": {
+        "Anterior": true,
+        "Anterolateral": true
+      }
+    },
+    "upload_pair": "Upload 00008_lr.hea + 00008_lr.dat together"
+  },
+  {
+    "record": "00022_lr",
+    "files": {
+      "hea": "00022_lr.hea",
+      "dat": "00022_lr.dat"
+    },
+    "hea_bytes": 594,
+    "dat_bytes": 24000,
+    "ptbxl_ecg_id": 22,
+    "ptbxl_superclass": "STTC",
+    "ptbxl_description": "Non-specific ST/T changes (NDT)",
+    "ptbxl_scp_codes": [
+      {
+        "code": "NDT",
+        "description": "non-diagnostic T abnormalities",
+        "diagnostic_class": "STTC",
+        "likelihood": 100.0
+      },
+      {
+        "code": "SR",
+        "description": "sinus rhythm",
+        "diagnostic_class": "nan",
+        "likelihood": 0.0
+      }
+    ],
+    "ptbxl_report": "sinusrhythmus linkstyp unspezifisches abnormales t",
+    "pipeline": {
+      "heart_rate_bpm": 80.0,
+      "rhythm_classification": "Normal",
+      "rhythm_regular": true,
+      "r_peaks_count": 12,
+      "qrs_duration_ms": 168.2,
+      "qtc_bazett_ms": 509.9,
+      "signal_quality": 0.68,
+      "warnings": [],
+      "lvh_sokolow": false,
+      "mi_stemi_territories": {}
+    },
+    "upload_pair": "Upload 00022_lr.hea + 00022_lr.dat together"
+  },
+  {
+    "record": "00030_lr",
+    "files": {
+      "hea": "00030_lr.hea",
+      "dat": "00030_lr.dat"
+    },
+    "hea_bytes": 604,
+    "dat_bytes": 24000,
+    "ptbxl_ecg_id": 30,
+    "ptbxl_superclass": "HYP",
+    "ptbxl_description": "Left ventricular hypertrophy (LVH)",
+    "ptbxl_scp_codes": [
+      {
+        "code": "LVH",
+        "description": "left ventricular hypertrophy",
+        "diagnostic_class": "HYP",
+        "likelihood": 100.0
+      },
+      {
+        "code": "SR",
+        "description": "sinus rhythm",
+        "diagnostic_class": "nan",
+        "likelihood": 0.0
+      }
+    ],
+    "ptbxl_report": "sinusrhythmus unspezifischer intraventrikulÄrer block linkshypertrophie",
+    "pipeline": {
+      "heart_rate_bpm": 63.8,
+      "rhythm_classification": "Normal",
+      "rhythm_regular": true,
+      "r_peaks_count": 10,
+      "qrs_duration_ms": 211.0,
+      "qtc_bazett_ms": 506.1,
+      "signal_quality": 0.64,
+      "warnings": [],
+      "lvh_sokolow": false,
+      "mi_stemi_territories": {
+        "Anterior": true,
+        "Anterolateral": true
+      }
+    },
+    "upload_pair": "Upload 00030_lr.hea + 00030_lr.dat together"
+  },
+  {
+    "record": "00032_lr",
+    "files": {
+      "hea": "00032_lr.hea",
+      "dat": "00032_lr.dat"
+    },
+    "hea_bytes": 611,
+    "dat_bytes": 24000,
+    "ptbxl_ecg_id": 32,
+    "ptbxl_superclass": "CD",
+    "ptbxl_description": "Left posterior fascicular block (LPFB)",
+    "ptbxl_scp_codes": [
+      {
+        "code": "LPFB",
+        "description": "left posterior fascicular block",
+        "diagnostic_class": "CD",
+        "likelihood": 100.0
+      },
+      {
+        "code": "SR",
+        "description": "sinus rhythm",
+        "diagnostic_class": "nan",
+        "likelihood": 0.0
+      }
+    ],
+    "ptbxl_report": "sinusrhythmus rechtstyp linksposteriorer hemiblock",
+    "pipeline": {
+      "heart_rate_bpm": 99.1,
+      "rhythm_classification": "Normal",
+      "rhythm_regular": true,
+      "r_peaks_count": 16,
+      "qrs_duration_ms": 173.1,
+      "qtc_bazett_ms": 503.9,
+      "signal_quality": 0.57,
+      "warnings": [],
+      "lvh_sokolow": false,
+      "mi_stemi_territories": {
+        "Anterior": true,
+        "Septal": true
+      }
+    },
+    "upload_pair": "Upload 00032_lr.hea + 00032_lr.dat together"
+  },
+  {
+    "record": "05469_lr",
+    "files": {
+      "hea": "05469_lr.hea",
+      "dat": "05469_lr.dat"
+    },
+    "hea_bytes": 604,
+    "dat_bytes": 24000,
+    "ptbxl_ecg_id": 5469,
+    "ptbxl_superclass": "MI",
+    "ptbxl_description": "Myocardial infarction (PTB-XL fold-10 test case)",
+    "ptbxl_scp_codes": [
+      {
+        "code": "NORM",
+        "description": "normal ECG",
+        "diagnostic_class": "NORM",
+        "likelihood": 100.0
+      },
+      {
+        "code": "STE_",
+        "description": "non-specific ST elevation",
+        "diagnostic_class": "nan",
+        "likelihood": 0.0
+      },
+      {
+        "code": "SR",
+        "description": "sinus rhythm",
+        "diagnostic_class": "nan",
+        "likelihood": 0.0
+      }
+    ],
+    "ptbxl_report": "sinusrhythmus lagetyp normal st-hebung in v2-3",
+    "pipeline": {
+      "heart_rate_bpm": 59.9,
+      "rhythm_classification": "Bradycardia",
+      "rhythm_regular": true,
+      "r_peaks_count": 10,
+      "qrs_duration_ms": 205.0,
+      "qtc_bazett_ms": 475.5,
+      "signal_quality": 0.66,
+      "warnings": [],
+      "lvh_sokolow": false,
+      "mi_stemi_territories": {
+        "Anterior": true,
+        "Anterolateral": true
+      }
+    },
+    "upload_pair": "Upload 05469_lr.hea + 05469_lr.dat together"
+  }
+]

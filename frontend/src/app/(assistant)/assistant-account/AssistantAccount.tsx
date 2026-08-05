@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import { useMemo, useState, type ComponentType } from "react"
 import type {
   AssistantProfile,
@@ -20,6 +19,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { DynamicLucideIcon } from "@/components/shared/DynamicLucideIcon"
 import {
   accountStatCellClassName,
   AccountSectionHeading,
@@ -62,7 +62,6 @@ import {
   LockIcon,
   ShieldCheckIcon,
   BarChart3Icon,
-  FileTextIcon,
   EyeIcon,
   SunIcon,
   MoonIcon,
@@ -707,7 +706,6 @@ function ShiftScheduleRow({
   const { t } = useAssistantAccountTranslations()
   const statusStyles = useAccountShiftStatusStyles()
   const style = statusStyles[shift.status]
-  const StatusIcon = shiftStatusIcon(shift.status)
   const detailPrimary = shiftDetailPrimary(shift, t)
 
   return (
@@ -720,7 +718,11 @@ function ShiftScheduleRow({
         "items-start w-full text-start transition-all hover:border-[#1A5345]/20 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1A5345]/25",
       )}
     >
-      <StatusIcon className={cn("size-5 shrink-0", SHIFT_STATUS_ICON_COLOR[shift.status])} aria-hidden />
+      <DynamicLucideIcon
+        icon={shiftStatusIcon(shift.status)}
+        className={cn("size-5 shrink-0", SHIFT_STATUS_ICON_COLOR[shift.status])}
+        aria-hidden
+      />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[18px] font-bold leading-none tabular-nums text-[#1A1F1E]">{shift.dayBadge}</span>

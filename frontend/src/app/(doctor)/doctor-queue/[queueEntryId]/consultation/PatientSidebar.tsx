@@ -8,7 +8,7 @@ import type {
   ExistingCondition,
   PatientDemographics,
 } from "./consultation.types"
-import Image from "next/image"
+import { PatientAvatar } from "@/components/shared/PatientAvatar"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import {
@@ -51,24 +51,19 @@ function PatientHeader({
   age,
   gender,
   bloodType,
+  avatarUrl,
   profileHref,
 }: {
   name: string
   age: number
   gender: string
   bloodType: string
+  avatarUrl?: string | null
   profileHref?: string
 }) {
   const avatar = (
     <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#E8E6E0]/60 bg-white shadow-sm">
-      <Image
-        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name.replace(/\s+/g, ""))}`}
-        alt=""
-        width={44}
-        height={44}
-        unoptimized
-        className="size-full object-cover"
-      />
+      <PatientAvatar name={name} avatarUrl={avatarUrl} />
     </div>
   )
 
@@ -320,6 +315,7 @@ export function PatientSidebar({
             age={demographics.age}
             gender={demographics.gender}
             bloodType={demographics.bloodType}
+            avatarUrl={demographics.avatarUrl}
             profileHref={patientProfileHref}
           />
         </div>

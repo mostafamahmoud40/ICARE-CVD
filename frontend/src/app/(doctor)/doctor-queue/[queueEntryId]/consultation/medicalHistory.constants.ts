@@ -26,3 +26,18 @@ export const NON_CARDIAC_HISTORY_QUESTIONS = [
 export const HISTORY_ANSWER_OPTIONS = ["Yes", "No", "Not sure"] as const
 
 export type HistoryAnswer = (typeof HISTORY_ANSWER_OPTIONS)[number] | ""
+
+export const FAMILY_RELATIONSHIP_OPTIONS = [
+  "Mother",
+  "Father",
+  "Sister",
+  "Brother",
+  "Grandmother",
+  "Grandfather",
+  "Aunt",
+  "Uncle",
+  "Daughter",
+  "Son",
+  "Cousin",
+  "Other",
+] as const

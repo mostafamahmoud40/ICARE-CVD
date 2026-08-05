@@ -28,7 +28,7 @@ export function AddVitalsDialog({
               </div>
               <div>
                  <DialogTitle className="text-[17px] font-bold text-[#1A1F1E]">Add Vitals Reading</DialogTitle>
-                 <p className="text-muted-foreground text-[12px] font-medium">Record patient's physical measurements</p>
+                 <p className="text-muted-foreground text-[12px] font-medium">Record patient&apos;s physical measurements</p>
               </div>
            </div>
         </div>

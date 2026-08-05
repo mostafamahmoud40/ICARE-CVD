@@ -116,5 +116,21 @@ export function clearAuthTokens() {
     storage.removeItem(USER_KEY);
   }
   deleteCookie(ACCESS_TOKEN_KEY);
+  authUserSnapshotRaw = undefined;
+  authUserSnapshot = null;
+  notifyAuthUserListeners();
+}
+
+export function patchAuthUser(patch: Partial<AuthUser>) {
+  const storage = safeGetStorage();
+  if (!storage) return;
+
+  const current = getAuthUser();
+  if (!current) return;
+
+  const next = { ...current, ...patch };
+  storage.setItem(USER_KEY, JSON.stringify(next));
+  authUserSnapshotRaw = storage.getItem(USER_KEY);
+  authUserSnapshot = next;
   notifyAuthUserListeners();
 }

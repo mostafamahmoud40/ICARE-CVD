@@ -1,6 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ChromaClient, Collection } from 'chromadb';
-import { EmbeddingService } from '../embedding/embedding.service';
+import {
+  EMBEDDING_SERVICE,
+  type IEmbeddingService,
+} from '../../../shared/ports/embedding.port';
 import { ExternalEmbeddingFunction } from './external-embedding-function';
 
 export const CHROMA_COLLECTION_CLINIC = 'icare_clinic_context';
@@ -13,7 +16,10 @@ export class ChromaService implements OnModuleInit {
   private _ready = false;
   private readonly embeddingFunction = new ExternalEmbeddingFunction();
 
-  constructor(private readonly embeddingService: EmbeddingService) {}
+  constructor(
+    @Inject(EMBEDDING_SERVICE)
+    private readonly embeddingService: IEmbeddingService,
+  ) {}
 
   async onModuleInit() {
     const url = process.env.CHROMA_URL?.trim() || 'http://localhost:8001';
@@ -119,10 +125,7 @@ export class ChromaService implements OnModuleInit {
     }
   }
 
-  async deleteDocuments(
-    collectionName: string,
-    ids: string[],
-  ): Promise<void> {
+  async deleteDocuments(collectionName: string, ids: string[]): Promise<void> {
     if (!this._ready || ids.length === 0) return;
     try {
       const col = await this.getOrCreateCollection(collectionName);
@@ -136,13 +139,24 @@ export class ChromaService implements OnModuleInit {
     collectionName: string,
     queryEmbedding: number[],
     nResults = 8,
-  ): Promise<Array<{ id: string; document: string; metadata: Record<string, unknown>; distance: number }>> {
+    where?: Record<string, unknown>,
+  ): Promise<
+    Array<{
+      id: string;
+      document: string;
+      metadata: Record<string, unknown>;
+      distance: number;
+    }>
+  > {
     if (!this._ready) return [];
     try {
       const col = await this.getOrCreateCollection(collectionName);
       const results = await col.query({
         queryEmbeddings: [queryEmbedding],
         nResults,
+        ...(where
+          ? { where: where as Parameters<typeof col.query>[0]['where'] }
+          : {}),
       });
 
       const ids = results.ids[0] ?? [];

@@ -91,4 +91,10 @@ export class DoctorMedicationController {
   deleteMedication(@CurrentUser() user: TokenPayload, @Param('id') id: string) {
     return this.medicationService.deleteMedication(user.sub, id);
   }
+
+  /** GET /doctor/medications/:id/adherence-record — 30-day dose timeline */
+  @Get(':id/adherence-record')
+  getAdherenceRecord(@Param('id') id: string) {
+    return this.medicationService.getMedicationAdherenceRecord(id);
+  }
 }

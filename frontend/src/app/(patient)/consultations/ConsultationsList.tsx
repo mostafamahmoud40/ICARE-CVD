@@ -149,6 +149,17 @@ function ConsultationsTableView({ visits }: { visits: VisitSummary[] }) {
 }
 
 function ConsultationsTimelineView({ visits }: { visits: VisitSummary[] }) {
+  if (visits.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#E8E6E0] bg-white py-16 text-center">
+        <p className="text-[15px] font-semibold text-[#1A1F1E]">No consultation reports yet</p>
+        <p className="mt-2 max-w-sm text-[13px] font-medium text-[#6B7870]">
+          After your doctor completes and signs a visit, your clinical summary will appear here.
+        </p>
+      </div>
+    )
+  }
+
   const dateGroups = groupVisitsByDate(visits)
 
   return (

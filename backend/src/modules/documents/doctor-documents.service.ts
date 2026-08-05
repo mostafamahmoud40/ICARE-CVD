@@ -1,17 +1,50 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { desc, eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import { patientDocument, patient } from '../../database/schema';
-import { S3Service } from '../../shared/storage/s3.service';
+import {
+  LAB_REPORT_MAX_BYTES,
+  LAB_REPORT_MIME_TYPES,
+} from '../../shared/storage/minio.constants';
+import {
+  isMinioKeyForCategory,
+  isMinioObjectKey,
+  type PatientDocumentCategory,
+} from '../../shared/storage/minio-patient-path';
+import { MinioService } from '../../shared/storage/minio.service';
 import { DoctorVerifierService } from '../../shared/doctor/doctor-verifier.service';
 import type { CreateDocumentDto } from './dto/documents.dto';
+import { DocumentCategory } from './dto/documents.dto';
+
+function isMinioLabReportKey(key: string, patientNumber?: string): boolean {
+  return isMinioKeyForCategory(key, 'lab_report', patientNumber);
+}
+
+function isConsultationImagingKey(
+  key: string,
+  patientNumber?: string,
+): boolean {
+  return (
+    isMinioKeyForCategory(key, 'consultation_xray', patientNumber) ||
+    isMinioKeyForCategory(key, 'consultation_echo', patientNumber) ||
+    isMinioKeyForCategory(key, 'consultation_ecg', patientNumber) ||
+    isMinioKeyForCategory(key, 'consultation_cine_mri', patientNumber) ||
+    isMinioKeyForCategory(key, 'consultation_ct', patientNumber) ||
+    isMinioKeyForCategory(key, 'consultation_ecg_cls', patientNumber)
+  );
+}
 
 @Injectable()
 export class DoctorDocumentService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
-    private readonly s3Service: S3Service,
+    private readonly minioService: MinioService,
     private readonly doctorVerifier: DoctorVerifierService,
   ) {}
 
@@ -29,6 +62,32 @@ export class DoctorDocumentService {
     });
   }
 
+  async createLabReportUploadIntent(
+    doctorUserId: number,
+    patientId: string,
+    fileName: string,
+    contentType: string,
+  ) {
+    await this.doctorVerifier.verify(doctorUserId);
+
+    const patientRow = await this.db.query.patient.findFirst({
+      where: eq(patient.id, patientId),
+    });
+    if (!patientRow) throw new NotFoundException('Patient not found');
+
+    const mimeType = contentType.trim().toLowerCase();
+    if (!LAB_REPORT_MIME_TYPES.has(mimeType)) {
+      throw new BadRequestException('Unsupported lab report file type');
+    }
+
+    return this.minioService.createDocumentUploadIntent({
+      fileName,
+      contentType: mimeType,
+      category: 'lab_report',
+      patientNumber: patientRow.patientNumber,
+    });
+  }
+
   async createDocument(
     doctorUserId: number,
     patientId: string,
@@ -41,14 +100,36 @@ export class DoctorDocumentService {
     });
     if (!patientRow) throw new NotFoundException('Patient not found');
 
-    let s3Key: string | undefined = dto.s3Key;
-    if (!s3Key) {
-      const intent = await this.s3Service.createUploadIntent({
-        category: dto.category as never,
+    let storageKey: string | undefined = dto.s3Key;
+    if (!storageKey) {
+      const intent = await this.minioService.createDocumentUploadIntent({
+        category: dto.category as PatientDocumentCategory,
         fileName: dto.fileName,
         contentType: dto.contentType,
+        patientNumber: patientRow.patientNumber,
       });
-      s3Key = intent.key;
+      storageKey = intent.key;
+    } else if (
+      dto.category === DocumentCategory.LabReport &&
+      !isMinioLabReportKey(storageKey, patientRow.patientNumber)
+    ) {
+      throw new BadRequestException('Invalid lab report storage key');
+    } else if (
+      dto.category === DocumentCategory.Imaging &&
+      !isConsultationImagingKey(storageKey, patientRow.patientNumber) &&
+      !isMinioObjectKey(storageKey, patientRow.patientNumber)
+    ) {
+      throw new BadRequestException('Invalid imaging storage key');
+    } else if (!isMinioObjectKey(storageKey, patientRow.patientNumber)) {
+      throw new BadRequestException('Invalid document storage key');
+    }
+
+    if (
+      dto.category === DocumentCategory.LabReport &&
+      dto.fileSize != null &&
+      dto.fileSize > LAB_REPORT_MAX_BYTES
+    ) {
+      throw new BadRequestException('Lab report file exceeds allowed size');
     }
 
     const [doc] = await this.db
@@ -62,7 +143,7 @@ export class DoctorDocumentService {
         category: dto.category,
         title: dto.title,
         uploadedByUserId: doctorRow.userId,
-        s3Key,
+        s3Key: storageKey,
       })
       .returning();
 
@@ -77,11 +158,10 @@ export class DoctorDocumentService {
     });
     if (!doc) throw new NotFoundException('Document not found');
 
-    await this.s3Service.deleteObject({ key: doc.s3Key });
+    await this.minioService.deleteObject(doc.s3Key);
+
     await this.db
       .delete(patientDocument)
       .where(eq(patientDocument.id, documentId));
-
-    return { success: true };
   }
 }

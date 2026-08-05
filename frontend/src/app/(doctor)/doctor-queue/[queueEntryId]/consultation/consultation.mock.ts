@@ -1,5 +1,4 @@
 import type { ConsultationData, PatientSummary } from "./consultation.types"
-import { mockAiSuggestions } from "./consultation.ai.mock"
 import { createConsultationDataFromPatient } from "./consultation.template"
 
 /** Demo patient summary for AI briefing mock content only. */
@@ -16,6 +15,7 @@ export const mockBriefingPatientSummary: PatientSummary = {
     address: "12 Nasr City, Cairo, Egypt",
     occupation: "Retired Engineer",
     maritalStatus: "Married",
+    avatarUrl: null,
   },
   allergies: [
     { id: "a1", category: "drug", allergen: "Penicillin", reaction: "Anaphylaxis" },

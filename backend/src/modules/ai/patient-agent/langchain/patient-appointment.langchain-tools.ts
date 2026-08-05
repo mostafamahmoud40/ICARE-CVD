@@ -24,7 +24,9 @@ export function buildPatientAppointmentLangChainTools(
         doctorId: z.string().describe('Doctor UUID from context'),
         scheduledAt: z
           .string()
-          .describe('ISO datetime from context, e.g. 2026-06-13T14:40:00+03:00'),
+          .describe(
+            'ISO datetime from context, e.g. 2026-06-13T14:40:00+03:00',
+          ),
         visitType: z.enum(['clinic', 'virtual']),
         reason: z.string().describe('Default: Cardiology follow-up'),
       }),
