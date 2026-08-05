@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import {
+  CalendarDaysIcon,
   PencilIcon,
   RefreshCwIcon,
   SearchIcon,
@@ -152,14 +153,27 @@ export function DoctorAssistants({
               </p>
             </div>
 
-            <Button
-              size="sm"
-              onClick={openCreate}
-              className="h-8 gap-2 self-start rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]"
-            >
+            <div className="flex flex-wrap items-center gap-2 self-start">
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="h-8 gap-2 rounded-lg border border-[#E8E6E0] bg-white px-4 text-[12px] font-bold text-[#1A1F1E] shadow-sm transition-colors hover:bg-slate-50 hover:text-[#1A5345]"
+              >
+                <Link href="/doctor-assistants/schedule">
+                  <CalendarDaysIcon className="size-3.5" strokeWidth={2.5} aria-hidden />
+                  Work schedules
+                </Link>
+              </Button>
+              <Button
+                size="sm"
+                onClick={openCreate}
+                className="h-8 gap-2 rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]"
+              >
               <UserPlusIcon className="size-3.5" strokeWidth={2.5} aria-hidden />
               Add assistant
             </Button>
+            </div>
           </div>
 
           <div className="mt-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
@@ -346,6 +360,20 @@ export function DoctorAssistants({
                       </td>
                       <td className="py-4 pl-4 pr-4">
                         <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            asChild
+                            className="size-8 border-0 bg-transparent text-muted-foreground shadow-none transition-colors hover:bg-transparent hover:text-[#1A5345]"
+                          >
+                            <Link
+                              href={`/doctor-assistants/schedule?assistant=${member.id}`}
+                              aria-label={`Manage shifts for ${member.fullName}`}
+                              title="Manage shifts"
+                            >
+                              <CalendarDaysIcon className="size-4" strokeWidth={2} aria-hidden />
+                            </Link>
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"

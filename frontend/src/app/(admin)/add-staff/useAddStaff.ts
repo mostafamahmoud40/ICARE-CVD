@@ -64,7 +64,7 @@ export function useAddStaff() {
       const payload = {
         fullName: formValues.fullName,
         email: formValues.email,
-        password: formValues.password,
+        password: formValues.password || undefined,
         phoneNumber: formValues.phoneNumber,
         role: formValues.role,
         specialty: formValues.specialty || undefined,
@@ -99,7 +99,7 @@ export function useAddStaff() {
       const payload = {
         fullName: formValues.fullName,
         email: formValues.email,
-        password: formValues.password,
+        password: formValues.password || undefined,
         phoneNumber: formValues.phoneNumber,
         role: formValues.role,
         specialty: formValues.specialty || undefined,

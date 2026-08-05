@@ -107,6 +107,9 @@ function DoctorLayoutContent({
   const [isProceduresOpen, setIsProceduresOpen] = useState(() =>
     pathname.startsWith("/doctor-procedures"),
   )
+  const [isAssistantsOpen, setIsAssistantsOpen] = useState(() =>
+    pathname.startsWith("/doctor-assistants"),
+  )
 
   const proceduresSubNav = {
     all: "All procedures",
@@ -152,12 +155,6 @@ function DoctorLayoutContent({
       label: "Patients",
       icon: HeartPulseIcon,
       isActive: pathname.startsWith("/doctor-patients"),
-    },
-    {
-      href: "/doctor-assistants",
-      label: "Assistants",
-      icon: User2Icon,
-      isActive: pathname.startsWith("/doctor-assistants"),
     },
     {
       href: "/doctor-prescriptions",
@@ -252,6 +249,63 @@ function DoctorLayoutContent({
                   </SidebarMenuItem>
                 )
               })}
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={pathname.startsWith("/doctor-assistants")}
+                  render={
+                    <button
+                      type="button"
+                      aria-label="Assistants"
+                      aria-expanded={isAssistantsOpen}
+                      onClick={() => !isCollapsed && setIsAssistantsOpen((prev) => !prev)}
+                    >
+                      <User2Icon className="size-4" aria-hidden />
+                      {isCollapsed ? null : (
+                        <>
+                          <span>Assistants</span>
+                          <ChevronDownIcon
+                            className={cn(
+                              "ms-auto size-4 transition-transform duration-200",
+                              isAssistantsOpen && "rotate-180",
+                            )}
+                          />
+                        </>
+                      )}
+                    </button>
+                  }
+                />
+                {isAssistantsOpen && !isCollapsed ? (
+                  <SidebarMenuSub>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton
+                        isActive={
+                          pathname === "/doctor-assistants" ||
+                          (pathname.startsWith("/doctor-assistants/") &&
+                            !pathname.startsWith("/doctor-assistants/schedule"))
+                        }
+                        render={
+                          <Link href="/doctor-assistants">
+                            <UsersIcon className="size-3.5" />
+                            Team
+                          </Link>
+                        }
+                      />
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton
+                        isActive={pathname.startsWith("/doctor-assistants/schedule")}
+                        render={
+                          <Link href="/doctor-assistants/schedule">
+                            <CalendarDaysIcon className="size-3.5" />
+                            Work schedules
+                          </Link>
+                        }
+                      />
+                    </SidebarMenuSubItem>
+                  </SidebarMenuSub>
+                ) : null}
+              </SidebarMenuItem>
 
               <SidebarMenuItem>
                 <SidebarMenuButton

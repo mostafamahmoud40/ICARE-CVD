@@ -4,7 +4,13 @@ export const addStaffSchema = z
   .object({
     fullName: z.string().trim().min(3, "Full name must be at least 3 characters."),
     email: z.string().trim().email("Enter a valid email address."),
-    password: z.string().min(8, "Password must be at least 8 characters.").max(128, "Password must be at most 128 characters."),
+    password: z
+      .string()
+      .max(128)
+      .refine((val) => val === "" || val.length >= 8, {
+        message: "Password must be at least 8 characters.",
+      })
+      .optional(),
     phoneNumber: z
       .string()
       .trim()

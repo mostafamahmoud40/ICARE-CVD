@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { count, desc, eq } from 'drizzle-orm';
+import { randomBytes } from 'crypto';
 import { DRIZZLE } from '../../database/drizzle.provider';
 import type { Database } from '../../database/drizzle.provider';
 import {
@@ -16,6 +17,7 @@ import {
 } from '../../database/schema';
 import { hashPassword } from '../auth/password';
 import { AuthJwtService } from '../auth/jwt';
+import { MailService } from '../../shared/mail/mail.service';
 import {
   AddStaffDto,
   DoctorAcceptedVisitModes,
@@ -27,7 +29,30 @@ export class AdminService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly jwtService: AuthJwtService,
+    private readonly mailService: MailService,
   ) {}
+
+  private generateRandomPassword(length = 12): string {
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const digits = '0123456789';
+    const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    const all = lowercase + uppercase + digits + symbols;
+    
+    let password = '';
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += digits[Math.floor(Math.random() * digits.length)];
+    password += symbols[Math.floor(Math.random() * symbols.length)];
+    
+    const randomBuf = randomBytes(length);
+    for (let i = 4; i < length; i++) {
+      const index = randomBuf[i] % all.length;
+      password += all[index];
+    }
+    
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+  }
 
   async getDashboard(adminUserId: number) {
     const adminUser = await this.db.query.user.findFirst({
@@ -203,7 +228,8 @@ export class AdminService {
       throw new UnauthorizedException('Email already exists');
     }
 
-    const passwordHash = await hashPassword(dto.password);
+    const passwordToUse = dto.password || this.generateRandomPassword();
+    const passwordHash = await hashPassword(passwordToUse);
 
     const inserted = await this.db
       .insert(user)
@@ -243,6 +269,26 @@ export class AdminService {
         department: dto.specialty ?? null,
         experienceYears: dto.experienceYears ?? 0,
       });
+    }
+
+    try {
+      if (dto.role === StaffRole.Doctor) {
+        await this.mailService.sendDoctorAccountCreatedEmail(
+          createdUser.email,
+          createdUser.name,
+          normalizedEmail,
+          passwordToUse,
+        );
+      } else if (dto.role === StaffRole.Assistant) {
+        await this.mailService.sendAssistantAccountCreatedEmail(
+          createdUser.email,
+          createdUser.name,
+          normalizedEmail,
+          passwordToUse,
+        );
+      }
+    } catch (err) {
+      console.error(`Failed to send credentials email to ${createdUser.email}:`, err);
     }
 
     const payload = {
@@ -374,7 +420,7 @@ export class AdminService {
       }
     }
 
-    const passwordHash = await hashPassword(dto.password);
+    const passwordHash = dto.password ? await hashPassword(dto.password) : existing.password;
 
     const updated = await this.db
       .update(user)

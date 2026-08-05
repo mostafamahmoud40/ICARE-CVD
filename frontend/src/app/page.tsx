@@ -1,313 +1,511 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Heart, Shield, Clock, ArrowRight, HeartPulse, Brain, FileText, Stethoscope, Users } from "lucide-react";
-import { AnimatedHeart } from "./_components/AnimatedHeart";
-import { FlowingWaves } from "./_components/FlowingWaves";
+import { Lora } from "next/font/google";
+import { PhoneCall, Mail, ChevronRight, Clock, ShieldCheck, Activity, Heart, Award, Calendar, Users, Microscope, Stethoscope, ChevronDown } from "lucide-react";
+
+const lora = Lora({
+  subsets: ["latin"],
+  display: "swap",
+});
+
+/** Shared horizontal shell — aligned header + sections, wider than max-w-7xl */
+const SHELL = "mx-auto w-full max-w-[1440px] px-6 md:px-10 lg:px-14";
+
+const ABOUT_SECTION_IMAGE = "/healthca_about.png";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col bg-background font-sans selection:bg-primary/20 selection:text-primary">
-      {/* ─── Navbar ─── */}
-      <header className="sticky top-0 z-50 flex h-16 md:h-20 items-center justify-between border-b border-border/40 bg-background/80 px-6 md:px-12 backdrop-blur-lg">
-        <Link href="/" className="flex items-center gap-2.5 transition-transform hover:scale-105 duration-300">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-teal/10">
-            <HeartPulse className="h-6 w-6 text-brand-red" />
-          </div>
-          <span className="text-xl font-bold tracking-tight text-foreground">
-            ICARE<span className="text-brand-teal">-CVD</span>
-          </span>
-        </Link>
+    <div className={`${lora.className} text-[#1A1F1E] antialiased bg-[#F9F8F5]`}>
+      {/* Fixed floating navbar — stays on scroll */}
+      <div className="fixed top-0 inset-x-0 z-50 pt-4 md:pt-6 pointer-events-none">
+        <div className={`${SHELL} pointer-events-auto`}>
+          <header className="w-full flex justify-between items-center gap-4 px-5 md:px-8 lg:px-10 py-3.5 rounded-full bg-[#F9F8F5]/55 backdrop-blur-md border border-[#E8E6E0]/35 shadow-sm">
+            <Link href="/" className="flex items-center gap-2 text-[#1A5345] shrink-0">
+              <Heart className="size-6 text-[#1A5345] fill-[#1A5345]" />
+              <span className="text-xl md:text-2xl font-bold tracking-tight">Healthca</span>
+            </Link>
 
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-          <Link href="#features" className="text-muted-foreground hover:text-brand-teal transition-colors">Features</Link>
-          <Link href="#stats" className="text-muted-foreground hover:text-brand-teal transition-colors">Impact</Link>
-          <Link href="#goals" className="text-muted-foreground hover:text-brand-teal transition-colors">Our Goals</Link>
-        </nav>
+            <nav className="hidden lg:flex items-center gap-6 xl:gap-10 text-[#6B7870] text-sm font-medium">
+              <Link href="/" className="font-bold text-[#1A5345]">Home</Link>
+              <Link href="#" className="hover:text-[#1A5345] transition-colors">About Us</Link>
+              <div className="flex items-center gap-1 cursor-pointer hover:text-[#1A5345] transition-colors">Services <ChevronDown className="size-4" /></div>
+              <div className="flex items-center gap-1 cursor-pointer hover:text-[#1A5345] transition-colors">Pages <ChevronDown className="size-4" /></div>
+              <Link href="#" className="hover:text-[#1A5345] transition-colors">Blog</Link>
+              <Link href="#" className="hover:text-[#1A5345] transition-colors">Contact Us</Link>
+            </nav>
 
-        <div className="flex items-center gap-3 md:gap-4">
-          <Link href="/login" className="hidden sm:block text-sm font-medium text-muted-foreground hover:text-brand-teal transition-colors">
-            Sign In
-          </Link>
-          <Link href="/login">
-            <Button className="bg-brand-teal text-white hover:bg-brand-teal/90 shadow-md hover:shadow-xl hover:shadow-brand-teal/20 transition-all rounded-full px-6">
+            <Link href="/login" className="hidden sm:inline-flex h-8 shrink-0 items-center rounded-lg border-0 bg-[#1A5345] px-4 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#133F34]">
               Get Started
-            </Button>
-          </Link>
+            </Link>
+          </header>
         </div>
-      </header>
+      </div>
 
-      <main className="flex-1">
-        {/* ─── Hero Section ─── */}
-        <section className="relative overflow-hidden min-h-[85vh] flex items-center">
-          {/* Flowing wave background */}
-          <FlowingWaves className="absolute inset-0 -z-10 opacity-80 pointer-events-none" />
+      {/* ─── Hero (light — matches assistant dashboard) ─── */}
+      <div className="relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#E8F0EE] rounded-full blur-3xl opacity-60 -translate-y-1/3 translate-x-1/4 pointer-events-none" />
 
-          {/* Subtle radial glow */}
-          <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_70%_50%,_rgba(26,83,69,0.06),_transparent_60%)]" />
-
-          <div className="mx-auto w-full max-w-7xl px-6 md:px-12 py-16">
-            <div className="grid items-center gap-12 lg:grid-cols-2">
-              {/* Left — Text */}
-              <div className="max-w-xl">
-                <div className="inline-flex items-center rounded-full border border-brand-teal/20 bg-brand-teal/5 px-4 py-1.5 mb-8 text-sm font-medium text-brand-teal backdrop-blur-sm shadow-sm">
-                  <span className="relative flex h-2.5 w-2.5 mr-3">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-red opacity-75" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand-red" />
-                  </span>
-                  Smart Cardiology Clinic
-                </div>
-
-                <h1 className="font-sans text-5xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl leading-[1.1]">
-                  PAVING THE WAY TO{" "}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-teal via-[#3d8b78] to-brand-teal">
-                    BETTER CARE
-                  </span>
-                </h1>
-
-                <p className="mt-6 max-w-lg text-lg leading-relaxed text-muted-foreground">
-                  A smart clinic platform leveraging AI to personalise prevention
-                  and treatment of cardiovascular disease — giving patients and
-                  doctors actionable insights for healthier hearts.
+        {/* Hero Content */}
+        <section className="relative pt-24 md:pt-28 pb-20 lg:pb-28 z-10">
+          <div className={`${SHELL} grid lg:grid-cols-2 gap-10 lg:gap-16 xl:gap-20 items-center`}>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <span className="rounded-lg bg-[#CC5533] px-2 py-0.5 text-[11px] font-bold text-white shadow-sm">
+                  24/7 Emergency
+                </span>
+                <p className="text-sm font-bold uppercase tracking-widest text-[#1A5345]">
+                  Hospital & Medical Clinic
                 </p>
-
-                <div className="mt-10 flex flex-col sm:flex-row gap-4">
-                  <Link href="/login">
-                    <Button
-                      size="lg"
-                      className="w-full sm:w-auto bg-brand-teal hover:bg-brand-teal/90 text-white rounded-full px-8 h-13 shadow-lg shadow-brand-teal/25 transition-all group text-base"
-                    >
-                      About ICARE-CVD
-                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </Button>
-                  </Link>
-                </div>
               </div>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] mb-8 text-[#1A1F1E]">
+                We Are A Full Service<br />
+                Clinic With Modern<br />
+                Technology
+              </h1>
 
-              {/* Right — Animated Heart */}
-              <div className="relative flex items-center justify-center lg:pl-8">
-                <AnimatedHeart className="w-72 h-[420px] sm:w-80 sm:h-[480px] lg:w-[380px] lg:h-[520px]" />
-              </div>
-            </div>
-          </div>
-        </section>
+              <div className="flex flex-wrap items-center gap-4">
+                <Link href="/login" className="rounded-lg bg-[#1A5345] text-white px-8 py-3.5 font-bold flex items-center gap-2 hover:bg-[#133F34] transition-colors shadow-sm">
+                  Book Appointment <ChevronRight className="size-5" />
+                </Link>
 
-        {/* ─── What Moves Us — Stats Section ─── */}
-        <section id="stats" className="relative border-y border-border/50">
-          {/* Two-tone background */}
-          <div className="absolute inset-0 bg-gradient-to-b from-secondary/30 to-background" />
-
-          <div className="relative mx-auto max-w-7xl px-6 md:px-12 py-24 sm:py-32">
-            <div className="text-center mb-16">
-              <p className="text-sm font-semibold uppercase tracking-widest text-brand-teal mb-3">What moves us</p>
-              <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-                The Challenge of Cardiovascular Disease
-              </h2>
-              <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground leading-relaxed">
-                Cardiovascular disease (CVD) is a highly prevalent disease that poses
-                challenges to healthcare systems worldwide. Despite medical advancements,
-                treating CVD effectively remains challenging due to the complex interplay
-                of risk factors. ICARE-CVD aims to shift from &quot;one size fits all&quot; to
-                personalised care.
-              </p>
-            </div>
-
-            {/* Stats cards */}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                { value: "500M+", label: "People affected by CVD worldwide", icon: Heart },
-                { value: "~17M", label: "Annual CVD-related deaths globally", icon: Activity },
-                { value: "85M+", label: "Europeans living with CVD", icon: Users },
-                { value: "24/7", label: "Continuous AI-powered monitoring", icon: Clock },
-              ].map((stat, i) => (
-                <Card
-                  key={i}
-                  className="group relative overflow-hidden bg-card/80 backdrop-blur-sm border-border/50 text-center hover:border-brand-teal/30 hover:shadow-xl hover:shadow-brand-teal/5 transition-all duration-300"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-b from-brand-teal/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <CardHeader className="pb-2">
-                    <div className="mx-auto mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-brand-teal/10 text-brand-teal group-hover:bg-brand-teal group-hover:text-white transition-all duration-300">
-                      <stat.icon className="h-5 w-5" />
-                    </div>
-                    <CardTitle className="text-4xl font-bold text-brand-teal">{stat.value}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-sm text-muted-foreground">{stat.label}</CardDescription>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ─── Features Section ─── */}
-        <section id="features" className="px-6 py-24 sm:px-12 sm:py-32">
-          <div className="mx-auto max-w-7xl">
-            <div className="text-center mb-16">
-              <p className="text-sm font-semibold uppercase tracking-widest text-brand-teal mb-3">Platform Features</p>
-              <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Advanced Tools for <span className="text-brand-teal">Smart Care</span>
-              </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-                Comprehensive solutions designed for modern cardiology practices,
-                ensuring precise monitoring and seamless patient experiences.
-              </p>
-            </div>
-
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {[
-                {
-                  icon: Brain,
-                  title: "AI-Powered Risk Assessment",
-                  desc: "Predictive models that analyze patient history to forecast cardiovascular risks with high confidence.",
-                },
-                {
-                  icon: Activity,
-                  title: "Real-Time Tracking",
-                  desc: "Continuous integration of vital signs and symptoms to keep doctors updated instantly.",
-                },
-                {
-                  icon: FileText,
-                  title: "Smart Prescriptions",
-                  desc: "Digital prescription management with automated interaction checks and refill reminders.",
-                },
-                {
-                  icon: Shield,
-                  title: "Enterprise Security",
-                  desc: "HIPAA-compliant infrastructure ensuring your sensitive medical data is encrypted and secure.",
-                },
-                {
-                  icon: Heart,
-                  title: "Holistic Health Journey",
-                  desc: "Patient-centric workflows that encourage lifestyle modifications and adherence to care plans.",
-                },
-                {
-                  icon: Stethoscope,
-                  title: "Doctor-Patient Chat",
-                  desc: "Secure real-time messaging between patients and their care teams for continuous follow-up.",
-                },
-              ].map((feature, i) => (
-                <Card
-                  key={i}
-                  className="group relative overflow-hidden bg-card border-border/50 hover:border-brand-teal/30 hover:shadow-xl hover:shadow-brand-teal/5 transition-all duration-300"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-brand-teal/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <CardHeader>
-                    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-brand-teal/10 text-brand-teal group-hover:scale-110 group-hover:bg-brand-teal group-hover:text-white transition-all duration-300">
-                      <feature.icon className="h-6 w-6" />
-                    </div>
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-base text-muted-foreground">{feature.desc}</CardDescription>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ─── Goals Section ─── */}
-        <section id="goals" className="border-y border-border/50 bg-secondary/30 px-6 py-24 sm:px-12 sm:py-32">
-          <div className="mx-auto max-w-7xl">
-            <div className="text-center mb-16">
-              <p className="text-sm font-semibold uppercase tracking-widest text-brand-teal mb-3">Our Mission</p>
-              <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                From One-Size-Fits-All to <span className="text-brand-teal">Personalised Care</span>
-              </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-                Using AI and a comprehensive patient database, ICARE-CVD focuses
-                on improving four key areas of cardiovascular healthcare.
-              </p>
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2">
-              {[
-                {
-                  num: "01",
-                  title: "Early Diagnosis",
-                  desc: "Enhancing early detection of patients at risk with cardiovascular disease through AI-driven screening.",
-                },
-                {
-                  num: "02",
-                  title: "Risk Stratification",
-                  desc: "Developing and assigning risk levels to patients, defining those who need urgent intervention.",
-                },
-                {
-                  num: "03",
-                  title: "Treatment Prediction",
-                  desc: "Predicting how individuals will respond to treatment through the application of AI-based tools.",
-                },
-                {
-                  num: "04",
-                  title: "Patient-Centred Outcomes",
-                  desc: "Incorporating patients' unique perspectives and reported outcomes into every area of care.",
-                },
-              ].map((goal, i) => (
-                <div
-                  key={i}
-                  className="group flex gap-5 rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 sm:p-8 hover:border-brand-teal/30 hover:shadow-lg transition-all duration-300"
-                >
-                  <span className="text-5xl font-black text-brand-teal/15 group-hover:text-brand-teal/30 transition-colors shrink-0 select-none leading-none">
-                    {goal.num}
-                  </span>
+                <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/70 bg-white p-3 shadow-sm">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
+                    <PhoneCall className="size-5 text-[#CC5533]" />
+                  </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">{goal.title}</h3>
-                    <p className="text-muted-foreground leading-relaxed">{goal.desc}</p>
+                    <p className="text-xs font-medium text-[#6B7870]">Emergency Call</p>
+                    <p className="font-bold text-[#1A1F1E]">(+20) 100 123 4567</p>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {/* Opening Hours Card */}
+              <div className="mt-10 rounded-2xl border border-[#E8E6E0]/60 bg-white p-6 md:p-8 max-w-lg shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex size-9 items-center justify-center rounded-lg bg-[#E8F0EE]">
+                    <Clock className="size-4 text-[#1A5345]" />
+                  </div>
+                  <h3 className="font-bold text-lg text-[#1A1F1E]">Opening Hours</h3>
+                </div>
+                <div className="space-y-3 text-sm font-medium">
+                  <div className="flex justify-between border-b border-[#E8E6E0] pb-3">
+                    <span className="text-[#6B7870]">Monday - Friday</span>
+                    <span className="text-[#1A5345] font-bold">8:00am - 5:00pm</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-[#6B7870]">Saturday - Sunday</span>
+                    <span className="text-[#CC5533] font-bold">9:00am - 3:30pm</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Hero Image */}
+            <div className="relative flex items-center justify-center h-[380px] sm:h-[440px] lg:h-[560px] xl:h-[640px] w-full min-w-0">
+              <div className="relative h-full w-[min(96%,460px)] lg:w-[min(92%,500px)]">
+                <div className="absolute inset-0 bg-[#E8F0EE] rounded-full" />
+                <div className="absolute inset-x-0 inset-y-1 z-10">
+                  <Image
+                    src="/healthca_why_nobg.png"
+                    alt="Doctor"
+                    fill
+                    sizes="(max-width: 1024px) 96vw, 500px"
+                    className="object-contain object-center scale-[1.2]"
+                    priority
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </section>
+      </div>
 
-        {/* ─── Call to Action ─── */}
-        <section className="relative py-24 sm:py-32 overflow-hidden px-6 sm:px-12">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-brand-teal/5 opacity-50 blur-3xl pointer-events-none" />
+      {/* ─── About Us Section ─── */}
+      <section className="py-20 lg:py-24">
+        <div className={`${SHELL} grid lg:grid-cols-2 gap-12 lg:gap-16 xl:gap-20 items-center`}>
+          {/* Left Image Group */}
+          <div className="relative">
+            <div className="relative rounded-[40px] overflow-hidden aspect-square w-full max-w-xl mx-auto lg:mx-0 lg:max-w-none bg-white">
+              <Image
+                src={ABOUT_SECTION_IMAGE}
+                alt="Doctor consulting patient"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-cover object-center"
+              />
+            </div>
+            
+            {/* Floating Quality Healthcare Card */}
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 md:-left-8 md:translate-x-0 rounded-2xl border border-[#E8E6E0]/60 bg-white p-6 shadow-sm flex items-center gap-5 w-[300px]">
+              <div className="size-14 rounded-xl bg-[#E8F0EE] flex items-center justify-center shrink-0">
+                <Stethoscope className="size-7 text-[#1A5345]" />
+              </div>
+              <div>
+                <h4 className="font-bold text-[#1A1F1E] text-lg mb-1">Quality Healthcare</h4>
+                <p className="text-xs text-[#6B7870] leading-relaxed">Facilisis nulla lacus at ultrices us praesent fringilla scelerisque.</p>
+              </div>
+            </div>
+          </div>
 
-          <div className="relative mx-auto max-w-4xl text-center bg-brand-teal overflow-hidden rounded-3xl p-8 sm:p-16 shadow-2xl">
-            <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-2xl" />
-            <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-[#3d8b78]/40 rounded-full blur-2xl" />
-
-            <h2 className="relative z-10 text-3xl font-bold tracking-tight text-primary-foreground sm:text-5xl">
-              Ready to prioritize your heart?
+          {/* Right Content */}
+          <div className="mt-12 lg:mt-0 min-w-0">
+            <p className="text-[#1A5345] font-bold text-sm uppercase tracking-widest mb-4">ABOUT US</p>
+            <h2 className="text-[#1A1F1E] text-4xl lg:text-5xl font-bold leading-[1.15] mb-6">
+              Our Practice Excellent Care, Humane Principles
             </h2>
-            <p className="relative z-10 mx-auto mt-6 max-w-2xl text-lg text-primary-foreground/90">
-              Join ICARE-CVD today and experience the future of autonomous,
-              personalised cardiovascular care.
+            <p className="text-[#6B7870] mb-10 leading-relaxed">
+              Et phasellus turpis vel fermentum cursus. Cursus mi placerat faucibus sapien purus
+              odio arcu in. Amet dui mauris accumsan elit nec. Sit egestas aenean habitant
+              fringilla condimentum purus.
             </p>
-            <div className="relative z-10 mt-10 flex flex-col sm:flex-row justify-center gap-4">
-              <Link href="/login">
-                <Button
-                  size="lg"
-                  className="w-full sm:w-auto bg-white text-brand-teal hover:bg-white/90 rounded-full px-8 h-14 font-semibold text-lg shadow-xl outline-none transition-transform hover:scale-105"
-                >
-                  Create an Account
-                </Button>
-              </Link>
+
+            {/* Stats Row */}
+            <div className="grid grid-cols-3 gap-4 mb-10">
+              <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm relative overflow-hidden">
+                <Users className="absolute right-4 top-4 size-5 text-[#1A5345]" />
+                <h3 className="text-2xl font-bold text-[#1A1F1E] mb-1">8,200<span className="text-[#4A8F7C]">+</span></h3>
+                <p className="text-xs text-[#6B7870]">Patients Recovered</p>
+              </div>
+              <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm relative overflow-hidden">
+                <Clock className="absolute right-4 top-4 size-5 text-[#CC5533]" />
+                <h3 className="text-2xl font-bold text-[#1A1F1E] mb-1">8,200<span className="text-[#CC5533]">+</span></h3>
+                <p className="text-xs text-[#6B7870]">Average Waiting Time</p>
+              </div>
+              <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm relative overflow-hidden">
+                <Activity className="absolute right-4 top-4 size-5 text-[#1A5345]" />
+                <h3 className="text-2xl font-bold text-[#1A1F1E] mb-1">4.9/5</h3>
+                <p className="text-xs text-[#6B7870]">Satisfaction Rating</p>
+              </div>
+            </div>
+
+            <Link href="#" className="inline-flex rounded-lg bg-[#1A5345] text-white px-8 py-3.5 font-bold items-center gap-2 hover:bg-[#133F34] transition-colors shadow-sm">
+              Learn More <ChevronRight className="size-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Why Choose Us Section ─── */}
+      <section className="bg-[#F9F8F5] py-20 lg:py-24">
+        <div className={`${SHELL} text-center mb-12 lg:mb-16`}>
+          <p className="text-[#1A5345] font-bold text-sm uppercase tracking-widest mb-4">WHY CHOOSE US</p>
+          <h2 className="text-[#1A1F1E] text-4xl lg:text-5xl font-bold">
+            The Health Partner You've Been Looking For
+          </h2>
+        </div>
+
+        <div className={`${SHELL} grid lg:grid-cols-3 gap-10 lg:gap-12 xl:gap-16 items-center`}>
+          {/* Left Features */}
+          <div className="space-y-8 order-2 lg:order-1">
+            <div className="flex gap-6">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
+                <Microscope className="size-5 text-[#1A5345]" />
+              </div>
+              <div>
+                <h4 className="font-bold text-[#1A1F1E] text-xl mb-2">Hospital-Level Technology, Boutique Feel</h4>
+                <p className="text-[#6B7870] text-sm leading-relaxed">Nec tristique sed rutrum fringilla it fringilla condimentum purus.</p>
+              </div>
+            </div>
+            <div className="flex gap-6">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
+                <Activity className="size-5 text-[#CC5533]" />
+              </div>
+              <div>
+                <h4 className="font-bold text-[#1A1F1E] text-xl mb-2">Rapid Results, Proven Outcomes</h4>
+                <p className="text-[#6B7870] text-sm leading-relaxed">Nec tristique sed rutrum fringilla it fringilla condimentum purus.</p>
+              </div>
             </div>
           </div>
-        </section>
-      </main>
+
+          {/* Center Image */}
+          <div className="relative order-1 lg:order-2 flex items-center justify-center h-[440px] lg:h-[560px] xl:h-[600px] w-full min-w-0">
+            <div className="relative h-full w-[min(96%,460px)] lg:w-[min(92%,500px)]">
+              <div className="absolute inset-0 bg-[#E8F0EE] rounded-full" />
+              <div className="absolute inset-x-0 inset-y-1 z-10">
+                <Image
+                  src="/healthca_why_nobg.png"
+                  alt="Doctor"
+                  fill
+                  sizes="(max-width: 1024px) 96vw, 500px"
+                  className="object-contain object-center scale-[1.28]"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Right Features */}
+          <div className="space-y-8 order-3">
+             <div className="flex gap-6">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
+                <Heart className="size-5 text-[#1A5345]" />
+              </div>
+              <div>
+                <h4 className="font-bold text-[#1A1F1E] text-xl mb-2">Compassion-Centered Culture</h4>
+                <p className="text-[#6B7870] text-sm leading-relaxed">Nec tristique sed rutrum fringilla it fringilla condimentum purus.</p>
+              </div>
+            </div>
+            <div className="flex gap-6">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
+                <ShieldCheck className="size-5 text-[#1A5345]" />
+              </div>
+              <div>
+                <h4 className="font-bold text-[#1A1F1E] text-xl mb-2">Transparent & Affordable Healthcare</h4>
+                <p className="text-[#6B7870] text-sm leading-relaxed">Nec tristique sed rutrum fringilla it fringilla condimentum purus.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Appointment Section ─── */}
+      <section className="py-16 lg:py-20">
+        <div className={`${SHELL} grid lg:grid-cols-2 gap-8 lg:gap-10 items-stretch`}>
+          <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-8 md:p-10 shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#E8E6E0]/60 pb-3 mb-6">
+              <p className="text-[#1A5345] font-bold text-sm uppercase tracking-widest">Appointment</p>
+              <span className="rounded-lg bg-[#CC5533] px-2 py-0.5 text-[11px] font-bold text-white shadow-sm">
+                Open Today
+              </span>
+            </div>
+            <h2 className="text-3xl lg:text-4xl font-bold leading-tight mb-4 text-[#1A1F1E]">
+              Book Your Care<br />Appointment Now
+            </h2>
+            <p className="text-[#6B7870] mb-8 leading-relaxed">
+              Nec tristique sed rutrum fringilla it fringilla condimentum purus. Convallis nunc aliquet scelerisque mattis.
+            </p>
+
+            <div className="flex gap-4 items-center rounded-xl border border-[#E8E6E0]/70 bg-[#F9F8F5] p-4 w-full max-w-lg">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#E8F0EE]">
+                <PhoneCall className="size-5 text-[#CC5533]" />
+              </div>
+              <div>
+                <p className="text-xs text-[#6B7870] uppercase tracking-widest mb-1">Call</p>
+                <p className="font-bold text-lg text-[#1A1F1E]">(+20) 100 123 4567</p>
+                <div className="flex gap-4 mt-1 text-xs text-[#6B7870]">
+                  <span>M-F: 08:00 - 18:00</span>
+                  <span>S-S: 09:00 - 16:00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-8 md:p-10 shadow-sm">
+            <h3 className="text-[#1A1F1E] font-bold text-2xl mb-8">Book An Appointment</h3>
+            <form className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-[#1A1F1E]">Name*</label>
+                  <input type="text" placeholder="Full Name" className="w-full bg-[#F9F8F5] border border-[#E8E6E0] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A5345]" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-[#1A1F1E]">Email*</label>
+                  <input type="email" placeholder="Email Address" className="w-full bg-[#F9F8F5] border border-[#E8E6E0] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A5345]" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-[#1A1F1E]">Phone*</label>
+                  <input type="tel" placeholder="Phone Number" className="w-full bg-[#F9F8F5] border border-[#E8E6E0] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A5345]" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-[#1A1F1E]">Date*</label>
+                  <input type="date" className="w-full bg-[#F9F8F5] border border-[#E8E6E0] rounded-xl px-4 py-3 text-sm text-[#6B7870] focus:outline-none focus:ring-2 focus:ring-[#1A5345]" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-[#1A1F1E]">Doctor*</label>
+                <select className="w-full bg-[#F9F8F5] border border-[#E8E6E0] rounded-xl px-4 py-3 text-sm text-[#6B7870] focus:outline-none focus:ring-2 focus:ring-[#1A5345] appearance-none">
+                  <option>Find Doctors</option>
+                  <option>Dr. Mark Harris</option>
+                  <option>Dr. Sarah Jenkins</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-[#1A1F1E]">Message</label>
+                <textarea rows={4} placeholder="Your Message" className="w-full bg-[#F9F8F5] border border-[#E8E6E0] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A5345] resize-none" />
+              </div>
+
+              <button type="button" className="rounded-lg bg-[#1A5345] text-white px-8 py-3.5 font-bold w-auto hover:bg-[#133F34] transition-colors flex items-center gap-2 shadow-sm">
+                Send Appointments <ChevronRight className="size-4" />
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Stats Row ─── */}
+      <section className="py-12 border-y border-[#E8E6E0]/60 bg-white">
+        <div className={`${SHELL} grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x divide-[#E8E6E0]/60`}>
+          <div className="flex flex-col items-center justify-center gap-3">
+            <div className="flex size-12 items-center justify-center rounded-lg bg-[#E8F0EE]">
+               <Award className="size-6 text-[#1A5345]" />
+            </div>
+            <div>
+              <h3 className="text-3xl font-bold text-[#1A1F1E]">4.9K</h3>
+              <p className="text-xs text-[#6B7870] font-medium">Awards Received</p>
+            </div>
+          </div>
+           <div className="flex flex-col items-center justify-center gap-3">
+            <div className="flex size-12 items-center justify-center rounded-lg bg-[#E8F0EE]">
+               <Calendar className="size-6 text-[#CC5533]" />
+            </div>
+            <div>
+              <h3 className="text-3xl font-bold text-[#1A1F1E]">15<span className="text-[#CC5533]">+</span></h3>
+              <p className="text-xs text-[#6B7870] font-medium">Years Of Experience</p>
+            </div>
+          </div>
+           <div className="flex flex-col items-center justify-center gap-3">
+            <div className="flex size-12 items-center justify-center rounded-lg bg-[#E8F0EE]">
+               <Stethoscope className="size-6 text-[#1A5345]" />
+            </div>
+            <div>
+              <h3 className="text-3xl font-bold text-[#1A1F1E]">280<span className="text-[#4A8F7C]">+</span></h3>
+              <p className="text-xs text-[#6B7870] font-medium">Doctors Specialist</p>
+            </div>
+          </div>
+          <div className="flex flex-col items-center justify-center gap-3">
+            <div className="flex size-12 items-center justify-center rounded-lg bg-[#E8F0EE]">
+               <Users className="size-6 text-[#1A5345]" />
+            </div>
+            <div>
+              <h3 className="text-3xl font-bold text-[#1A1F1E]">100%</h3>
+              <p className="text-xs text-[#6B7870] font-medium">Patient Satisfaction</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Team Section ─── */}
+      <section className="py-20 lg:py-24">
+        <div className={SHELL}>
+         <div className="text-center mb-12 lg:mb-16">
+          <p className="text-[#1A5345] font-bold text-sm uppercase tracking-widest mb-4">DOCTOR & STAFF</p>
+          <h2 className="text-[#1A1F1E] text-4xl lg:text-5xl font-bold">
+            Expert Doctor & Staff Team
+          </h2>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+          {[
+            { img: '/healthca_team_1.png', name: 'Dr. Mark Harris', title: 'Cardiologist' },
+            { img: '/healthca_team_2.png', name: 'Dr. Sarah Jenkins', title: 'Internal Medicine' },
+            { img: '/healthca_team_3.png', name: 'Dr. Robert Chen', title: 'Neurologist' },
+          ].map((doc, i) => (
+            <div key={i} className="rounded-2xl overflow-hidden border border-[#E8E6E0]/60 bg-white shadow-sm group">
+              <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#E8E6E0]">
+                <Image src={doc.img} alt={doc.name} fill className="object-cover object-top group-hover:scale-105 transition-transform duration-500" />
+              </div>
+              <div className="p-6 text-center bg-white">
+                <h4 className="text-xl font-bold text-[#1A1F1E] mb-1">{doc.name}</h4>
+                <p className="text-sm text-[#6B7870]">{doc.title}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        </div>
+      </section>
 
       {/* ─── Footer ─── */}
-      <footer className="border-t border-border/40 bg-background/50 py-12 px-6">
-        <div className="mx-auto max-w-7xl flex flex-col md:flex-row justify-between items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 text-primary">
-            <HeartPulse className="h-6 w-6 text-brand-red" />
-            <span className="text-xl font-bold tracking-tight">
-              ICARE<span className="text-brand-teal">-CVD</span>
-            </span>
-          </Link>
-          <p className="text-sm text-muted-foreground text-center md:text-left">
-            © {new Date().getFullYear()} ICARE-CVD Smart Clinic. All rights reserved.
-          </p>
-          <div className="flex gap-6 text-sm font-medium text-muted-foreground">
-            <Link href="#" className="hover:text-brand-teal transition-colors">Privacy Policy</Link>
-            <Link href="#" className="hover:text-brand-teal transition-colors">Terms of Service</Link>
+      <footer className="border-t border-[#E8E6E0]/60 bg-white pt-16 pb-10 text-[#6B7870] text-sm">
+        <div className={`${SHELL} grid grid-cols-2 md:grid-cols-4 gap-12 mb-16 border-b border-[#E8E6E0]/60 pb-16`}>
+          <div className="col-span-2 md:col-span-1">
+            <Link href="/" className="flex items-center gap-2 text-[#1A5345] mb-6">
+              <Heart className="size-6 text-[#1A5345] fill-[#1A5345]" />
+              <span className="text-2xl font-bold tracking-tight">Healthca</span>
+            </Link>
+            <p className="mb-6 leading-relaxed max-w-xs">
+              Amet dui mauris accumsan elit nec. Sit egestas aenean habitant fringilla.
+            </p>
+            <div className="flex gap-3">
+               <div className="size-10 rounded-lg border border-[#E8E6E0]/70 bg-[#F9F8F5] flex items-center justify-center hover:bg-[#E8F0EE] cursor-pointer transition-colors text-[#1A5345]">
+                  <FacebookIcon className="size-4" />
+               </div>
+               <div className="size-10 rounded-lg border border-[#E8E6E0]/70 bg-[#F9F8F5] flex items-center justify-center hover:bg-[#E8F0EE] cursor-pointer transition-colors text-[#1A5345]">
+                  <TwitterIcon className="size-4" />
+               </div>
+               <div className="size-10 rounded-lg border border-[#E8E6E0]/70 bg-[#F9F8F5] flex items-center justify-center hover:bg-[#E8F0EE] cursor-pointer transition-colors text-[#1A5345]">
+                  <InstagramIcon className="size-4" />
+               </div>
+            </div>
+          </div>
+          
+          <div>
+            <h4 className="text-[#1A1F1E] font-bold text-lg mb-6">Our Services</h4>
+            <ul className="space-y-4">
+              <li><Link href="#" className="hover:text-[#1A5345] transition-colors">Cardiology</Link></li>
+              <li><Link href="#" className="hover:text-[#1A5345] transition-colors">Neurology</Link></li>
+              <li><Link href="#" className="hover:text-[#1A5345] transition-colors">Orthopedics</Link></li>
+              <li><Link href="#" className="hover:text-[#1A5345] transition-colors">Dental Care</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-[#1A1F1E] font-bold text-lg mb-6">Quick Links</h4>
+            <ul className="space-y-4">
+              <li><Link href="#" className="hover:text-[#1A5345] transition-colors">About Us</Link></li>
+              <li><Link href="#" className="hover:text-[#1A5345] transition-colors">Doctors</Link></li>
+              <li><Link href="#" className="hover:text-[#1A5345] transition-colors">Appointment</Link></li>
+              <li><Link href="#" className="hover:text-[#1A5345] transition-colors">Contact</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-[#1A1F1E] font-bold text-lg mb-6">Support</h4>
+            <ul className="space-y-4">
+               <li className="flex items-center gap-3">
+                  <PhoneCall className="size-4 text-[#CC5533]" /> (+20) 100 123 4567
+               </li>
+               <li className="flex items-center gap-3">
+                  <Mail className="size-4 text-[#1A5345]" /> Healthca@gmail.com
+               </li>
+            </ul>
+          </div>
+        </div>
+        
+        <div className={`${SHELL} text-center flex flex-col md:flex-row justify-between items-center gap-4`}>
+          <p>© {new Date().getFullYear()} Healthca Medical. All rights reserved.</p>
+          <div className="flex gap-6">
+            <Link href="#" className="hover:text-[#1A5345] transition-colors">Privacy Policy</Link>
+            <Link href="#" className="hover:text-[#1A5345] transition-colors">Terms of Service</Link>
           </div>
         </div>
       </footer>
     </div>
+  );
+}
+
+function FacebookIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    </svg>
+  );
+}
+
+function TwitterIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
+    </svg>
+  );
+}
+
+function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
+  );
+}
+
+function LinkedinIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+      <rect width="4" height="12" x="2" y="9" />
+      <circle cx="4" cy="4" r="2" />
+    </svg>
   );
 }

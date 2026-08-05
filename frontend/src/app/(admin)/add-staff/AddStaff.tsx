@@ -546,8 +546,8 @@ export function AddStaff({
             </DialogTitle>
             <DialogDescription className="text-[13px] font-medium text-muted-foreground">
               {editingMemberId
-                ? "Update account details. A new password is required to save changes."
-                : "Create a new account. Credentials will be stored in the system database."}
+                ? "Update account details for the staff member."
+                : "Create a new account. A secure temporary password will be automatically generated and sent to their email."}
             </DialogDescription>
           </DialogHeader>
 

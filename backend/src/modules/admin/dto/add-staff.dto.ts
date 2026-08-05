@@ -35,10 +35,11 @@ export class AddStaffDto {
   @MaxLength(30)
   phoneNumber!: string;
 
+  @IsOptional()
   @IsString()
   @MinLength(8)
   @MaxLength(128)
-  password!: string;
+  password?: string;
 
   @IsString()
   @IsNotEmpty()
