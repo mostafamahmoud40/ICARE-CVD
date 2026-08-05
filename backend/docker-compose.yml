@@ -1,0 +1,131 @@
+services:
+  db:
+    image: pgvector/pgvector:pg18
+    container_name: icare-cvd-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: icare_cvd
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    # First boot runs initdb + a stop/restart; failures here must not mark the DB unhealthy.
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d icare_cvd" ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: icare-cvd-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      # Reaches Postgres inside the Compose network (overrides host DATABASE_URL).
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/icare_cvd
+      PORT: "3000"
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in backend/.env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in backend/.env}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-30d}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      # S3 Configuration
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:?Set S3_BUCKET_NAME in backend/.env}
+      S3_REGION: ${S3_REGION:?Set S3_REGION in backend/.env}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?Set S3_ACCESS_KEY_ID in backend/.env}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?Set S3_SECRET_ACCESS_KEY in backend/.env}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
+      S3_PRESIGN_TTL_SECONDS: ${S3_PRESIGN_TTL_SECONDS:-3600}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL_DOCKER:-http://host.docker.internal:11434}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      COHERE_API_KEY: ${COHERE_API_KEY:-}
+      COHERE_EMBEDDING_MODEL: ${COHERE_EMBEDDING_MODEL:-embed-multilingual-light-v3.0}
+      GROQ_CHAT_MODEL: ${GROQ_CHAT_MODEL:-meta-llama/llama-4-scout-17b-16e-instruct}
+      GROQ_CHAT_FALLBACK_MODEL: ${GROQ_CHAT_FALLBACK_MODEL:-openai/gpt-oss-20b}
+      GROQ_ANALYSIS_MODEL: ${GROQ_ANALYSIS_MODEL:-qwen/qwen3-32b}
+      CHROMA_URL: http://chroma:8000
+      # MinIO (chat attachments only — S3 above stays for documents)
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_PRESIGN_ENDPOINT: http://localhost:9000
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-icare-chat}
+      MINIO_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_REGION: ${MINIO_REGION:-us-east-1}
+      MINIO_FORCE_PATH_STYLE: "true"
+      MINIO_PUBLIC_BASE_URL: ${MINIO_PUBLIC_BASE_URL:-http://localhost:9000/icare-chat}
+      MINIO_PRESIGN_TTL_SECONDS: ${MINIO_PRESIGN_TTL_SECONDS:-3600}
+      # Web Push (browser notifications when tab is closed)
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:support@icare-cvd.local}
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+      minio:
+        condition: service_healthy
+
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: icare-cvd-chroma
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      ANONYMIZED_TELEMETRY: "False"
+      IS_PERSISTENT: "TRUE"
+
+  minio:
+    image: minio/minio:latest
+    container_name: icare-cvd-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: icare-cvd-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
+      mc mb --ignore-existing local/${MINIO_BUCKET_NAME:-icare-chat};
+      exit 0;
+      "
+
+volumes:
+  postgres_data:
+  chroma_data:
+  minio_data:

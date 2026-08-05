@@ -1,0 +1,37 @@
+import type { ChromaClient } from 'chromadb';
+
+type EmbeddingFunctionSpace = 'cosine' | 'l2' | 'ip';
+
+/**
+ * Placeholder embedding function for ChromaDB collections where we always
+ * supply embeddings externally (via Cohere). Prevents the client from trying
+ * to load @chroma-core/default-embed.
+ */
+export class ExternalEmbeddingFunction {
+  readonly name = 'external-cohere';
+
+  defaultSpace(): EmbeddingFunctionSpace {
+    return 'cosine';
+  }
+
+  supportedSpaces(): EmbeddingFunctionSpace[] {
+    return ['cosine'];
+  }
+
+  getConfig(): Record<string, unknown> {
+    return {};
+  }
+
+  static buildFromConfig(
+    _config: Record<string, unknown>,
+    _client?: ChromaClient,
+  ): ExternalEmbeddingFunction {
+    return new ExternalEmbeddingFunction();
+  }
+
+  async generate(_texts: string[]): Promise<number[][]> {
+    throw new Error(
+      'ExternalEmbeddingFunction: pass embeddings directly on upsert/query',
+    );
+  }
+}

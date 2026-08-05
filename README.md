@@ -19,7 +19,3 @@ cd frontend
 npm install
 npm run dev
 ```
-
-## 🚀 Features
-- API with NestJS
-- Frontend with Next.js

@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.py[cod]
+
+# Patient WFDB uploads — never commit
+database/*.dat
+database/*.hea
+
+# Literature PDFs + Chroma DB: use Hugging Face (see ml-service/scripts/hf_assets_manifest.py)
+database/*.pdf
+database/chroma_db/

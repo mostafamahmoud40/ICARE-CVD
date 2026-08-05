@@ -1,0 +1,49 @@
+# ICARE-CVD — Cardiac Cine-MRI diagnosis service (port 8090)
+#
+# 3-stage pipeline:
+#   1. FCT segmentation  → LV / RV / Myocardium masks (ED + ES phases)
+#   2. Feature extraction → 20 manual clinical features + 32 VAE deep features
+#   3. Ensemble classifier → NOR | HCM | DCM | MINF | RV  (~92 % accuracy, ACDC)
+#
+# Model weights are bind-mounted at runtime — NOT baked into the image:
+#   fct.model          ~195 MB   (FCT segmentation)
+#   UNet.pt            ~192 MB   (UNet — alternative segmentation)
+#   vautoencoder.model  ~10 MB   (VAE encoder)
+#   classifier.pkl       ~1.4 MB (Voting Classifier: MLP + RF + SVM)
+FROM pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DEFAULT_TIMEOUT=300 \
+    PIP_RETRIES=20 \
+    PIP_RESUME_RETRIES=10 \
+    PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+
+# OpenCV needs libGL + glib; joblib / numpy need libgomp
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgomp1 \
+        libglib2.0-0 \
+        libgl1-mesa-glx \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /service
+
+COPY app/ml_env.py ./ml_env.py
+
+# ── Layer 1: Python dependencies ─────────────────────────────────────────────
+COPY app/cardiac-mri/requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
+
+# ── Layer 2: application code ─────────────────────────────────────────────────
+# Model weights (*.model, *.pt, *.pkl) are excluded by .dockerignore and
+# bind-mounted at runtime. Only source code + small transformer artifacts go in.
+COPY app/cardiac-mri/api.py          ./api.py
+COPY app/cardiac-mri/app.py          ./app.py
+COPY app/cardiac-mri/utils/          ./utils/
+COPY app/cardiac-mri/transformers/   ./transformers/
+
+EXPOSE 8090
+
+# Single worker — GPU models live in one shared process
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8090", "--workers", "1"]

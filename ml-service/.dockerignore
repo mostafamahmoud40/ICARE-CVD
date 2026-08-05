@@ -1,0 +1,48 @@
+# ── Secrets — never bake into images ─────────────────────────────────────────
+**/.env
+**/.env.local
+
+# ── Model weights — bind-mounted at runtime, not copied into the image ───────
+**/*.pt
+**/*.pth
+**/*.model
+**/*.pkl
+
+# ── Notebooks and docs ───────────────────────────────────────────────────────
+**/*.ipynb
+**/*.md
+
+# ── Python cache ─────────────────────────────────────────────────────────────
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# ── VCS ──────────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── Sample / test data ───────────────────────────────────────────────────────
+segmentation.nii.gz
+app/CT/*.nii.gz
+
+# ── ECG service: huge dev assets (not needed for inference) ──────────────────
+app/ecg/dataset/
+app/ecg/checkpoint_best/
+app/ecg/templates/
+app/ecg/run.sh
+
+# ── Echo service: dev outputs and samples ────────────────────────────────────
+app/echo-dynamic/output/
+app/echo-dynamic/samples/
+app/echo-dynamic/.env.example
+app/echo-dynamic/.gitignore
+app/echo-dynamic/.codex
+app/echo-dynamic/.sixth/
+
+# ── Medical analyzer: per-run uploads ────────────────────────────────────────
+app/medical_analyzer/uploads/
+
+# ── IDE / editor ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+**/.vscode/

@@ -1,0 +1,11 @@
+numpy
+neurokit2
+chromadb
+sentence-transformers
+requests
+PyPDF2
+matplotlib
+groq
+python-dotenv
+wfdb
+streamlit   

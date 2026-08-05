@@ -1,0 +1,37 @@
+# ICARE-CVD — CT segmentation + Chest X-ray API (port 8000)
+FROM pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DEFAULT_TIMEOUT=300 \
+    PIP_RETRIES=20 \
+    PIP_RESUME_RETRIES=10 \
+    PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /service
+
+# ── Layer 1: Python dependencies ─────────────────────────────────────────────
+# Torch + CUDA (cu126) are already present in the base image, so requirements.txt
+# only declares the extra ML / web framework dependencies. pip will skip torch.
+COPY requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
+
+# ── Layer 2: application code (only the files this service uses) ─────────────
+# Keeps the image small and rebuilds fast when other services change.
+COPY app/__init__.py        ./app/__init__.py
+COPY app/ml_env.py          ./app/ml_env.py
+COPY app/main.py            ./app/main.py
+COPY app/predictor.py       ./app/predictor.py
+COPY app/xray_predictor.py  ./app/xray_predictor.py
+COPY app/schemas.py         ./app/schemas.py
+
+ENV MODEL_PATH=/service/app/CT/coronary_segmentation_model.pth
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

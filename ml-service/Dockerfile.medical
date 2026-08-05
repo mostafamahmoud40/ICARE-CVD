@@ -1,0 +1,37 @@
+# ICARE-CVD — Medical lab report analyzer (Mistral OCR + Groq LLM, port 5000)
+#
+# Pure cloud-API service: no local model weights, no torch, no GPU.
+# A slim Python base keeps the image around ~150 MB.
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DEFAULT_TIMEOUT=300 \
+    PIP_RETRIES=20 \
+    PIP_RESUME_RETRIES=10 \
+    PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+
+WORKDIR /service
+
+COPY app/ml_env.py ./ml_env.py
+
+# ── Layer 1: Python dependencies ─────────────────────────────────────────────
+COPY app/medical_analyzer/requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
+
+# ── Layer 2: application code ────────────────────────────────────────────────
+COPY app/medical_analyzer/app.py                    ./app.py
+COPY app/medical_analyzer/file_upload_service.py    ./file_upload_service.py
+COPY app/medical_analyzer/medical_analyzer.py       ./medical_analyzer.py
+COPY app/medical_analyzer/mistral_ocr_provider.py   ./mistral_ocr_provider.py
+COPY app/medical_analyzer/ocr_controller.py         ./ocr_controller.py
+COPY app/medical_analyzer/ocr_provider.py           ./ocr_provider.py
+
+# Per-run upload directory (created lazily by the app, but ensure write perm).
+RUN mkdir -p /service/uploads
+
+EXPOSE 5000
+
+# debug is opt-in via FLASK_DEBUG=1; default is production-style off.
+CMD ["python", "app.py"]
