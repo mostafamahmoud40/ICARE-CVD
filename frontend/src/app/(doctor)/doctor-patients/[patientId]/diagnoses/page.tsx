@@ -1,21 +1,10 @@
-"use client"
-
-import { use } from "react"
-import { DoctorPatientRecordShell } from "../../DoctorPatientRecordShell"
-import { DiagnosesPage } from "./DiagnosesPage"
+import { DiagnosesRoute } from "./DiagnosesRoute"
 
 type PageProps = {
   params: Promise<{ patientId: string }>
 }
 
-export default function PatientDiagnosesPage({ params }: PageProps) {
-  const { patientId } = use(params)
-
-  return (
-    <DoctorPatientRecordShell patientId={patientId}>
-      {(record) => (
-        <DiagnosesPage patient={record.patient} diagnoses={record.diagnoses} />
-      )}
-    </DoctorPatientRecordShell>
-  )
+export default async function PatientDiagnosesPage({ params }: PageProps) {
+  const { patientId } = await params
+  return <DiagnosesRoute patientId={patientId} />
 }

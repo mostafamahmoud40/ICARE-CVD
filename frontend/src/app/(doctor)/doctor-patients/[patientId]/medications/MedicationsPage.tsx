@@ -320,7 +320,7 @@ function ClinicalIntelligence({ meds }: { meds: MedicationRecord[] }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUpIcon className="size-4 text-[#1A5345]" />
-            <h3 className="text-[13px] font-bold text-[#102F27] uppercase tracking-wider">30-Day Performance</h3>
+            <h3 className="text-[13px] font-bold text-[#1A1F1E]">30-day performance</h3>
           </div>
           <span className={cn("rounded-lg px-2 py-0.5 text-[11px] font-bold", avgAdherence >= 80 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>
             {avgAdherence >= 80 ? "Optimal" : "Needs Review"}
@@ -354,7 +354,7 @@ function ClinicalIntelligence({ meds }: { meds: MedicationRecord[] }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-violet-700">
             <BrainCircuitIcon className="size-4" />
-            <h3 className="text-[13px] font-bold uppercase tracking-wider">AI Clinical Insights</h3>
+            <h3 className="text-[13px] font-bold text-violet-700">AI clinical insights</h3>
           </div>
           <div className="flex items-center gap-1.5 rounded-lg bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700">
             <SparklesIcon className="size-3" /> Smart Analysis
@@ -411,7 +411,7 @@ function MedicationMetric({ label, value, icon: Icon, color }: { label: string; 
       <Icon className={cn("size-5 shrink-0", color)} />
       <div className="min-w-0 flex-1">
         <div className="text-[18px] font-bold text-[#1A1F1E] sm:text-[20px] leading-none">{value}</div>
-        <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-1">{label}</div>
+        <div className="mt-1 text-[11px] font-semibold text-muted-foreground">{label}</div>
       </div>
     </div>
   )
@@ -509,7 +509,7 @@ function MedicationRow({ m, onEdit, onStop, onFlag }: { m: MedicationRecord; onE
         {/* Column 2: Specialty */}
         <div className="hidden lg:block lg:w-[15%]">
           <div className="space-y-1">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Specialty</p>
+            <p className="text-[11px] font-semibold text-muted-foreground">Specialty</p>
             <div className={cn("flex items-center gap-1.5 font-serif text-[13px] font-medium", specialty.color)}>
               <span className="text-[14px]">{specialty.emoji}</span>
               <span>{specialty.label}</span>
@@ -520,7 +520,7 @@ function MedicationRow({ m, onEdit, onStop, onFlag }: { m: MedicationRecord; onE
         {/* Column 3: Adherence */}
         <div className="lg:w-[20%]">
           <div className="space-y-1">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Adherence</p>
+            <p className="text-[11px] font-semibold text-muted-foreground">Adherence</p>
             <AdherenceTracker pct={m.adherencePercent} history={m.adherenceHistory7d} />
           </div>
         </div>
@@ -563,13 +563,13 @@ function MedicationRow({ m, onEdit, onStop, onFlag }: { m: MedicationRecord; onE
           {m.flagReason && (
             <div className="flex items-center gap-2 text-[11px] text-rose-700 bg-rose-50/50 px-2 py-1 rounded-lg">
               <FlagIcon className="size-3 fill-rose-600 shrink-0" />
-              <span className="font-bold uppercase text-[9px] tracking-wider shrink-0">Flag:</span>
+              <span className="shrink-0 text-[11px] font-bold text-rose-700">Flag:</span>
               <p className="truncate italic">\"{m.flagReason}\"</p>
             </div>
           )}
           {m.instructions && (
             <div className="flex items-center gap-2 text-[11px] text-[#6B7870] bg-[#FFFCFA] px-2 py-1 rounded-lg">
-              <span className="font-bold text-[#102F27] uppercase text-[9px] tracking-wider shrink-0">Note:</span>
+              <span className="shrink-0 text-[11px] font-bold text-[#1A1F1E]">Note:</span>
               <p className="truncate italic">\"{m.instructions}\"</p>
             </div>
           )}
@@ -746,8 +746,8 @@ export function MedicationsPage({ patientId, patientName, medications: initialMe
 
           {/* Metrics Grid */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
-            <MedicationMetric label="Active Regimen" value={active.length} icon={PillIcon} color="text-emerald-600" />
-            <MedicationMetric label="Paused Treatment" value={paused.length} icon={ClockIcon} color="text-amber-600" />
+            <MedicationMetric label="Active regimen" value={active.length} icon={PillIcon} color="text-emerald-600" />
+            <MedicationMetric label="Paused treatment" value={paused.length} icon={ClockIcon} color="text-amber-600" />
             <MedicationMetric label="Discontinued" value={discontinued.length} icon={BanIcon} color="text-red-600" />
           </div>
 
@@ -757,9 +757,9 @@ export function MedicationsPage({ patientId, patientName, medications: initialMe
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
                   <LayoutGridIcon className="size-4 text-[#CC5533]" />
-                  <h3 className="text-[13px] font-bold text-[#102F27] uppercase tracking-wider">Active Regimen</h3>
+                  <h3 className="text-[13px] font-bold text-[#1A1F1E]">Active regimen</h3>
                 </div>
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{active.length} Current Medications</p>
+                <p className="text-[12px] font-medium text-muted-foreground">{active.length} current medications</p>
               </div>
               <div className="space-y-3">
                 {active.map((m) => (
@@ -781,7 +781,7 @@ export function MedicationsPage({ patientId, patientName, medications: initialMe
               <div className="space-y-4">
                 <div className="flex items-center gap-2 px-1">
                   <ClockIcon className="size-4 text-amber-600" />
-                  <h3 className="text-[13px] font-bold text-[#102F27] uppercase tracking-wider">Paused Treatments</h3>
+                  <h3 className="text-[13px] font-bold text-[#1A1F1E]">Paused treatments</h3>
                 </div>
                 <div className="space-y-3">
                   {paused.map((m) => (
@@ -792,7 +792,7 @@ export function MedicationsPage({ patientId, patientName, medications: initialMe
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <h4 className="text-[13px] font-bold text-[#1A1F1E]">{m.name}</h4>
-                          <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 uppercase">Paused</span>
+                          <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">Paused</span>
                         </div>
                         <p className="text-[11px] font-medium text-muted-foreground">{m.dose} &middot; {m.frequency}</p>
                       </div>
@@ -809,7 +809,7 @@ export function MedicationsPage({ patientId, patientName, medications: initialMe
               <div className="space-y-4">
                 <div className="flex items-center gap-2 px-1">
                   <BanIcon className="size-4 text-red-600" />
-                  <h3 className="text-[13px] font-bold text-[#102F27] uppercase tracking-wider">Discontinued</h3>
+                  <h3 className="text-[13px] font-bold text-[#1A1F1E]">Discontinued</h3>
                 </div>
                 <div className="space-y-3">
                   {discontinued.map((m) => (
@@ -820,7 +820,7 @@ export function MedicationsPage({ patientId, patientName, medications: initialMe
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <h4 className="text-[13px] font-bold text-gray-400 line-through">{m.name}</h4>
-                          <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-[9px] font-bold text-red-700 uppercase">Stopped</span>
+                          <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-700">Stopped</span>
                         </div>
                         <p className="text-[11px] font-medium text-muted-foreground">{m.sideEffects ? `Reason: ${m.sideEffects}` : "Inactive Treatment"}</p>
                       </div>
@@ -862,7 +862,7 @@ export function MedicationsPage({ patientId, patientName, medications: initialMe
               </p>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[11px] font-bold text-[#102F27] uppercase tracking-wider">Clinical Reason / Warning</Label>
+              <Label className="text-[12px] font-bold text-[#1A1F1E]">Clinical reason / warning</Label>
               <Textarea
                 value={flagReason}
                 onChange={(e) => setFlagReason(e.target.value)}
@@ -893,7 +893,7 @@ export function MedicationsPage({ patientId, patientName, medications: initialMe
               </p>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[11px] font-bold text-[#102F27] uppercase tracking-wider">Clinical Justification</Label>
+              <Label className="text-[12px] font-bold text-[#1A1F1E]">Clinical justification</Label>
               <Textarea
                 value={discontinueReason}
                 onChange={(e) => setDiscontinueReason(e.target.value)}

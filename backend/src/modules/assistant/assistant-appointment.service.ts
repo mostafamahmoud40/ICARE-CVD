@@ -14,6 +14,7 @@ import type {
   PatchAssistantAppointmentDto,
 } from './dto/create-appointment.dto';
 import { AppointmentService } from '../appointment/appointment.service';
+import { AppointmentPatientNotificationService } from '../appointment/appointment-patient-notification.service';
 
 type DoctorRow = { id: string; name: string; specialty: string | null; avatarUrl: string | null };
 
@@ -24,6 +25,7 @@ export class AssistantAppointmentService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly appointmentService: AppointmentService,
+    private readonly appointmentPatientNotifications: AppointmentPatientNotificationService,
   ) {}
 
   async getStats() {
@@ -285,6 +287,16 @@ export class AssistantAppointmentService {
       .set(updates)
       .where(eq(appointment.id, appointmentId));
 
+    if (schedulingChanged) {
+      void this.appointmentPatientNotifications
+        .notifyAfterUpdate(existing, {
+          ...existing,
+          scheduledAt: nextScheduledAt,
+          doctorId: nextDoctorId,
+        })
+        .catch(() => undefined);
+    }
+
     return this.getAppointment(appointmentId);
   }
 
@@ -312,6 +324,10 @@ export class AssistantAppointmentService {
       .set(updates)
       .where(eq(appointment.id, appointmentId))
       .returning();
+
+    void this.appointmentPatientNotifications
+      .notifyAfterUpdate(existing, updated)
+      .catch(() => undefined);
 
     return {
       id: updated.id,
@@ -387,6 +403,10 @@ export class AssistantAppointmentService {
         symptoms: dto.symptoms ?? null,
       })
       .returning();
+
+    void this.appointmentPatientNotifications
+      .notifyBooked(created.id, { bookedBy: 'clinic' })
+      .catch(() => undefined);
 
     return this.getAppointment(created.id);
   }

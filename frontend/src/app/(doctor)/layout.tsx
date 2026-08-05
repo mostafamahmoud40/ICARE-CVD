@@ -58,6 +58,7 @@ import {
 import { DoctorInsetHeader } from "./DoctorInsetHeader"
 import { clearDoctorHeaderProfileCache } from "./doctorHeaderProfile.cache"
 import { NotificationsRealtimeProvider } from "@/components/shared/notifications/NotificationsRealtimeProvider"
+import { refreshDoctorNotificationsFromApi } from "./doctor-notifications/useDoctorNotifications"
 import { cn } from "@/lib/utils"
 
 const doctorSerif = Lora({
@@ -450,7 +451,7 @@ function DoctorLayoutContent({
       </Sidebar>
 
       <SidebarInset className="bg-[#F9F8F5]">
-        <NotificationsRealtimeProvider>
+        <NotificationsRealtimeProvider onRefresh={refreshDoctorNotificationsFromApi}>
           {pathname === "/doctor-account" || pathname.startsWith("/doctor-account/") ? (
             children
           ) : (

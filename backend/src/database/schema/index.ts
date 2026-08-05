@@ -29,6 +29,8 @@ export * from './consultationDiagnosis.schema';
 export * from './consultationPrescription.schema';
 export * from './consultationReferral.schema';
 export * from './doctorPatient.schema';
+export * from './patientClinicalNote.schema';
+export * from './patientCareGoal.schema';
 export * from './doctorAssistant.schema';
 export * from './patientQueue.schema';
 export * from './notification.schema';

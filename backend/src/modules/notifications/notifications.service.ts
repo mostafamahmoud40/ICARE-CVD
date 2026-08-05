@@ -122,9 +122,10 @@ export class NotificationsService implements OnModuleInit {
       this.socketServer
         ?.to(`user:${input.userId}`)
         .emit('notification:new', dto);
-    } else {
-      await this.sendWebPush(input.userId, dto);
     }
+
+    // Always attempt Web Push so OS notifications work when the tab is hidden or closed.
+    await this.sendWebPush(input.userId, dto);
 
     return dto;
   }
@@ -138,10 +139,14 @@ export class NotificationsService implements OnModuleInit {
       .where(eq(pushSubscription.userId, userId));
 
     const payload = JSON.stringify({
+      id: dto.id,
+      notificationId: dto.id,
+      kind: dto.kind,
       title: dto.title ?? 'ICARE-CVD',
       body: dto.body,
       href: dto.href ?? '/',
-      notificationId: dto.id,
+      read: dto.read,
+      createdAt: dto.createdAt,
     });
 
     await Promise.allSettled(

@@ -14,7 +14,8 @@
     },
     "roles": {
       "assistant": "مساعد",
-      "doctor": "طبيب"
+      "doctor": "طبيب",
+      "patient": "مريض"
     },
     "search": {
       "placeholder": "ابحث عن المرضى والمواعيد...",
@@ -997,6 +998,177 @@
       "dashboard": {
         "title": "لوحة الطبيب",
         "subtitle": "نظرة عامة ورؤى المرضى"
+      }
+    }
+  },
+  "patient": {
+    "portalName": "بوابة المريض",
+    "search": {
+      "placeholder": "ابحث في المواعيد والأطباء...",
+      "dialogTitle": "بحث",
+      "dialogDescription": "ابحث في المواعيد والأطباء والصفحات",
+      "inputPlaceholder": "ابحث في المواعيد والأطباء والصفحات...",
+      "empty": "لا توجد نتائج. جرّب كلمة أخرى.",
+      "open": "فتح البحث",
+      "quickNav": "تنقل سريع",
+      "browseDoctors": "تصفح الأطباء"
+    },
+    "header": {
+      "default": {
+        "title": "لوحة المريض",
+        "subtitle": "نظرة عامة وملخص الرعاية"
+      },
+      "dashboard": {
+        "title": "لوحة المريض",
+        "subtitle": "نظرة عامة وملخص الرعاية"
+      },
+      "appointments": {
+        "title": "المواعيد",
+        "subtitle": "عرض وإدارة مواعيدك"
+      },
+      "doctorDirectory": {
+        "title": "دليل الأطباء",
+        "subtitle": "ابحث عن الأطباء المتخصصين وتواصل معهم"
+      },
+      "queue": {
+        "title": "طابور العيادة",
+        "subtitle": "حالة انتظارك لزيارة اليوم"
+      },
+      "consultations": {
+        "title": "الاستشارات",
+        "subtitle": "سجل الزيارات والملاحظات السريرية"
+      },
+      "labOrders": {
+        "title": "طلبات المختبر",
+        "subtitle": "الفحوصات المطلوبة والنتائج"
+      },
+      "vitals": {
+        "title": "العلامات الحيوية والقياسات",
+        "subtitle": "تتبع مؤشرات صحتك وتطورها"
+      },
+      "medications": {
+        "title": "الأدوية",
+        "subtitle": "إدارة الوصفات والجرعات"
+      },
+      "aiChat": {
+        "title": "وكيل الرعاية",
+        "subtitle": "اطرح أسئلة — ردود تجريبية فقط"
+      },
+      "chat": {
+        "title": "المحادثات",
+        "subtitle": "الرسائل والمحادثات"
+      },
+      "account": {
+        "title": "الحساب",
+        "subtitle": "الملف الشخصي وإعدادات الإشعارات"
+      },
+      "notifications": {
+        "title": "الإشعارات",
+        "subtitle": "المواعيد والنتائج وتنبيهات الرعاية"
+      }
+    },
+    "notifications": {
+      "title": "الإشعارات",
+      "unreadCount": "{count} غير مقروء",
+      "allCaughtUp": "لا توجد إشعارات جديدة",
+      "markAllRead": "تعليم الكل كمقروء",
+      "empty": "لا توجد إشعارات بعد.",
+      "viewAll": "عرض الكل",
+      "pageUnread": "{count, plural, one {إشعار واحد غير مقروء} other {# إشعارات غير مقروءة}}",
+      "pageAllCaughtUp": "لا توجد إشعارات غير مقروءة.",
+      "searchPlaceholder": "ابحث في الرسالة أو النوع…",
+      "filterPlaceholder": "تصفية حسب النوع",
+      "noMatchesTitle": "لا توجد إشعارات مطابقة",
+      "noMatchesHint": "جرّب بحثًا أو تصفية مختلفة.",
+      "clearFilters": "مسح التصفية",
+      "showingCount": "عرض {shown} من {total} إشعار"
+    },
+    "account": {
+      "editProfile": "تعديل الملف",
+      "memberSince": "عضو منذ",
+      "years": "سنة",
+      "loadErrorTitle": "تعذّر تحميل ملفك الشخصي",
+      "loadErrorDescription": "يرجى المحاولة مرة أخرى بعد قليل.",
+      "tryAgain": "إعادة المحاولة",
+      "profileSavedTitle": "تم تحديث الملف",
+      "profileSavedDesc": "تم حفظ بيانات حسابك.",
+      "sections": {
+        "contact": "بيانات التواصل",
+        "personal": "المعلومات الشخصية",
+        "health": "الملف الصحي"
+      },
+      "fields": {
+        "phone": "الهاتف",
+        "email": "البريد الإلكتروني",
+        "address": "العنوان",
+        "dateOfBirth": "تاريخ الميلاد",
+        "gender": "الجنس",
+        "bloodType": "فصيلة الدم",
+        "nationalId": "الرقم القومي",
+        "maritalStatus": "الحالة الاجتماعية",
+        "occupation": "المهنة",
+        "height": "الطول",
+        "weight": "الوزن",
+        "bmi": "مؤشر كتلة الجسم",
+        "smoking": "حالة التدخين"
+      },
+      "risk": {
+        "low": "خطر منخفض",
+        "moderate": "خطر متوسط",
+        "high": "خطر مرتفع"
+      },
+      "values": {
+        "male": "ذكر",
+        "female": "أنثى",
+        "other": "آخر",
+        "single": "أعزب",
+        "married": "متزوج",
+        "divorced": "مطلق",
+        "widowed": "أرمل",
+        "never": "لم يدخن",
+        "former": "مدخن سابق",
+        "current": "مدخن حالي",
+        "notSet": "—"
+      },
+      "notificationsCard": {
+        "title": "الإشعارات",
+        "description": "عرض تذكيرات المواعيد ونتائج التحاليل وتنبيهات الرعاية.",
+        "action": "فتح الإشعارات"
+      },
+      "editDialog": {
+        "title": "تعديل الملف",
+        "avatarSection": "صورة الملف",
+        "fullName": "الاسم الكامل",
+        "email": "البريد الإلكتروني",
+        "phone": "الهاتف",
+        "maritalStatus": "الحالة الاجتماعية",
+        "maritalStatusPlaceholder": "اختر الحالة",
+        "notSet": "غير محدد",
+        "occupation": "المهنة",
+        "address": "العنوان",
+        "cancel": "إلغاء",
+        "save": "حفظ التغييرات"
+      },
+      "medicationAdherence": {
+        "title": "التزام بالأدوية (7 أيام)",
+        "todayProgress": "جرعات اليوم",
+        "doses": "{taken}/{total} مأخوذة",
+        "noMedications": "لا توجد وصفات نشطة بعد. ستظهر نسبة التزامك هنا عند إضافة الأدوية.",
+        "viewMedications": "عرض الأدوية",
+        "status": {
+          "onTrack": "ملتزم",
+          "moderate": "متوسط",
+          "needsAttention": "يحتاج متابعة"
+        },
+        "weekDays": {
+          "0": "منذ 6 أيام",
+          "1": "منذ 5 أيام",
+          "2": "منذ 4 أيام",
+          "3": "منذ 3 أيام",
+          "4": "منذ يومين",
+          "5": "أمس",
+          "6": "اليوم"
+        }
       }
     }
   },

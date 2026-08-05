@@ -108,6 +108,7 @@ export function useAssistantQueue() {
     arrived: 0,
     inWaiting: 0,
     inConsultation: 0,
+    reportPending: 0,
     completed: 0,
     noShow: 0,
     avgWaitMin: 0,
@@ -163,7 +164,12 @@ export function useAssistantQueue() {
   }, [patients, liveBoardPatients, selectedPatientId])
 
   const tabCounts = useMemo(() => ({
-    active: stats.scheduled + stats.arrived + stats.inWaiting + stats.inConsultation,
+    active:
+      stats.scheduled +
+      stats.arrived +
+      stats.inWaiting +
+      stats.inConsultation +
+      (stats.reportPending ?? 0),
     scheduled: stats.scheduled,
     completed: stats.completed,
     "no-show": stats.noShow,

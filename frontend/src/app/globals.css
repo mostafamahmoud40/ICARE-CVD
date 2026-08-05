@@ -179,3 +179,60 @@
     transform: translate(-50%, 0);
   }
 }
+
+@keyframes xrayScanLine {
+  0% {
+    top: -10%;
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 1;
+  }
+  100% {
+    top: 110%;
+    opacity: 0;
+  }
+}
+
+@keyframes xrayScanTrail {
+  0% {
+    clip-path: inset(0 0 100% 0);
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes xrayScanUnscanned {
+  0% {
+    clip-path: inset(0 0 0 0);
+  }
+  100% {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+
+@keyframes xrayScanPulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.animate-xray-scan-line {
+  animation: xrayScanLine 2.6s linear infinite;
+}
+
+.animate-xray-scan-trail {
+  animation: xrayScanTrail 2.6s linear infinite;
+}
+
+.animate-xray-scan-unscanned {
+  animation: xrayScanUnscanned 2.6s linear infinite;
+}

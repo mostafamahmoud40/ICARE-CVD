@@ -4,11 +4,11 @@ type EmbeddingFunctionSpace = 'cosine' | 'l2' | 'ip';
 
 /**
  * Placeholder embedding function for ChromaDB collections where we always
- * supply embeddings externally (via Cohere). Prevents the client from trying
+ * supply embeddings externally. Prevents the client from trying
  * to load @chroma-core/default-embed.
  */
 export class ExternalEmbeddingFunction {
-  readonly name = 'external-cohere';
+  readonly name = 'external-provider';
 
   defaultSpace(): EmbeddingFunctionSpace {
     return 'cosine';

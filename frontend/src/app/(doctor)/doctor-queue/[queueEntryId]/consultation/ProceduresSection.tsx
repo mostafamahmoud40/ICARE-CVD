@@ -1,11 +1,18 @@
 "use client"
 
 import { useState } from "react"
-import { ScissorsIcon, ChevronDownIcon, ChevronUpIcon, PlusIcon } from "lucide-react"
+import { ChevronDownIcon, PlusIcon, ScissorsIcon } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import type { ProcedureDetails, ProcedurePriority } from "./consultation.types"
+
+const SECTION_CARD = "overflow-hidden rounded-2xl border border-[#E8E6E0]/60 bg-white shadow-sm"
+const FIELD_LABEL = "text-sm font-medium text-[#374151]"
+const INPUT_CLASS =
+  "h-10 w-full rounded-xl border border-[#E8E6E0] bg-[#FAFAF8] px-3 text-[14px] text-[#1A1F1E] focus:outline-none focus:border-[#1A5345] focus:ring-2 focus:ring-[#1A5345]/20"
+const SECTION_LABEL = "text-[13px] font-semibold text-[#1A1F1E]"
 
 const PROCEDURE_TYPES = [
   { value: "coronary_artery_bypass", label: "Coronary Artery Bypass Graft (CABG)" },
@@ -85,15 +92,11 @@ type SelectFieldProps = {
 function SelectField({ label, value, onChange, options, placeholder }: SelectFieldProps) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[11px] font-medium text-muted-foreground">{label}</label>
+      <label className={FIELD_LABEL}>{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={cn(
-          "h-9 w-full rounded-lg border border-[#E8E6E0] bg-[#FAFAF8] px-3 text-[13px] text-[#102F27]",
-          "focus:outline-none focus:ring-2 focus:ring-[#1A5345]/25 focus:border-[#1A5345]/40",
-          !value && "text-muted-foreground",
-        )}
+        className={cn(INPUT_CLASS, !value && "text-muted-foreground")}
       >
         {placeholder && (
           <option value="" disabled>
@@ -119,50 +122,49 @@ export function ProceduresSection({ details, onDetailsChange }: ProceduresSectio
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <div className="rounded-xl border-2 border-[#E5EEEA] bg-white">
-      {/* Header — always visible */}
+    <div className={SECTION_CARD}>
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between px-5 py-4 text-left"
+        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-[#FAFAF8]"
       >
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
-            <ScissorsIcon className="size-4 text-[#1A5345]" />
-          </div>
-          <h3 className="text-[14px] font-semibold text-[#102F27]">Surgical Procedure</h3>
-          {!isOpen && (
-            <span className="rounded-full bg-[#F6FBF9] px-2.5 py-0.5 text-[10px] font-medium text-[#1A5345] border border-[#E5EEEA]">
-              Click to add
-            </span>
-          )}
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <ScissorsIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
+          <h3 className="font-serif text-[16px] font-bold text-[#1A1F1E]">Surgical procedure</h3>
+          {!isOpen ? (
+            <Badge
+              variant="default"
+              className="rounded-lg border-0 bg-slate-500 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-none hover:bg-slate-500"
+            >
+              Optional
+            </Badge>
+          ) : null}
         </div>
-        <div className="flex items-center gap-2">
-          {!isOpen && (
-            <div className="flex items-center gap-1 rounded-lg bg-[#1A5345]/8 px-2.5 py-1.5">
-              <PlusIcon className="size-3.5 text-[#1A5345]" />
-              <span className="text-[12px] font-medium text-[#1A5345]">Add Procedure</span>
-            </div>
-          )}
-          {isOpen ? (
-            <ChevronUpIcon className="size-4 text-muted-foreground" />
-          ) : (
-            <ChevronDownIcon className="size-4 text-muted-foreground" />
-          )}
-        </div>
+        <ChevronDownIcon
+          className={cn("size-5 shrink-0 text-muted-foreground transition-transform", isOpen && "rotate-180")}
+          aria-hidden
+        />
       </button>
 
-      {/* Collapsible body */}
-      {isOpen && (
-        <div className="border-t border-[#E8E6E0] px-5 pb-5 pt-4 space-y-5">
-          {/* PROCEDURE DETAILS */}
-          <div className="space-y-4">
-            <p className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
-              Procedure Details
-            </p>
+      {!isOpen ? (
+        <div className="border-t border-[#E8E6E0]/60 px-5 pb-5 pt-3">
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#E8E6E0] py-3 text-[13px] font-semibold text-[#1A5345] transition-colors hover:border-[#1A5345]/40 hover:bg-[#F9F8F5]"
+          >
+            <PlusIcon className="size-4" aria-hidden />
+            Add procedure
+          </button>
+        </div>
+      ) : null}
 
-            {/* Row 1: Procedure type + Surgical specialty */}
-            <div className="grid grid-cols-2 gap-3">
+      {isOpen ? (
+        <div className="space-y-5 border-t border-[#E8E6E0]/60 px-5 pb-5 pt-4">
+          <div className="space-y-4">
+            <p className={SECTION_LABEL}>Procedure details</p>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <SelectField
                 label="Procedure type"
                 value={details.procedureType}
@@ -178,36 +180,28 @@ export function ProceduresSection({ details, onDetailsChange }: ProceduresSectio
               />
             </div>
 
-            {/* Row 2: Surgery date + Start time */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-muted-foreground">Surgery date</label>
+                <label className={FIELD_LABEL}>Surgery date</label>
                 <input
                   type="date"
                   value={details.surgeryDate}
                   onChange={(e) => onDetailsChange("surgeryDate", e.target.value)}
-                  className={cn(
-                    "h-9 w-full rounded-lg border border-[#E8E6E0] bg-[#FAFAF8] px-3 text-[13px] text-[#102F27]",
-                    "focus:outline-none focus:ring-2 focus:ring-[#1A5345]/25 focus:border-[#1A5345]/40",
-                  )}
+                  className={INPUT_CLASS}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-muted-foreground">Start time</label>
+                <label className={FIELD_LABEL}>Start time</label>
                 <input
                   type="time"
                   value={details.startTime}
                   onChange={(e) => onDetailsChange("startTime", e.target.value)}
-                  className={cn(
-                    "h-9 w-full rounded-lg border border-[#E8E6E0] bg-[#FAFAF8] px-3 text-[13px] text-[#102F27]",
-                    "focus:outline-none focus:ring-2 focus:ring-[#1A5345]/25 focus:border-[#1A5345]/40",
-                  )}
+                  className={INPUT_CLASS}
                 />
               </div>
             </div>
 
-            {/* Row 3: OR + Anesthesia + ASA */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <SelectField
                 label="Operating room"
                 value={details.operatingRoom}
@@ -228,11 +222,10 @@ export function ProceduresSection({ details, onDetailsChange }: ProceduresSectio
               />
             </div>
 
-            {/* Row 4: Estimated duration slider */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-medium text-muted-foreground">Estimated duration</label>
-                <span className="text-[12px] font-semibold text-[#1A5345]">
+                <label className={FIELD_LABEL}>Estimated duration</label>
+                <span className="text-[13px] font-semibold text-[#1A5345]">
                   {formatDuration(details.estimatedDurationMin)}
                 </span>
               </div>
@@ -245,73 +238,63 @@ export function ProceduresSection({ details, onDetailsChange }: ProceduresSectio
                 onChange={(e) => onDetailsChange("estimatedDurationMin", Number(e.target.value))}
                 className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[#E8E6E0] accent-[#1A5345]"
               />
-              <div className="flex justify-between text-[10px] text-muted-foreground">
+              <div className="flex justify-between text-[11px] text-muted-foreground">
                 <span>15 min</span>
                 <span>8 hr</span>
               </div>
             </div>
           </div>
 
-          {/* PRIORITY & CLINICAL NOTES */}
           <div className="space-y-4">
-            <p className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
-              Priority &amp; Clinical Notes
-            </p>
+            <p className={SECTION_LABEL}>Priority & clinical notes</p>
 
-            {/* Priority toggle */}
-            <div className="space-y-1.5">
-              <div className="flex gap-2">
-                {PRIORITY_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => onDetailsChange("priority", opt.value)}
-                    className={cn(
-                      "flex-1 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors",
-                      details.priority === opt.value
-                        ? opt.value === "emergency"
-                          ? "border-red-300 bg-red-50 text-red-700"
-                          : opt.value === "urgent"
-                            ? "border-amber-300 bg-amber-50 text-amber-700"
-                            : "border-[#1A5345]/30 bg-[#E8F0EE] text-[#1A5345]"
-                        : "border-[#E8E6E0] bg-[#FAFAF8] text-[#102F27] hover:bg-[#F0F5F3]",
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+            <div className="flex gap-2">
+              {PRIORITY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onDetailsChange("priority", opt.value)}
+                  className={cn(
+                    "flex-1 rounded-xl border px-3 py-2.5 text-[13px] font-medium transition-colors",
+                    details.priority === opt.value
+                      ? opt.value === "emergency"
+                        ? "border-red-300 bg-red-50 text-red-700"
+                        : opt.value === "urgent"
+                          ? "border-amber-300 bg-amber-50 text-amber-700"
+                          : "border-[#1A5345]/30 bg-[#E8F0EE] text-[#1A5345]"
+                      : "border-[#E8E6E0] bg-[#FAFAF8] text-[#1A1F1E] hover:bg-[#F0F5F3]",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
 
-            {/* Clinical notes textarea */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-medium text-muted-foreground">
-                Clinical indication &amp; surgeon&apos;s notes
-              </label>
+              <label className={FIELD_LABEL}>Clinical indication & surgeon&apos;s notes</label>
               <Textarea
                 value={details.clinicalNotes}
                 onChange={(e) => onDetailsChange("clinicalNotes", e.target.value)}
                 placeholder="Enter clinical justification, relevant findings, or operative plan..."
                 rows={4}
-                className="resize-none border-[#E8E6E0] bg-[#FAFAF8] text-[13px] placeholder:text-muted-foreground focus-visible:ring-[#1A5345]/25"
+                className="resize-none rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] placeholder:text-muted-foreground focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
               />
             </div>
           </div>
 
-          {/* Cancel button */}
           <div className="flex justify-end">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => setIsOpen(false)}
-              className="text-[12px] text-muted-foreground hover:text-[#102F27]"
+              className="h-10 rounded-lg text-[13px]"
             >
               Collapse
             </Button>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

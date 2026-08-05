@@ -35,6 +35,7 @@ import { useRequireRole } from "@/hooks/use-require-role"
 import { cn } from "@/lib/utils"
 import { QUEUE_ROUTES, queueNavModeFromPathname } from "./assistant-queue/queueNavMode"
 import { AssistantInsetHeader } from "./AssistantInsetHeader"
+import { AssistantNotificationsRealtimeProvider } from "./assistant-notifications/AssistantNotificationsRealtimeProvider"
 import { AssistantProfileAvatar } from "./AssistantProfileAvatar"
 import { clearAssistantHeaderProfileCache } from "./assistantHeaderProfile.cache"
 import { useAssistantHeaderProfile } from "./useAssistantHeaderProfile"
@@ -85,9 +86,11 @@ export default function AssistantLayout({
       className={`${assistantSerif.className} min-h-screen bg-sidebar text-foreground dark:bg-sidebar`}
     >
       <SidebarProvider defaultOpen>
-        <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center bg-[#F9F8F5]" />}>
-          <AssistantLayoutContent pathname={pathname} logout={logout} user={user} mounted={mounted}>{children}</AssistantLayoutContent>
-        </Suspense>
+        <AssistantNotificationsRealtimeProvider>
+          <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center bg-[#F9F8F5]" />}>
+            <AssistantLayoutContent pathname={pathname} logout={logout} user={user} mounted={mounted}>{children}</AssistantLayoutContent>
+          </Suspense>
+        </AssistantNotificationsRealtimeProvider>
       </SidebarProvider>
     </div>
   )

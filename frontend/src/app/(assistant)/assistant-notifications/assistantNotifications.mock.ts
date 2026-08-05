@@ -1,5 +1,6 @@
 import type { AssistantNotification } from "./assistantNotifications.types"
 
+/** Demo notifications for kinds not yet wired to the live API. */
 export function getAssistantNotificationsMock(): AssistantNotification[] {
   return [
     {

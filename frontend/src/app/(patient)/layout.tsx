@@ -13,6 +13,7 @@ import {
   ChevronDownIcon,
   CreditCardIcon,
   FileTextIcon,
+  FlaskConicalIcon,
   HeartPulseIcon,
   LayoutDashboardIcon,
   ListOrderedIcon,
@@ -24,6 +25,9 @@ import {
 } from "lucide-react"
 
 import { useRequireRole } from "@/hooks/use-require-role"
+import { PatientInsetHeader } from "./PatientInsetHeader"
+import { PortalUserAvatar } from "@/components/shared/portal-user-avatar"
+import { PatientNotificationsRealtimeProvider } from "./patient-notifications/PatientNotificationsRealtimeProvider"
 
 import {
   Sidebar,
@@ -58,15 +62,17 @@ export default function PatientLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname()
-  const { logout, user, mounted } = useRequireRole("patient")
+  const { logout, user } = useRequireRole("patient")
 
   return (
     <div
       className={`${patientSerif.className} min-h-screen bg-background text-foreground dark:bg-background`}
     >
-      <SidebarProvider defaultOpen>
-        <PatientLayoutContent pathname={pathname} logout={logout} user={user} mounted={mounted}>{children}</PatientLayoutContent>
-      </SidebarProvider>
+      <PatientNotificationsRealtimeProvider>
+        <SidebarProvider defaultOpen>
+          <PatientLayoutContent pathname={pathname} logout={logout} user={user}>{children}</PatientLayoutContent>
+        </SidebarProvider>
+      </PatientNotificationsRealtimeProvider>
     </div>
   )
 }
@@ -75,17 +81,17 @@ function PatientLayoutContent({
   pathname,
   logout,
   user,
-  mounted,
   children,
 }: {
   pathname: string
   logout: () => void
   user: AuthUser | null
-  mounted: boolean
   children: ReactNode
 }) {
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
+  const displayName = user?.name ?? "Patient"
+  const avatarUrl = user?.avatarUrl ?? null
 
   const navItems = [
     {
@@ -117,6 +123,12 @@ function PatientLayoutContent({
       label: "Consultations",
       icon: FileTextIcon,
       isActive: pathname === "/consultations",
+    },
+    {
+      href: "/lab-orders",
+      label: "Lab orders",
+      icon: FlaskConicalIcon,
+      isActive: pathname === "/lab-orders",
     },
     {
       href: "/vitals",
@@ -165,11 +177,13 @@ function PatientLayoutContent({
             </div>
 
             {isCollapsed ? null : (
-              <div className="leading-tight">
+              <div className="min-w-0 flex-1 leading-tight">
                 <div className="text-sm font-semibold">ICARE-CVD</div>
                 <div className="text-xs text-muted-foreground">Patient Portal</div>
               </div>
             )}
+
+            <SidebarTrigger className="ml-auto shrink-0 text-[#1A5345] hover:bg-[#E8F0EE] group-data-[collapsible=icon]:ml-0" />
           </div>
         </SidebarHeader>
 
@@ -236,20 +250,21 @@ function PatientLayoutContent({
                         className="flex w-full items-center gap-3 p-1 transition-all hover:bg-[#F9F8F5] rounded-[20px] group relative"
                       >
                         <div className="relative shrink-0">
-                          <div className="size-11 rounded-[16px] bg-white p-0.5 shadow-sm border border-[#E8E6E0]/60 overflow-hidden group-hover:scale-105 transition-transform duration-300">
-                             <img 
-                               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${mounted && user ? encodeURIComponent(user.name) : "Patient"}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
-                               alt="Avatar" 
-                               className="size-full object-cover rounded-[14px]"
-                             />
+                          <div className="rounded-[16px] bg-white p-0.5 shadow-sm transition-transform duration-300 group-hover:scale-105">
+                            <PortalUserAvatar
+                              name={displayName}
+                              avatarUrl={avatarUrl}
+                              size="sidebar"
+                              shape="rounded-2xl"
+                              showOnlineDot
+                            />
                           </div>
-                          <span className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full bg-[#22C55E] border-2 border-white shadow-sm z-10" />
                         </div>
 
                         {isCollapsed ? null : (
                           <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 text-left">
                             <span className="truncate font-sans text-[15px] font-bold text-[#1A1F1E]">
-                              {mounted && user ? user.name : "Patient"}
+                              {displayName}
                             </span>
                             <div className="flex items-center gap-1.5">
                                <span className="size-1 rounded-full bg-[#1A5345]/30" />
@@ -274,16 +289,15 @@ function PatientLayoutContent({
                   className="w-[248px] rounded-xl border-[#E8E6E0]/60 bg-white p-0 shadow-[0_8px_30px_rgb(0,0,0,0.08)]"
                 >
                   <div className="flex items-center gap-2.5 border-b border-[#E8E6E0]/40 bg-[#F9F8F5]/80 px-3 py-2 backdrop-blur-md">
-                    <div className="size-9 shrink-0 overflow-hidden rounded-xl border border-[#E8E6E0]/60 bg-white p-px shadow-sm">
-                       <img 
-                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${mounted && user ? encodeURIComponent(user.name) : "Patient"}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
-                         alt="Avatar" 
-                         className="size-full object-cover rounded-[10px]"
-                       />
-                    </div>
+                    <PortalUserAvatar
+                      name={displayName}
+                      avatarUrl={avatarUrl}
+                      size="menu"
+                      shape="rounded-xl"
+                    />
                     <div className="flex min-w-0 flex-1 flex-col gap-0">
                       <span className="truncate font-sans text-[14px] font-bold leading-tight text-[#1A1F1E]">
-                        {mounted && user ? user.name : "Patient"}
+                        {displayName}
                       </span>
                       <p className="mt-0.5 truncate font-sans text-[10px] font-medium leading-snug text-muted-foreground">
                         Patient
@@ -291,7 +305,7 @@ function PatientLayoutContent({
                           {" "}
                           ·{" "}
                         </span>
-                        <span className="text-muted-foreground/80">{mounted && user ? user.email : ""}</span>
+                        <span className="text-muted-foreground/80">{user?.email ?? ""}</span>
                       </p>
                     </div>
                   </div>
@@ -345,47 +359,8 @@ function PatientLayoutContent({
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset>
-        <div className="flex h-16 items-center gap-3 border-b border-black/5 px-4 dark:border-white/10">
-          <SidebarTrigger />
-          <div className="flex flex-col">
-            <div className="text-base font-semibold">
-              {pathname === "/medications"
-                ? "Medications"
-                : pathname === "/appointments"
-                  ? "Appointments"
-                  : pathname === "/queue"
-                    ? "Clinic queue"
-                    : pathname === "/ai-chat"
-                    ? "Care Agent"
-                    : pathname === "/chat"
-                      ? "Chats"
-                      : pathname === "/vitals"
-                        ? "Vitals & Measurements"
-                        : pathname === "/doctor-directory"
-                          ? "Doctor Directory"
-                          : "Patient Dashboard"}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {pathname === "/medications"
-                ? "Manage your prescriptions & doses"
-                : pathname === "/appointments"
-                  ? "View and manage your appointments"
-                  : pathname === "/queue"
-                    ? "Your wait status for today's visit"
-                    : pathname === "/ai-chat"
-                    ? "Ask questions — demo replies only"
-                    : pathname === "/chat"
-                      ? "Messages & conversations"
-                      : pathname === "/vitals"
-                        ? "Track your health metrics and progression"
-                        : pathname === "/doctor-directory"
-                          ? "Find and connect with medical specialists"
-                          : "Overview & care summary"}
-            </div>
-          </div>
-        </div>
-
+      <SidebarInset className="bg-[#F9F8F5]">
+        <PatientInsetHeader user={user} logout={logout} />
         {children}
       </SidebarInset>
     </>

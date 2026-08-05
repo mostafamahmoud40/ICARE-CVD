@@ -1,0 +1,78 @@
+import type { PatientNotification } from "./patientNotifications.types"
+
+/** Demo notifications for kinds not yet wired to the live API. */
+export function getPatientNotificationsMock(): PatientNotification[] {
+  return [
+    {
+      id: "pn1",
+      kind: "queue",
+      title: "You're next in line",
+      body: "Please proceed to Clinic Room 2. Dr. Mahmoud is ready for your visit.",
+      createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+      read: false,
+      href: "/queue",
+    },
+    {
+      id: "pn2",
+      kind: "appointment",
+      sender: { name: "Dr. Sarah Johnson", role: "doctor" },
+      body: "Your follow-up on Thursday at 10:30 AM is confirmed.",
+      createdAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+      read: false,
+      href: "/appointments",
+    },
+    {
+      id: "pn3",
+      kind: "lab_result",
+      title: "Lab results ready",
+      body: "Your CBC and lipid panel from yesterday are available to review.",
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      read: false,
+      href: "/lab-orders",
+    },
+    {
+      id: "pn4",
+      kind: "medication",
+      title: "Medication reminder",
+      body: "Evening dose of Metformin is due in 30 minutes.",
+      createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+      read: false,
+      href: "/medications",
+    },
+    {
+      id: "pn5",
+      kind: "vitals_alert",
+      title: "Care team note",
+      body: "Your care team reviewed today's blood pressure reading and left guidance.",
+      createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+      read: false,
+      href: "/vitals",
+    },
+    {
+      id: "pn6",
+      kind: "consultation",
+      sender: { name: "Dr. Mahmoud Hassan", role: "doctor" },
+      body: "Visit summary from your last consultation is ready.",
+      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      read: true,
+      href: "/consultations",
+    },
+    {
+      id: "pn7",
+      kind: "ai_insight",
+      title: "Care agent tip",
+      body: "Based on your recent vitals, consider logging readings at the same time each morning.",
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      read: true,
+      href: "/ai-chat",
+    },
+    {
+      id: "pn8",
+      kind: "system",
+      title: "Profile updated",
+      body: "Your contact details were saved successfully.",
+      createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+      read: true,
+    },
+  ]
+}

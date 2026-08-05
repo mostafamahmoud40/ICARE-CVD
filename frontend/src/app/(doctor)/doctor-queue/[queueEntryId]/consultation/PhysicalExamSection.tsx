@@ -4,6 +4,8 @@ import { useCallback } from "react"
 import type { PhysicalExamFindings } from "./consultation.types"
 import { useSpeechDictation } from "./useSpeechDictation"
 import { MicIcon, StethoscopeIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -41,27 +43,28 @@ export function PhysicalExamSection({ exam, onExamChange }: PhysicalExamSectionP
   }, [])
 
   return (
-    <div className="rounded-xl border-2 border-[#E5EEEA] bg-white p-5">
+    <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8F0EE]">
-            <StethoscopeIcon className="size-4 text-[#1A5345]" />
-          </div>
-          <h3 className="text-[14px] font-semibold text-[#102F27]">Physical Examination</h3>
-          <span className="rounded-full bg-[#EEF5F3] px-2 py-0.5 text-[10px] font-medium text-[#2C6A5B]">
-            Cardiovascular Focus
-          </span>
+          <StethoscopeIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
+          <h3 className="font-serif text-[16px] font-bold text-[#1A1F1E]">Physical examination</h3>
+          <Badge
+            variant="default"
+            className="rounded-lg border-0 bg-[#1A5345] px-2.5 py-1 text-[10px] font-bold text-white shadow-none hover:bg-[#1A5345]"
+          >
+            Cardiovascular focus
+          </Badge>
           {supported ? (
-            <span className="text-[10px] text-muted-foreground">Type or use voice dictation</span>
+            <span className="text-[12px] text-muted-foreground">Type or use voice dictation</span>
           ) : null}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {EXAM_FIELDS.map((field) => {
             const listening = activeKey === field.key
             return (
-              <div key={field.key} className="space-y-1">
+              <div key={field.key} className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
-                  <label className="text-[11px] font-medium text-muted-foreground" htmlFor={`physical-exam-${field.key}`}>
+                  <label className="text-sm font-medium text-[#374151]" htmlFor={`physical-exam-${field.key}`}>
                     {field.label}
                   </label>
                   {supported ? (
@@ -70,18 +73,17 @@ export function PhysicalExamSection({ exam, onExamChange }: PhysicalExamSectionP
                         <Button
                           type="button"
                           id={`physical-exam-${field.key}-mic`}
-                          variant={listening ? "secondary" : "ghost"}
-                          size="icon-xs"
-                          className={
-                            listening
-                              ? "shrink-0 text-[#B42318] ring-2 ring-[#B42318]/25"
-                              : "shrink-0 text-[#2C6A5B]"
-                          }
+                          variant="ghost"
+                          size="icon"
+                          className={cn(
+                            "size-8 border-0 bg-transparent shadow-none hover:bg-transparent",
+                            listening ? "text-rose-600" : "text-[#1A5345] hover:text-[#133F34]",
+                          )}
                           aria-pressed={listening}
                           aria-label={listening ? "Stop voice dictation" : "Start voice dictation"}
                           onClick={() => toggle(field.key)}
                         >
-                          <MicIcon className="size-3.5" />
+                          <MicIcon className="size-4" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-[220px] text-center">
@@ -95,23 +97,23 @@ export function PhysicalExamSection({ exam, onExamChange }: PhysicalExamSectionP
                   value={exam[field.key]}
                   onChange={(e) => onExamChange(field.key, e.target.value)}
                   placeholder={field.placeholder}
-                  className="min-h-[56px] resize-none border-[#E8E6E0] bg-[#FAFAF8] text-[13px] placeholder:text-[#9CA3AF]"
+                  className="min-h-[72px] resize-none rounded-xl border-[#E8E6E0] bg-[#FAFAF8] text-[14px] placeholder:text-muted-foreground focus-visible:border-[#1A5345] focus-visible:ring-[#1A5345]/20"
                   aria-describedby={listening && interimText ? `${field.key}-interim` : undefined}
                 />
                 {listening ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-medium text-[#B42318]">{formatElapsedTime(elapsedSeconds)}</span>
-                    <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#EEF5F3]">
+                    <span className="text-[12px] font-medium text-rose-600">{formatElapsedTime(elapsedSeconds)}</span>
+                    <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#E8E6E0]">
                       <div
                         className="h-full rounded-full bg-[#1A5345] transition-all duration-150"
                         style={{ width: `${Math.max(6, audioLevel)}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-muted-foreground">Voice level</span>
+                    <span className="text-[11px] text-muted-foreground">Voice level</span>
                   </div>
                 ) : null}
                 {listening && interimText ? (
-                  <p id={`${field.key}-interim`} className="text-[11px] leading-snug text-[#6B7280]">
+                  <p id={`${field.key}-interim`} className="text-[12px] leading-snug text-muted-foreground">
                     {interimText}
                   </p>
                 ) : null}

@@ -14,7 +14,8 @@
     },
     "roles": {
       "assistant": "Assistant",
-      "doctor": "Doctor"
+      "doctor": "Doctor",
+      "patient": "Patient"
     },
     "search": {
       "placeholder": "Search patients, appointments...",
@@ -997,6 +998,177 @@
       "dashboard": {
         "title": "Doctor dashboard",
         "subtitle": "Overview & patient insights"
+      }
+    }
+  },
+  "patient": {
+    "portalName": "Patient Portal",
+    "search": {
+      "placeholder": "Search appointments, doctors...",
+      "dialogTitle": "Search",
+      "dialogDescription": "Search appointments, doctors, and pages",
+      "inputPlaceholder": "Search appointments, doctors, pages...",
+      "empty": "No results found. Try another keyword.",
+      "open": "Open search",
+      "quickNav": "Quick navigation",
+      "browseDoctors": "Browse doctors"
+    },
+    "header": {
+      "default": {
+        "title": "Patient dashboard",
+        "subtitle": "Overview & care summary"
+      },
+      "dashboard": {
+        "title": "Patient dashboard",
+        "subtitle": "Overview & care summary"
+      },
+      "appointments": {
+        "title": "Appointments",
+        "subtitle": "View and manage your appointments"
+      },
+      "doctorDirectory": {
+        "title": "Doctor directory",
+        "subtitle": "Find and connect with medical specialists"
+      },
+      "queue": {
+        "title": "Clinic queue",
+        "subtitle": "Your wait status for today's visit"
+      },
+      "consultations": {
+        "title": "Consultations",
+        "subtitle": "Visit history and clinical notes"
+      },
+      "labOrders": {
+        "title": "Lab orders",
+        "subtitle": "Ordered tests and results"
+      },
+      "vitals": {
+        "title": "Vitals & measurements",
+        "subtitle": "Track your health metrics and progression"
+      },
+      "medications": {
+        "title": "Medications",
+        "subtitle": "Manage your prescriptions & doses"
+      },
+      "aiChat": {
+        "title": "Care agent",
+        "subtitle": "Ask questions — demo replies only"
+      },
+      "chat": {
+        "title": "Chats",
+        "subtitle": "Messages & conversations"
+      },
+      "account": {
+        "title": "Account",
+        "subtitle": "Profile and notification settings"
+      },
+      "notifications": {
+        "title": "Notifications",
+        "subtitle": "Appointments, results, and care alerts"
+      }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "unreadCount": "{count} unread",
+      "allCaughtUp": "All caught up",
+      "markAllRead": "Mark all as read",
+      "empty": "No notifications yet.",
+      "viewAll": "View all",
+      "pageUnread": "{count, plural, one {# unread notification} other {# unread notifications}}",
+      "pageAllCaughtUp": "All caught up — no unread notifications.",
+      "searchPlaceholder": "Search by message or type…",
+      "filterPlaceholder": "Filter by type",
+      "noMatchesTitle": "No notifications match",
+      "noMatchesHint": "Try a different search or filter.",
+      "clearFilters": "Clear filters",
+      "showingCount": "Showing {shown} of {total} notifications"
+    },
+    "account": {
+      "editProfile": "Edit profile",
+      "memberSince": "Member since",
+      "years": "years",
+      "loadErrorTitle": "Could not load your profile",
+      "loadErrorDescription": "Please try again in a moment.",
+      "tryAgain": "Try again",
+      "profileSavedTitle": "Profile updated",
+      "profileSavedDesc": "Your account details were saved.",
+      "sections": {
+        "contact": "Contact",
+        "personal": "Personal information",
+        "health": "Health profile"
+      },
+      "fields": {
+        "phone": "Phone",
+        "email": "Email",
+        "address": "Address",
+        "dateOfBirth": "Date of birth",
+        "gender": "Gender",
+        "bloodType": "Blood type",
+        "nationalId": "National ID",
+        "maritalStatus": "Marital status",
+        "occupation": "Occupation",
+        "height": "Height",
+        "weight": "Weight",
+        "bmi": "BMI",
+        "smoking": "Smoking status"
+      },
+      "risk": {
+        "low": "Low risk",
+        "moderate": "Moderate risk",
+        "high": "High risk"
+      },
+      "values": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other",
+        "single": "Single",
+        "married": "Married",
+        "divorced": "Divorced",
+        "widowed": "Widowed",
+        "never": "Never",
+        "former": "Former smoker",
+        "current": "Current smoker",
+        "notSet": "—"
+      },
+      "notificationsCard": {
+        "title": "Notifications",
+        "description": "View appointment reminders, lab results, and care alerts.",
+        "action": "Open notifications"
+      },
+      "editDialog": {
+        "title": "Edit profile",
+        "avatarSection": "Profile photo",
+        "fullName": "Full name",
+        "email": "Email",
+        "phone": "Phone",
+        "maritalStatus": "Marital status",
+        "maritalStatusPlaceholder": "Select status",
+        "notSet": "Not set",
+        "occupation": "Occupation",
+        "address": "Address",
+        "cancel": "Cancel",
+        "save": "Save changes"
+      },
+      "medicationAdherence": {
+        "title": "7-day medication adherence",
+        "todayProgress": "Today's doses",
+        "doses": "{taken}/{total} taken",
+        "noMedications": "No active prescriptions yet. Your adherence score will appear here once medications are added.",
+        "viewMedications": "View medications",
+        "status": {
+          "onTrack": "On track",
+          "moderate": "Moderate",
+          "needsAttention": "Needs attention"
+        },
+        "weekDays": {
+          "0": "6 days ago",
+          "1": "5 days ago",
+          "2": "4 days ago",
+          "3": "3 days ago",
+          "4": "2 days ago",
+          "5": "Yesterday",
+          "6": "Today"
+        }
       }
     }
   },

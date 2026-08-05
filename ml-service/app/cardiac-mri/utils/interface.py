@@ -133,9 +133,9 @@ def segment(inputs, model):
     """
     return mask of an input file in format (10, 224, 224) to save in .nii file
     """
-    results = []
+    device = next(model.parameters()).device
     batch_size = inputs.shape[0]
-    inputs = inputs.reshape(batch_size*2,1, 224, 224)
+    inputs = inputs.reshape(batch_size * 2, 1, 224, 224).to(device)
     with torch.no_grad():
         outputs = model(inputs)
         

@@ -33,19 +33,55 @@ export class ChromaService implements OnModuleInit {
     return this._ready;
   }
 
+  /** Vector search needs Chroma + an embedding provider (BGE-M3 TEI or Cohere). */
+  get isSearchEnabled() {
+    return this._ready && this.embeddingService.isEnabled();
+  }
+
   async getOrCreateCollection(name: string): Promise<Collection> {
+    const dim = this.embeddingService.getDimension();
     try {
-      return await this.client.getCollection({
+      const col = await this.client.getCollection({
         name,
         embeddingFunction: this.embeddingFunction,
       });
+      const storedDim = Number(col.metadata?.embedding_dim);
+      if (dim && storedDim && storedDim !== dim) {
+        this.logger.warn(
+          `Chroma collection "${name}" is ${storedDim}d but provider is ${dim}d — recreating`,
+        );
+        return this.recreateCollection(name);
+      }
+      return col;
     } catch {
-      return this.client.createCollection({
-        name,
-        metadata: { 'hnsw:space': 'cosine' },
-        embeddingFunction: this.embeddingFunction,
-      });
+      return this.createCollection(name);
     }
+  }
+
+  private createCollection(name: string): Promise<Collection> {
+    const dim = this.embeddingService.getDimension();
+    return this.client.createCollection({
+      name,
+      metadata: {
+        'hnsw:space': 'cosine',
+        ...(dim ? { embedding_dim: String(dim) } : {}),
+      },
+      embeddingFunction: this.embeddingFunction,
+    });
+  }
+
+  private async recreateCollection(name: string): Promise<Collection> {
+    try {
+      await this.client.deleteCollection({ name });
+    } catch {
+      // collection may not exist
+    }
+    return this.createCollection(name);
+  }
+
+  private isDimensionMismatchError(err: unknown): boolean {
+    const msg = String(err);
+    return /expecting embedding with dimension/i.test(msg);
   }
 
   async upsertDocuments(
@@ -57,14 +93,30 @@ export class ChromaService implements OnModuleInit {
       metadata?: Record<string, string | number | boolean>;
     }>,
   ): Promise<void> {
-    if (!this._ready) return;
-    const col = await this.getOrCreateCollection(collectionName);
-    await col.upsert({
-      ids: docs.map((d) => d.id),
-      documents: docs.map((d) => d.document),
-      embeddings: docs.map((d) => d.embedding),
-      metadatas: docs.map((d) => d.metadata ?? {}),
-    });
+    if (!this._ready || docs.length === 0) return;
+
+    let col = await this.getOrCreateCollection(collectionName);
+    try {
+      await col.upsert({
+        ids: docs.map((d) => d.id),
+        documents: docs.map((d) => d.document),
+        embeddings: docs.map((d) => d.embedding),
+        metadatas: docs.map((d) => d.metadata ?? {}),
+      });
+    } catch (err) {
+      if (!this.isDimensionMismatchError(err)) throw err;
+      const dim = this.embeddingService.getDimension();
+      this.logger.warn(
+        `Recreating Chroma collection "${collectionName}" for ${dim ?? 'new'}d embeddings`,
+      );
+      col = await this.recreateCollection(collectionName);
+      await col.upsert({
+        ids: docs.map((d) => d.id),
+        documents: docs.map((d) => d.document),
+        embeddings: docs.map((d) => d.embedding),
+        metadatas: docs.map((d) => d.metadata ?? {}),
+      });
+    }
   }
 
   async deleteDocuments(
@@ -124,7 +176,7 @@ export class ChromaService implements OnModuleInit {
     }
   }
 
-  // ─── Embedding helper (delegates to Cohere EmbeddingService) ──────────────
+  // ─── Embedding helper (optional; disabled in Groq-only setup) ─────────────
 
   async embed(text: string): Promise<number[] | null> {
     return this.embeddingService.embed(text);

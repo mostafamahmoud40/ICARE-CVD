@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
 import type { QueuePatient, QueueStats, QueueStatus } from "./doctorQueue.types"
+import { startBriefingPreparation } from "./[queueEntryId]/consultation/useBriefingPreparation"
 
 /* ---------- API helpers ---------- */
 
@@ -68,6 +69,7 @@ export function useDoctorQueue() {
     arrived: 0,
     inWaiting: 0,
     inConsultation: 0,
+    reportPending: 0,
     completed: 0,
     noShow: 0,
     avgWaitMin: 0,
@@ -75,7 +77,12 @@ export function useDoctorQueue() {
   }
 
   const tabCounts = useMemo(() => ({
-    active: stats.scheduled + stats.arrived + stats.inWaiting + stats.inConsultation,
+    active:
+      stats.scheduled +
+      stats.arrived +
+      stats.inWaiting +
+      stats.inConsultation +
+      (stats.reportPending ?? 0),
     scheduled: stats.scheduled,
     completed: stats.completed,
     "no-show": stats.noShow,
@@ -86,6 +93,7 @@ export function useDoctorQueue() {
   }
 
   const moveToWaiting = (queueEntryId: string) => {
+    startBriefingPreparation(queueEntryId)
     statusMutation.mutate({ queueId: queueEntryId, status: "waiting" })
   }
 

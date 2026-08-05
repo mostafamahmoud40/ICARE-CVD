@@ -3,67 +3,31 @@
 import * as React from "react"
 import Link from "next/link"
 import type { PatientDashboardData, Vital, Appointment, Medication } from "./dashboard.types"
+import { CareTimelineSection } from "./CareTimelineSection"
+import { DashboardMedicationsSummary } from "./DashboardMedicationsSummary"
 
-import {
-  AdherencePill,
-  MedicationDots,
-  MedicationSnapshotCard,
-} from "@/app/(assistant)/assistant-medications/assistantMedications.shared"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart"
-import * as RechartsPrimitive from "recharts"
 import { cn } from "@/lib/utils"
 import {
   ActivityIcon,
   AlertCircleIcon,
-  ArrowRightIcon,
   CalendarClockIcon,
-  CheckCircle2Icon,
   ClockIcon,
-  GaugeIcon,
+  HeartIcon,
   HeartPulseIcon,
   MessageCircleIcon,
   PillIcon,
   StethoscopeIcon,
-  TrendingDownIcon,
+  ThermometerIcon,
+  WindIcon,
 } from "lucide-react"
-
-const weeklyVitalsData = [
-  { date: "2026-04-01", heartRate: 72, bloodPressure: 118 },
-  { date: "2026-04-02", heartRate: 75, bloodPressure: 120 },
-  { date: "2026-04-03", heartRate: 78, bloodPressure: 119 },
-  { date: "2026-04-04", heartRate: 74, bloodPressure: 118 },
-  { date: "2026-04-05", heartRate: 76, bloodPressure: 117 },
-  { date: "2026-04-06", heartRate: 78, bloodPressure: 118 },
-  { date: "2026-04-07", heartRate: 77, bloodPressure: 119 },
-]
-
-const monthlyVitalsData = [
-  { date: "2026-03-08", heartRate: 74, bloodPressure: 120 },
-  { date: "2026-03-15", heartRate: 76, bloodPressure: 119 },
-  { date: "2026-03-22", heartRate: 73, bloodPressure: 118 },
-  { date: "2026-03-29", heartRate: 75, bloodPressure: 120 },
-  { date: "2026-04-05", heartRate: 76, bloodPressure: 117 },
-  { date: "2026-04-06", heartRate: 78, bloodPressure: 118 },
-]
-
-const vitalsRangeOptions = [
-  { key: "1W", label: "1W" },
-  { key: "1M", label: "1M" },
-] as const
-
-const vitalsChartConfig = {
-  heartRate: { label: "Heart Rate", color: "#1A5345" },
-  bloodPressure: { label: "BP Systolic", color: "#E89042" },
-} satisfies ChartConfig
+import {
+  getVitalRangeStatus,
+  VITAL_STATUS_LABELS,
+  VITAL_STATUS_STYLES,
+} from "./vitalStatus.utils"
 
 function formatTodayHeading() {
   return new Intl.DateTimeFormat(undefined, {
@@ -83,41 +47,6 @@ function formatDateTime(iso: string) {
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(iso))
-}
-
-function formatTime(iso: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(new Date(iso))
-}
-
-function adherencePctFromHistory(history: boolean[]) {
-  if (!history.length) return 100
-  const taken = history.filter(Boolean).length
-  return Math.round((taken / history.length) * 100)
-}
-
-function todayStatusLabel(med: Medication) {
-  if (med.status === "taken" && med.lastTakenAt) {
-    return `Taken at ${formatTime(med.lastTakenAt)}`
-  }
-  if (med.status === "missed") {
-    return `Missed — due at ${med.dueAt ? formatTime(med.dueAt) : "scheduled time"}`
-  }
-  return `Due at ${med.dueAt ? formatTime(med.dueAt) : "scheduled time"}`
-}
-
-function todayStatusBadgeClass(status: Medication["status"]) {
-  switch (status) {
-    case "taken":
-      return "border-0 bg-emerald-500 text-white hover:bg-emerald-500"
-    case "due":
-      return "border-0 bg-sky-500 text-white hover:bg-sky-500"
-    case "missed":
-      return "border-0 bg-rose-500 text-white hover:bg-rose-500"
-  }
 }
 
 function computeHealthScore(medications: Medication[]) {
@@ -174,24 +103,40 @@ function StatCard({
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md">
       <Icon className={cn("absolute right-4 top-4 size-5", iconClassName)} aria-hidden />
-      <p className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="text-[13px] font-bold text-muted-foreground">{label}</p>
       <h3 className="mt-2 font-serif text-[32px] font-bold text-[#1A1F1E]">{value}</h3>
       <div className="mt-3 text-[11px] font-medium text-muted-foreground">{hint}</div>
     </div>
   )
 }
 
+function vitalIcon(vital: Vital) {
+  const key = `${vital.id} ${vital.label}`.toLowerCase()
+  if (key.includes("heart") || key.includes("rate")) return HeartIcon
+  if (key.includes("blood") || key.includes("pressure")) return HeartPulseIcon
+  if (key.includes("spo") || key.includes("oxygen")) return WindIcon
+  if (key.includes("temp")) return ThermometerIcon
+  return ActivityIcon
+}
+
 function VitalCard({ vital }: { vital: Vital }) {
+  const rangeStatus = getVitalRangeStatus(vital)
+  const styles = VITAL_STATUS_STYLES[rangeStatus]
+  const Icon = vitalIcon(vital)
+
   return (
     <div className="rounded-xl border border-[#E8E6E0]/60 bg-white p-4 shadow-sm transition-all hover:shadow-md">
-      <div className="flex items-center gap-2">
-        <ActivityIcon className="size-4 text-[#1A5345]" aria-hidden />
-        <p className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground">
-          {vital.label}
-        </p>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <Icon className={cn("size-4 shrink-0", styles.icon)} aria-hidden />
+          <p className="text-[13px] font-bold text-[#1A1F1E]">{vital.label}</p>
+        </div>
+        <span className={cn("shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-bold", styles.badge)}>
+          {VITAL_STATUS_LABELS[rangeStatus]}
+        </span>
       </div>
       <div className="mt-3 flex items-baseline gap-2">
-        <span className="font-serif text-[28px] font-bold leading-none text-[#1A1F1E]">
+        <span className={cn("font-serif text-[28px] font-bold leading-none tabular-nums", styles.value)}>
           {vital.value}
         </span>
         {vital.unit ? (
@@ -261,97 +206,11 @@ function AppointmentRow({ appt, isNext = false }: { appt: Appointment; isNext?: 
   )
 }
 
-function DashboardMedicationRow({ med }: { med: Medication }) {
-  const adherencePct = adherencePctFromHistory(med.adherenceHistory)
-
-  return (
-    <tr className="group transition-colors hover:bg-[#F9F8F5]/30">
-      <td className="px-5 py-4">
-        <p className="text-[14px] font-bold text-[#1A1F1E] transition-colors group-hover:text-[#1A5345]">
-          {med.name}
-        </p>
-        <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">{med.dosage}</p>
-      </td>
-      <td className="px-5 py-4">
-        <p className="max-w-[220px] text-[13px] font-medium leading-relaxed text-[#1A1F1E]/80">
-          {med.frequency}
-        </p>
-        <p className="mt-1 text-[12px] font-medium text-muted-foreground">{todayStatusLabel(med)}</p>
-        <Badge
-          variant="default"
-          className={cn("mt-2 rounded-lg px-2 py-0.5 text-[10px] font-bold capitalize", todayStatusBadgeClass(med.status))}
-        >
-          {med.timeOfDay} · {med.status}
-        </Badge>
-      </td>
-      <td className="px-5 py-4">
-        <div className="flex max-w-[148px] flex-col gap-1.5">
-          <MedicationDots history={med.adherenceHistory} />
-          <div className="flex items-center gap-2">
-            <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-[#E8E6E0]">
-              <div
-                className={cn(
-                  "h-full rounded-full bg-emerald-500",
-                  adherencePct < 85 && "bg-amber-500",
-                  adherencePct < 65 && "bg-rose-500",
-                )}
-                style={{ width: `${adherencePct}%` }}
-              />
-            </div>
-            <span className="shrink-0 text-[10px] font-bold tabular-nums text-muted-foreground">
-              {adherencePct}%
-            </span>
-          </div>
-        </div>
-      </td>
-      <td className="px-5 py-4 text-right">
-        {med.status === "taken" ? (
-          <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#1A5345]">
-            <CheckCircle2Icon className="size-4" aria-hidden />
-            Taken
-          </span>
-        ) : med.status === "missed" ? (
-          <span className="text-[12px] font-bold text-rose-600">Missed</span>
-        ) : (
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="h-8 rounded-lg border-0 bg-transparent px-3 text-[12px] font-bold text-[#1A5345] shadow-none hover:bg-[#1A5345]/5"
-          >
-            <Link href="/medications">Mark taken</Link>
-          </Button>
-        )}
-      </td>
-    </tr>
-  )
-}
-
 function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
-  const [activeVitalsRange, setActiveVitalsRange] =
-    React.useState<(typeof vitalsRangeOptions)[number]["key"]>("1W")
-
-  const chartData = activeVitalsRange === "1W" ? weeklyVitalsData : monthlyVitalsData
-
-  const avgHeartRate = Math.round(
-    chartData.reduce((sum, d) => sum + d.heartRate, 0) / chartData.length,
-  )
-  const avgBP = Math.round(
-    chartData.reduce((sum, d) => sum + d.bloodPressure, 0) / chartData.length,
-  )
-
   const healthScore = computeHealthScore(data.medications)
   const medsTaken = data.medications.filter((m) => m.status === "taken").length
   const medsTotal = data.medications.length
-  const medsDue = Math.max(0, medsTotal - medsTaken)
   const medsProgress = medsTotal > 0 ? Math.round((medsTaken / medsTotal) * 100) : 0
-  const overallAdherence =
-    medsTotal > 0
-      ? Math.round(
-          data.medications.reduce((sum, m) => sum + adherencePctFromHistory(m.adherenceHistory), 0) /
-            medsTotal,
-        )
-      : 100
   const nextFollowUpDays = daysUntil(data.careSummary.nextFollowUpAt)
 
   return (
@@ -399,6 +258,8 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
         />
       </div>
 
+      <CareTimelineSection items={data.careTimeline} />
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <SectionHeader
@@ -415,110 +276,6 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
             {data.vitals.map((vital) => (
               <VitalCard key={vital.id} vital={vital} />
             ))}
-          </div>
-
-          <div className="rounded-2xl border border-[#E8E6E0]/60 bg-white p-5 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 className="font-serif text-[16px] font-bold text-[#1A1F1E]">Vitals Trends</h3>
-                <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">
-                  Heart rate and blood pressure over time
-                </p>
-              </div>
-              <div className="inline-flex rounded-full border border-[#D6E6DF] bg-[#F8FCFA] p-1">
-                {vitalsRangeOptions.map((range) => (
-                  <button
-                    key={range.key}
-                    type="button"
-                    onClick={() => setActiveVitalsRange(range.key)}
-                    className={cn(
-                      "rounded-full px-3 py-1 text-[11px] font-bold transition-colors",
-                      activeVitalsRange === range.key
-                        ? "bg-[#1A5345] text-white"
-                        : "text-[#4F6D64] hover:bg-[#E8F0EE]",
-                    )}
-                  >
-                    {range.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-3.5">
-                <HeartPulseIcon className="size-6 shrink-0 text-[#1A5345]" aria-hidden />
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                    Heart Rate
-                  </p>
-                  <p className="font-serif text-[24px] font-bold text-[#1A1F1E]">
-                    {avgHeartRate}{" "}
-                    <span className="font-sans text-[13px] font-medium text-muted-foreground">bpm</span>
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/50 p-3.5">
-                <GaugeIcon className="size-6 shrink-0 text-[#CC5533]" aria-hidden />
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                    Blood Pressure
-                  </p>
-                  <p className="font-serif text-[24px] font-bold text-[#1A1F1E]">
-                    {avgBP}{" "}
-                    <span className="font-sans text-[13px] font-medium text-muted-foreground">mmHg</span>
-                  </p>
-                  <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <TrendingDownIcon className="size-3" aria-hidden />
-                    Stable trend
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-xl border border-[#E8E6E0]/60 bg-[#F9F8F5]/30 p-3">
-              <ChartContainer config={vitalsChartConfig} className="h-56 w-full">
-                <RechartsPrimitive.LineChart accessibilityLayer data={chartData}>
-                  <RechartsPrimitive.CartesianGrid vertical={false} stroke="#E7EFEB" />
-                  <RechartsPrimitive.XAxis
-                    dataKey="date"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={10}
-                    tickFormatter={(value) =>
-                      new Date(value).toLocaleDateString("en-US", { weekday: "short" })
-                    }
-                  />
-                  <RechartsPrimitive.YAxis hide />
-                  <ChartTooltip
-                    cursor={{ stroke: "#DDE9E4", strokeWidth: 1 }}
-                    content={
-                      <ChartTooltipContent
-                        labelFormatter={(value) =>
-                          new Date(value).toLocaleDateString("en-US", {
-                            day: "numeric",
-                            month: "long",
-                          })
-                        }
-                      />
-                    }
-                  />
-                  <RechartsPrimitive.Line
-                    type="monotone"
-                    dataKey="heartRate"
-                    stroke="var(--color-heartRate)"
-                    strokeWidth={2}
-                    dot={{ fill: "var(--color-heartRate)", strokeWidth: 0, r: 3 }}
-                  />
-                  <RechartsPrimitive.Line
-                    type="monotone"
-                    dataKey="bloodPressure"
-                    stroke="var(--color-bloodPressure)"
-                    strokeWidth={2}
-                    dot={{ fill: "var(--color-bloodPressure)", strokeWidth: 0, r: 3 }}
-                  />
-                </RechartsPrimitive.LineChart>
-              </ChartContainer>
-            </div>
           </div>
         </div>
 
@@ -565,7 +322,13 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
               </p>
             </div>
           </div>
+        </div>
 
+        <div className="h-full lg:col-span-2">
+          <DashboardMedicationsSummary medications={data.medications} compact />
+        </div>
+
+        <div className="flex h-full flex-col space-y-6">
           <SectionHeader
             title="Upcoming Visits"
             dotClassName="bg-[#1A5345]"
@@ -576,92 +339,12 @@ function PatientDashboardContent({ data }: { data: PatientDashboardData }) {
             }
           />
 
-          <div className="max-h-[320px] space-y-3 overflow-y-auto pr-1">
+          <div className="max-h-[320px] space-y-3 overflow-y-auto pr-1 lg:max-h-none">
             {data.upcomingAppointments.map((appt, idx) => (
               <AppointmentRow key={appt.id} appt={appt} isNext={idx === 0} />
             ))}
           </div>
         </div>
-      </div>
-
-      <div className="space-y-6">
-        <SectionHeader
-          title="Today's Medications"
-          dotClassName="bg-[#2E8B68]"
-          badge={
-            <span className="rounded-lg bg-[#E8F0EE] px-2.5 py-0.5 text-[11px] font-bold text-[#1A5345]">
-              {medsTaken} / {medsTotal} taken
-            </span>
-          }
-        />
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <MedicationSnapshotCard label="Adherence score">
-            <div className="flex items-baseline gap-2">
-              <span className="text-[18px] font-bold leading-none tabular-nums text-[#1A1F1E]">
-                {overallAdherence}%
-              </span>
-              <AdherencePill pct={overallAdherence} />
-            </div>
-          </MedicationSnapshotCard>
-          <MedicationSnapshotCard label="Medications">
-            <div className="flex items-center gap-2">
-              <span className="text-[18px] font-bold leading-none tabular-nums text-[#1A5345]">
-                {medsTotal}
-              </span>
-              <PillIcon className="size-5 shrink-0 text-[#1A5345]" aria-hidden />
-            </div>
-          </MedicationSnapshotCard>
-          <MedicationSnapshotCard label="Taken today">
-            <p className="text-[18px] font-bold leading-none tabular-nums text-emerald-600">{medsTaken}</p>
-          </MedicationSnapshotCard>
-          <MedicationSnapshotCard label="Due today">
-            <p className="text-[18px] font-bold leading-none tabular-nums text-amber-600">{medsDue}</p>
-          </MedicationSnapshotCard>
-        </div>
-
-        <section>
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <PillIcon className="size-5 text-[#1A5345]" aria-hidden />
-              <h3 className="text-[18px] font-bold text-[#1A1F1E]">Today&apos;s doses</h3>
-              <span className="rounded-lg bg-[#F9F8F5] px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
-                {medsProgress}% complete
-              </span>
-            </div>
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="h-8 rounded-lg border-[#E8E6E0] bg-white text-[12px] font-bold text-[#1A5345] shadow-sm hover:bg-[#F9F8F5]"
-            >
-              <Link href="/medications">
-                View all medications
-                <ArrowRightIcon className="ml-1.5 size-3.5" aria-hidden />
-              </Link>
-            </Button>
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-[#E8E6E0]/80 bg-white shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[700px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-[#E8E6E0]/60 bg-[#F9F8F5]">
-                    <th className="px-5 py-4 text-[13px] font-bold text-[#1A1F1E]">Drug name</th>
-                    <th className="px-5 py-4 text-[13px] font-bold text-[#1A1F1E]">Schedule</th>
-                    <th className="px-5 py-4 text-[13px] font-bold text-[#1A1F1E]">7-day adherence</th>
-                    <th className="px-5 py-4 text-right text-[13px] font-bold text-[#1A1F1E]">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E8E6E0]/40">
-                  {data.medications.map((med) => (
-                    <DashboardMedicationRow key={med.id} med={med} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
       </div>
 
       <div className="border-t border-[#E8E6E0]/60 pt-6">
@@ -742,12 +425,21 @@ function DashboardLoading() {
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-4 lg:col-span-2">
             <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-40 w-full rounded-2xl" />
-            <Skeleton className="h-64 w-full rounded-2xl" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Skeleton className="h-32 w-full rounded-2xl" />
+              <Skeleton className="h-32 w-full rounded-2xl" />
+            </div>
           </div>
           <div className="space-y-4">
             <Skeleton className="h-6 w-32" />
-            <Skeleton className="h-[300px] w-full rounded-2xl" />
+            <Skeleton className="h-56 w-full rounded-2xl" />
+          </div>
+          <div className="lg:col-span-2">
+            <Skeleton className="h-72 w-full rounded-2xl" />
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-64 w-full rounded-2xl" />
           </div>
         </div>
       </div>
@@ -792,7 +484,7 @@ export function PatientDashboard({ data, isLoading, isError, error }: PatientDas
         />
         <div className="flex flex-col px-6 pb-5 pt-4 sm:px-8 sm:pb-6 sm:pt-5">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="border-l-[3px] border-[#CC5533] pl-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground sm:text-[12px]">
+            <p className="border-l-[3px] border-[#CC5533] pl-3 text-[12px] font-bold text-muted-foreground sm:text-[13px]">
               {formatTodayHeading()}
             </p>
             <div className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">

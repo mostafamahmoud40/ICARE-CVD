@@ -1,10 +1,9 @@
 import { useCallback, useRef, useState, useSyncExternalStore } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
-import { getMockAssistantReply } from "./mock-ai-reply"
-import type { AiChatDisplayMessage, AiChatMessage } from "./ai-chat.types"
+import type { AgentActionRecord, AiChatDisplayMessage, AiChatMessage, PipelineStageRecord } from "./ai-chat.types"
 
-const THREAD_ID = "ai-assistant"
+const THREAD_ID = "icare-care-agent"
 
 function formatTime(d: Date) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -34,6 +33,8 @@ type ApiChatResponse = {
     visitType: string
   }
   appointmentsUpdated?: boolean
+  agentActions?: AgentActionRecord[]
+  pipelineTrace?: PipelineStageRecord[]
 }
 
 type HistoryItem = { role: "user" | "assistant"; content: string }
@@ -41,12 +42,37 @@ type HistoryItem = { role: "user" | "assistant"; content: string }
 const initialAssistant: AiChatMessage = {
   id: "welcome",
   role: "assistant",
-  greeting: "Hello,",
-  text: "I'm your ICARE health assistant. Ask about appointments, medications, or your care plan.",
+  greeting: "ICARE Care Agent",
+  text: "I'm your clinic agent — I can check your appointments, book, cancel, reschedule, and answer care questions using your live records.\n\nTry: **ما هي مواعيدي؟** or **Book me a follow-up**.",
   actions: [
-    { id: "book-followup", label: "Book Follow-up", icon: "calendar", href: "/doctor-directory" },
+    { id: "view-appointments", label: "My appointments", icon: "calendar", href: "/appointments" },
+    { id: "book", label: "Book a visit", icon: "calendar", href: "/doctor-directory" },
   ],
   sentAt: new Date(),
+}
+
+function buildAssistantActions(response: ApiChatResponse): AiChatMessage["actions"] {
+  if (response.booking) {
+    return [
+      {
+        id: "view-appointments",
+        label: "View My Appointments",
+        icon: "calendar",
+        href: "/appointments",
+      },
+    ]
+  }
+  if (response.appointmentsUpdated) {
+    return [
+      {
+        id: "view-appointments",
+        label: "View updated appointments",
+        icon: "calendar",
+        href: "/appointments",
+      },
+    ]
+  }
+  return undefined
 }
 
 export function usePatientAiChat() {
@@ -54,7 +80,6 @@ export function usePatientAiChat() {
   const showTimes = useClientTimesReady()
   const queryClient = useQueryClient()
 
-  /** Maintained in a ref so the mutationFn always sees the latest list without stale closure. */
   const messagesRef = useRef<AiChatMessage[]>([initialAssistant])
 
   function appendMessages(msgs: AiChatMessage[]) {
@@ -67,25 +92,16 @@ export function usePatientAiChat() {
       const text = raw.trim()
       if (!text) return null
 
-      // Build history from all messages except the initial welcome and the
-      // user message we just appended in onMutate (last element).
       const history: HistoryItem[] = messagesRef.current
-        .slice(1, -1) // skip welcome + the just-added user message
+        .slice(1, -1)
         .filter((m) => m.role === "user" || m.role === "assistant")
         .map((m) => ({ role: m.role as "user" | "assistant", content: m.text }))
 
-      try {
-        const { data } = await apiClient.post<ApiChatResponse>("/ai/chat", {
-          message: text,
-          history,
-        })
-        return data
-      } catch {
-        // Fallback to local mock when API is unavailable (dev / offline)
-        await new Promise((r) => setTimeout(r, 450 + Math.random() * 400))
-        const mock = getMockAssistantReply(text)
-        return { reply: mock.text }
-      }
+      const { data } = await apiClient.post<ApiChatResponse>("/ai/chat", {
+        message: text,
+        history,
+      })
+      return data
     },
 
     onMutate: async (raw) => {
@@ -104,22 +120,14 @@ export function usePatientAiChat() {
       if (!response) return
 
       const booking = response.booking
-
       const assistantMsg: AiChatMessage = {
         id: newId("a"),
         role: "assistant",
         text: response.reply,
-        greeting: booking ? "Appointment confirmed," : undefined,
-        actions: booking
-          ? [
-              {
-                id: "view-appointments",
-                label: "View My Appointments",
-                icon: "calendar",
-                href: "/appointments",
-              },
-            ]
-          : undefined,
+        greeting: booking ? "Appointment confirmed," : response.agentActions?.length ? "Done," : undefined,
+        agentActions: response.agentActions,
+        pipelineTrace: response.pipelineTrace,
+        actions: buildAssistantActions(response),
         sentAt: new Date(),
       }
 
@@ -134,7 +142,7 @@ export function usePatientAiChat() {
       const errMsg: AiChatMessage = {
         id: newId("err"),
         role: "assistant",
-        text: "Something went wrong generating a reply. Please try again.",
+        text: "The agent couldn't complete that request. Check your connection and try again.",
         sentAt: new Date(),
       }
       appendMessages([errMsg])

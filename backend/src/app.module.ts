@@ -20,6 +20,7 @@ import { DocumentsModule } from './modules/documents/documents.module';
 import { LabModule } from './modules/lab/lab.module';
 import { ConsultationModule } from './modules/consultation/consultation.module';
 import { PatientQueueModule } from './modules/patient/queue/patient-queue.module';
+import { PatientAccountModule } from './modules/patient/account/patient-account.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
@@ -44,6 +45,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     LabModule,
     ConsultationModule,
     PatientQueueModule,
+    PatientAccountModule,
     NotificationsModule,
   ],
   controllers: [],

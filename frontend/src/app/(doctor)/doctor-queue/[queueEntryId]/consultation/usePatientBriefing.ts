@@ -2,120 +2,197 @@
 
 import { useMemo } from "react"
 import type { PatientSummary } from "./consultation.types"
+import { useBriefingPreparation } from "./useBriefingPreparation"
 
-export type BriefingMessageType =
-  | "greeting"
-  | "demographics"
-  | "conditions"
-  | "medications"
-  | "allergies"
-  | "family"
-  | "lifestyle"
-  | "risk"
-  | "complete"
+export type BriefingAlertSeverity = "critical" | "warning" | "info"
 
-export type BriefingMessage = {
+export type BriefingAlert = {
   id: string
-  type: BriefingMessageType
-  text: string
+  severity: BriefingAlertSeverity
+  title: string
+  detail: string
 }
 
-function buildMessages(summary: PatientSummary): BriefingMessage[] {
-  const { demographics, existingConditions, activeMedications, allergies, familyHistory, lifestyleFlags } = summary
-  const firstName = demographics.fullName.split(" ")[0]
+export type BriefingRiskTier = "high" | "moderate-high" | "moderate"
 
-  const messages: BriefingMessage[] = []
+export type PatientBriefingReport = {
+  patientName: string
+  demographicsLine: string
+  executiveSummary: string
+  riskTier: BriefingRiskTier
+  riskLabel: string
+  riskFactors: string[]
+  priorityAlerts: BriefingAlert[]
+  conditions: { name: string; detail: string }[]
+  medications: { name: string; detail: string }[]
+  familyHistory: { relationship: string; condition: string; detail: string }[]
+  lifestyleFlags: { label: string; value: string; riskLevel: string }[]
+  clinicalFocus: string[]
+}
 
-  messages.push({
-    id: "greeting",
-    type: "greeting",
-    text: `Hello Doctor! I've prepared a comprehensive briefing on your next patient. Let me walk you through everything I know about them...`,
-  })
+export const BRIEFING_PREP_STEPS = [
+  "Loading patient chart",
+  "Reviewing medications and allergies",
+  "Assessing cardiovascular risk",
+  "Compiling pre-visit report",
+] as const
 
-  messages.push({
-    id: "demographics",
-    type: "demographics",
-    text: `Patient: ${demographics.fullName}, ${demographics.age}-year-old ${demographics.gender}, Blood Type ${demographics.bloodType}. ${demographics.occupation}, ${demographics.maritalStatus}. Contact: ${demographics.phone}.`,
-  })
-
-  if (existingConditions.length > 0) {
-    const conditionTexts = existingConditions.map(
-      (c) => `${c.name} (${c.details}, diagnosed ${new Date(c.diagnosedAt).getFullYear()})`
-    )
-    messages.push({
-      id: "conditions",
-      type: "conditions",
-      text: `${firstName} has ${existingConditions.length} active condition${existingConditions.length > 1 ? "s" : ""}: ${conditionTexts.join("; ")}. ${existingConditions.length > 1 ? "These comorbidities significantly increase cardiovascular risk." : ""}`,
-    })
-  }
-
-  if (activeMedications.length > 0) {
-    const medTexts = activeMedications.map((m) => `${m.name} ${m.dose} ${m.frequency.toLowerCase()}`)
-    messages.push({
-      id: "medications",
-      type: "medications",
-      text: `Currently on ${activeMedications.length} medication${activeMedications.length > 1 ? "s" : ""}: ${medTexts.join("; ")}. All are currently active with no pauses.`,
-    })
-  }
-
-  if (allergies.length > 0) {
-    const allergyTexts = allergies.map((a) => `${a.allergen} (${a.reaction})`)
-    const hasAnaphylaxis = allergies.some((a) => a.reaction.toLowerCase().includes("anaphylaxis"))
-    messages.push({
-      id: "allergies",
-      type: "allergies",
-      text: `Important — ${allergies.length} allerg${allergies.length > 1 ? "ies" : "y"} documented: ${allergyTexts.join("; ")}. ${hasAnaphylaxis ? "WARNING: Anaphylaxis reaction detected — exercise extreme caution with related prescriptions!" : "Keep these in mind when prescribing."}`,
-    })
-  }
-
-  if (familyHistory.length > 0) {
-    const fhTexts = familyHistory.map((fh) => `${fh.relationship}: ${fh.condition} (${fh.details})`)
-    messages.push({
-      id: "family",
-      type: "family",
-      text: `Family history is significant: ${fhTexts.join("; ")}. ${familyHistory.some((fh) => fh.condition.toLowerCase().includes("myocardial") || fh.condition.toLowerCase().includes("mi")) ? "Early family history of cardiac events is a major risk factor." : ""}`,
-    })
-  }
-
+function buildRiskAssessment(summary: PatientSummary) {
+  const { existingConditions, familyHistory, lifestyleFlags } = summary
   const highRisks = lifestyleFlags.filter((f) => f.riskLevel === "high")
-  const modRisks = lifestyleFlags.filter((f) => f.riskLevel === "moderate")
-  if (lifestyleFlags.length > 0) {
-    const riskTexts = lifestyleFlags.map((f) => `${f.label}: ${f.value}`)
-    messages.push({
-      id: "lifestyle",
-      type: "lifestyle",
-      text: `Lifestyle risk factors: ${riskTexts.join("; ")}. ${highRisks.length > 0 ? `${highRisks.length} high-risk factor${highRisks.length > 1 ? "s" : ""} identified — ${highRisks.map((r) => r.label).join(", ")}.` : ""} ${modRisks.length > 0 ? `${modRisks.length} moderate-risk factors as well.` : ""}`,
+  const riskFactors: string[] = []
+
+  if (existingConditions.some((c) => c.name.toLowerCase().includes("hypertension"))) {
+    riskFactors.push("Hypertension")
+  }
+  if (existingConditions.some((c) => c.name.toLowerCase().includes("diabetes"))) {
+    riskFactors.push("Type 2 diabetes")
+  }
+  if (
+    existingConditions.some(
+      (c) =>
+        c.name.toLowerCase().includes("dyslipidemia") ||
+        c.name.toLowerCase().includes("lipid"),
+    )
+  ) {
+    riskFactors.push("Dyslipidemia")
+  }
+  if (
+    familyHistory.some(
+      (fh) =>
+        fh.condition.toLowerCase().includes("mi") ||
+        fh.condition.toLowerCase().includes("myocardial"),
+    )
+  ) {
+    riskFactors.push("Premature family MI")
+  }
+  if (lifestyleFlags.some((f) => f.label === "BMI" && f.riskLevel === "high")) {
+    riskFactors.push("Obesity")
+  }
+  if (lifestyleFlags.some((f) => f.label === "Smoking" && f.riskLevel === "moderate")) {
+    riskFactors.push("Former smoking")
+  }
+
+  const tier: BriefingRiskTier =
+    highRisks.length >= 2 || riskFactors.length >= 4
+      ? "high"
+      : highRisks.length >= 1 || riskFactors.length >= 2
+        ? "moderate-high"
+        : "moderate"
+
+  const label =
+    tier === "high"
+      ? "High CVD risk"
+      : tier === "moderate-high"
+        ? "Moderate-high CVD risk"
+        : "Moderate CVD risk"
+
+  return { tier, label, riskFactors }
+}
+
+function buildAlerts(summary: PatientSummary): BriefingAlert[] {
+  const alerts: BriefingAlert[] = []
+
+  for (const allergy of summary.allergies) {
+    const critical = allergy.reaction.toLowerCase().includes("anaphylaxis")
+    alerts.push({
+      id: `allergy-${allergy.id}`,
+      severity: critical ? "critical" : "warning",
+      title: `${allergy.allergen} allergy`,
+      detail: `${allergy.category} — ${allergy.reaction}`,
     })
   }
 
-  const riskFactors: string[] = []
-  if (existingConditions.some((c) => c.name.toLowerCase().includes("hypertension"))) riskFactors.push("hypertension")
-  if (existingConditions.some((c) => c.name.toLowerCase().includes("diabetes"))) riskFactors.push("diabetes")
-  if (existingConditions.some((c) => c.name.toLowerCase().includes("dyslipidemia") || c.name.toLowerCase().includes("lipid"))) riskFactors.push("dyslipidemia")
-  if (familyHistory.some((fh) => fh.condition.toLowerCase().includes("mi") || fh.condition.toLowerCase().includes("myocardial"))) riskFactors.push("premature family history of MI")
-  if (lifestyleFlags.some((f) => f.label === "BMI" && f.riskLevel === "high")) riskFactors.push("obesity")
-  if (lifestyleFlags.some((f) => f.label === "Smoking" && f.riskLevel === "moderate")) riskFactors.push("former smoking history")
+  for (const flag of summary.lifestyleFlags.filter((f) => f.riskLevel === "high")) {
+    alerts.push({
+      id: `lifestyle-${flag.label}`,
+      severity: "warning",
+      title: `High-risk lifestyle: ${flag.label}`,
+      detail: flag.value,
+    })
+  }
 
-  messages.push({
-    id: "risk",
-    type: "risk",
-    text: `Overall CVD Risk Assessment: ${highRisks.length >= 2 || riskFactors.length >= 4 ? "HIGH" : highRisks.length >= 1 || riskFactors.length >= 2 ? "MODERATE-HIGH" : "MODERATE"}. ${riskFactors.length > 0 ? `Key compounding factors: ${riskFactors.join(", ")}.` : ""} This patient ${riskFactors.length >= 4 ? "requires aggressive, multi-targeted risk factor management and close follow-up." : riskFactors.length >= 2 ? "would benefit from focused risk factor modification." : "should continue current management with monitoring."}`,
-  })
+  if (summary.familyHistory.some((fh) => fh.condition.toLowerCase().includes("myocardial"))) {
+    alerts.push({
+      id: "family-mi",
+      severity: "info",
+      title: "Significant family cardiac history",
+      detail: "Early MI in first-degree relative — factor into prevention strategy.",
+    })
+  }
 
-  messages.push({
-    id: "complete",
-    type: "complete",
-    text: `Briefing complete! I'm ready to assist during the consultation. You'll find my clinical suggestions in the AI panel on the right side. Feel free to ask me anything about ${firstName} during the examination.`,
-  })
-
-  return messages
+  return alerts
 }
 
-export function usePatientBriefing(summary: PatientSummary) {
-  const messages = useMemo(() => buildMessages(summary), [summary])
+function buildReport(summary: PatientSummary): PatientBriefingReport {
+  const { demographics, existingConditions, activeMedications, familyHistory, lifestyleFlags } =
+    summary
+  const { tier, label, riskFactors } = buildRiskAssessment(summary)
+
+  const executiveSummary = [
+    `${demographics.fullName} is a ${demographics.age}-year-old ${demographics.gender} with ${existingConditions.length} active condition${existingConditions.length === 1 ? "" : "s"} and ${activeMedications.length} current medication${activeMedications.length === 1 ? "" : "s"}.`,
+    summary.allergies.length > 0
+      ? `${summary.allergies.length} documented allerg${summary.allergies.length === 1 ? "y requires" : "ies require"} prescribing caution before starting therapy.`
+      : "No known drug allergies on file.",
+    riskFactors.length > 0
+      ? `Primary risk drivers: ${riskFactors.slice(0, 4).join(", ")}.`
+      : "Continue structured follow-up with standard CVD monitoring.",
+  ].join(" ")
+
+  const clinicalFocus: string[] = []
+  if (existingConditions.some((c) => c.name.toLowerCase().includes("hypertension"))) {
+    clinicalFocus.push("Blood pressure control and target organ protection")
+  }
+  if (existingConditions.some((c) => c.name.toLowerCase().includes("diabetes"))) {
+    clinicalFocus.push("Glycemic trends and cardiorenal protection")
+  }
+  if (activeMedications.length >= 3) {
+    clinicalFocus.push("Polypharmacy review and interaction screening")
+  }
+  if (summary.allergies.length > 0) {
+    clinicalFocus.push("Allergy-safe prescribing")
+  }
+  if (clinicalFocus.length === 0) {
+    clinicalFocus.push("Baseline cardiovascular assessment and risk stratification")
+  }
 
   return {
-    messages,
-    isComplete: true,
+    patientName: demographics.fullName,
+    demographicsLine: `${demographics.age} years · ${demographics.gender} · ${demographics.bloodType} · ${demographics.occupation}`,
+    executiveSummary,
+    riskTier: tier,
+    riskLabel: label,
+    riskFactors,
+    priorityAlerts: buildAlerts(summary),
+    conditions: existingConditions.map((c) => ({
+      name: c.name,
+      detail: c.details || `Diagnosed ${new Date(c.diagnosedAt).getFullYear()}`,
+    })),
+    medications: activeMedications.map((m) => ({
+      name: m.name,
+      detail: `${m.dose} · ${m.frequency}`,
+    })),
+    familyHistory: familyHistory.map((fh) => ({
+      relationship: fh.relationship,
+      condition: fh.condition,
+      detail: fh.details,
+    })),
+    lifestyleFlags: lifestyleFlags.map((f) => ({
+      label: f.label,
+      value: f.value,
+      riskLevel: f.riskLevel,
+    })),
+    clinicalFocus,
+  }
+}
+
+export function usePatientBriefing(summary: PatientSummary, queueEntryId: string) {
+  const report = useMemo(() => buildReport(summary), [summary])
+  const { isReady, prepStep } = useBriefingPreparation(queueEntryId, true)
+
+  return {
+    report,
+    isReady,
+    prepStep,
   }
 }

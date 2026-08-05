@@ -1,11 +1,14 @@
 import numpy as np
 import neurokit2 as nk  # For ECG preprocessing
 import chromadb  # For embedding storage
+import torch
 from sentence_transformers import SentenceTransformer
 import re
 from features import compute_all_features, to_legacy_features
 
 
+def _torch_device() -> str:
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
 
 # Single shared embedding model (lazy-loaded once)
@@ -16,15 +19,16 @@ _EMBED_MODEL = None
 def _get_embed_model():
     global _EMBED_MODEL
     if _EMBED_MODEL is None:
-        _EMBED_MODEL = SentenceTransformer(_EMBED_MODEL_NAME)
+        device = _torch_device()
+        _EMBED_MODEL = SentenceTransformer(_EMBED_MODEL_NAME, device=device)
+        print(f"[ecg-rag] SentenceTransformer loaded on {device}")
     return _EMBED_MODEL
 
 
 # Create Embeddings for Medical Knowledge Base
 def create_embeddings(texts):
     model = _get_embed_model()
-    embeddings = model.encode(texts, convert_to_tensor=True)
-    return embeddings
+    return model.encode(texts, convert_to_numpy=True)
 
 
 CHROMA_PATH = "./database/chroma_db"
@@ -74,7 +78,7 @@ def extract_full_features(ecg_signal, raw_signal, sig_names, sampling_rate=100):
 # Retrieve Similar Cases using RAG
 def retrieve_similar_cases(query, collection):
     model = _get_embed_model()
-    query_embedding = model.encode([query], convert_to_tensor=True)
+    query_embedding = model.encode([query], convert_to_numpy=True)
     results = collection.query(query_embeddings=query_embedding.tolist(), n_results=1)
         # Ensure there's always a status report
     if not results or 'documents' not in results or not results['documents']:

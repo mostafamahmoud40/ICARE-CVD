@@ -5,6 +5,7 @@ export type QueueStatus =
   | 'arrived'
   | 'waiting'
   | 'in-consultation'
+  | 'report-pending'
   | 'completed'
   | 'no-show'
   | 'cancelled';
@@ -19,6 +20,7 @@ export class UpdateQueueStatusDto {
     'arrived',
     'waiting',
     'in-consultation',
+    'report-pending',
     'completed',
     'no-show',
     'cancelled',
