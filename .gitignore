@@ -12,3 +12,9 @@ seed-database/*.sql
 # OS
 .DS_Store
 Thumbs.db
+
+# Local AI / Agent configs & patch files
+.claude/
+claude_code_zai_env.sh
+*.patch
+
