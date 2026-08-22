@@ -12,9 +12,9 @@ async function main() {
   await client.connect();
 
   try {
-    const email = 'admin@icare.com';
-    const name = 'System Admin';
-    const rawPassword = 'AdminSecretPassword2026!';
+    const email = process.env.ADMIN_EMAIL || 'admin@icare.com';
+    const name = process.env.ADMIN_NAME || 'System Admin';
+    const rawPassword = process.env.ADMIN_INITIAL_PASSWORD || 'AdminSecretPassword2026!';
     
     // Hash password using argon2id matching password.ts logic
     const passwordHash = await argon2.hash(rawPassword, { type: argon2.argon2id });
